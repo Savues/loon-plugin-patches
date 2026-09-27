@@ -58,20 +58,34 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 校验补丁完整性
+      - name: 校验 B 站退场是否完整
         run: |
-          python3 - <<'PY'
+          python3 - <<'PYEOF'
           import re, sys, pathlib
           s = pathlib.Path('plugins/BlockAds-Patched/BlockAds.patched.plugin').read_text(
               encoding='utf-8', errors='ignore')
-          need = ['displayUpList', 'purifyComment', 'optimizeRequest']
-          bad = [n for n in need if not re.search(r'^' + n + r'\s*=', s, re.M)]
-          if bad:
-              print(f"::error::补丁失效，缺少参数声明: {bad}")
-              print("::error::上游可能改了结构，需要更新 patch-blockads.py")
+          def norm(t): return t.replace('\\/', '/').replace('\\.', '.')
+          bili = re.compile(r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com)', re.I)
+          sec, live = None, []
+          for ln in s.splitlines():
+              t = ln.strip()
+              m = re.match(r'^\[([A-Za-z ]+)\]', t)
+              if m: sec = m.group(1).upper()
+              if sec in ('REWRITE', 'SCRIPT', 'RULE') and t and not t.startswith('#') \
+                 and bili.search(norm(t)):
+                  live.append(t)
+          mitm = re.search(r'^\[MITM\]([\s\S]*)', s, re.M)
+          bili_mitm = [h for h in re.split(r'[,\s]+', mitm.group(1))
+                       if h and bili.search(norm(h))] if mitm else []
+          if live or bili_mitm:
+              print("::error::B 站退场不完整")
+              for x in live[:5]: print("   残留规则:", x[:100])
+              for x in bili_mitm[:5]: print("   残留域名:", x)
+              print("::error::上游结构可能已变，需要更新 patches/patch-blockads.py")
               sys.exit(1)
-          print(f"::notice::3 个参数声明均已就位 (共 {len(s)} 字符)")
-          PY
+          n = s.count('bilibili-removed')
+          print(f"::notice::退场校验通过，已注释 {n} 条 B 站规则，MITM 无 B 站域名")
+          PYEOF
 
       - name: 提交并推送
         if: steps.patch.outputs.changed == 'true'
