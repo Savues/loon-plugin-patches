@@ -184,3 +184,40 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 
 - **Biliverse** — VirgilClyne, app2smile, Maasea <https://biliverse.github.io/>
 - 原始分发：<https://github.com/Biliverse/Enhanced/releases>
+
+## v2.2.0 · 修正 Bottom 键名
+
+**症状**：顶栏开关正常增减，底部导航**看得到默认值但开关无效**，其余功能不可用。
+
+**根因**：`La.replace` 读取底部导航用的键和前三组不一样 ——
+
+```js
+i.set(e,"top",     ... i.get(t,"Home.Top") ...)      // 顶栏
+i.set(e,"top_more",... i.get(t,"Home.Top_more") ...) // 标签栏
+i.set(e,"tab",      ... i.get(t,"Home.Tab") ...)     // 标签页
+i.set(e,"bottom",   ... i.get(t,"Bottom") ...)       // 底部 ← 顶层，没有 Home. 前缀
+```
+
+补丁写的是 `l.Home.Bottom`，脚本读的是 `l.Bottom` —— **永远读不到，于是回退默认值**。
+
+这也解释了「顶栏能用、底栏不能」：**两组补丁代码完全一样，唯一差别就是键名**。
+
+**修正**：`i.set(l,"Home.Bottom")` → `i.set(l,"Bottom")`，读取同步改为 `i.get(l,"Bottom")`。
+
+四组读写配对现已全部一致：
+
+| 字段 | 读 | 写 |
+|---|---|---|
+| 顶栏右侧 | `Home.Top` | `Home.Top` ✅ |
+| 标签栏右侧 | `Home.Top_more` | `Home.Top_more` ✅ |
+| 标签页 | `Home.Tab` | `Home.Tab` ✅ |
+| 底部导航 | `Bottom` | `Bottom` ✅ |
+
+## v2.1.0 · 放宽真值判断
+
+原 `T(x)` 只认布尔 `true` 与字符串 `"true"`。若 Loon 以 `1` / `"1"` / `on` / `"ON"` 传递 switch，
+全部误判为 false。改为：
+
+```js
+T = x => x===!0 || x===1 || x==="true" || x==="1" || x==="on" || x==="ON" || x==="yes"
+```
