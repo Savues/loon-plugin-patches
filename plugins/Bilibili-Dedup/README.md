@@ -534,3 +534,67 @@ app.bilibili.com/x/v2/account/mine          ← 我的页服务入口
 
 去重时不能按「谁做过」判断，该按「**这个功能由谁承担**」判断。
 当时把 blockAds 的 B 站规则整体当重复排除，漏掉了它独有的功能类规则。
+
+## v7.1：修复本地大会员
+
+### 现象
+
+v7 加了 `account/myinfo` 的 VIP 伪装，用户实测**本地会员依然没有**。
+
+### 根因
+
+VIP 伪装有**两个端点**，而我之前只迁了一个：
+
+| 端点 | VIP 伪装 | 原本归属 |
+|---|---|---|
+| `app.bilibili.com/x/v2/account/myinfo` | ✅ | 已迁入 |
+| **`app.bilibili.com/x/v2/account/mine`** | ✅ **且重写整个服务列表** | **判给了 Enhanced** |
+
+被排除的那条用的是 kokoryh 的 `bilibili.mine.jq`，它同时做三件事：
+
+```jq
+.data |= (
+    del(.answer, .live_tip, .vip_section, .vip_section_v2, .modular_vip_section) |
+    .vip_type = 2 |
+    .vip |= if . != null and .status == 0
+             then . + { status:1, type:2, due_date:9005270400000, role:15 } else . end |
+    ...重写 sections_v2 / ipad_sections / ipad_upper_sections / ... 全套...
+)
+```
+
+**把整个 `account/mine` 端点让给 Enhanced，等于把会员功能一起让了出去。**
+
+### v7.1 的处理
+
+加回 `account/mine`，但**只做 VIP，不重写 sections**：
+
+```ini
+^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\?
+  response-body-json-jq '.data |= (.vip_type = 2
+    | .vip |= if . != null and .status == 0
+              then . + { status:1, type:2, due_date:9005270400000, role:15 } else . end
+    | del(.answer, .live_tip, .vip_section, .vip_section_v2, .modular_vip_section))'
+```
+
+这样职责清晰：
+- **本插件** 负责 `vip` / `vip_type` 字段
+- **Enhanced** 负责「我的」页服务列表的可视化配置
+
+### ⚠️ 端点重叠提示
+
+`account/mine` 同时被本插件和 Enhanced 改写，**后执行者覆盖前者**：
+
+| 你装不装 Enhanced | 结果 |
+|---|---|
+| **不装** | ✅ 会员 + 去广告，全部完整 |
+| **装** | 需实测：若 Enhanced 的 script 先跑、jq 后跑 → 两者都生效；若相反 → VIP 可能被覆盖 |
+
+**若装了 Enhanced 后会员又消失**，说明顺序反了，把本条规则的 `?` 改成 `\\?` 之类微调即可定位，或干脆不装 Enhanced。
+
+### 另一个坑（我的验证失误）
+
+排查时我连续几次用 `grep 'account/myinfo'` 判断规则是否存在，**一律返回 0** ——
+因为文件里实际是 `account\/myinfo`（Loon 规则的正则转义），
+而我搜的是无转义的 `account/myinfo`。
+
+**教训：验证插件内容必须先归一化转义再比对**，直接 grep 原文会得到假阴性。
