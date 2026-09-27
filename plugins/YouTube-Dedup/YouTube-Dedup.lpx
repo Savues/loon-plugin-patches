@@ -1,0 +1,24 @@
+#!name=YouTube去广告(去重版)
+#!desc=针对「广告拦截合集内置重复脚本」的精简版。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。字幕翻译已强制关闭(该功能依赖的initplayback被合集插件无条件拦截，本就不可用)，字幕请交由「YouTube双语翻译」插件处理。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。需启用 MitM over HTTP/2 与 QUIC 回退保护。
+#!author=Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 去重版由 Minis 生成
+#!tag=去广告
+#!system=iOS, iPadOS, macOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://hub.kelee.one
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
+#!date=2026-09-27 17:55:00
+
+[Argument]
+blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
+blockShorts=switch, false, true, tag=隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
+blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
+debug=switch, false, true, tag=启用调试模式, desc=排查问题时开启，正常使用建议关闭
+
+[Script]
+http-response ^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug}], tag=YouTube去广告
+
+http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug}], tag=请求日志事件
+
+[MitM]
+hostname=youtubei.googleapis.com

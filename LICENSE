@@ -1,0 +1,15 @@
+本仓库仅包含 Loon 插件清单（.lpx / .plugin）文件，不包含上游 JavaScript 逻辑。
+
+上游去广告脚本版权归原作者所有：
+
+  Maasea       https://github.com/Maasea
+  VirgilClyne  https://github.com/VirgilClyne
+  Choler       https://github.com/Choler
+  DivineEngine https://github.com/DivineEngine
+  app2smile    https://github.com/app2smile
+
+本仓库的贡献仅限于 .lpx 清单文件中 MitM 域名、参数声明与规则条目的裁剪，
+未修改上游 JavaScript 逻辑的任何部分。
+
+上游代码的许可条款同样适用于本仓库中引用的所有 script-path 远程资源。
+使用前请自行确认原作者的许可条款。
