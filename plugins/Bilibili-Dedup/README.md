@@ -484,3 +484,53 @@ blockAds 侧的判定也扩展为 `hdslb.com|manhuaren`。
 
 > 教训：判定「B 站相关」不能只看主域名。B 站漫画走 `hdslb.com`（CDN）
 > 和 `manhuaren.com`（漫画 API），与 `bilibili.com` 无关。
+
+## v7：补全 17 条遗漏的 blockAds 规则
+
+v6 之前把 blockAds 的 B 站 Rewrite 规则当成「重复」整体排除，
+但其中**有 17 条提供的是功能而非去广告**，排除后全部丢失。
+
+### 最重要的一条：大会员伪装
+
+```ini
+^https:\/\/app\.bilibili\.com\/x\/v2\/account\/myinfo\? response-body-json-jq
+  '.data.vip |= if . != null and .status == 0 then
+     . + { status: 1, type: 2, due_date: 9005270400000, role: 15 } else . end'
+```
+
+伪装 `status/type/role` 三个字段，`due_date` 设为公元 2999 年。
+**不加这条就没有本地大会员。** v7 已加回，并提供 `localVIP` 开关可一键关闭。
+
+### 完整遗漏清单
+
+| 功能 | 规则 | 动作 |
+|---|---|---|
+| **大会员伪装** | `app.bilibili.com/x/v2/account/myinfo` | jq 改 vip 字段 |
+| **推荐页去广告** | `app.bilibili.com/x/v2/feed/index` | jq 过滤 banner/ad_info |
+| **短视频流去广告** | `app.bilibili.com/x/v2/feed/index/story` | jq |
+| **关闭 P2P** | `api.bilibili.com/x/pd-proxy/tracker` | jq 改写 tracker 地址 |
+| 去付费入口 | `api.bilibili.com/pgc/view/v2/app/season` | `del(.data.payment)` |
+| 番剧页模块过滤 | `api.bilibili.com/pgc/page/channel` | jq |
+| 开屏广告 | `app.bilibili.com/x/v2/splash/*` | jq |
+| 皮肤精简 | `app.bilibili.com/x/resource/show/skin` | `del data.common_equip` |
+| 搜索默认词 | `grpc.../Search/DefaultWords` | mock base64 |
+| 青少年模式 | `grpc.../Teenagers/ModeStatus` | mock base64 |
+| 播放页/完播页 | `grpc.../(view.v1.View/TFInfo\|viewunite.v1.View/ViewEndPage)` | mock 空响应 |
+| grpc 状态码 | 上述三条的合并规则 | `response-header-add grpc-status 0` |
+| 直播购物信息 | `api.live.bilibili.com/.../get_shopping_info` | reject-dict |
+| 游戏直播素材 | `line3-h5-mobile-api.biligame.com/.../large_card_material` | reject-dict |
+| 漫画接口 | `manga.bilibili.com/twirp/comic...` | reject-dict |
+| 广告位/活动页 | `ap[ip].bilibili.com/x/(resource/top/activity\|v2/search/square\|vip/ads/materials)` | mock 404 |
+| 活动投放 | `api.bilibili.com/pgc/activity/deliver/material/receive` | mock close_win |
+
+**归 Biliverse Enhanced 的 2 条未迁入**（避免冲突）：
+
+```
+app.bilibili.com/x/resource/show/tab/v2     ← 标签栏
+app.bilibili.com/x/v2/account/mine          ← 我的页服务入口
+```
+
+### 教训
+
+去重时不能按「谁做过」判断，该按「**这个功能由谁承担**」判断。
+当时把 blockAds 的 B 站规则整体当重复排除，漏掉了它独有的功能类规则。
