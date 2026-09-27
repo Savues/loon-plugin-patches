@@ -57,10 +57,6 @@ try {
       due_date: DUE,
       role: T.role,
       nickname_color: T.nickname_color,
-      // 昵称旁的小会员图标：开关置 1、URL 留空，App 渲染自带图标
-      // （依据 API 文档中真实账号样本：5/8 为 subscript=1 + url 空）
-      avatar_subscript: 1,
-      avatar_subscript_url: "",
       label: Object.assign({}, v.label || {}, {
         path: "",
         text: text,

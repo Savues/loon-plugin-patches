@@ -911,5 +911,6 @@ avatar_subscript_url: "",    // 留空 → App 渲染自带图标
 
 新增 `vipText` 输入框：**留空用主题默认，填了就覆盖**。这样以后想改文字不用再动插件。
 
-> v7.6.0 加的 `avatar_subscript`（昵称旁小会员图标）保留 ——
-> 那是独立字段，与牌子文字互不影响。若不想要，删掉脚本里那两行即可。
+> **v7.7.1 已按反馈删除 `avatar_subscript`** —— 那是昵�旁的小会员图标，
+> 与牌子文字无关，属多余。最终输出的 vip 字段：
+> `type` / `status` / `due_date` / `role` / `nickname_color` / `label`
