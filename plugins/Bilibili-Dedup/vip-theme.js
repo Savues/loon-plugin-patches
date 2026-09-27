@@ -33,7 +33,7 @@ const THEMES = {
     nickname_color: "#FB7299", image: ""
   },
   fools_day_hundred_annual_vip: {
-    text: "最强绿鲤鱼", role: 15,
+    text: "小会员", role: 15,
     label_theme: "fools_day_hundred_annual_vip", text_color: "#000000", bg_style: 1, bg_color: "#00E07C",
     nickname_color: "#00E07C", image: ""
   }
@@ -44,6 +44,7 @@ const T = THEMES[A.vipTheme] || THEMES.fools_day_hundred_annual_vip;
 const bg = A.vipBg || T.bg_color;
 const fg = A.vipFg || T.text_color;
 const img = A.vipImg || T.image || "";
+const text = A.vipText || T.text;   // 牌子文字，可手动覆盖
 
 try {
   const d = JSON.parse($response.body);
@@ -62,7 +63,7 @@ try {
       avatar_subscript_url: "",
       label: Object.assign({}, v.label || {}, {
         path: "",
-        text: T.text,
+        text: text,
         label_theme: T.label_theme,
         text_color: fg,
         bg_style: T.bg_style,
