@@ -1,13 +1,13 @@
-#!name=YouTube去广告(去重版)
-#!desc=针对「广告拦截合集内置重复脚本」的精简版。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。字幕翻译已强制关闭(该功能依赖的initplayback被合集插件无条件拦截，本就不可用)，字幕请交由「YouTube双语翻译」插件处理。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。需启用 MitM over HTTP/2 与 QUIC 回退保护。
-#!author=Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 去重版由 Minis 生成
+#!name=YouTube去广告(去重版) v5.0.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。字幕翻译已强制关闭(该功能依赖的initplayback被合集插件无条件拦截，本就不可用)，字幕请交由「YouTube双语翻译」插件处理。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!homepage=https://hub.kelee.one
+#!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-27 17:55:00
+#!date=2026-09-27 22:40:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -22,3 +22,4 @@ http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event scrip
 
 [MitM]
 hostname=youtubei.googleapis.com
+# ==== PLUGIN_VERSION: 5.0.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====

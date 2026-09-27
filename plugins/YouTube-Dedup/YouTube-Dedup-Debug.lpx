@@ -1,13 +1,13 @@
-#!name=YouTube去广告(完整版+调试)
-#!desc=原版功能全保留，支持字幕翻译。默认开启调试模式以便排查问题。需启用 MitM over HTTP/2 与 QUIC 回退保护。如果App加载卡顿，改用精简版。
-#!author=Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 调试版由 Minis 生成
+#!name=YouTube去广告(完整版+调试) v5.0.0
+#!desc=原版功能全保留，支持字幕翻译。默认开启调试模式以便排查问题。需启用 MitM over HTTP/2 与 QUIC 回退保护。如果App加载卡顿，改用精简版。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!homepage=https://hub.kelee.one
+#!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-27 17:20:00
+#!date=2026-09-27 22:40:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -25,3 +25,4 @@ http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event scrip
 
 [MitM]
 hostname=*.googlevideo.com, youtubei.googleapis.com
+# ==== PLUGIN_VERSION: 5.0.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
