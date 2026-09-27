@@ -363,9 +363,12 @@ v3 用它能立刻被拦下，v4 则报告 `覆盖 21/21 个端点`。
 **Loon 插件列表直接显示 `#!name`**，所以不用打开文件就能确认版本。
 
 > ⚠️ `raw.githubusercontent.com` 的 CDN 缓存可能长达 24h。
-> 若拉到的仍是旧版，用 jsDelivr：
-> `https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-Dedup/Bilibili-Dedup.lpx`
-> 判断标准：**标题里有没有 `v5`**。
+> 若拉到的仍是旧版，两种办法：
+> 1. 等缓存过期（实测约 1~24 小时不等）
+> 2. 在订阅地址末尾加一个随机参数强制刷新：
+>    `.../Bilibili-Dedup.lpx?cb=2`
+>
+> **判断是否为本版：Loon 插件列表里的标题有没有 `v5`。**
 
 ### 默认开关
 
