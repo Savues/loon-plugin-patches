@@ -668,3 +668,37 @@ Feed.Vertical / Search.HotSearch / Dynamic.HotTopics / DM.Colorful
 | Enhanced 脚本 | `sections_v2` / `ipad_sections` 服务列表 |
 
 已核实 `Ba.replaceSections` **不触碰 vip 字段**，两者改不同字段，与执行顺序无关。
+
+### v8.1 修正：空降助手被 ADBlock 的 Airborne 破坏
+
+**现象**：v8 上线后空降助手「不像以前那样工作了」。
+
+**根因**：两个脚本的空降助手同时生效，互相破坏。
+
+| | kokoryh sponsorBlock | ADBlock DM.Airborne |
+|---|---|---|
+| 依赖字段 | `chronos`（**15 处引用**） | 无 `chronos`（**0 处**） |
+| 数据来源 | `DM/DmSegMobile` 请求 | `DM/DmSegMobile` 响应 |
+| 实现 | `Qn` / `ti` handler | `Airborne` 独立实现 |
+
+ADBlock 的实现**根本不认识 `chronos` 字段**。两套同时跑时，
+它对 body 做的 protobuf 重序列化会把 kokoryh 写入的 `chronos` 丢掉，
+空降助手因此失效。
+
+另外 v8 里 ADBlock 的弹幕规则覆盖 `DM/(DmView|DmSegMobile)`，
+与 kokoryh protobuf 脚本的 `v1.DM/DmView` handler 重复：
+
+```js
+kokoryh fi: t.qoe=void 0; t.activityMeta.length=0; t.command.commandDms.length=0
+```
+
+**两个脚本改同一份 body。**
+
+**v8.1 的处理**：
+
+1. `DM.Airborne` 改回**默认关**，并在 desc 里写明「仅在 sponsorBlock 关闭时启用」
+2. ADBlock 的弹幕规则从 `DM/(DmView|DmSegMobile)` 收窄为 **`DM/DmView`**，
+   **不再碰 `DmSegMobile`**（那是 sponsorBlock 的唯一数据来源）
+3. 该规则加 `dmClean` 开关控制（默认开），弹幕去广告仍生效
+
+修正后 `DmSegMobile` 在整个插件里只出现 **1 次** —— 只有 kokoryh 的请求规则。
