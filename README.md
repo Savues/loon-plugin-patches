@@ -1,73 +1,67 @@
 # Loon 插件修改合集
 
-个人使用的 Loon 插件修改版合集。**仅收录 .lpx / .plugin 清单层改动，不修改任何上游 JavaScript 逻辑。**
+个人使用的 Loon 插件修改版合集。
 
-## 收录列表
-
-| 插件 | 说明 | 状态 |
-|---|---|---|
-| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds.plugin 的重复改写，收敛 MitM 范围 | 可用 |
-| [BlockAds-Patched](plugins/BlockAds-Patched/) | blockAds 打补丁版，自动同步上游，补齐 3 个缺失参数声明 |
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 合并 BiliUniverse + kokoryh，与 blockAds 合集去重 | 可用 v2 |
-
-## 收录原则
-
-1. **只改清单层** —— MitM 域名、`[Argument]` 参数、`[Script]` / `[Rewrite]` 规则条目
-2. **不改上游逻辑** —— 所有 `script-path=` 远程 JS 保持原样引用
-3. **注明依据** —— 每条改动都在插件自己的 README 里写清原因和证据
-4. **保留署名** —— 致谢与许可归属完整保留，详见 [LICENSE](LICENSE)
-
-## 订阅更新
-
-```
-# Loon 插件地址（示例）
-https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/plugins/YouTube-Dedup/YouTube-Dedup.lpx
-```
-
-## 🔄 自动同步
-
-`BlockAds-Patched` 由 GitHub Actions **每 6 小时自动同步上游并重施补丁**：
-
-```
-.github/workflows/sync-blockads.yml
-```
-
-- 手动触发：Actions 页面 → Sync blockAds → Run workflow
-- 可勾选是否同时应用 P002（禁用与 Biliverse Enhanced 冲突的 jq）
-- 上游无变化则不提交，避免刷屏
-- 补丁失效时**直接报错并终止**，不会推一个坏文件上去
-
-> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h。
-> Actions 推完，Loon 侧最多延迟一天才拿到新版 —— 属正常现象。
+**修改范围以「清单层」为主** —— MitM 域名、`[Argument]` 参数、`[Script]` / `[Rewrite]` 规则条目。
+个别插件（见下）额外托管了一份改造过的上游脚本，其改动**同样仅限于取参与去远程配置依赖**，不触碰业务逻辑。
 
 ---
 
-## 已收录案例
+## 收录列表
 
-| 案例 | 暴露的问题类型 |
+| 插件 | 用途 | 状态 |
+|---|---|---|
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 + 漫画净化 + 本地会员（5 主题可切） | **v7.9** |
+| [Bilibili-UI](plugins/Bilibili-UI/) | B 站首页标签页 / 底部导航真开关 | **v3.1** |
+| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写，收敛 MitM 范围 | 可用 |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场，Actions 自动同步 | 可用 |
+
+### 唯一托管改造脚本的插件
+
+[Bilibili-UI](plugins/Bilibili-UI/Bilibili-UI.lpx) —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，
+而 Loon 无法把多个开关拼成一个值传入，因此要实现真开关必须改取参逻辑。
+
+改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑（界面重建、protobuf 编解码）逐字节未动**。
+
+---
+
+## 收录原则
+
+1. **优先只改清单层** —— 能不改脚本就不改
+2. **确需改脚本时**，改动限于取参逻辑与远程配置依赖，保留完整原始注释说明
+3. **注明依据** —— 每条改动在插件 README 里写清原因和证据
+4. **保留署名** —— 上游作者与许可归属完整保留，见 [LICENSE](LICENSE)
+5. **记录踩坑** —— 走过的弯路写进 [BILIBILI-ITERATION.md](BILIBILI-ITERATION.md)，不留在插件 README 里
+
+---
+
+## 🔄 自动同步
+
+`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**：
+[`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)
+
+| 特性 | 说明 |
 |---|---|
-| [YouTube-Dedup](plugins/YouTube-Dedup/) | 合集内置同一份脚本（字节级相同）→ 功能时好时坏；`initplayback` 被无条件 reject |
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 参数名大小写不匹配、嵌套开关默认值写反、`[Rewrite]` 误用 Surge 语法、指向脚本未处理的死端点 |
+| 无变化 | 不提交，避免刷屏 |
+| 退场不完整 | **报错终止**，不推送坏产物 |
+| 手动触发 | Actions → Sync blockAds → Run workflow |
 
-> Bilibili-Dedup 的复盘记录了一个通用教训：
-> **引用远程脚本的插件，清单层的参数名、顺序、大小写必须与脚本实际读取的键逐一核对** ——
-> 三个缺陷全部无法通过阅读清单文件发现，且都**不报错、只静默失效**。
-> 详见该插件 README 第四节「v2 复查」与第五节「怎么发现这些问题的」。
+> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h，
+> Actions 推送后 Loon 侧最多延迟一天。拉不到新版时在订阅地址末尾加随机参数（如 `?cb=2`）。
+
+---
 
 ## 📖 开发记录
 
-- [B 站去广告 · 版本迭代全记录](BILIBILI-ITERATION.md) —— 49 次提交的完整复盘：每次改了什么、为什么错、怎么发现的
-- [patches/README.md](patches/README.md) —— blockAds 补丁集与自动同步
-- 各插件目录下的 README —— 单个插件的冲突分析与改动理由
+- [B 站去广告 · 版本迭代全记录](BILIBILI-ITERATION.md) —— 每个版本改了什么、为什么错、怎么发现的
+- [patches/README.md](patches/README.md) —— blockAds 退场范围与判定依据
 
 ---
 
 ## 免责声明
 
-- 仅供个人学习和研究使用
+- 仅供个人学习研究
 - 收录不代表对原插件的推荐或背书
 - 若上游作者不愿收录，请提 issue 即下架
 
-## 致谢与许可
-
-本仓库所有修改版均保留原作者署名。未修改上游 JavaScript 任何部分，上游版权与许可条款同样适用。完整声明见 [LICENSE](LICENSE)。
+上游版权与许可全部适用。

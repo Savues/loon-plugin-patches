@@ -1,80 +1,80 @@
-# blockAds.plugin 补丁
+# blockAds 退场补丁
 
-`blockAds.plugin`（fmz200/wool_scripts）由 `tools/splitRules/mergeLoon.js` 从
-`db/inaisi.db` 自动生成，直接跟踪 `main` 分支，**没有 tag / release**，
-无法引用固定版本，只能在本地生成打过补丁的副本。
+`blockAds.plugin`（[fmz200/wool_scripts](https://github.com/fmz200/wool_scripts)，730+ App）
+内置了 kokoryh 的完整 B 站规则集，与本仓库的 [Bilibili-Dedup](../plugins/Bilibili-Dedup/README.md) 功能重叠。
 
-## 用法
+本补丁把合集里的 **B 站部分整体退场**，其余 700+ App 逐字节不动。
+
+---
+
+## 订阅（推荐）
+
+```
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/BlockAds-Patched/BlockAds.patched.plugin
+```
+
+由 [GitHub Actions](../.github/workflows/sync-blockads.yml) **每 6 小时自动同步上游并重施补丁**。
+
+| 特性 | 说明 |
+|---|---|
+| 上游无变化 | 不提交，避免刷屏 |
+| 退场不完整 | **Action 报错终止**，不会推送坏产物 |
+| 手动触发 | Actions → Sync blockAds → Run workflow |
+
+---
+
+## 本地运行
 
 ```bash
-# 拉上游最新版 → 打补丁 → 输出
+# 拉上游最新版 → 打补丁
 python3 patch-blockads.py -o blockAds.patched.plugin
 
 # 对已下载的文件打补丁
-python3 patch-blockads.py blockAds.plugin -o blockAds.patched.plugin
+python3 patch-blockads.py blockAds.plugin -o out.plugin
 
-# 只看会改什么
+# 只看会改什么，不写文件
 python3 patch-blockads.py --dry-run blockAds.plugin -o /dev/null
 
-# 额外禁用与 Biliverse Enhanced 冲突的两条 jq
-python3 patch-blockads.py --with-tab-jq-block -o blockAds.patched.plugin
+# 保留 MITM 域名（仅注释规则，用于仍需解密 B 站流量的场景）
+python3 patch-blockads.py --keep-mitm -o out.plugin
 ```
 
-导入 Loon 时把订阅地址指向 `blockAds.patched.plugin`（建议放自己仓库的 raw 链接）。
+---
+
+## 退场范围
+
+| 段 | 数量 | 处理 |
+|---|---|---|
+| `[Rewrite]` | 23 | 注释 |
+| `[Script]` | 4 | 注释 |
+| `[Rule]` | 5 | 注释 |
+| `[MITM]` | 6 域名 | 移除 |
+| **合计** | **38** | — |
+
+判定依据是域名片段 `bilibili.com` / `biliapi.net` / `biliapi.com` / `biligame.com` / `hdslb.com` / `manhuaren`。
+
+> ⚠️ **易漏点**：B 站漫画走的是 `hdslb.com`（CDN）和 `manhuaren.com`（漫画 API），
+> **都不含 `bilibili.com`**。只匹配主域名会漏掉 6 条规则 —— 这是实际踩过的坑。
+
+---
 
 ## 设计原则
 
-- **声明式**：按参数名 / 规则特征定位，不依赖行号 —— 上游增删行后补丁仍能重放
-- **幂等**：已打过补丁的版本再跑一次不会重复插入
-- **最小改动**：除补丁条目外，其余内容逐字节保持原样
+- **声明式**：按域名特征定位，不依赖行号，上游增删行后仍能重放
+- **幂等**：已打过补丁的版本再跑一次不重复注释
+- **最小改动**：除补丁条目外逐字节保持原样
+- **可验证**：Action 每次运行都做「残留检查」，有残留即失败
 
-## 补丁集
+---
 
-### P001 · 补齐 kokoryh 脚本引用的 3 个未定义参数（默认应用）
+## 上游更新后
 
-blockAds 的 `[Script]` 段调用 kokoryh 的 `bilibili.protobuf.response.js`。
-该脚本**内置默认值**：
+无需手动操作，Action 会自动处理。若补丁失效（上游改了结构），
+Action 会报错，此时需更新 `patch-blockads.py` 里的域名判定。
 
-```js
-var L = Bn({displayUpList:"show", purifyComment:!0, sponsorBlock:!0})
-initArgument(e){ Object.assign(this.argument, e) }   // 传入值覆盖默认值
-```
+## 致谢
 
-但 blockAds 的 `[Argument]` 只声明了 `sponsorBlock` 和 `logLevel`。
-另外三个未声明的参数传入 `undefined`，会**覆盖掉脚本的正常默认值**：
+- **奶思 / fmz200** <https://github.com/fmz200/wool_scripts> — 原作者
+- **kokoryh** <https://github.com/kokoryh> — B 站 protobuf 脚本作者
 
-| 参数 | 脚本默认 | blockAds 传入 | 后果 |
-|---|---|---|---|
-| `sponsorBlock` | `true` | `true` | ✅ 正常（所以空降助手可用） |
-| `purifyComment` | `true` | `undefined` | ❌ 评论区电商广告过滤被跳过 |
-| `displayUpList` | `"show"` | `undefined` | ❌ 走 `auto` 分支而非 `show` |
-
-更严重的是 `bilibili.request` 规则写着 `enable={optimizeRequest}`，
-而 `optimizeRequest` **未声明** —— 该规则**永不生效**，评论区加载优化完全没跑。
-
-补丁只增加 3 行声明，**不删除任何规则**。
-
-### P002 · 禁用与 Biliverse Enhanced 冲突的两条 jq（`--with-tab-jq-block`）
-
-blockAds 里有两条 `response-body-json-jq`，会**整体重写**响应体：
-
-```
-show/tab/v2   →  .data.tab / .data.top / .data.bottom  全部写死
-account/mine  →  我的页服务入口写死
-```
-
-而 Biliverse Enhanced 也改写这两个端点，**后执行者覆盖前者**。
-
-补丁将这两行注释掉（加 `# [patched]` 前缀），原文保留在文件里可随时还原。
-
-> 副作用：顶栏、标签栏、底部导航栏将回到 B 站默认，无法自定义。
-> 不装 Enhanced 就别加这个开关。
-
-## 上游更新后怎么办
-
-```bash
-python3 patch-blockads.py -o blockAds.patched.plugin
-```
-
-一条命令重新生成。如果输出里出现 `无变化` 说明上游已经自己修好了，
-可以去掉对应补丁。补丁失效会在 `--dry-run` 时直接暴露。
+上游版权与许可全部适用。
