@@ -205,3 +205,59 @@ sponsorBlock 需要下载 `kokoryh/chronos` 的 zip，且 MD5 映射表只有 6 
 | `Bilibili-Dedup` v7.9 | `.../plugins/Bilibili-Dedup/Bilibili-Dedup.lpx` | 30 参数，含本地会员（5 主题可切） |
 | `Bilibili-UI` v3.1 | `.../plugins/Bilibili-UI/Bilibili-UI.lpx` | 20 参数，标签页 + 底栏真开关 |
 | `patch-blockads.py` | `.../patches/patch-blockads.py` | B 站退场补丁 + Actions 自动同步 |
+
+---
+
+# 附：本地会员（v7.0 ~ v7.12）
+
+## 版本线
+
+| 版本 | 内容 |
+|---|---|
+| v7.0 | 从 blockAds 迁入 localVIP（只改 myinfo） |
+| v7.1 | 补 account/mine → **会员首次生效** |
+| v7.2 | 加 label.label_theme（百年） |
+| v7.3 | 改「最强绿鲤鱼」→ 生效 |
+| v7.4 | localVIP 死开关 → 迁到 [Script]，开关可用 |
+| v7.5 | 五主题独立配置 |
+| v7.6 | 加 avatar_subscript → 用户「多此一举」 |
+| v7.7 | 牌子**文字**改「小会员」 |
+| v7.7.1 | 删 avatar_subscript |
+| v7.8 | 推断 use_img_label 挡文字 → 强制 false |
+| v7.8.1 | 回退（**误判**） |
+| v7.9 | due_date 改回毫秒 |
+| **v7.10** | 空间页会员伪装 → **无效** |
+| v7.10.1 | 补 label.image → **无效** |
+| **v7.11** | 改写 card.vip → **生效** |
+| v7.12 | 字段与 myinfo 侧对齐 |
+
+## 三次误判
+
+| 误判 | 事实 |
+|---|---|
+| use_img_label:true 会挡住文字 | 文字与图片**并存**，该字段管另一张图 |
+| due_date 该用秒级 | 原生是**毫秒**，三个来源中只有 zirawell 是秒 |
+| 空间页缺 label.image | 真正原因是 **card.vip 根本没被写** |
+
+## 决定性证据：抓包三连
+
+| 抓包 | data.vip | card.vip | 说明 |
+|---|---|---|---|
+| 非会员主页（基线） | 无字段 | vipStatus:0 | 灰色来源 |
+| v7.10 注入后 | vipStatus:1 | **vipStatus:0** | App 读后者 → 无效 |
+| v7.11 注入后 | vipStatus:1 | **vipStatus:1** | 生效 |
+
+**空间页有两份 vip，主页顶栏读的是 data.card.vip。**
+连着两版只写 data.vip —— 字段值全对，但写在没人读的字段上。
+
+## 另一个发现
+
+App 对空间页会员标**走文字渲染**（text + bg_color），
+抓包里**一次 /bfs/vip/ 图片请求都没有**。所以 v7.10.1 补 image 是无效尝试。
+
+## 教训（补充第 8 条）
+
+> **字段「注入成功」不等于「生效」。**
+> 改响应体前必须先确认 **App 实际读的是哪个字段** ——
+> 同一份响应里可能有 data.vip 和 data.card.vip 两份，只有后者被用。
+> 这只能靠「注入前 vs 注入后」抓包对比，猜是猜不出来的。
