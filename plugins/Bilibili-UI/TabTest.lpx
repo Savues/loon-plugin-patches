@@ -1,14 +1,14 @@
 #!name=哔哩哔哩标签页测试
-#!desc=Bilibili-UI 的首页标签页功能单点测试版。真开关由本仓库托管的 Enhanced.response.js 支持（仅改标签页取参一处）。8 个常用标签页可直接点选；完整约 60 项仍需在 App 分区页用原生「快捷访问」配置。需启用 MitM over HTTP/2。
-#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
+#!desc=Bilibili-UI 首页标签页真开关测试版。已彻底移除 BoxJS / PersistentStore 支持，配置只读本插件参数页。8 个常用标签页可直接点选；完整约 60 项请在 App 分区页用原生「快捷访问」配置。需启用 MitM over HTTP/2。
+#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造+去BoxJS: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/Biliverse/Enhanced/raw/main/src/assets/icon_rounded.png
 #!tag=测试,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-28 00:50:00
-# ==== PLUGIN_VERSION: 0.1.0-test | BUILD_BY: Savues | 上游 Biliverse 已弃坑 ====
+#!date=2026-09-28 01:20:00
+# ==== PLUGIN_VERSION: 0.2.0-test | BUILD_BY: Savues | BoxJS 已移除 ====
 
 [Argument]
 Home.Switch = switch,true,tag=[首页] 启用自定义
@@ -22,11 +22,10 @@ Home.Tab_801 = switch,false,tag=[首页] 标签页 韩综（港澳台）
 Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
 Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
 Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方开关一个都没开时生效。逗号分隔
-Storage = select,"Argument","PersistentStore","database",tag=[储存] 配置类型,desc=保持 Argument 则只读本插件参数页
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Storage},{LogLevel}], tag=首页标签页
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{LogLevel}], tag=首页标签页
 
 [Mitm]
 hostname=app.bilibili.com, app.biliapi.net, grpc.biliapi.net
