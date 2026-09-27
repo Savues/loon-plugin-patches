@@ -54,6 +54,14 @@ https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/plugins/You
 > 三个缺陷全部无法通过阅读清单文件发现，且都**不报错、只静默失效**。
 > 详见该插件 README 第四节「v2 复查」与第五节「怎么发现这些问题的」。
 
+## 📖 开发记录
+
+- [B 站去广告 · 版本迭代全记录](BILIBILI-ITERATION.md) —— 49 次提交的完整复盘：每次改了什么、为什么错、怎么发现的
+- [patches/README.md](patches/README.md) —— blockAds 补丁集与自动同步
+- 各插件目录下的 README —— 单个插件的冲突分析与改动理由
+
+---
+
 ## 免责声明
 
 - 仅供个人学习和研究使用
