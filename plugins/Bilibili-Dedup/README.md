@@ -831,3 +831,33 @@ jq 实测三种输入：
 
 > ⚠️ 若 App 仍显示普通大会员，说明它还校验 `img_label_uri_*` 牌子图片地址，
 > 届时需要补上百年大会员的图片 URL（文档里只给了十年的样本）。
+
+
+## v7.3.0 · 会员主题改回「最强绿鲤鱼」
+
+B 站 `label.label_theme` 的全部可选值（来自 API 文档）：
+
+| `label_theme` | 显示 |
+|---|---|
+| `vip` | 大会员 |
+| `annual_vip` | 年度大会员 |
+| `ten_annual_vip` | 十年大会员 |
+| `hundred_annual_vip` | 百年大会员 |
+| **`fools_day_hundred_annual_vip`** | **最强绿鲤鱼** |
+
+改成愚人节特供的绿鲤鱼主题：
+
+```jq
+label: ((.label // {}) + { text: "最强绿鲤鱼",
+                            label_theme: "fools_day_hundred_annual_vip",
+                            text_color: "#000000",
+                            bg_color: "#00E07C",
+                            use_img_label: false })
+```
+
+`role` 仍为 **15**（百年）—— 绿鲤鱼本身是「百年」系列的愚人节彩蛋，role 不变。
+
+> ⚠️ **颜色是推测的**：文档只说明 `bg_color` 「曾用于愚人节改变大会员配色」，
+> 未给出绿鲤鱼的准确色值。这里用黑字 `#000000` + 亮绿底 `#00E07C`。
+> 若显示效果不对，把 App 里实际的配色告诉我，或直接改成你想要的值。
+> 真实颜色属于**读取**响应，不能伪造 —— 只能靠猜或实测。
