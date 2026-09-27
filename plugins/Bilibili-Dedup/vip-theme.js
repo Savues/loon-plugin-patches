@@ -66,9 +66,6 @@ try {
         bg_color: bg,
         border_color: "",
         image: img,
-        // 原响应自带 use_img_label:true + B站通用大会员图，
-        // App 会走图片渲染从而忽略我们设置的文字。强制关闭以走文字渲染。
-        use_img_label: false
       })
     });
   }
