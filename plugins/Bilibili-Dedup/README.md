@@ -291,3 +291,59 @@ blockAds 合集**无需任何改动**，其 B 站部分继续提供空降助手�
 - **fmz200**（blockAds 合集，仅作为去重参照）— <https://github.com/fmz200/wool_scripts>
 
 上游版权与许可条款全部适用。
+
+## v4 修正：补回 `https://` 前缀（v2/v3 的根本缺陷）
+
+### 现象
+
+v2 和 v3 启用后，**视频页右侧推荐广告仍在**；但同时启用 kelee 插件则广告消失。
+
+### 原因：protobuf 规则从未执行
+
+v2/v3 的两条 kokoryh 规则都**缺少 `https:\/\/` 前缀**：
+
+```
+kelee : ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(...)
+v2/v3 :     (grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(...)   ← 缺
+```
+
+Loon 的 `^` 锚定 **URL 开头**，而真实 URL 形如
+`https://grpc.biliapi.net/bilibili.app.viewunite.v1.View/AIRelateAsync`。
+
+正则从 `grpc` 起始匹配，**永远匹配不到任何请求**。这类错误：
+
+- 正则语法完全合法，Loon 加载**不报错**
+- 规则显示在插件里、参数齐全、开关可点
+- 但一次都不会触发 —— **整个 protobuf 净化链是空转的**
+
+这解释了为什么 v2 补了 `AIRelateAsync` 仍然无效：不是那一条漏了，是
+**两条规则全部失效**。评论净化、最常访问显示、右侧推荐过滤统统没跑。
+
+### 两个版本的错误叠加
+
+| 版本 | 缺陷 | 后果 |
+|---|---|---|
+| v2 | 缺 `AIRelateAsync` | 右侧 AI 推荐未过滤 |
+| v3 | 补了 `AIRelateAsync`，但仍缺协议前缀 | 规则整体不触发，补了也白补 |
+| **v4** | 补 `https:\/\/` 前缀 | 21 个真实端点全部命中 |
+
+### 教训
+
+**URL 正则不能靠肉眼比对，必须用真实 URL 实跑。**
+
+已据此新增 `scripts/rule-test.py`（随本仓库一并维护在 loon-plugin-patching skill 中）：
+
+```bash
+rule-test.py <插件文件> --urls urls.txt
+```
+
+它会做两件事：
+
+1. **协议前缀体检** —— 扫描所有 `[Script]` 规则，标出缺 `https://` 前缀的
+2. **真实 URL 实跑** —— 用 Python `re` 对实际端点逐条测试命中情况
+
+v3 用它能立刻被拦下，v4 则报告 `覆盖 21/21 个端点`。
+
+> 顺带说明：早期 v2→v3 的排查中，我用"和 kelee 的规则串做字符级 diff"来定位，
+> 那个方法在这里是**失效**的 —— 两个字符串确实只差前缀，但"差什么"靠眼看，
+> "能不能匹配"只能靠实跑。
