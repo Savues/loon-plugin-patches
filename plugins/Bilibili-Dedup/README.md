@@ -702,3 +702,37 @@ kokoryh fi: t.qoe=void 0; t.activityMeta.length=0; t.command.commandDms.length=0
 3. 该规则加 `dmClean` 开关控制（默认开），弹幕去广告仍生效
 
 修正后 `DmSegMobile` 在整个插件里只出现 **1 次** —— 只有 kokoryh 的请求规则。
+
+### v8.2 修正：移除 3 条与 kokoryh 抢端点的 ADBlock 规则
+
+v8.1 只关掉了 `DM.Airborne` 开关，**空降助手仍然失效**。真正原因是在 kokoryh 独占的端点上，
+ADBlock 仍在做 protobuf 重序列化：
+
+| 规则 | ADBlock 端点 | kokoryh 路由 |
+|---|---|---|
+| ~~A播放页~~ | `app.playurl.v1.PlayURL/PlayView` | `playurl.v1.PlayURL/PlayView` |
+| ~~A弹幕~~ | `community.service.dm.v1.DM/DmView` | `v1.DM/DmView` |
+| ~~A番剧播放~~ | `pgc.gateway.player.v2.PlayURL/PlayView` | `v2.PlayURL/PlayView` |
+
+**空降助手的 `chronos` 正是写在这三个端点的响应里的。**
+ADBlock 的 Airborne 关了，但它对同一份 body 的其他改写照样会重序列化，
+把 kokoryh 写入的 `chronos` 冲掉 —— 所以开关关了也没用。
+
+v8.2 直接**移除这 3 条规则**，让 kokoryh 独占相关端点。
+它们的主要去广告能力（播放页广告、弹幕广告、番剧播放页）kokoryh 脚本本就覆盖：
+
+```
+playurl.v1.PlayURL/PlayView  -> Yn
+v1.DM/DmView                -> fi   (清 qoe / activityMeta / commandDms)
+v2.PlayURL/PlayView         -> di
+```
+
+### 空降助手规则对齐 blockAds 原版
+
+请求规则的 host 段改为与 blockAds 完全一致：
+
+```
+^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$
+```
+
+响应侧 `sponsorBlock` 参数保持在 kokoryh 的 Protobuf处理 规则里，与 blockAds 一致。
