@@ -1,4 +1,4 @@
-#!name=哔哩哔哩去广告(合并版) v7.1
+#!name=哔哩哔哩去广告(合并版) v7.2
 #!desc=[插件版本 v6.0 / 构建 2026-09-27T23:10] 与 blockAds 合集去重。v6 起接管合集的漫画去广告与空降助手请求侧，合集B站部分已整体退场。。修 v2-v4 的致命缺陷：protobuf 规则缺 https:// 前缀导致完全空转。默认全开去广告。确认是否为本版：在插件里搜 PLUGIN_VERSION 或看标题 v5。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
@@ -7,8 +7,8 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
-#!date=2026-09-27 23:10:00
-# ==== PLUGIN_VERSION: 7.1.0 | BUILD_BY: Savues | 协议前缀: OK | 端点覆盖: 21/21 ====
+#!date=2026-09-28 04:15:00
+# ==== PLUGIN_VERSION: 7.2.0 | 本地会员升级为「百年大会员」=====
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
@@ -29,7 +29,7 @@ Dynamic.AdCard = switch,true,tag=[动态] 去除广告卡片
 View.AD = switch,true,tag=[用户投稿] 去除视频广告
 DM.Command = switch,true,tag=[弹幕] 去除交互式弹幕
 DM.Colorful = switch,true,tag=[弹幕] 替换彩色弹幕,desc=⚠️非广告，会把会员彩色弹幕降级
-localVIP = switch,true,tag=本地大会员伪装,tag=本地大会员伪装,desc=自 blockAds 迁入，关闭后恢复真实会员状态
+localVIP = switch,true,tag=本地百年大会员,desc=role 15 + label_theme hundred_annual_vip；关闭后恢复真实会员状态
 mangaAD = switch,true,tag=[漫画] 去除广告,desc=自 blockAds 迁入
 Reply.AD = switch,true,tag=[评论] 去除广告
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
@@ -50,7 +50,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 [Rewrite]
 
 # ==== D2. 本地大会员伪装（端点与 Enhanced 重叠，详见 README）====
-^https:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? response-body-json-jq '.data |= (.vip_type = 2 | .vip |= if . != null and .status == 0 then . + { status: 1, type: 2, due_date: 9005270400000, role: 15 } else . end | del(.answer, .live_tip, .vip_section, .vip_section_v2, .modular_vip_section))'
+^https:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? response-body-json-jq '.data |= (.vip_type = 2 | .vip |= if . != null and .status == 0 then . + { status: 1, type: 2, due_date: 9005270400000, role: 15, label: ((.label // {}) + { text: "百年大会员", label_theme: "hundred_annual_vip", text_color: "#FFFFFF", bg_color: "#FB7299", use_img_label: false }) } else . end | del(.answer, .live_tip, .vip_section, .vip_section_v2, .modular_vip_section))'
 # ==== D. 自 blockAds 迁入的 JSON 改写（v7 补全）====
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 ^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\? reject-dict
@@ -68,7 +68,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 ^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
-^https:\/\/app\.bilibili\.com\/x\/v2\/account\/myinfo\? response-body-json-jq '.data.vip |= if . != null and .status == 0 then . + { status: 1, type: 2, due_date: 9005270400000, role: 15 } else . end'
+^https:\/\/app\.bilibili\.com\/x\/v2\/account\/myinfo\? response-body-json-jq '.data.vip |= if . != null and .status == 0 then . + { status: 1, type: 2, due_date: 9005270400000, role: 15, label: ((.label // {}) + { text: "百年大会员", label_theme: "hundred_annual_vip", text_color: "#FFFFFF", bg_color: "#FB7299", use_img_label: false }) } else . end'
 ^https?:\/\/manga\.bilibili\.com\/twirp\/comic\.v\d\.Comic\/(?>Recommend|MoreRecommend|Flash|ListFlash|GetBubbles|GetActivityTab|GetCommonBanner|GetComicConfigPicList|SearchBanner|AppInit) - reject-200
 # ==== 漫画去广告（自 blockAds 迁入）====
 ^https?:\/\/i\d\.hdslb\.com\/bfs\/manga-static\/\w+\.(?>jpg|png)$ - reject-200

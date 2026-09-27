@@ -786,3 +786,48 @@ v8.0 把两个 BiliUniverse 脚本包（Enhanced v0.6.0 + ADBlock v0.6.27）并�
 - **短期**：用 v7.1 + **原版 blockAds**（你已验证过的组合），空降助手由 730 负责
 - **长期**：若要彻底移除 730 的 B 站部分，需开 `LogLevel=ALL` 抓日志，
   搜索 `MD5 mismatch` 确认是否命中 chronos 映射表缺失
+
+
+## v7.2.0 · 本地会员 → 百年大会员
+
+原规则已写 `role: 15`，但 **`role` 只是大角色类型，App 显示什么由 `vip.label` 决定**。
+原规则没设 `label`，所以界面显示的是普通大会员。
+
+依据 B 站 API 文档（`bilibili-api-collect/docs/user/info.md`）：
+
+| 字段 | 取值 |
+|---|---|
+| `role` | 1 月度 / 3 年度 / **7 十年** / **15 百年** |
+| `type` | 0 无 / 1 月度 / 2 年度及以上（百年也归此类） |
+| `label.label_theme` | `vip` 大会员 · `annual_vip` 年度 · `ten_annual_vip` 十年 · **`hundred_annual_vip` 百年** · `fools_day_hundred_annual_vip` 最强绿鲤鱼 |
+| `label.text` | `大会员` / `年度大会员` / `十年大会员` / **`百年大会员`** / `最强绿鲤鱼` |
+
+改动的 jq（`myinfo` 与 `account/mine` 两处同步）：
+
+```jq
+.data.vip |= if . != null and .status == 0 then
+  . + { status: 1, type: 2, due_date: 9005270400000, role: 15,
+        label: ((.label // {}) + { text: "百年大会员",
+                                    label_theme: "hundred_annual_vip",
+                                    text_color: "#FFFFFF",
+                                    bg_color: "#FB7299",
+                                    use_img_label: false }) }
+  else . end
+```
+
+- `((.label // {}) + {...})` 保留原有 label 字段（如 `path`），只覆盖需要的
+- `use_img_label: false` —— 走文字渲染而非图片牌子，避免缺 `img_label_uri_*` 导致破图
+- `due_date: 9005270400000` 已是公元 2999 年，等同永久
+
+jq 实测三种输入：
+
+| 输入 | 结果 |
+|---|---|
+| 未开通、有 label | ✅ 写入 `label_theme: hundred_annual_vip`，原 `path` 保留 |
+| 未开通、无 label | ✅ 完整创建 label 对象 |
+| 已开通 | ✅ 不改动（`status != 0` 走 else 分支） |
+
+参数 `localVIP` 改名为「本地百年大会员」，关闭即恢复真实状态。
+
+> ⚠️ 若 App 仍显示普通大会员，说明它还校验 `img_label_uri_*` 牌子图片地址，
+> 届时需要补上百年大会员的图片 URL（文档里只给了十年的样本）。
