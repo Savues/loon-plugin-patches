@@ -216,6 +216,47 @@ MITM 新增域名:               api.vc.bilibili.com（唯一）
 
 ---
 
+## v3 修正：补回 AIRelateAsync（v2 回归）
+
+### 现象
+
+使用 v2 后，**视频页右上角推荐位出现广告**（标签「广告 / 立即下载」）。
+
+### 原因
+
+v2 的 protobuf 响应规则是从 `blockAds` 抄的，比 `kelee` 少一个端点：
+
+```
+kelee    : view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)
+blockAds : view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed)
+v2 合并版 : view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed)      ← 缺
+```
+
+`AIRelateAsync` 即**右侧 AI 推荐栏**，其处理函数无条件执行、不受任何参数控制：
+
+```js
+si=(a,e)=>{
+  let t=jt.fromBinary(a.response.bodyBytes)
+  return t.cm=void 0,                            // 删除广告位
+         t.module.modules=oi(t.module.modules),  // 过滤 type 18/29/37/55/63 的广告卡
+         ...
+}
+function oi(a){ let e=[18,29,37,55,63]; return a.filter(t=>!e.includes(t.type) && ...) }
+```
+
+### 教训
+
+去重时不能只看「谁覆盖得多」，要看**谁覆盖得全**。
+`blockAds` 的版本是从 kelee 抄的**删减版**（少 `AIRelateAsync`），
+我以它为基准做去重，等于继承了它的删减 —— **而删掉的部分正是 blockAds 自己缺失的功能**。
+
+正确做法：**以覆盖面最全的那一份为基准**去算差集，而不是以需要「让开」的那份为基准。
+
+### 修正
+
+v3 将 `AIRelateAsync` 补回，与 kelee 端点列表完全一致。
+Rewrite 层与 Script 层对 blockAds 的重叠仍为 0。
+
 ## 七、安装
 
 1. **禁用** kelee 哔哩哔哩去广告
