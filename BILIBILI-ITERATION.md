@@ -1,4 +1,15 @@
 # B 站去广告 · 版本迭代全记录
+# Bilibili Ad-Block · Full Iteration Log
+
+> 记录每个版本改了什么、为什么错、怎么发现的。
+> Every version: what changed, why it was wrong, and how the mistake was found.
+
+**English summary** — 49 commits, 2026-09-27. Six failure patterns emerged; the most costly
+was *injecting a field the app never reads* (two `vip` objects on the profile page — the header
+reads `data.card.vip`, the plugin wrote `data.vip`). The second was *copying another author's
+implementation without checking the native response* (a `due_date` unit mistake). The decisive
+tool throughout was diffing a "plugin off" HAR against a "plugin on" HAR.
+
 
 > 2026-09-27 一天，49 次提交，从 v1 一路到 v9。
 > 这份文档记录**每个版本改了什么、为什么错、怎么发现的**，而不只是改了什么。

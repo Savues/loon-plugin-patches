@@ -1,10 +1,10 @@
-# tools
+# tools · 抓包对比工具 · HAR Diff Tool
 
-## har-diff.py
+## har-diff.py — 抓包对比 · HAR Diff
 
 对比两份 HAR，输出「插件改了哪些字段」并**检测无效改动**。
 
-### 为什么需要它
+### 为什么需要它 · Why
 
 Loon 插件改响应体时，**「注入成功」不等于「生效」**。
 
@@ -19,7 +19,7 @@ Loon 插件改响应体时，**「注入成功」不等于「生效」**。
 
 这个坑靠读代码发现不了，**只能靠「注入前 vs 注入后」的抓包对比**。
 
-### 用法
+### 用法 · Usage
 
 ```bash
 # 插件关 vs 插件开
@@ -35,7 +35,7 @@ python3 har-diff.py baseline.har modified.har --endpoint /x/v2/space
 python3 har-diff.py baseline.har modified.har --json
 ```
 
-### 输出
+### 输出 · Output
 
 ```
 ▌/x/v2/space   +22 -0 ~1
@@ -48,7 +48,7 @@ python3 har-diff.py baseline.har modified.har --json
 
 **`⚠` 是核心** —— 它把「改了 A 副本却漏了孪生副本 B」直接指出来。
 
-### 检测规则
+### 检测规则 · Detection rules
 
 1. **base64 自动解码** —— iOS 抓包的 `content.text` 常是 base64
 2. **递归拍平** —— `data.card.vip.vipStatus` 变成点路径，逐字段对比
@@ -59,7 +59,7 @@ python3 har-diff.py baseline.har modified.har --json
    否则 `text`/`name` 这类叶子会满树误报
 5. **端点集合校验** —— 两次抓包范围不同会提示，对比结果不可靠
 
-### 验证
+### 验证 · Regression
 
 用 2026-09-27 的真实抓包回归：
 

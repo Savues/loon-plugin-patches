@@ -1,81 +1,72 @@
-# YouTube-Dedup
+# YouTube-Dedup · 哔哩哔哩同源去重版
 
-> 消除与 `blockAds.plugin` 的重复改写，收敛 MitM 范围。
+> 消除与 blockAds 的重复改写，收敛 MitM 范围。
+> Removes duplicated rewrites against blockAds; narrows the MITM surface.
 
-## 适用场景
+**可用 OK** · 3 个变体 · 3 variants
 
-同时启用了以下三者时使用本插件：
+---
 
-- `blockAds.plugin`（奶思/fmz200，730+ App 广告合集）
-- `YouTube去广告`（Maasea / VirgilClyne 等）
-- `YouTube双语翻译`（VirgilClyne）
+## 适用场景 · Use case
 
-## 冲突分析
+同时启用 `blockAds` 与本插件会导致 YouTube 响应被改写两遍。
+Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
-### 1. 同一份脚本跑两遍
+---
 
-`blockAds.plugin` 的 `[Script]` 段内置：
+## 冲突分析 · Conflict analysis
 
-```
-script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js
-enable={youtube_enable}     # 默认 true
-```
+| # | 冲突 | 说明 |
+|---|---|---|
+| 1 | **同一份脚本跑两遍** | blockAds 内置 Maasea 的 `youtube.response.js`，与 kelee 的版本**字节级相同**（Build 注释后逐字节一致） |
+| 2 | **`initplayback` 被无条件拦截** | blockAds 有一条 `reject` 规则，**无 `enable` 保护**，会拦掉字幕翻译所依赖的端点 |
+| 3 | **`*.youtube.com` 被解密** | 字幕翻译插件声明解密主域，每个静态资源多一次 TLS 握手 |
 
-独立插件使用 `YouTube_remove_ads_response.js`（来自 kelee.one）。
+---
 
-**实测比对：两份脚本 Build 注释之后的代码逐字节一致**，仅差末尾换行符与 kelee 多出的 115 字符版权注释。
+## 改动对照 · What changed
 
-同一份逻辑对同一个 `player` 响应执行两遍，protobuf 编解码也做两遍。
-
-### 2. `initplayback` 被无条件拦截
-
-`blockAds.plugin` 的 `[Rewrite]` 段：
-
-```
-^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict
-```
-
-无 `enable=` 保护，默认无条件生效。而独立去广告插件的字幕翻译功能依赖该端点。
-
-### 3. `*.youtube.com` 被解密
-
-`YouTube双语翻译` 声明解密 `www.youtube.com` / `m.youtube.com` / `tv.youtube.com` / `music.youtube.com`，这是 App 加载卡顿的主要来源。
-
-## 改动对照
-
-| 项目 | 原版 | 本版 |
+| | 原版 | 本插件 |
 |---|---|---|
 | `[MitM]` | `*.googlevideo.com` + `youtubei.googleapis.com` | 仅 `youtubei.googleapis.com` |
-| `captionLang` 参数 | 6 个选项 | 移除 |
-| `googlevideo` 请求规则 | 有 | 移除 |
-| 覆盖端点 | browse/next/player/search/reel/guide/get_setting/get_watch/log_event/config | 不变 |
-| 去广告 / 画中画 / 后台播放 / 隐藏按钮 | ✅ | ✅ 完整保留 |
+| `captionLang` | 6 个选项 | **移除**（依赖被拦截的 initplayback） |
+| `googlevideo` 规则 | 有 | **移除** |
+| 覆盖端点 | 含 `log_event` / `config` | 保持不变 |
+| 去广告 / 画中画 / 后台播放 | ✅ | ✅ **完整保留** |
 
-## 文件
+---
 
-| 文件 | 用途 |
-|---|---|
-| `YouTube-Dedup.lpx` | **推荐**，仅解密 youtubei |
-| `YouTube-Dedup-Slim.lpx` | 同上但保留 `captionLang`（供不装合集的用户） |
-| `YouTube-Dedup-Debug.lpx` | 完整功能 + 默认开启调试模式 |
+## 文件 · Files
 
-## 安装
+| 文件 | 用途 | Purpose |
+|---|---|---|
+| `YouTube-Dedup.lpx` | **推荐** | 仅解密 youtubei |
+| `YouTube-Dedup-Slim.lpx` | 保留 captionLang | 供不装合集的用户 |
+| `YouTube-Dedup-Debug.lpx` | 完整功能 + debug 默认开 | Full + debug on |
 
-1. Loon → 插件 → 广告拦截合集 → 参数 → 关闭 **「YouTube-脚本开关」**（仅点开关，不改文件）
-2. 禁用旧的去广告插件，导入本插件
-3. 确认开启 **MitM over HTTP/2** 与 **QUIC 回退保护**
+---
+
+## 安装 · Install
+
+1. 导入对应 `.lpx`
+2. 确认 **MitM over HTTP/2** 与 **QUIC 回退保护** 已开启
+3. 字幕交由 YouTube 双语翻译插件处理（不使用 googlevideo）
 4. 重启 Loon
 
-字幕功能交由 `YouTube双语翻译` 插件处理（它不使用 googlevideo，不受 `initplayback` 拦截影响）。
+---
 
-> YouTube 的 **PO Token** 机制（player 接口对未完成 BotGuard 挑战的客户端返回 `400 FAILED_PRECONDITION`）属服务端要求，脚本层无法解决。
+## ⚠️ 已知限制
 
-## 致谢
+- YouTube **PO Token** 机制：player 接口对未完成 BotGuard 挑战的客户端返回
+  `400 FAILED_PRECONDITION`，属服务端要求，**脚本层无解**
+- 完整约 60 个标签页类的配置走 App 内原生功能，脚本只能提供常用项
 
-未修改上游脚本任何逻辑，仅裁剪清单声明。上游版权与许可全部适用：
+---
 
-Maasea <https://github.com/Maasea> ·
-VirgilClyne <https://github.com/VirgilClyne> ·
-Choler <https://github.com/Choler> ·
-DivineEngine <https://github.com/DivineEngine> ·
-app2smile <https://github.com/app2smile>
+## 致谢 · Credits
+
+- **Maasea** <https://github.com/Maasea> — 脚本作者
+- **VirgilClyne**、**Choler**、**DivineEngine**、**app2smile** — 改进
+- 上游分发 <https://kelee.one/>
+
+上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
