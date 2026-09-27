@@ -1,51 +1,58 @@
-#!name=哔哩哔哩界面增强
-#!desc=Biliverse Enhanced 的界面自定义功能，独立成插件。与 Bilibili-Dedup 端点零重叠；「我的」页因与 Dedup 会员伪装同端点，默认关闭。全部开关在本插件参数页配置，不依赖 BoxJS。需启用 MitM over HTTP/2。
-#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 独立成插件: Savues
+#!name=哔哩哔哩界面增强 v2
+#!desc=首页标签页、顶栏、标签栏按钮、底部导航、分区页、我的页 全部支持真开关点选。已彻底移除 BoxJS 与 PersistentStore，配置只读本插件参数页。需启用 MitM over HTTP/2。「我的」页与 Bilibili-Dedup 的会员伪装同端点，默认关闭。
+#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造+去BoxJS: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/Biliverse/Enhanced/raw/main/src/assets/icon_rounded.png
 #!tag=界面增强,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-28 00:20:00
-# ==== PLUGIN_VERSION: 1.1.0 | BUILD_BY: Savues ====
+#!date=2026-09-28 01:35:00
+# ==== PLUGIN_VERSION: 2.0.0 | BUILD_BY: Savues | BoxJS 已移除 | 6 组真开关 ====
 
 [Argument]
-Home.Switch = switch,true,tag=[首页] 启用自定义,desc=关闭后本页所有设置不生效
-# ---- 顶栏可用项提示（开关本身不生效，仅提示可用的 id）----
-# 说明：脚本用 settings.Home.Top 对接口返回的按钮逐个做字符串包含判断，
-#       真正生效的是下方 Home.Top 输入框。这里把代码内置的全部可选项列出来，
-#       方便对照填写，不必去翻源码。
-hintTop = switch,false,tag=[顶栏] ⓘ 顶栏可用项说明,desc=这是一个说明开关，不控制任何功能。真正生效请见下方「顶栏实际生效值」输入框
-Top.opt = switch,true,tag=[顶栏] ⓘ 消息,desc=id=messages        —— 右侧按钮，当前确认可用
-Top.opt2 = switch,false,tag=[顶栏] ⓘ 游戏中心,desc=id=game_center   —— 右侧按钮
-Top.opt3 = switch,false,tag=[顶栏] ⓘ 会员购,desc=id=mall            —— 右侧按钮
-Top.dead1 = switch,false,tag=[顶栏] ⚠️ 首页(存疑),desc=id=home        —— 代码内置但 BoxJS 未暴露，B站 接口可能已不再下发，填了多半无效
-Top.dead2 = switch,false,tag=[顶栏] ⚠️ 频道(存疑),desc=id=channel     —— 同上
-Top.dead3 = switch,false,tag=[顶栏] ⚠️ 动态(存疑),desc=id=dynamic     —— 同上
-Top.dead4 = switch,false,tag=[顶栏] ⚠️ 发布(存疑),desc=id=publish     —— 同上
-More.opt1 = switch,true,tag=[标签栏] ⓘ 更多分区,desc=id=categories   —— 标签栏右侧按钮，当前确认可用
-More.opt2 = switch,false,tag=[标签栏] ⓘ 搜索,desc=id=search         —— 标签栏右侧按钮
-Left.opt1 = switch,true,tag=[顶栏] ⓘ 头像=我的,desc=id=mine          —— 顶栏左侧（用户头像）的作用
-Left.opt2 = switch,false,tag=[顶栏] ⓘ 头像=视频快捷,desc=id=videoshortcut —— 粉色版不可改
-Home.Tab = input,"2036,2037,780,545,151",tag=[首页] 标签页,desc=逗号分隔的 id。完整约 60 项请在 App 分区页用原生「快捷访问」配置
+# ===== 首页 · 标签页（多选）=====
+Home.Tab_2036 = switch,false,tag=[首页] 标签页 直播
+Home.Tab_2037 = switch,true,tag=[首页] 标签页 推荐
+Home.Tab_780 = switch,true,tag=[首页] 标签页 热门
+Home.Tab_545 = switch,true,tag=[首页] 标签页 番剧
+Home.Tab_774 = switch,false,tag=[首页] 标签页 动画（港澳台）
+Home.Tab_151 = switch,true,tag=[首页] 标签页 影视
+Home.Tab_801 = switch,false,tag=[首页] 标签页 韩综（港澳台）
+Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
 Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
-Home.Top_left = select,"mine","videoshortcut",tag=[首页] 顶栏左侧按钮,desc=用户头像的作用；粉色版不可改
-Home.Top = input,"messages",tag=[首页] 顶栏实际生效值,desc=逗号分隔。可填 messages / game_center / mall；home / channel / dynamic / publish 为存疑项，见上方「顶栏可用项说明」
-Home.Top_more = input,"categories,search",tag=[首页] 标签栏实际生效值,desc=逗号分隔，可填 categories / search
-Bottom = input,"home,dynamic,ogv,mall,mine",tag=[底部] 导航栏按钮,desc=最多 6 个
+# ===== 顶栏 · 左侧头像（单选）=====
+Home.Top_left = select,"mine","videoshortcut",tag=[顶栏] 左侧头像作用,desc=mine=我的 / videoshortcut=视频快捷方式；粉色版不可改
+# ===== 顶栏 · 右侧按钮（多选）=====
+Home.Top_messages = switch,true,tag=[顶栏] 消息
+Home.Top_game_center = switch,false,tag=[顶栏] 游戏中心,desc=⚠️部分版本可能已下线
+Home.Top_mall = switch,false,tag=[顶栏] 会员购
+# ===== 标签栏 · 右侧按钮（多选）=====
+Home.TopMore_categories = switch,true,tag=[标签栏] 更多分区
+Home.TopMore_search = switch,true,tag=[标签栏] 搜索
+# ===== 底部 · 导航栏（多选，最多 6 个）=====
+Home.Bot_home = switch,true,tag=[底部] 首页
+Home.Bot_channel = switch,false,tag=[底部] 频道,desc=⚠️部分版本可能已下线
+Home.Bot_dynamic = switch,true,tag=[底部] 动态
+Home.Bot_publish = switch,false,tag=[底部] 发布,desc=⚠️部分版本可能已下线
+Home.Bot_ogv = switch,true,tag=[底部] 番剧
+Home.Bot_mall = switch,true,tag=[底部] 会员购
+Home.Bot_messages = switch,true,tag=[底部] 消息
+Home.Bot_mine = switch,true,tag=[底部] 我的
+# ===== 其他 =====
+Home.Switch = switch,true,tag=[首页] 启用自定义
+Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方标签页开关一个都没开时生效。逗号分隔，可填接口下发的其他 id
 Region.Switch = switch,true,tag=[分区] 启用自定义
-Mine.Switch = switch,false,tag=[我的] 启用自定义,desc=⚠️默认关。该端点已被 Dedup 的会员伪装占用
+Mine.Switch = switch,false,tag=[我的] 启用自定义,desc=⚠️默认关。与 Bilibili-Dedup 的会员伪装同端点
 Mine.iPad.Switch = switch,false,tag=[我的iPad] 启用自定义,desc=⚠️同上
-Storage = select,"Argument","PersistentStore","database",tag=[储存] 配置类型,desc=保持 Argument 则只读本插件参数页
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=顶栏标签底部
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/region\/index\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区页
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/channel\/region\/list\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区列表
-http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.show\.v1\.Mixture\/Region(List|Shortcut)$ script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区grpc
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=我的页
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.Tab},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=顶栏标签底部
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/region\/index\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.Tab},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=分区页
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/channel\/region\/list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.Tab},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=分区列表
+http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.show\.v1\.Mixture\/Region(List|Shortcut)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, binary-body-mode=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.Tab},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=分区grpc
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.Tab},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=我的页
 
 [Mitm]
 hostname=app.bilibili.com, app.biliapi.net, grpc.biliapi.net

@@ -1,130 +1,151 @@
 # Bilibili-UI
 
-> Biliverse Enhanced 的界面自定义功能，独立成插件。
+Biliverse Enhanced 的界面自定义功能，**真开关版**。
 
-## 为什么独立成插件
+## v2.0.0 · 真开关 + 彻底去 BoxJS
 
-原计划把 Enhanced 合并进 [Bilibili-Dedup](Bilibili-Dedup/Bilibili-Dedup.lpx)，
-但 v8 实测**空降助手随之失效**：
+### 做了什么
 
-| 项 | 验证结果 |
-|---|---|
-| kokoryh 规则的 `argument` | 逐字相同 |
-| 端点覆盖 | v8 还**多** 2 条 |
-| 脚本内容 MD5 | 相同 |
-| script-path 两种写法 | 返回同一文件 |
-| 唯一差异 | `timeout=10` |
-
-**静态分析找不到根因。** 唯一确定的变量是「同一个响应上有第二个脚本参与 body 处理」——
-即使端点不重叠，protobuf 重序列化的顺序也不可控。
-
-既然 Enhanced 的 6 个端点里有 **5 个 Dedup 根本不用**，拆成独立插件即可彻底避免同链竞争。
-
-## 端点归属
-
-| 端点 | 功能 | 与 Dedup |
+| 项 | v1.1 | **v2.0** |
 |---|---|---|
-| `app.bili*/x/resource/show/tab/v2` | 顶栏 / 标签页 / 底部导航 | ✅ 独占 |
-| `app.bili*/x/v2/region/index` | 分区页 | ✅ 独占 |
-| `app.bili*/x/v2/channel/region/list` | 分区列表 | ✅ 独占 |
-| `grpc\|app.bili*/.../show.v1.Mixture/Region(List\|Shortcut)` | 分区 grpc | ✅ 独占 |
-| `app.bili*/x/v2/account/mine(+/ipad)?` | 我的页服务入口 | ❌ **与 Dedup 会员伪装同端点** |
+| 标签页 | 自由输入框 | **8 个真开关** |
+| 顶栏右侧 | 自由输入框 | **3 个真开关** |
+| 标签栏右侧 | 自由输入框 | **2 个真开关** |
+| 底部导航 | 自由输入框 | **8 个真开关** |
+| 顶栏左侧头像 | select（本就单选） | select |
+| 12 个「提示开关」 | 有 | **删除**（真开关后不再需要） |
+| BoxJS / PersistentStore | 支持 | **完全移除** |
+| `Storage` 参数 | 暴露三选一 | **删除** |
 
-**`account/mine` 由 `Mine.Switch` 默认关闭隔离。**
-Dedup 的会员伪装（`vip` / `vip_type`）与本插件的服务列表配置改的是不同字段，
-但两个脚本同链处理同一响应，顺序不可控 —— 所以默认不共存。
+### 脚本改造
 
-## 开关（12 个，全部在 Loon 参数页）
+托管 `Enhanced.response.js`（Biliverse 已弃坑，无失同步问题）。
+原版 **163842 字符**，现版 **164450 字符**，净增 **608**，**共改 4 处 + 去 BoxJS 4 处**。
 
-```ini
-Storage = select,"Argument","PersistentStore","database"
-                ^^^^^^^^ 默认
+#### 1. 参数解析的关键坑（第一版真开关失效的根因）
+
+`a.parse()` 对 object 形式的 `$argument` 走 `i.set`，而 `i.set` 内部 `toPath` **按点号拆路径**：
+
+```
+{"Home.Tab_2036": true}  →  { Home: { Tab_2036: true } }     ← 嵌套，不是扁平
 ```
 
-设成 `Argument` 后脚本**只读本插件参数页**，不依赖 BoxJS。
+所以读取必须写 `l?.Home?.["Tab_"+x]`，写成 `l["Home.Tab_"+x]` 永远 `undefined`。
+第一版正是这样，8 个开关全部失效、脚本退回内置默认值。
 
-| 分组 | 参数 |
+Node 实测：
+
+```
+扁平读取 → 命中 0 项
+嵌套读取 → 命中 4 项: ['2037','780','545','151']
+```
+
+#### 2. 四组取参改造
+
+```js
+// 以标签页为例，其余三组同理
+(()=>{
+  const T = x => x===!0 || x==="true",
+        S = ["2036","2037","780","545","774","151","801","2280"],
+        f = S.filter(x => T(l?.Home?.["Tab_"+x]));
+  l.Home.Tab = f.length ? f
+    : Array.isArray(l?.Home?.Tab) ? l.Home.Tab
+    : l?.Home?.Tab ? [l.Home.Tab] : [];
+  l.Home.Tab = l.Home.Tab.map(String)
+})(),
+```
+
+**行为**：任一开关为开 → 用开关组合；**全关 → 回退到 `Home.Tab` 输入框**（可填接口下发的其他 id）。
+
+#### 3. 去 BoxJS（4 处）
+
+| 改动 | 作用 |
 |---|---|
-| 首页 | `Home.Switch` `Home.Tab` `Home.Tab_default` `Home.Top_left` `Home.Top` `Home.Top_more` |
-| 底部 | `Bottom` |
-| 分区 | `Region.Switch` |
-| 我的 | `Mine.Switch`（默认关） `Mine.iPad.Switch`（默认关） |
-| 其他 | `Storage` `LogLevel` |
+| `Reflect.has(o.Home,"Tab") && set(l,"Home.Tab",o.Home.Tab)` → 删除 | 不再被 PersistentStore 里的旧数据覆盖 |
+| Argument 模式不再 merge store | 配置只来自参数页 |
+| 强制 `Storage="Argument"` | 忽略传入的 Storage |
+| 移除结尾 Storage 还原 | — |
 
-### 可选值
+## 参数（28 个）
 
-| 参数 | 可选 |
+### 首页 · 标签页（多选）
+
+| 开关 | 默认 |
 |---|---|
-| `Home.Top_left` | `mine`（我的）/ `videoshortcut`（视频快捷方式） |
-| `Home.Top` | `game_center` / `mall` / `messages` |
-| `Home.Top_more` | `categories` / `search` |
-| `Home.Tab` | `2036`直播 `2037`推荐 `780`热门 `545`番剧 `774`动画 `151`影视 `801`韩综 `2280`校园 |
-| `Bottom` | `home` `dynamic` `publish` `ogv` `mall` `messages` `mine`（最多 6 个） |
+| `Home.Tab_2036` 直播 | 关 |
+| **`Home.Tab_2037` 推荐** | **开** |
+| **`Home.Tab_780` 热门** | **开** |
+| **`Home.Tab_545` 番剧** | **开** |
+| `Home.Tab_774` 动画（港澳台） | 关 |
+| **`Home.Tab_151` 影视** | **开** |
+| `Home.Tab_801` 韩综（港澳台） | 关 |
+| `Home.Tab_2280` 校园 | 关 |
+| `Home.Tab_default` 默认标签页 | select，`2037` |
+| `Home.Tab` 备用输入框 | 空（仅在开关全关时生效） |
 
-> 完整约 60 个标签页选项无法在参数页列全，**请在 B 站 App 分区页用原生「快捷访问」配置**。
+### 顶栏
 
-## 安装
+| 开关 | 默认 | 备注 |
+|---|---|---|
+| `Home.Top_left` 左侧头像 | select `mine` | `mine` 我的 / `videoshortcut` 视频快捷；粉色版不可改 |
+| **`Home.Top_messages` 消息** | **开** | |
+| `Home.Top_game_center` 游戏中心 | 关 | ⚠️ 部分版本可能已下线 |
+| `Home.Top_mall` 会员购 | 关 | |
 
-1. 导入本插件
-2. 确认 **MitM over HTTP/2** 已开启（本插件 `[MitM] h2 = true`）
-3. 重启 Loon
-4. 与 [Bilibili-Dedup](Bilibili-Dedup/Bilibili-Dedup.lpx) **可共存**
+### 标签栏右侧
+
+| 开关 | 默认 |
+|---|---|
+| **`Home.TopMore_categories` 更多分区** | **开** |
+| **`Home.TopMore_search` 搜索** | **开** |
+
+### 底部导航（最多 6 个）
+
+| 开关 | 默认 | 备注 |
+|---|---|---|
+| **`Home.Bot_home` 首页** | **开** | |
+| `Home.Bot_channel` 频道 | 关 | ⚠️ 部分版本可能已下线 |
+| **`Home.Bot_dynamic` 动态** | **开** | |
+| `Home.Bot_publish` 发布 | 关 | ⚠️ 部分版本可能已下线 |
+| **`Home.Bot_ogv` 番剧** | **开** | |
+| **`Home.Bot_mall` 会员购** | **开** | |
+| **`Home.Bot_messages` 消息** | **开** | |
+| **`Home.Bot_mine` 我的** | **开** | |
+
+### 其他
+
+`Home.Switch` 启用自定义 · `Region.Switch` 分区页 · `Mine.Switch` 我的页（**默认关**）·
+`Mine.iPad.Switch`（默认关）· `LogLevel` 日志等级
+
+## ⚠️ 两个必知
+
+**1. 「我的」页与 Bilibili-Dedup 冲突**
+
+`Mine.Switch` 默认**关**，因为 `account/mine` 端点被 Dedup 的会员伪装占用。
+两脚本同链处理同一响应，顺序不可控。**要用我的页功能，先关掉 Dedup 的 `localVIP`。**
+
+**2. 完整约 60 个标签页**
+
+8 个只是常用项。脚本有这段逻辑：
+
+```js
+Reflect.has(storage.Home, "Tab") && set(l, "Home.Tab", storage.Home.Tab)
+```
+
+App 内保存的结果**优先于**参数页 —— 所以在**分区页用原生「快捷访问」**配置才会最完整。
+
+## 订阅
+
+```
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Bilibili-UI.lpx
+```
+
+需开启 **MitM over HTTP/2**。与 [Bilibili-Dedup](../Bilibili-Dedup/Bilibili-Dedup.lpx) 可共存。
 
 ## 致谢
 
-未修改上游脚本任何逻辑，仅重组规则条目与参数声明。
+上游 Biliverse 已弃坑该脚本，仓库不再分发 Biliverse.Enhanced。
+未修改上游逻辑之外的部分，改动均为清单层取参与去 BoxJS。
 
 - **Biliverse** — VirgilClyne, app2smile, Maasea <https://biliverse.github.io/>
-- 上游分发：<https://github.com/Biliverse/Enhanced>
-
-## v1.1：顶栏可用项提示开关
-
-### 为什么加「不生效的开关」
-
-顶栏三项目前是**自由输入框**（填 id，如 `messages`），用户必须去翻源码才知道能填什么。
-参数里新增 **12 个纯提示开关**，只做说明用，不参与 `argument`，不影响任何功能。
-
-### 机制说明
-
-脚本的判定逻辑是**字符串包含匹配**：
-
-```js
-set(e, "top", get(a,"Tab.top")
-      .map(x => settings.Home.Top.includes(x.id) ? x : null)
-      .filter(Boolean).map((x,i)=>({...x, pos:i+1})))
-```
-
-- `Tab.top` 是**接口返回的按钮清单**（不是硬编码的）
-- `Home.Top` 是你填的字符串，`.includes()` 做子串匹配
-- **真正生效的是输入框**，提示开关只是把可填的 id 列出来
-
-### ⓘ 确认可用的项
-
-| 提示开关 | id | 说明 |
-|---|---|---|
-| `Top.opt` | `messages` | 顶栏右侧 · 消息（唯一默认开启的） |
-| `Top.opt2` | `game_center` | 顶栏右侧 · 游戏中心 |
-| `Top.opt3` | `mall` | 顶栏右侧 · 会员购 |
-| `More.opt1` | `categories` | 标签栏右侧 · 更多分区 |
-| `More.opt2` | `search` | 标签栏右侧 · 搜索 |
-| `Left.opt1` | `mine` | 顶栏左侧头像 · 我的 |
-| `Left.opt2` | `videoshortcut` | 顶栏左侧头像 · 视频快捷方式（粉色版不可改） |
-
-### ⚠️ 存疑项（代码内置但 BoxJS 未暴露）
-
-| 提示开关 | id | 判断依据 |
-|---|---|---|
-| `Top.dead1` | `home` | Maasea 的脚本硬编码了 7 个顶栏按钮，但 BoxJS 只暴露 3 个 |
-| `Top.dead2` | `channel` | 未暴露的 4 个很可能 B 站接口早已不再下发 |
-| `Top.dead3` | `dynamic` | `Tab.top` 来自接口响应，接口不返回就完全无效 |
-| `Top.dead4` | `publish` | 填进输入框多半没有反应 |
-
-**这四项标了 ⚠️，但仍可填进 `Home.Top` 试试** —— 取决于你当前 B 站版本是否还下发这些按钮。
-
-### 用法
-
-1. 看提示开关，找到想要的项对应的 **id**
-2. 把 id 填进下方 **「顶栏实际生效值」** 输入框，多个用逗号分隔
-3. 提示开关本身**不用动**
-
-> 提示开关的 `desc` 里也写了对应 id，方便对照。
+- 原始分发：<https://github.com/Biliverse/Enhanced/releases>
