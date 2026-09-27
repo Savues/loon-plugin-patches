@@ -7,6 +7,7 @@
 | 插件 | 说明 | 状态 |
 |---|---|---|
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds.plugin 的重复改写，收敛 MitM 范围 | 可用 |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | blockAds 打补丁版，自动同步上游，补齐 3 个缺失参数声明 |
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 合并 BiliUniverse + kokoryh，与 blockAds 合集去重 | 可用 v2 |
 
 ## 收录原则
@@ -22,6 +23,24 @@
 # Loon 插件地址（示例）
 https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/plugins/YouTube-Dedup/YouTube-Dedup.lpx
 ```
+
+## 🔄 自动同步
+
+`BlockAds-Patched` 由 GitHub Actions **每 6 小时自动同步上游并重施补丁**：
+
+```
+.github/workflows/sync-blockads.yml
+```
+
+- 手动触发：Actions 页面 → Sync blockAds → Run workflow
+- 可勾选是否同时应用 P002（禁用与 Biliverse Enhanced 冲突的 jq）
+- 上游无变化则不提交，避免刷屏
+- 补丁失效时**直接报错并终止**，不会推一个坏文件上去
+
+> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h。
+> Actions 推完，Loon 侧最多延迟一天才拿到新版 —— 属正常现象。
+
+---
 
 ## 已收录案例
 
