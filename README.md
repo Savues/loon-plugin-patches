@@ -7,6 +7,7 @@
 | 插件 | 说明 | 状态 |
 |---|---|---|
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds.plugin 的重复改写，收敛 MitM 范围 | 可用 |
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 合并 BiliUniverse + kokoryh，与 blockAds 合集去重 | 可用 |
 
 ## 收录原则
 

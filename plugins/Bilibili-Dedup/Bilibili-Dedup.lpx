@@ -1,0 +1,51 @@
+#!name=哔哩哔哩去广告(合并版)
+#!desc=合并 BiliUniverse ADBlock + kokoryh 两套能力，并与 blockAds 合集去重。保留 blockAds 之外的增量功能(热搜净化/话题净化/动态最常访问/屏蔽UP主/网页端推荐)，同时用完整参数补回合集因参数缺失而降级的功能(评论区净化/最常访问显示/评论区优化)。不含漫画去广告(合集已覆盖)。
+#!author=ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse) | kokoryh (protobuf) | 合并版由 Minis 生成
+#!tag=去广告,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://ADBlock.BiliUniverse.io
+#!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
+#!date=2026-09-27 21:20:00
+
+[Argument]
+# ---- BiliUniverse 开关体系（仅保留 blockAds 未覆盖的部分）----
+Splash = switch,false,tag=[开屏] 去除广告,desc=需要 MITM app.bilibili.com
+Search.AD = switch,true,tag=[搜索] 去除广告
+Search.HotSearch = switch,true,tag=[搜索] 去除“热搜/大家都在搜”
+Dynamic.HotTopics = switch,true,tag=[动态] 去除“热门话题”
+Dynamic.MostVisited = switch,true,tag=[动态] “最常访问”显示方式
+Feed.BlockUpLiveList = input,"",tag=[推荐] 屏蔽UP主直播推广,desc=填 up主uid，英文逗号隔开
+# ---- kokoryh 参数体系（补回 blockAds 的降级项）----
+displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅有直播时显示
+purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=补回 blockAds 因参数未定义而跳过的电商广告过滤
+optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=blockAds 的同名规则因 enable 参数未定义而完全不生效
+sponsorBlock=switch,true,tag=空降助手,desc=与 blockAds 共存；本插件的实现在二次执行时为幂等
+logLevel=select,"off","error","warn","info","debug",tag=日志等级
+
+[Rewrite]
+# ---- 以下 3 条为 BiliUniverse 独占端点(api.vc.bilibili.com)，blockAds 完全未覆盖 ----
+^https?:\/\/api\.vc\.bilibili\.com\/search_svr\/v\d+\/Search\/recommend_words - reject-dict
+^https?:\/\/api\.vc\.bilibili\.com\/topic_svr\/v1\/topic_svr - reject-dict
+^https?:\/\/api\.vc\.bilibili\.com\/dynamic_svr\/v1\/dynamic_svr\/mix_uplist - reject-dict
+# ---- 以下 2 条 blockAds 未覆盖，保留 ----
+^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-response-body,requires-body=1
+^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?) script-response-body,requires-body=1
+
+[Script]
+# ---- A. kokoryh protobuf 脚本（完整参数）----
+# 覆盖 blockAds 的 bilibili.protobuf / bilibili.request，补回被跳过的功能
+http-request ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
+
+http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
+
+# ---- B. BiliUniverse bundle 脚本（仅 blockAds 未覆盖的端点）----
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/(splash\/(brand\/list|event\/list2|list|show)|search\/square) script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Search.AD},{Search.HotSearch},{Dynamic.HotTopics},{Dynamic.MostVisited},{Feed.BlockUpLiveList},{logLevel}], tag=开屏/搜索
+http-response ^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Search.AD},{Search.HotSearch},{Dynamic.HotTopics},{Dynamic.MostVisited},{Feed.BlockUpLiveList},{logLevel}], tag=网页端推荐
+http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?) script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Search.AD},{Search.HotSearch},{Dynamic.HotTopics},{Dynamic.MostVisited},{Feed.BlockUpLiveList},{logLevel}], tag=番剧页
+http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-interface\/v2\/index\/feed script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Search.AD},{Search.HotSearch},{Dynamic.HotTopics},{Dynamic.MostVisited},{Feed.BlockUpLiveList},{logLevel}], tag=直播推荐
+
+[Mitm]
+hostname=api.vc.bilibili.com, app.bilibili.com, app.biliapi.net, api.bilibili.com, api.biliapi.net, grpc.biliapi.net, api.live.bilibili.com
+h2 = true
