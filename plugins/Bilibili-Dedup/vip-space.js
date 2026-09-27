@@ -28,7 +28,11 @@ const T = THEMES[A.vipTheme] || THEMES.fools_day_hundred_annual_vip;
 const bg = A.vipBg || "#00E07C";
 const fg = A.vipFg || "#000000";
 const text = A.vipText || T.text;
-const img = A.vipImg || "";
+// 默认用年度大会员的真实牌子图（来自用户抓包中真实存在的 URL）。
+// App 缺少 image 时会渲染灰色占位 —— 这是注入后仍显示灰色的原因。
+// 绿鲤鱼的图无公开样本，先用年度图验证「缺图 → 灰色」这一机制。
+const DEFAULT_IMG = "http://i0.hdslb.com/bfs/vip/label_annual.png";
+const img = A.vipImg || DEFAULT_IMG;
 
 try {
   const j = JSON.parse($response.body);
