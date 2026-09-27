@@ -964,3 +964,15 @@ label.bg_color=#00E07C   label.use_img_label=false
 https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png
 https://i0.hdslb.com/bfs/activity-plat/static/20220614/e369244d0b14644f5e1a06431e22a4d5/KJunwh19T5.png
 ```
+
+
+## v7.8.1 · 回退 v7.8（误判）
+
+v7.8 看到响应里有 `use_img_label: true` + B 站通用大会员图，
+**推断**「App 会走图片渲染从而忽略我们设置的文字」，于是强制 `use_img_label: false`。
+
+**用户实测：更新前 v7.7.1 就能正常看到「小会员」文字。** App 是文字与图片同时渲染的，
+`use_img_label` 管的是另一张图，不影响 `label.text`。
+
+**已回退。** 这条已写进本仓库的教训：字段存在 ≠ 字段起作用，
+**不能只凭响应里有某个值就推断它的行为，必须实测**。
