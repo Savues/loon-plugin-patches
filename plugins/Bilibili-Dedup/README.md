@@ -914,3 +914,53 @@ avatar_subscript_url: "",    // 留空 → App 渲染自带图标
 > **v7.7.1 已按反馈删除 `avatar_subscript`** —— 那是昵�旁的小会员图标，
 > 与牌子文字无关，属多余。最终输出的 vip 字段：
 > `type` / `status` / `due_date` / `role` / `nickname_color` / `label`
+
+
+## v7.8.0 · 强制 `use_img_label: false`（抓包发现的关键问题）
+
+用户抓包（HAR，249 个请求）后暴露的真问题：
+
+```json
+"label": {
+  "text": "小会员",                              ← 我们设的
+  "use_img_label": true,                          ← B站原值，被 Object.assign 保留
+  "img_label_uri_hans_static": "https://i0.hdslb.com/bfs/vip/d7b702ef....png",
+  "image": ""                                     ← 我们设的空
+}
+```
+
+**`use_img_label: true` 时 App 走图片渲染，`label.text` / `bg_color` / `text_color` 全部被忽略。**
+
+那张图同时出现在 `/x/vip/web/vip_center/v2` 响应里 ——
+证明是 **B 站自带的通用大会员图**，不是插件引入的。
+所以界面一直显示大会员标，我们设置的「小会员」三个字从未渲染过。
+
+**修正**：显式写入 `use_img_label: false`。
+
+### 抓包同时验证了这些此前全靠推断的字段
+
+| 字段 | 实测 | 结论 |
+|---|---|---|
+| `due_date: 3818419199` | ✅ 原样出现 | **秒级正确**；我最初用的毫秒 `9005270400000` 是错的 |
+| `role: 15` | ✅ | 绿鲤鱼/百年共用 |
+| `nickname_color` | ✅ | 与主题配色同步 |
+| `vip_section` | ✅ 已删除 | 规则生效 |
+| `vip_type: 2` | ✅ | 生效 |
+| `label.text` | ✅ 写入但被挡 | `use_img_label` 的问题 |
+
+### 回归测试
+
+用抓包里的**真实 B 站原值**作输入跑脚本：
+
+```
+role=15  due_date=3818419199  nickname_color=#00E07C
+label.text=小会员   label_theme=fools_day_hundred_annual_vip
+label.bg_color=#00E07C   label.use_img_label=false
+```
+
+### 附：抓包中出现的大会员图（本机无法访问 hdslb.com，未验证）
+
+```
+https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png
+https://i0.hdslb.com/bfs/activity-plat/static/20220614/e369244d0b14644f5e1a06431e22a4d5/KJunwh19T5.png
+```
