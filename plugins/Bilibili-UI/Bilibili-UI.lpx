@@ -1,4 +1,4 @@
-#!name=哔哩哔哩界面增强 v2.2
+#!name=哔哩哔哩界面增强 v2.3
 #!desc=首页标签页、顶栏、标签栏按钮、底部导航、分区页、我的页 全部支持真开关点选。已彻底移除 BoxJS 与 PersistentStore。需启用 MitM over HTTP/2。「我的」页与 Bilibili-Dedup 的会员伪装同端点，默认关闭。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造+去BoxJS: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
@@ -7,8 +7,8 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-28 03:05:00
-# ==== v2.1.0 | 真值判断已放宽（兼容 1/"1"/on/ON）====
+#!date=2026-09-28 03:20:00
+# ==== v2.3.0 | 移除已失效开关（29 → 27 参数）=====
 
 [Argument]
 
@@ -25,9 +25,8 @@ Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag
 # ===== 顶栏 · 左侧头像（单选）=====
 Home.Top_left = select,"mine","videoshortcut",tag=[顶栏] 左侧头像作用,desc=mine=我的 / videoshortcut=视频快捷方式；粉色版不可改
 # ===== 顶栏 · 右侧按钮（多选）=====
-Home.Top_messages = switch,true,tag=[顶栏] 消息
-Home.Top_game_center = switch,false,tag=[顶栏] 游戏中心,desc=⚠️部分版本可能已下线
-Home.Top_mall = switch,false,tag=[顶栏] 会员购
+# 注：B站接口目前只下发「消息」，原候选中的 游戏中心/会员购 已失效，故移除
+Home.Top_messages = switch,true,tag=[顶栏] 消息,desc=B站接口目前仅下发此按钮；游戏中心/会员购已下线，开关已移除
 # ===== 标签栏 · 右侧按钮（多选）=====
 Home.TopMore_categories = switch,true,tag=[标签栏] 更多分区
 Home.TopMore_search = switch,true,tag=[标签栏] 搜索
@@ -49,7 +48,7 @@ Mine.iPad.Switch = switch,false,tag=[我的iPad] 启用自定义,desc=⚠️同�
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=顶栏标签底部
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=顶栏标签底部
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/region\/index\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Region.Switch},{LogLevel}], tag=分区页
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/channel\/region\/list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Region.Switch},{LogLevel}], tag=分区列表
 http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.show\.v1\.Mixture\/Region(List|Shortcut)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, binary-body-mode=1, argument=[{Region.Switch},{LogLevel}], tag=分区grpc
