@@ -7,7 +7,7 @@
 | 插件 | 说明 | 状态 |
 |---|---|---|
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds.plugin 的重复改写，收敛 MitM 范围 | 可用 |
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 合并 BiliUniverse + kokoryh，与 blockAds 合集去重 | 可用 |
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 合并 BiliUniverse + kokoryh，与 blockAds 合集去重 | 可用 v2 |
 
 ## 收录原则
 
@@ -22,6 +22,18 @@
 # Loon 插件地址（示例）
 https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/plugins/YouTube-Dedup/YouTube-Dedup.lpx
 ```
+
+## 已收录案例
+
+| 案例 | 暴露的问题类型 |
+|---|---|
+| [YouTube-Dedup](plugins/YouTube-Dedup/) | 合集内置同一份脚本（字节级相同）→ 功能时好时坏；`initplayback` 被无条件 reject |
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | 参数名大小写不匹配、嵌套开关默认值写反、`[Rewrite]` 误用 Surge 语法、指向脚本未处理的死端点 |
+
+> Bilibili-Dedup 的复盘记录了一个通用教训：
+> **引用远程脚本的插件，清单层的参数名、顺序、大小写必须与脚本实际读取的键逐一核对** ——
+> 三个缺陷全部无法通过阅读清单文件发现，且都**不报错、只静默失效**。
+> 详见该插件 README 第四节「v2 复查」与第五节「怎么发现这些问题的」。
 
 ## 免责声明
 
