@@ -1,4 +1,4 @@
-#!name=哔哩哔哩去广告(合并版) v7.9
+#!name=哔哩哔哩去广告(合并版) v7.10
 #!desc=[插件版本 v6.0 / 构建 2026-09-27T23:10] 与 blockAds 合集去重。v6 起接管合集的漫画去广告与空降助手请求侧，合集B站部分已整体退场。。修 v2-v4 的致命缺陷：protobuf 规则缺 https:// 前缀导致完全空转。默认全开去广告。确认是否为本版：在插件里搜 PLUGIN_VERSION 或看标题 v5。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
@@ -7,8 +7,8 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
-#!date=2026-09-28 06:30:00
-# ==== PLUGIN_VERSION: 7.9.0 | due_date 改回毫秒（对照原生响应实证）=====
+#!date=2026-09-28 22:10:00
+# ==== PLUGIN_VERSION: 7.10.0 | 新增个人主页（/x/v2/space）会员伪装 ====
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
@@ -33,6 +33,7 @@ localVIP = switch,true,tag=本地会员伪装,desc=总开关；关闭后不再�
 vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。每个主题自带配置，年度含真实牌子图，其余走文字渲染
 vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
 vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
+localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
 vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
 vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
 mangaAD = switch,true,tag=[漫画] 去除广告,desc=自 blockAds 迁入
@@ -92,6 +93,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 [Script]
 # ==== 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）====
 http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-space.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], enable={localVIPSpace}, tag=空间页会员伪装
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], enable={localVIP}, tag=会员伪装
 # ==== A. kokoryh protobuf（完整参数，补回 blockAds 降级项）====
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化

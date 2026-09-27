@@ -2,7 +2,7 @@
 
 B 站去广告 + 漫画净化 + 本地会员伪装，与 `blockAds` 合集去重后独立运行。
 
-**当前版本：v7.9** · 31 参数 / 5 Rule / 29 Rewrite / 10 Script
+**当前版本：v7.10** · 32 参数 / 5 Rule / 29 Rewrite / 11 Script
 
 > 📖 版本演进与踩坑复盘见 [BILIBILI-ITERATION.md](../../BILIBILI-ITERATION.md)
 > 本文只描述**当前状态**，不记录历史。
@@ -57,6 +57,18 @@ blockAds（奶思合集）内置了 kokoryh 的完整 B 站规则集，与本插
 
 已开通的真实大会员账号**不会被改动**（判据 `status == 0`）。
 
+**个人资料页**（`x/v2/space`）由独立开关 `localVIPSpace` 控制，用的是**另一套字段名**：
+
+| | 账号页 / 我的页 | 个人资料页 |
+|---|---|---|
+| 端点 | `myinfo`、`account/mine` | `x/v2/space`(+`archive/cursor`) |
+| 类型 | `type` / `status` | `vipType` / `vipStatus` |
+| 到期 | `due_date` | `vipDueDate` |
+| 非会员时 | `vip.status == 0` | **整个 `vip` 字段不存在** |
+
+后者的差异是重点 —— B 站在非会员时会**直接删掉整个字段**而不是给 0，
+所以脚本以「字段不存在或未开通」为判据，必要时构造整个对象。
+
 ### 漫画净化
 
 `manga.bilibili.com` 的推荐流、热门搜索、促销弹窗等，开关 `mangaAD`。
@@ -78,6 +90,7 @@ blockAds（奶思合集）内置了 kokoryh 的完整 B 站规则集，与本插
 | `vipText` | input | 空 | 牌子文字，留空用主题默认 |
 | `vipBg` / `vipFg` | input | 空 | 底色 / 字色，留空用主题默认 |
 | `vipImg` | input | 空 | 牌子图，留空用主题自带 |
+| `localVIPSpace` | switch | 开 | 个人资料页会员伪装（与上面共用主题/配色） |
 
 ### 界面（交由 [Bilibili-UI](../Bilibili-UI/README.md) 处理）
 
