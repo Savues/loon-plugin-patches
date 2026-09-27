@@ -1,0 +1,36 @@
+#!name=哔哩哔哩界面增强
+#!desc=Biliverse Enhanced 的界面自定义功能，独立成插件。与 Bilibili-Dedup 端点零重叠；「我的」页因与 Dedup 会员伪装同端点，默认关闭。全部开关在本插件参数页配置，不依赖 BoxJS。需启用 MitM over HTTP/2。
+#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 独立成插件: Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://github.com/Biliverse/Enhanced/raw/main/src/assets/icon_rounded.png
+#!tag=界面增强,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!date=2026-09-27 23:58:00
+# ==== PLUGIN_VERSION: 1.0.0 | BUILD_BY: Savues ====
+
+[Argument]
+Home.Switch = switch,true,tag=[首页] 启用自定义,desc=关闭后本页所有设置不生效
+Home.Tab = input,"2036,2037,780,545,151",tag=[首页] 标签页,desc=逗号分隔的 id。完整约 60 项请在 App 分区页用原生「快捷访问」配置
+Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
+Home.Top_left = select,"mine","videoshortcut",tag=[首页] 顶栏左侧按钮,desc=用户头像的作用；粉色版不可改
+Home.Top = input,"messages",tag=[首页] 顶栏右侧按钮,desc=可选 game_center / mall / messages
+Home.Top_more = input,"categories,search",tag=[首页] 标签栏右侧按钮,desc=可选 categories / search
+Bottom = input,"home,dynamic,ogv,mall,mine",tag=[底部] 导航栏按钮,desc=最多 6 个
+Region.Switch = switch,true,tag=[分区] 启用自定义
+Mine.Switch = switch,false,tag=[我的] 启用自定义,desc=⚠️默认关。该端点已被 Dedup 的会员伪装占用
+Mine.iPad.Switch = switch,false,tag=[我的iPad] 启用自定义,desc=⚠️同上
+Storage = select,"Argument","PersistentStore","database",tag=[储存] 配置类型,desc=保持 Argument 则只读本插件参数页
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+
+[Script]
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=顶栏标签底部
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/region\/index\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区页
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/channel\/region\/list\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区列表
+http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.show\.v1\.Mixture\/Region(List|Shortcut)$ script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=分区grpc
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=我的页
+
+[Mitm]
+hostname=app.bilibili.com, app.biliapi.net, grpc.biliapi.net
+h2 = true
