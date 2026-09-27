@@ -347,3 +347,63 @@ v3 用它能立刻被拦下，v4 则报告 `覆盖 21/21 个端点`。
 > 顺带说明：早期 v2→v3 的排查中，我用"和 kelee 的规则串做字符级 diff"来定位，
 > 那个方法在这里是**失效**的 —— 两个字符串确实只差前缀，但"差什么"靠眼看，
 > "能不能匹配"只能靠实跑。
+
+## v5：版本标识 + 默认全开
+
+### 版本标识
+
+插件头部加了可直接肉眼确认的标记：
+
+```
+#!name=哔哩哔哩去广告(合并版) v5
+#!desc=[插件版本 v5 / 构建 2026-09-27T22:20] ...
+# ==== PLUGIN_VERSION: 5.0.0 | MINIS_BUILD: 2026-09-27T22:20 | 协议前缀: OK | 端点覆盖: 21/21 ====
+```
+
+**Loon 插件列表直接显示 `#!name`**，所以不用打开文件就能确认版本。
+
+> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存可能长达 24h。
+> 若拉到的仍是旧版，用 jsDelivr：
+> `https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-Dedup/Bilibili-Dedup.lpx`
+> 判断标准：**标题里有没有 `v5`**。
+
+### 默认开关
+
+去广告类全部默认开启，共 18 项：
+
+```
+Splash  Feed.AD  Feed.Activity  Feed.Vertical  Feed.Story  Search.AD  Search.HotSearch
+PGC.AD  Xlive.AD  Dynamic.HotTopics  Dynamic.AdCard  View.AD  DM.Command
+DM.Colorful  Reply.AD  purifyComment  optimizeRequest  sponsorBlock
+```
+
+以下 4 项**虽是默认开，但它们删的不是广告**（参数 desc 里标了 ⚠️），不想要就手动关：
+
+| 开关 | 实际影响 |
+|---|---|
+| `Feed.Vertical` | 删掉竖屏视频内容 |
+| `Search.HotSearch` | 隐藏热搜榜 |
+| `Dynamic.HotTopics` | 隐藏话题入口 |
+| `DM.Colorful` | 会员彩色弹幕降级为普通弹幕 |
+
+以下 2 项**必须保持关闭**：
+
+| 开关 | 原因 |
+|---|---|
+| `Dynamic.MostVisited` | 开启 = 整块删除「最常访问」，与 `displayUpList` 方向相反会打架 |
+| `Dynamic.MostVisitedLiveOnly` | 与 `displayUpList` 二选一，用后者即可 |
+
+---
+
+# 版本演进全记录
+
+| 版本 | 缺陷 | 状态 |
+|---|---|---|
+| v1 | 参数名大小写错误；`Dynamic.MostVisited` 默认值写反；`[Rewrite]` 误用 Surge 语法；指向脚本未处理的死端点 | 修正 |
+| v2 | 丢失 `AIRelateAsync`（以 blockAds 删减版为基准做去重） | 修正 |
+| v3 | 补了 `AIRelateAsync`，但**两条 protobuf 规则缺 `https://` 前缀，从未触发** | 修正 |
+| **v4/v5** | — | 21/21 端点命中 |
+
+**v2→v3 的教训**：用「和 kelee 规则串做字符级 diff」定位，方法在这里失效 ——
+两个串确实只差前缀，但"差什么"靠眼看，"能不能匹配"只能靠实跑。
+`rule-test.py` 由此而来。
