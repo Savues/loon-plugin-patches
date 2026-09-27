@@ -410,3 +410,61 @@ DM.Colorful  Reply.AD  purifyComment  optimizeRequest  sponsorBlock
 **v2→v3 的教训**：用「和 kelee 规则串做字符级 diff」定位，方法在这里失效 ——
 两个串确实只差前缀，但"差什么"靠眼看，"能不能匹配"只能靠实跑。
 `rule-test.py` 由此而来。
+
+## v6：接管 blockAds 全部 B 站能力
+
+blockAds 的 B 站部分已由配套补丁**整体退场**（`patches/patch-blockads.py`：
+23 条 Rewrite + 8 条 Script + 5 条 Rule + 6 个 MITM 域名）。
+本版接管其中此前缺失的部分。
+
+### 新增：空降助手请求侧
+
+**这是 v5 的重大缺口。** v5 的空降助手只有响应侧没有请求侧，
+而 kokoryh 的 request 脚本路由表里明确需要它：
+
+```
+v1.DM/DmSegMobile      -> Ct      ← 空降助手的数据来源
+viewunite.v1.View/View -> tt
+v1.Reply/MainList      -> tt
+```
+
+v5 抄 blockAds 规则时只取了 `enable={optimizeRequest}` 那条，
+漏了 `enable={sponsorBlock}` 的 `DmSegMobile` 请求规则 ——
+这就是「Dedup 的空降助手不如 blockAds 好用」的原因。
+
+```ini
+http-request .../bilibili\.community\.service\.dm\.v1\.DM/DmSegMobile$
+  script-path=.../bilibili.protobuf.request.js
+  enable={sponsorBlock}, tag=空降助手
+```
+
+### 新增：漫画去广告（8 条 Rewrite + 1 条 Script）
+
+自 blockAds 原样迁入，开关 `mangaAD`（默认开）。
+`manga.bilibili.com` 加入 `[MitM]`。
+
+### 新增：[Rule] 段的 5 条拦截
+
+```ini
+DOMAIN,api.biliapi.com,REJECT          # 旧版 API，已停用
+DOMAIN,app.biliapi.com,REJECT
+DOMAIN,api.biliapi.net,REJECT
+DOMAIN,app.biliapi.net,REJECT
+AND,((DOMAIN-SUFFIX,chat.bilibili.com),(OR,stun|tracker|p2p)) REJECT   # 关弹幕 P2P
+```
+
+最后一条在 blockAds 原文中只含 `stun|tracker`，这里按 kelee 的版本
+补上了 `p2p`。
+
+### 迁移后的能力对照
+
+| 能力 | 状态 |
+|---|---|
+| 去广告（推荐/动态/搜索/番剧/直播/评论） | ✅ |
+| 空降助手（请求 + 响应） | ✅ **v6 补全** |
+| 评论区电商广告过滤 | ✅ |
+| 评论区加载优化 | ✅ |
+| 画中画 / 后台播放 | ✅ |
+| 漫画去广告 | ✅ **v6 新增** |
+| 关闭弹幕 P2P | ✅ **v6 新增** |
+| 顶栏 / 标签栏 / 底部导航 | ❌ 已交还 Biliverse Enhanced |
