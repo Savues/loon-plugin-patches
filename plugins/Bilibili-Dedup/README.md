@@ -598,3 +598,73 @@ VIP 伪装有**两个端点**，而我之前只迁了一个：
 而我搜的是无转义的 `account/myinfo`。
 
 **教训：验证插件内容必须先归一化转义再比对**，直接 grep 原文会得到假阴性。
+
+## v8：并入 Biliverse Enhanced + ADBlock
+
+原计划是让 blockAds 退场、把功能搬到本插件、再由 Biliverse Enhanced 接管界面定制。
+既然 Enhanced 与 ADBlock 本身也想要，**直接全部并入本插件，一套开关搞定**。
+
+### 并入内容
+
+| 来源 | 内容 | 端点数 |
+|---|---|---|
+| **Biliverse Enhanced** | 顶栏左侧/右侧、标签栏右侧、标签页、默认标签页、底部导航栏、分区页、我的页（iOS/iPad） | 5 |
+| **Biliverse ADBlock** | 去广告增强 + 隐私追踪清理 + 商业上报阻断 | 9 |
+| kokoryh protobuf（原有） | protobuf 类改写 | 2 |
+| BiliUniverse bundle（原有） | 开屏/搜索/网页端/番剧/直播 | 4 |
+
+**Enhanced ∩ ADBlock = 0 条端点重叠**，可直接共存。
+
+### 开关全部内置，不依赖 BoxJS
+
+关键设置：
+
+```ini
+Storage = select,"Argument","PersistentStore","database"
+```
+
+**默认 `Argument`** —— 脚本只读本插件参数页的值，不读 BoxJS 存储。
+迁移后所有配置都在 Loon 的插件参数里，不再需要装 BoxJS。
+
+参数共 **47 个**，`[Argument]` 内无重名：
+
+| 分组 | 数量 |
+|---|---|
+| E 界面自定义 | 10 |
+| A 去广告增强 | 30 |
+| 其他（会员/漫画/存储/日志） | 7 |
+
+### 默认值策略
+
+**有利的默认开**：
+
+```
+Privacy.Tracking / BlockBiliCommercial / BlockThirdParty   隐私类全开
+Reply.CommercialLinks / SubjectDescriptionCommercial        评论商业全开
+Feed.StoryCommercial / Search.Tracking                     商业清理全开
+```
+
+**默认关（会误伤内容或影响功能）**：
+
+```
+Dynamic.MostVisited / MostVisitedLiveOnly   会与 displayUpList 冲突
+Xlive.RemoveTrackingCallbacks               作者标注影响推荐翻页
+Privacy.Strict                              作者标注影响跳转与翻页
+```
+
+**非广告类默认开但会删内容**（参数 desc 里已标 ⚠️）：
+
+```
+Feed.Vertical / Search.HotSearch / Dynamic.HotTopics / DM.Colorful
+```
+
+### 与会员伪装的共存
+
+`account/mine` 同时被两处改写：
+
+| 来源 | 改什么 |
+|---|---|
+| 本插件的 jq | `vip` / `vip_type` 字段 |
+| Enhanced 脚本 | `sections_v2` / `ipad_sections` 服务列表 |
+
+已核实 `Ba.replaceSections` **不触碰 vip 字段**，两者改不同字段，与执行顺序无关。
