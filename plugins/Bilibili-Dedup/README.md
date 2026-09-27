@@ -2,7 +2,7 @@
 
 B 站去广告 + 漫画净化 + 本地会员伪装，与 `blockAds` 合集去重后独立运行。
 
-**当前版本：v7.11** · 32 参数 / 5 Rule / 29 Rewrite / 11 Script
+**当前版本：v7.12** · 32 参数 / 5 Rule / 29 Rewrite / 11 Script
 
 > 📖 版本演进与踩坑复盘见 [BILIBILI-ITERATION.md](../../BILIBILI-ITERATION.md)
 > 本文只描述**当前状态**，不记录历史。
@@ -79,6 +79,12 @@ blockAds（奶思合集）内置了 kokoryh 的完整 B 站规则集，与本插
 >
 > 只写 `data.vip` 时顶栏仍显示灰色 —— 这是 v7.10 看似无效的原因。
 > 两处现在都会写入。
+>
+> 两处的 `label` 对象**逐字段完全一致**（8 个字段），因此两个页面显示效果相同。
+> 顶层字段名不同（`status` vs `vipStatus`）是两套 schema 固有的，无法也不必统一。
+>
+> 另：实测 App 对空间页会员标走**文字渲染**（`text` + `bg_color`），
+> 一次 `/bfs/vip/` 图片请求都不会发出，因此 `image` 留空即可。
 
 ### 漫画净化
 

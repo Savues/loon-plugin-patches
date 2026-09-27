@@ -28,11 +28,8 @@ const T = THEMES[A.vipTheme] || THEMES.fools_day_hundred_annual_vip;
 const bg = A.vipBg || "#00E07C";
 const fg = A.vipFg || "#000000";
 const text = A.vipText || T.text;
-// 默认用年度大会员的真实牌子图（来自用户抓包中真实存在的 URL）。
-// App 缺少 image 时会渲染灰色占位 —— 这是注入后仍显示灰色的原因。
-// 绿鲤鱼的图无公开样本，先用年度图验证「缺图 → 灰色」这一机制。
-const DEFAULT_IMG = "http://i0.hdslb.com/bfs/vip/label_annual.png";
-const img = A.vipImg || DEFAULT_IMG;
+// 实测：App 对空间页的会员标走文字渲染（text + bg_color），
+// 一次 /bfs/vip/ 图片请求都不会发。image 留空，与 myinfo 侧保持一致。
 
 try {
   const j = JSON.parse($response.body);
@@ -52,12 +49,13 @@ try {
     bg_style: 1,
     bg_color: bg,
     border_color: "",
-    image: img,
-    label_id: 0,
-    label_goto: "https://big.bilibili.com/mobile/index?navhide=1&from_spmid=vipicon"
+    image: ""
   });
+  // 构造结果与 myinfo 侧（vip-theme.js）逐字段相同，
+  // 只多出空间页 schema 特有的 vipType/vipStatus/vipDueDate 等字段。
 
-  d.vip = Object.assign({}, v || {}, {
+  // 补齐与 myinfo 侧一致的字段集，两个页面的对象逐字段相同
+  const FULL = {
     vipType: T.type,
     vipDueDate: DUE,
     dueRemark: "",
@@ -71,7 +69,9 @@ try {
     end_time: 0,
     silence_url: "",
     nickname_color: bg
-  });
+  };
+
+  d.vip = Object.assign({}, v || {}, FULL);
 
   // 空间页的到期提示开关，与会员样本一致
   if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
@@ -82,20 +82,7 @@ try {
   //   card.vip -> vipStatus:0   App 读这个，所以一直显示灰色
   // 两处都写：card.vip 决定顶栏，data.vip 供其他页面使用。
   if (d.card && typeof d.card === "object") {
-    d.card.vip = Object.assign({}, d.card.vip || {}, {
-      vipType: T.type,
-      vipDueDate: DUE,
-      dueRemark: "",
-      accessStatus: 0,
-      vipStatus: 1,
-      vipStatusWarn: "",
-      themeType: 0,
-      label: label,
-      silence: 0,
-      control: 0,
-      end_time: 0,
-      silence_url: ""
-    });
+    d.card.vip = Object.assign({}, d.card.vip || {}, FULL);
   }
 
   $done({ body: JSON.stringify(j) });
