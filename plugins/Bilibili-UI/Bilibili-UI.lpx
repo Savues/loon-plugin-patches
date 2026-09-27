@@ -7,8 +7,8 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-28 01:35:00
-# ==== PLUGIN_VERSION: 2.0.0 | BUILD_BY: Savues | BoxJS 已移除 | 6 组真开关 ====
+#!date=2026-09-28 01:55:00
+# ==== PLUGIN_VERSION: 2.0.1 | BUILD_BY: Savues | BoxJS 已移除 | 6 组真开关 | 修复 l.Home 抛异常 ====
 
 [Argument]
 # ===== 首页 · 标签页（多选）=====

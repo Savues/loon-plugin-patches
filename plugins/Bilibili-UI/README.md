@@ -2,6 +2,41 @@
 
 Biliverse Enhanced 的界面自定义功能，**真开关版**。
 
+## v2.0.1 · 修复「完全不起作用」
+
+**症状**：v2.0.0 导入后插件完全无效果（标签页、顶栏、底部导航全部不生效）。
+
+**根因**：v2.0.0 的补丁把原版的 `i.set(l,"Home.Top",...)` 改成了**直接赋值** `l.Home.Top = ...`。
+当 `l.Home` 不存在时（某些请求路径不会加载默认设置），直接赋值抛
+`Cannot set properties of undefined`，而脚本的 4 个 `catch` **全在内部工具**
+（protobuf / base64 / 特性检测），**没有一个包住主流程** ——
+异常直接冒泡，脚本死掉，响应原样返回。**症状就是「完全不起作用」。**
+
+**修复**：全部改回 `i.get` / `i.set`。`i.set` 内部会安全地创建缺失的中间对象：
+
+```js
+// 改前（危险）
+l.Home.Top = f.length ? f : (...)
+
+// 改后（安全，与原版同风格）
+(()=>{const T=x=>x===!0||x==="true",S=["game_center","mall","messages"],
+      f=S.filter(x=>T(i.get(l,"Home.Top_"+x))),
+      c=i.get(l,"Home.Top");
+  i.set(l,"Home.Top", f.length?f:Array.isArray(c)?c:c?[c]:[]);})(),
+```
+
+Node 实测（复刻 `i.get`/`i.set`/`toPath`）：
+
+| 场景 | 结果 |
+|---|---|
+| `l` 为空对象 | ✅ 不抛异常，四组均为 `[]` |
+| 全部开关按默认开启 | ✅ `Tab=[2037,780,545,151]` `Top=[messages]` `Top_more=[categories,search]` `Bottom=[home,dynamic,ogv,mall,messages,mine]` |
+
+> 注：TabTest v0.2.0 用的是同一套补丁且能正常工作，是因为它只匹配 `tab/v2` 一个端点，
+> 走的是会加载默认设置的代码路径。v2.0.0 扩展到 5 个端点后触发了没有默认设置的路径。
+
+---
+
 ## v2.0.0 · 真开关 + 彻底去 BoxJS
 
 ### 做了什么
