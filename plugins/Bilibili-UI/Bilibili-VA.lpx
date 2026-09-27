@@ -1,0 +1,56 @@
+#!name=哔哩哔哩界面增强 VA
+#!desc=诊断：单条规则 + 全部参数。用于判断问题出在参数数量还是规则数量。
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!tag=诊断,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!date=2026-09-28 02:30:00
+# ==== VA: 1 rule / 29 args ====
+
+[Argument]
+
+
+# ===== 首页 · 标签页（多选）=====
+Home.Tab_2036 = switch,false,tag=[首页] 标签页 直播
+Home.Tab_2037 = switch,true,tag=[首页] 标签页 推荐
+Home.Tab_780 = switch,true,tag=[首页] 标签页 热门
+Home.Tab_545 = switch,true,tag=[首页] 标签页 番剧
+Home.Tab_774 = switch,false,tag=[首页] 标签页 动画（港澳台）
+Home.Tab_151 = switch,true,tag=[首页] 标签页 影视
+Home.Tab_801 = switch,false,tag=[首页] 标签页 韩综（港澳台）
+Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
+Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
+# ===== 顶栏 · 左侧头像（单选）=====
+Home.Top_left = select,"mine","videoshortcut",tag=[顶栏] 左侧头像作用,desc=mine=我的 / videoshortcut=视频快捷方式；粉色版不可改
+# ===== 顶栏 · 右侧按钮（多选）=====
+Home.Top_messages = switch,true,tag=[顶栏] 消息
+Home.Top_game_center = switch,false,tag=[顶栏] 游戏中心,desc=⚠️部分版本可能已下线
+Home.Top_mall = switch,false,tag=[顶栏] 会员购
+# ===== 标签栏 · 右侧按钮（多选）=====
+Home.TopMore_categories = switch,true,tag=[标签栏] 更多分区
+Home.TopMore_search = switch,true,tag=[标签栏] 搜索
+# ===== 底部 · 导航栏（多选，最多 6 个）=====
+Home.Bot_home = switch,true,tag=[底部] 首页
+Home.Bot_channel = switch,false,tag=[底部] 频道,desc=⚠️部分版本可能已下线
+Home.Bot_dynamic = switch,true,tag=[底部] 动态
+Home.Bot_publish = switch,false,tag=[底部] 发布,desc=⚠️部分版本可能已下线
+Home.Bot_ogv = switch,true,tag=[底部] 番剧
+Home.Bot_mall = switch,true,tag=[底部] 会员购
+Home.Bot_messages = switch,true,tag=[底部] 消息
+Home.Bot_mine = switch,true,tag=[底部] 我的
+# ===== 其他 =====
+Home.Switch = switch,true,tag=[首页] 启用自定义
+Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方标签页开关一个都没开时生效。逗号分隔，可填接口下发的其他 id
+Region.Switch = switch,true,tag=[分区] 启用自定义
+Mine.Switch = switch,false,tag=[我的] 启用自定义,desc=⚠️默认关。与 Bilibili-Dedup 的会员伪装同端点
+Mine.iPad.Switch = switch,false,tag=[我的iPad] 启用自定义,desc=⚠️同上
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+
+[Script]
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Top_left},{Home.Top_messages},{Home.Top_game_center},{Home.Top_mall},{Home.TopMore_categories},{Home.TopMore_search},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{LogLevel}], tag=顶栏标签底部
+
+[Mitm]
+hostname=app.bilibili.com, app.biliapi.net, grpc.biliapi.net
+h2 = true
