@@ -102,3 +102,21 @@ blockAds 合集**无需任何改动**，其 B 站部分继续提供空降助手�
 - **fmz200**（blockAds 合集，仅作为去重参照）— <https://github.com/fmz200/wool_scripts>
 
 上游版权与许可条款全部适用。
+
+## v2 复查修正记录
+
+首版存在 3 个缺陷，已在 v2 修复：
+
+| 缺陷 | 现象 | 修正 |
+|---|---|---|
+| **参数名大小写** | `bundle.js` 读取 `a.LogLevel`（大写 L），首版传 `logLevel` | 同时声明 `LogLevel`（供 bundle）与 `logLevel`（供 kokoryh），二者是不同参数 |
+| **`Dynamic.MostVisited` 默认值** | 首版设为 `true`，bundle 会执行 `i.upList=void 0` 整块删除「最常访问」，与 kokoryh 的 `displayUpList="show"` 方向相反，两个脚本互相打架 | 改为 `false`，并补充说明：生效前需先关闭该项 |
+| **`[Rewrite]` 非法语法** | 首版用 `script-response-body,requires-body=1` 调脚本，但 Loon 的 `[Rewrite]` 不支持调脚本（那是 Surge 写法），且与 `[Script]` 段重复 | 删除这 2 条规则，仅保留 `[Script]` 版本 |
+
+另修正：直播规则端点从 `xlive/app-interface/v2/index/feed` 改为
+`xlive/app-room/v1/index/getInfoByRoom` —— 前者在 `bundle.js` 中出现 **0 次**，
+是一条不会生效的死规则。
+
+参数传递机制说明：`bundle.js` 用 lodash `set` 合并 `$argument`，
+**支持点号路径**，因此 `Feed.AD` 这类嵌套名会正确展开为 `{Feed:{AD:...}}`，
+无需在清单层做嵌套结构。
