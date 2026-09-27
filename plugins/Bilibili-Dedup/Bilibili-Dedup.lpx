@@ -1,4 +1,4 @@
-#!name=哔哩哔哩去广告(合并版) v7.10
+#!name=哔哩哔哩去广告(合并版) v7.11
 #!desc=[插件版本 v6.0 / 构建 2026-09-27T23:10] 与 blockAds 合集去重。v6 起接管合集的漫画去广告与空降助手请求侧，合集B站部分已整体退场。。修 v2-v4 的致命缺陷：protobuf 规则缺 https:// 前缀导致完全空转。默认全开去广告。确认是否为本版：在插件里搜 PLUGIN_VERSION 或看标题 v5。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
@@ -7,8 +7,8 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
-#!date=2026-09-28 22:10:00
-# ==== PLUGIN_VERSION: 7.10.0 | 新增个人主页（/x/v2/space）会员伪装 ====
+#!date=2026-09-28 22:40:00
+# ==== PLUGIN_VERSION: 7.11.0 | 修：空间页须写 card.vip（App 实际读取处）=====
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----

@@ -76,6 +76,28 @@ try {
   // 空间页的到期提示开关，与会员样本一致
   if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
 
+  // 关键：主页顶栏实际读 data.card.vip，不是 data.vip。
+  // 抓包实证（非会员主页，v7.10 注入后）：
+  //   data.vip -> vipStatus:1   我们写的，App 不看
+  //   card.vip -> vipStatus:0   App 读这个，所以一直显示灰色
+  // 两处都写：card.vip 决定顶栏，data.vip 供其他页面使用。
+  if (d.card && typeof d.card === "object") {
+    d.card.vip = Object.assign({}, d.card.vip || {}, {
+      vipType: T.type,
+      vipDueDate: DUE,
+      dueRemark: "",
+      accessStatus: 0,
+      vipStatus: 1,
+      vipStatusWarn: "",
+      themeType: 0,
+      label: label,
+      silence: 0,
+      control: 0,
+      end_time: 0,
+      silence_url: ""
+    });
+  }
+
   $done({ body: JSON.stringify(j) });
 } catch (e) {
   $done({});
