@@ -861,3 +861,33 @@ label: ((.label // {}) + { text: "最强绿鲤鱼",
 > 未给出绿鲤鱼的准确色值。这里用黑字 `#000000` + 亮绿底 `#00E07C`。
 > 若显示效果不对，把 App 里实际的配色告诉我，或直接改成你想要的值。
 > 真实颜色属于**读取**响应，不能伪造 —— 只能靠猜或实测。
+
+
+## v7.6.0 · 加「小会员」图标
+
+绿鲤鱼主题的昵称旁小会员标识，此前一直没设置。补上：
+
+```js
+avatar_subscript: 1,        // 开启会员图标
+avatar_subscript_url: "",    // 留空 → App 渲染自带图标
+```
+
+**依据**：B 站 API 文档（`user/info.md`）的 8 个真实账号样本中，
+**5 个是 `avatar_subscript: 1` 且 `avatar_subscript_url` 为空** ——
+说明 App 在 URL 为空时会用内置图标，而不是不显示。
+
+| 字段 | 含义 |
+|---|---|
+| `avatar_subscript` | 0 不显示 / 1 显示（昵称旁的小会员标） |
+| `avatar_subscript_url` | 大会员角标地址；**留空用 App 内置** |
+
+> ⚠️ 文档示例里的 `icon_Certification_big_member_22_3x.png` 等 URL 现已 404，
+> 且本机网络无法访问 hdslb.com（所有 URL 均返回 000），**无法验证任何图 URL**。
+> 留空走内置是当前唯一可靠方案。
+
+各主题当前的图配置：
+
+| 主题 | `label.image` | `avatar_subscript` |
+|---|---|---|
+| 年度大会员 | zirawell 的 URL（未验证） | 1（内置小会员） |
+| 其余四个 | 空 | 1（内置小会员） |
