@@ -1,4 +1,4 @@
-#!name=哔哩哔哩界面增强 v3
+#!name=哔哩哔哩界面增强 v3.1
 #!desc=只保留【首页标签页】与【底部导航栏】两组自定义，支持真开关点选。已移除 BoxJS 与 PersistentStore，配置只读本插件参数页。需启用 MitM over HTTP/2。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
@@ -7,19 +7,19 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-28 03:35:00
-# ==== PLUGIN_VERSION: 3.0.0 | 仅保留 标签页 + 底栏 | 18 参数 | 1 条规则 ====
+#!date=2026-09-28 03:50:00
+# ==== v3.1.0 | 默认：标签页 3 项（推荐/动画/韩综）· 底栏 3 项（首页/动态/我的）=====
 
 [Argument]
 # ===== 首页 · 标签页（多选）=====
 Home.Switch = switch,true,tag=[首页] 启用自定义
 Home.Tab_2036 = switch,false,tag=[首页] 标签页 直播
 Home.Tab_2037 = switch,true,tag=[首页] 标签页 推荐
-Home.Tab_780 = switch,true,tag=[首页] 标签页 热门
-Home.Tab_545 = switch,true,tag=[首页] 标签页 番剧
-Home.Tab_774 = switch,false,tag=[首页] 标签页 动画（港澳台）
-Home.Tab_151 = switch,true,tag=[首页] 标签页 影视
-Home.Tab_801 = switch,false,tag=[首页] 标签页 韩综（港澳台）
+Home.Tab_780 = switch,false,tag=[首页] 标签页 热门
+Home.Tab_545 = switch,false,tag=[首页] 标签页 番剧
+Home.Tab_774 = switch,true,tag=[首页] 标签页 动画（港澳台）
+Home.Tab_151 = switch,false,tag=[首页] 标签页 影视
+Home.Tab_801 = switch,true,tag=[首页] 标签页 韩综（港澳台）
 Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
 Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
 Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方开关一个都没开时生效。逗号分隔，可填接口下发的其他 id
@@ -28,9 +28,9 @@ Home.Bot_home = switch,true,tag=[底部] 首页
 Home.Bot_channel = switch,false,tag=[底部] 频道
 Home.Bot_dynamic = switch,true,tag=[底部] 动态
 Home.Bot_publish = switch,false,tag=[底部] 发布
-Home.Bot_ogv = switch,true,tag=[底部] 番剧
-Home.Bot_mall = switch,true,tag=[底部] 会员购
-Home.Bot_messages = switch,true,tag=[底部] 消息
+Home.Bot_ogv = switch,false,tag=[底部] 番剧
+Home.Bot_mall = switch,false,tag=[底部] 会员购
+Home.Bot_messages = switch,false,tag=[底部] 消息
 Home.Bot_mine = switch,true,tag=[底部] 我的
 # ===== 其他 =====
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
