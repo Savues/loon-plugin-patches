@@ -7,16 +7,32 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-09-27 23:58:00
-# ==== PLUGIN_VERSION: 1.0.0 | BUILD_BY: Savues ====
+#!date=2026-09-28 00:20:00
+# ==== PLUGIN_VERSION: 1.1.0 | BUILD_BY: Savues ====
 
 [Argument]
 Home.Switch = switch,true,tag=[首页] 启用自定义,desc=关闭后本页所有设置不生效
+# ---- 顶栏可用项提示（开关本身不生效，仅提示可用的 id）----
+# 说明：脚本用 settings.Home.Top 对接口返回的按钮逐个做字符串包含判断，
+#       真正生效的是下方 Home.Top 输入框。这里把代码内置的全部可选项列出来，
+#       方便对照填写，不必去翻源码。
+hintTop = switch,false,tag=[顶栏] ⓘ 顶栏可用项说明,desc=这是一个说明开关，不控制任何功能。真正生效请见下方「顶栏实际生效值」输入框
+Top.opt = switch,true,tag=[顶栏] ⓘ 消息,desc=id=messages        —— 右侧按钮，当前确认可用
+Top.opt2 = switch,false,tag=[顶栏] ⓘ 游戏中心,desc=id=game_center   —— 右侧按钮
+Top.opt3 = switch,false,tag=[顶栏] ⓘ 会员购,desc=id=mall            —— 右侧按钮
+Top.dead1 = switch,false,tag=[顶栏] ⚠️ 首页(存疑),desc=id=home        —— 代码内置但 BoxJS 未暴露，B站 接口可能已不再下发，填了多半无效
+Top.dead2 = switch,false,tag=[顶栏] ⚠️ 频道(存疑),desc=id=channel     —— 同上
+Top.dead3 = switch,false,tag=[顶栏] ⚠️ 动态(存疑),desc=id=dynamic     —— 同上
+Top.dead4 = switch,false,tag=[顶栏] ⚠️ 发布(存疑),desc=id=publish     —— 同上
+More.opt1 = switch,true,tag=[标签栏] ⓘ 更多分区,desc=id=categories   —— 标签栏右侧按钮，当前确认可用
+More.opt2 = switch,false,tag=[标签栏] ⓘ 搜索,desc=id=search         —— 标签栏右侧按钮
+Left.opt1 = switch,true,tag=[顶栏] ⓘ 头像=我的,desc=id=mine          —— 顶栏左侧（用户头像）的作用
+Left.opt2 = switch,false,tag=[顶栏] ⓘ 头像=视频快捷,desc=id=videoshortcut —— 粉色版不可改
 Home.Tab = input,"2036,2037,780,545,151",tag=[首页] 标签页,desc=逗号分隔的 id。完整约 60 项请在 App 分区页用原生「快捷访问」配置
 Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
 Home.Top_left = select,"mine","videoshortcut",tag=[首页] 顶栏左侧按钮,desc=用户头像的作用；粉色版不可改
-Home.Top = input,"messages",tag=[首页] 顶栏右侧按钮,desc=可选 game_center / mall / messages
-Home.Top_more = input,"categories,search",tag=[首页] 标签栏右侧按钮,desc=可选 categories / search
+Home.Top = input,"messages",tag=[首页] 顶栏实际生效值,desc=逗号分隔。可填 messages / game_center / mall；home / channel / dynamic / publish 为存疑项，见上方「顶栏可用项说明」
+Home.Top_more = input,"categories,search",tag=[首页] 标签栏实际生效值,desc=逗号分隔，可填 categories / search
 Bottom = input,"home,dynamic,ogv,mall,mine",tag=[底部] 导航栏按钮,desc=最多 6 个
 Region.Switch = switch,true,tag=[分区] 启用自定义
 Mine.Switch = switch,false,tag=[我的] 启用自定义,desc=⚠️默认关。该端点已被 Dedup 的会员伪装占用

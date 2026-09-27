@@ -76,3 +76,55 @@ Storage = select,"Argument","PersistentStore","database"
 
 - **Biliverse** — VirgilClyne, app2smile, Maasea <https://biliverse.github.io/>
 - 上游分发：<https://github.com/Biliverse/Enhanced>
+
+## v1.1：顶栏可用项提示开关
+
+### 为什么加「不生效的开关」
+
+顶栏三项目前是**自由输入框**（填 id，如 `messages`），用户必须去翻源码才知道能填什么。
+参数里新增 **12 个纯提示开关**，只做说明用，不参与 `argument`，不影响任何功能。
+
+### 机制说明
+
+脚本的判定逻辑是**字符串包含匹配**：
+
+```js
+set(e, "top", get(a,"Tab.top")
+      .map(x => settings.Home.Top.includes(x.id) ? x : null)
+      .filter(Boolean).map((x,i)=>({...x, pos:i+1})))
+```
+
+- `Tab.top` 是**接口返回的按钮清单**（不是硬编码的）
+- `Home.Top` 是你填的字符串，`.includes()` 做子串匹配
+- **真正生效的是输入框**，提示开关只是把可填的 id 列出来
+
+### ⓘ 确认可用的项
+
+| 提示开关 | id | 说明 |
+|---|---|---|
+| `Top.opt` | `messages` | 顶栏右侧 · 消息（唯一默认开启的） |
+| `Top.opt2` | `game_center` | 顶栏右侧 · 游戏中心 |
+| `Top.opt3` | `mall` | 顶栏右侧 · 会员购 |
+| `More.opt1` | `categories` | 标签栏右侧 · 更多分区 |
+| `More.opt2` | `search` | 标签栏右侧 · 搜索 |
+| `Left.opt1` | `mine` | 顶栏左侧头像 · 我的 |
+| `Left.opt2` | `videoshortcut` | 顶栏左侧头像 · 视频快捷方式（粉色版不可改） |
+
+### ⚠️ 存疑项（代码内置但 BoxJS 未暴露）
+
+| 提示开关 | id | 判断依据 |
+|---|---|---|
+| `Top.dead1` | `home` | Maasea 的脚本硬编码了 7 个顶栏按钮，但 BoxJS 只暴露 3 个 |
+| `Top.dead2` | `channel` | 未暴露的 4 个很可能 B 站接口早已不再下发 |
+| `Top.dead3` | `dynamic` | `Tab.top` 来自接口响应，接口不返回就完全无效 |
+| `Top.dead4` | `publish` | 填进输入框多半没有反应 |
+
+**这四项标了 ⚠️，但仍可填进 `Home.Top` 试试** —— 取决于你当前 B 站版本是否还下发这些按钮。
+
+### 用法
+
+1. 看提示开关，找到想要的项对应的 **id**
+2. 把 id 填进下方 **「顶栏实际生效值」** 输入框，多个用逗号分隔
+3. 提示开关本身**不用动**
+
+> 提示开关的 `desc` 里也写了对应 id，方便对照。
