@@ -1,4 +1,4 @@
-#!name=哔哩哔哩去广告(合并版) v8.2
+#!name=哔哩哔哩去广告(合并版) v7.1
 #!desc=[插件版本 v6.0 / 构建 2026-09-27T23:10] 与 blockAds 合集去重。v6 起接管合集的漫画去广告与空降助手请求侧，合集B站部分已整体退场。。修 v2-v4 的致命缺陷：protobuf 规则缺 https:// 前缀导致完全空转。默认全开去广告。确认是否为本版：在插件里搜 PLUGIN_VERSION 或看标题 v5。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
@@ -7,62 +7,38 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
-#!date=2026-09-27 23:50:00
-# ==== PLUGIN_VERSION: 8.2.0 | BUILD_BY: Savues | 协议前缀: OK | 端点覆盖: 21/21 ====
+#!date=2026-09-27 23:10:00
+# ==== PLUGIN_VERSION: 7.1.0 | BUILD_BY: Savues | 协议前缀: OK | 端点覆盖: 21/21 ====
 
 [Argument]
+# ---- BiliUniverse 开关（默认全开去广告）----
+Splash = switch,true,tag=[开屏] 去除广告
+Feed.AD = switch,true,tag=[推荐] 去除广告
+Feed.Activity = switch,true,tag=[推荐] 去除“活动大图”
+Feed.Vertical = switch,true,tag=[推荐] 去除竖屏视频,desc=⚠️非广告，会删掉竖屏内容，不想要就关掉
+Feed.BlockUpLiveList = input,"",tag=[推荐] 屏蔽UP主直播推广,desc=填 up主uid，英文逗号隔开
+Feed.Story = switch,true,tag=[首页] 去除短视频流广告
+Search.AD = switch,true,tag=[搜索] 去除广告
+Search.HotSearch = switch,true,tag=[搜索] 去除“热搜”,desc=⚠️非广告，会隐藏热搜榜
+PGC.AD = switch,true,tag=[番剧电影] 去除广告
+Xlive.AD = switch,true,tag=[直播] 去除广告
+Dynamic.HotTopics = switch,true,tag=[动态] 去除“热门话题”,desc=⚠️非广告，会隐藏话题入口
 Dynamic.MostVisited = switch,false,tag=[动态] 去除“最常访问”,desc=⚠️默认关。开启=整块删除该模块，会与 displayUpList 冲突
 Dynamic.MostVisitedLiveOnly = switch,false,tag=[动态] “最常访问”仅显示直播,desc=与 displayUpList 二选一
+Dynamic.AdCard = switch,true,tag=[动态] 去除广告卡片
+View.AD = switch,true,tag=[用户投稿] 去除视频广告
+DM.Command = switch,true,tag=[弹幕] 去除交互式弹幕
+DM.Colorful = switch,true,tag=[弹幕] 替换彩色弹幕,desc=⚠️非广告，会把会员彩色弹幕降级
 localVIP = switch,true,tag=本地大会员伪装,tag=本地大会员伪装,desc=自 blockAds 迁入，关闭后恢复真实会员状态
+mangaAD = switch,true,tag=[漫画] 去除广告,desc=自 blockAds 迁入
+Reply.AD = switch,true,tag=[评论] 去除广告
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+# ---- kokoryh 参数 ----
 displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
 purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=补回 blockAds 因参数未定义而跳过的电商广告过滤
 optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=blockAds 的同名规则因 enable 参数未定义而完全不生效
 sponsorBlock=switch,true,tag=空降助手,desc=与 blockAds 共存，本插件在二次执行时为幂等
-
-# ================== Biliverse 界面自定义（E） ==================
-Home.Switch = switch,true,tag=[E首页] 启用自定义,desc=顶栏/标签页/底部导航
-Home.Tab = input,"2036,2037,780,545,151",tag=[E首页] 标签页,desc=逗号分隔的 id；完整约60项请在App分区页用原生「快捷访问」配置
-Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[E首页] 默认标签页
-Home.Top_left = select,"mine","videoshortcut",tag=[E首页] 顶栏左侧按钮,desc=粉色版不可改
-Home.Top = input,"messages",tag=[E首页] 顶栏右侧按钮,desc=可选 game_center,mall,messages
-Home.Top_more = input,"categories,search",tag=[E首页] 标签栏右侧按钮
-Bottom = input,"home,dynamic,ogv,mall,mine",tag=[E底部] 导航栏按钮,desc=最多6个
-Region.Switch = switch,true,tag=[E分区] 启用自定义
-Mine.Switch = switch,true,tag=[E我的] 启用自定义
-Mine.iPad.Switch = switch,true,tag=[E我的iPad] 启用自定义
-# ================== Biliverse 去广告增强（A） ==================
-Splash = switch,true,tag=[A开屏] 去除广告
-Feed.AD = switch,true,tag=[A推荐] 去除广告
-Feed.Activity = switch,true,tag=[A推荐] 去除活动大图
-Feed.Vertical = switch,true,tag=[A推荐] 去除竖屏视频,desc=非广告，会删竖屏内容
-Feed.BlockUpLiveList = input,"",tag=[A推荐] 屏蔽UP主直播推广,desc=填 up主uid，英文逗号隔开
-Feed.Story = switch,true,tag=[A首页] 去除短视频流广告
-Feed.StoryCommercial = switch,true,tag=[A首页] 移除“助TA必火”等商业推广
-Search.AD = switch,true,tag=[A搜索] 去除广告
-Search.Tracking = switch,true,tag=[A搜索] 清理trackid归因参数
-Search.HotSearch = switch,true,tag=[A搜索] 去除热搜,desc=非广告，会隐藏热搜榜
-PGC.AD = switch,true,tag=[A番剧] 去除广告
-Xlive.AD = switch,true,tag=[A直播] 去除广告
-Xlive.RemoveTrackingCallbacks = switch,false,tag=[A直播] 移除推荐卡回调,desc=可能影响推荐翻页
-Xlive.RemovePreloadTracking = switch,false,tag=[A直播] 移除预加载跟踪
-Dynamic.HotTopics = switch,true,tag=[A动态] 去除热门话题,desc=非广告，会隐藏话题入口
-Dynamic.AdCard = switch,true,tag=[A动态] 去除广告卡片
-Dynamic.PersonalAdCard = switch,false,tag=[A动态] 去除个人动态广告卡
-View.AD = switch,true,tag=[A投稿] 去除视频广告
-DM.Command = switch,true,tag=[A弹幕] 去除交互式弹幕
-DM.Colorful = switch,true,tag=[A弹幕] 替换彩色弹幕,desc=非广告，会把会员彩色弹幕降级
-DM.Airborne = switch,false,tag=[A弹幕] 空降助手(ADBlock版),desc=⚠️默认关。ADBlock 不含 chronos 字段，与 sponsorBlock 同开会破坏空降助手。仅在 sponsorBlock 关闭时启用
-Reply.AD = switch,true,tag=[A评论] 去除广告
-Reply.CommercialLinks = switch,true,tag=[A评论] 移除评论商品链接,desc=保留正文，只删商品可点击映射
-Reply.SubjectDescriptionCommercial = switch,true,tag=[A评论] 移除视频简介商业按钮
-dmClean = switch,true,tag=[A弹幕] 去除弹幕广告,desc=仅去广告，不含空降助手
-Privacy.Tracking = switch,true,tag=[A隐私] 清理归因跟踪参数,desc=推荐/Story/评论跳转链接中的 trackid
-Privacy.BlockBiliCommercial = switch,true,tag=[A隐私] 阻断B站商业上报,desc=本地响应 conversion/fees 请求
-Privacy.BlockThirdParty = switch,true,tag=[A隐私] 阻断第三方广告,desc=千问、Solar Engine
-Privacy.Strict = switch,false,tag=[A隐私] 严格模式,desc=⚠️同时开启追踪清理/商业阻断/第三方并移除直播回调，可能影响跳转与翻页
-# ================== 存储与日志 ==================
-Storage = select,"Argument","PersistentStore","database",tag=[储存] 配置类型,desc=选 Argument 则只读本插件参数页的值，不使用 BoxJS
-LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+logLevel=select,"off","error","warn","info","debug",tag=脚本日志等级(kokoryh),desc=与上方 LogLevel(BiliUniverse) 是两个不同参数名
 
 [Rule]
 DOMAIN,api.biliapi.com,REJECT
@@ -114,7 +90,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 # ==== A. kokoryh protobuf（完整参数，补回 blockAds 降级项）====
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
-http-request ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
 # ==== B. BiliUniverse bundle（仅 blockAds 未覆盖的端点，完整 19 项参数）====
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/(splash\/(brand\/list|event\/list2|list|show)|search\/square) script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=开屏与搜索
 http-response ^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=网页端推荐
@@ -124,20 +100,6 @@ http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/
 # ==== C. 漫画去广告脚本（自 blockAds 迁入）====
 http-response ^https?:\/\/manga\.bilibili\.com\/twirp\/(user\.v\d\.User\/(UCenterConf|GetInitInfo)|comic\.v\d\.(Home\/HomeFeed|Comment\/Main)) script-path=https://raw.githubusercontent.com/zirawell/R-Store/main/Res/Scripts/AntiAd/bilibiliManga.js, requires-body=true, timeout=60, enable={mangaAD}, tag=哔哩哔哩漫画
 
-# ==== E. Biliverse 界面自定义 ====
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=E顶栏标签底部
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine(\/ipad)?\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=E我的页
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/region\/index\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=E分区页
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/channel\/region\/list\? script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=E分区列表
-http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.show\.v1\.Mixture\/Region(List|Shortcut)$ script-path=https://github.com/Biliverse/Enhanced/releases/download/v0.6.0/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Home.Switch},{Home.Tab},{Home.Tab_default},{Home.Top_left},{Home.Top},{Home.Top_more},{Bottom},{Region.Switch},{Mine.Switch},{Mine.iPad.Switch},{Storage},{LogLevel}], tag=E分区grpc
-# ==== A. Biliverse 去广告增强（仅接管 Dedup 未覆盖的端点）====
-http-request ^https?:\/\/(grpc\.biliapi\.net|app\.biliapi\.net|app\.bilibili\.com|app\.biliapi\.com)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/request.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=A搜索默认词
-http-request ^https?:\/\/(cm\.bilibili\.com\/cm\/api\/(conversion\/mobile\/v2|fees\/wise)|adtrack\.qianwen\.com\/v3\/ad\/(show\/)?bilibili|tkio-redirect\.solar-engine\.com\/receive\/turl\/) script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/request.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=A隐私上报拦截
-http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/x\/vip\/ads\/materials\? script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/response.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=AVIP广告位
-http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.main\.community\.reply\.v2\.Reply\/SubjectDescription$ script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=A评论简介商业
-http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.app\.dynamic\.v2\.Dynamic\/Dyn(All|Video)(Personal)?$ script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=A动态去广告
-http-response ^https?:\/\/(grpc|app)\.bili(bili\.com|api\.net)\/bilibili\.main\.community\.reply\.v1\.Reply\/(MainList|DetailList|ReplyInfo)$ script-path=https://github.com/Biliverse/ADBlock/releases/download/v0.6.27/response.bundle.js, requires-body=1, binary-body-mode=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Feed.StoryCommercial},{Search.AD},{Search.Tracking},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Xlive.RemoveTrackingCallbacks},{Xlive.RemovePreloadTracking},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{Dynamic.PersonalAdCard},{View.AD},{DM.Command},{DM.Colorful},{DM.Airborne},{Reply.AD},{Reply.CommercialLinks},{Reply.SubjectDescriptionCommercial},{Privacy.Tracking},{Privacy.BlockBiliCommercial},{Privacy.BlockThirdParty},{Privacy.Strict},{LogLevel}], tag=A评论
-
 [Mitm]
-hostname=cm.bilibili.com, adtrack.qianwen.com, tkio-redirect.solar-engine.com, api.vc.bilibili.com, manga.bilibili.com, i*.hdslb.com, mangaapi.manhuaren.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, app.biliapi.net, api.bilibili.com, api.biliapi.net, grpc.biliapi.net, api.live.bilibili.com
+hostname=api.vc.bilibili.com, manga.bilibili.com, i*.hdslb.com, mangaapi.manhuaren.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, app.biliapi.net, api.bilibili.com, api.biliapi.net, grpc.biliapi.net, api.live.bilibili.com
 h2 = true
