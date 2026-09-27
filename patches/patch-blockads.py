@@ -39,8 +39,12 @@ import argparse, difflib, os, pathlib, re, subprocess, sys, tempfile
 UPSTREAM = 'https://github.com/fmz200/wool_scripts/raw/main/Loon/plugin/blockAds.plugin'
 UA = 'Loon/765 CFNetwork/1568.0.3 Darwin/23.5.0'
 
-# 判定「属于 B 站」的域名片段。规则行里是转义形式（bilibili\.com），先归一化再匹配
-BILI = re.compile(r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com)', re.I)
+# 判定「属于 B 站」的域名片段。规则行里是转义形式（bilibili\.com），先归一化再匹配。
+# 注意：B 站漫画走的是 hdslb.com 与 manhuaren.com，不含 bilibili.com，
+# 只匹配 bilibili 系域名会漏掉这 6 条规则。
+BILI = re.compile(
+    r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com'
+    r'|hdslb\.com|manhuaren)', re.I)
 SKIP_SECT = {'ARGUMENT', 'GENERAL', 'MITM'}   # MITM 由 strip_mitm 单独处理
 
 

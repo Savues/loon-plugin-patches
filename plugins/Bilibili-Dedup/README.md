@@ -468,3 +468,19 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com),(OR,stun|tracker|p2p)) REJECT   # 关弹�
 | 漫画去广告 | ✅ **v6 新增** |
 | 关闭弹幕 P2P | ✅ **v6 新增** |
 | 顶栏 / 标签栏 / 底部导航 | ❌ 已交还 Biliverse Enhanced |
+
+### v6.1 补全：漫画静态资源与 manhuaren 接口
+
+退场校验最初只匹配 `bilibili*.com` 系域名，**漏掉了 B 站漫画用的另外两个域**：
+
+| 规则 | 域名 | 上游动作 |
+|---|---|---|
+| 2 条 | `i\d.hdslb.com/bfs/manga-static/` | `reject-200` |
+| 3 条 | `*mangaapi.manhuaren.*` | `reject` |
+
+因此 blockAds 退场版 v1 仍有 5 条漫画规则生效。v6.1 已把这 5 条
+连同 `i*.hdslb.com`、`mangaapi.manhuaren.com` 两个 MITM 域名一并迁入，
+blockAds 侧的判定也扩展为 `hdslb.com|manhuaren`。
+
+> 教训：判定「B 站相关」不能只看主域名。B 站漫画走 `hdslb.com`（CDN）
+> 和 `manhuaren.com`（漫画 API），与 `bilibili.com` 无关。
