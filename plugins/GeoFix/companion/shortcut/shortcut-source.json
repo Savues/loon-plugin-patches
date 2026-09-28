@@ -19,6 +19,7 @@
     {
       "index": 0,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "取共享进来的地图链接(苹果地图/高德)"
       }
@@ -26,6 +27,22 @@
     {
       "index": 1,
       "id": "is.workflow.actions.gettext",
+      "output": "ParseWorker",
+      "params": {
+        "CustomOutputName": "ParseWorker",
+        "WFTextActionText": {
+          "Value": {
+            "string": "geofix-parse.demo.workers.dev",
+            "attachmentsByRange": {}
+          },
+          "WFSerializationType": "WFTextTokenString"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "id": "is.workflow.actions.gettext",
+      "output": "InputURL",
       "params": {
         "CustomOutputName": "InputURL",
         "WFTextActionText": {
@@ -42,15 +59,17 @@
       }
     },
     {
-      "index": 2,
+      "index": 3,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "URL 编码链接"
       }
     },
     {
-      "index": 3,
+      "index": 4,
       "id": "is.workflow.actions.urlencode",
+      "output": "EncURL",
       "params": {
         "WFInput": {
           "Value": {
@@ -70,24 +89,31 @@
       }
     },
     {
-      "index": 4,
+      "index": 5,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "请求 worker 解析经纬度+名称(高德短链由 worker 跟跳转)"
       }
     },
     {
-      "index": 5,
+      "index": 6,
       "id": "is.workflow.actions.downloadurl",
+      "output": "ParseJSON",
       "params": {
         "CustomOutputName": "ParseJSON",
         "WFURL": {
           "Value": {
-            "string": "https://geofix-parse.demo.workers.dev/api/parse?format=json&u=￼",
+            "string": "￼/api/parse?format=json&u=￼",
             "attachmentsByRange": {
-              "{62, 1}": {
-                "OutputUUID": "6df841c4-7ce9-44b4-be93-8bec36e30386",
+              "{0, 1}": {
                 "Type": "ActionOutput",
+                "OutputUUID": "a1a10001-0000-4000-8000-000000000001",
+                "OutputName": "ParseWorker"
+              },
+              "{26, 1}": {
+                "Type": "ActionOutput",
+                "OutputUUID": "6df841c4-7ce9-44b4-be93-8bec36e30386",
                 "OutputName": "EncURL"
               }
             }
@@ -98,15 +124,17 @@
       }
     },
     {
-      "index": 6,
+      "index": 7,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "取 JSON 字段 lat"
       }
     },
     {
-      "index": 7,
+      "index": 8,
       "id": "is.workflow.actions.getvalueforkey",
+      "output": "Latitude",
       "params": {
         "WFInput": {
           "Value": {
@@ -121,15 +149,17 @@
       }
     },
     {
-      "index": 8,
+      "index": 9,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "取 JSON 字段 lon"
       }
     },
     {
-      "index": 9,
+      "index": 10,
       "id": "is.workflow.actions.getvalueforkey",
+      "output": "Longitude",
       "params": {
         "WFInput": {
           "Value": {
@@ -144,15 +174,17 @@
       }
     },
     {
-      "index": 10,
+      "index": 11,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "取 JSON 字段 name"
       }
     },
     {
-      "index": 11,
+      "index": 12,
       "id": "is.workflow.actions.getvalueforkey",
+      "output": "PlaceName",
       "params": {
         "WFInput": {
           "Value": {
@@ -167,19 +199,21 @@
       }
     },
     {
-      "index": 12,
+      "index": 13,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "调用 GeoFix 储存接口"
       }
     },
     {
-      "index": 13,
+      "index": 14,
       "id": "is.workflow.actions.downloadurl",
+      "output": null,
       "params": {
         "WFURL": {
           "Value": {
-            "string": "https://gs-loc.apple.com/geo-settings/save?lat=￼&lon=￼&acc=25",
+            "string": "https://gs-loc.apple.com/geo-settings/save?lat=￼&lon=￼&acc=30",
             "attachmentsByRange": {
               "{47, 1}": {
                 "OutputUUID": "2af7f406-aee5-42b8-aef8-dc3427275b7c",
@@ -199,34 +233,74 @@
       }
     },
     {
-      "index": 14,
+      "index": 15,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "通知改点结果"
       }
     },
     {
-      "index": 15,
+      "index": 16,
+      "id": "is.workflow.actions.downloadurl",
+      "output": "GeoStatus",
+      "params": {
+        "CustomOutputName": "GeoStatus",
+        "WFURL": {
+          "Value": {
+            "string": "https://gs-loc.apple.com/geo-settings/status",
+            "attachmentsByRange": {}
+          },
+          "WFSerializationType": "WFTextTokenString"
+        },
+        "WFHTTPMethod": "GET"
+      }
+    },
+    {
+      "index": 17,
+      "id": "is.workflow.actions.getvalueforkey",
+      "output": "GeoMode",
+      "params": {
+        "WFInput": {
+          "Value": {
+            "Type": "ActionOutput",
+            "OutputUUID": "a1a10002-0000-4000-8000-000000000002",
+            "OutputName": "GeoStatus"
+          },
+          "WFSerializationType": "WFTextTokenAttachment"
+        },
+        "CustomOutputName": "GeoMode",
+        "WFDictionaryKey": "mode"
+      }
+    },
+    {
+      "index": 18,
       "id": "is.workflow.actions.notification",
+      "output": null,
       "params": {
         "WFNotificationActionBody": {
           "Value": {
-            "string": "已切换定位：￼\n纬度：￼\n经度：￼\n即将打开『定位服务』，请关闭再打开(或等 1-10 秒)让新定位生效",
+            "string": "地点：￼\n纬度：￼　经度：￼\n状态：￼\n· passthrough 表示没写进去，检查插件是否启用、MITM 是否生效\n· 写完请重开目标 App，或去 设置→隐私→定位服务 把开关拨一下",
             "attachmentsByRange": {
-              "{11, 1}": {
-                "OutputUUID": "2af7f406-aee5-42b8-aef8-dc3427275b7c",
+              "{3, 1}": {
                 "Type": "ActionOutput",
+                "OutputUUID": "9f460756-5c9f-4e8f-8ca8-26200807d629",
+                "OutputName": "PlaceName"
+              },
+              "{8, 1}": {
+                "Type": "ActionOutput",
+                "OutputUUID": "2af7f406-aee5-42b8-aef8-dc3427275b7c",
                 "OutputName": "Latitude"
               },
-              "{16, 1}": {
-                "OutputUUID": "0153d4c7-a994-44c3-8a95-2cb3be68a3f3",
+              "{13, 1}": {
                 "Type": "ActionOutput",
+                "OutputUUID": "0153d4c7-a994-44c3-8a95-2cb3be68a3f3",
                 "OutputName": "Longitude"
               },
-              "{6, 1}": {
-                "OutputUUID": "9f460756-5c9f-4e8f-8ca8-26200807d629",
+              "{18, 1}": {
                 "Type": "ActionOutput",
-                "OutputName": "PlaceName"
+                "OutputUUID": "a1a10003-0000-4000-8000-000000000003",
+                "OutputName": "GeoMode"
               }
             }
           },
@@ -236,22 +310,25 @@
       }
     },
     {
-      "index": 16,
+      "index": 19,
       "id": "is.workflow.actions.comment",
+      "output": null,
       "params": {
         "WFCommentActionText": "等 1 秒,打开 设置>隐私>定位服务,手动关再开刷新定位"
       }
     },
     {
-      "index": 17,
+      "index": 20,
       "id": "is.workflow.actions.delay",
+      "output": null,
       "params": {
         "WFDelayTime": 1
       }
     },
     {
-      "index": 18,
+      "index": 21,
       "id": "is.workflow.actions.openurl",
+      "output": null,
       "params": {
         "WFInput": "prefs:root=Privacy&path=LOCATION"
       }

@@ -33,20 +33,62 @@
 ### 重新生成
 
 ```bash
-python3 build_shortcut.py --worker https://geofix-parse.<你的子域>.workers.dev --acc 30
-# → GeoFix位置.build.shortcut
+# 换解析服务（推荐指向自建 Worker）
+python3 build_shortcut.py --worker https://geofix-parse.<你的子域>.workers.dev
+
+# 改定位精度（插件会夹到 5–200 米）
+python3 build_shortcut.py --worker <地址> --acc 30
+
+# 保守模式：只做纯字符串替换，不改动作结构
+python3 build_shortcut.py --safe --worker <地址>
+
+# 不要写入结果自检
+python3 build_shortcut.py --no-status --worker <地址>
 ```
 
-`--worker` 留空则沿用原地址。脚本会同时把虚拟端点改名、修正附件偏移，
-并在写盘前逐个自检。`shortcut-source.json` 是 19 个动作的人读版拆解。
+产物 `GeoFix位置.build.shortcut`（生成物，不入库）。
 
-### 已知短板
+### 改了什么
 
-- 通知是**无条件**发的。写入失败（Loon 没开 / 插件没装 / MITM 没生效）时它依然会说成功。
-  要保险可在 ⑤ 之后插一次 `geo-settings/status`，比对 `mode` 和 `patchCount` 再决定发不发。
-- 没有路线（route）能力，`geo-route/*` 那套接口要手动发。
+| | 原件 | 改写后 |
+|---|---|---|
+| 写入端点 | `…/wloc-settings/save` | `…/geo-settings/save`（与插件一致） |
+| 解析服务 | 硬编码在 URL 里 | **抽成独立的「文本」动作 `ParseWorker`，位置在第 2 个动作** |
+| 精度 | `acc=25` 写死 | `--acc` 可调 |
+| 通知 | 无条件报「已切换定位」 | 写入后再取一次 `status`，通知里显示 `mode` |
+| 文案 | 上游品牌 | 全部改成 GeoFix |
 
----
+**关于「链接可控」**：解析服务地址现在是第一个「文本」动作的内容，
+导入后在快捷指令 App 里点进去直接改就行，不用重新生成、不用重签名。
+默认值就是 `--worker` 给的地址，留空则沿用原地址（不推荐，那还是第三方）。
+
+**关于「不再假成功」**：`mode=active` 才代表真写进去了；`passthrough` 说明
+插件没启用、MITM 没生效或坐标被拒。通知里会直接写出来。
+
+### 为什么这个脚本这么长
+
+`.shortcut` 里的 URL 不是普通字符串：
+
+```json
+"string": "￼/api/parse?format=json&u=￼",
+"attachmentsByRange": { "{0, 1}": {"OutputName": "ParseWorker"},
+                        "{26, 1}": {"OutputName": "EncURL"} }
+```
+
+`￼`（U+FFFC）标记变量插入点，`{26,1}` 是它在**原字符串里的字符下标**。
+换域名会改前缀长度 ⇒ 后面所有标记的下标都得平移，否则变量插到错位置。
+
+漏了这步的症状极其隐蔽：一切照常运行，只是某个变量变成了 `lat` 里的某个字符，
+被当成坐标发了出去。**这个 bug 在我改写自己的插件时就踩过一次**——把
+`/wloc-settings/` 换成 `/geo-settings/` 短了一个字符，两处附件全偏一位。
+
+所以脚本里：
+
+- 用 `build_token(template, refs)` 从模板自动算偏移，不手写数字
+- 写盘前把每个附件偏移逐个核回 `￼`
+- 校验每个 `OutputUUID` 都有对应的动作
+- 写完立刻回读 plist，确认结构没坏
+- 任一条不过就**中止且不落盘**
 
 ## 解析 Worker
 
