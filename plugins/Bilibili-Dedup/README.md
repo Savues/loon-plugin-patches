@@ -3,7 +3,7 @@
 > B 站去广告 + 漫画净化 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block, comics cleanup and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.15** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script · 更新 `2026-09-28T14:32`
+**v7.16** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script · 更新 `2026-09-28T21:05`
 
 | | 中文 | English |
 |---|---|---|
@@ -19,6 +19,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-28T21:05` | `—` | **v7.16** 修空间页误改他人资料：`x/v2/space` 加 mid 判定，只改自己的主页；同时修掉 try 块顶层 `return` 的语法错误 |
 | `2026-09-28T15:40` | — | 空降助手引擎包（chronos）镜像至 `upstream/chronos/`；`protobuf.response.js` 中 1 处 URL 改指本仓库，其余字节不变 |
 | `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正重复标点；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
 | `2026-09-28T14:25` | `b2b1c0d` | README 新增[第六章](#六上游脚本镜像--upstream-script-mirror)：目录结构、上游对应关系、SHA256 校验方法 |
