@@ -41,7 +41,7 @@ function skipField(b, i) {
   return -1;  // 未知 wire type，放弃处理
 }
 
-function stripField4(buf) {
+function stripWords(buf) {
   var keep = [], n = 0, i = 0, changed = false;
   while (i < buf.length) {
     var k = readVarint(buf, i);
@@ -50,7 +50,7 @@ function stripField4(buf) {
     if (end < 0 || end > buf.length) {           // 结构异常，原样返回
       var tail = buf.subarray(i); keep.push(tail); n += tail.length; break;
     }
-    if (field === 4) { changed = true; }         // 丢弃滚动推荐词
+    if (field === 3 || field === 4) { changed = true; }   // 丢弃滚动词（长短两版）
     else { var seg = buf.subarray(i, end); keep.push(seg); n += seg.length; }
     i = end;
   }
@@ -78,7 +78,7 @@ function main() {
     var gz = flag === 1;
     if (gz && $utils && $utils.ungzip) { body = $utils.ungzip(body); }
 
-    var r = stripField4(body);
+    var r = stripWords(body);
     if (!r.changed) { $done({}); return; }
 
     if (gz) { $done({ bodyBytes: ($utils && $utils.gzip) ? $utils.gzip(r.buf) : r.buf }); }

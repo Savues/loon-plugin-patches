@@ -138,9 +138,9 @@
   },
   "upstream/adblock-defaultwords.js": {
     "source": "本仓库自撰",
-    "note": "DefaultWords(gRPC/protobuf) 删 f4 短版滚动词，保留 f3 完整句。6 个真实抓包样本回归通过",
-    "bytes": 3143,
-    "sha256": "6b38e35b39953bbe5a45394f3c729a7477fb34de7bef5361d6e05985c69c3af5",
+    "note": "DefaultWords 删 f3+f4 两个滚动词副本，保留 f1/f2/f5/f6",
+    "bytes": 3162,
+    "sha256": "48387560d5a470ffbc2cefee6683cf92d7e8bfd4e48f9137dd87e4c95389456c",
     "authored": "2026-09-28"
   }
 }
