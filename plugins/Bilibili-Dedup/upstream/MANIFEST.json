@@ -138,9 +138,9 @@
   },
   "upstream/adblock-defaultwords.js": {
     "source": "本仓库自撰",
-    "note": "DefaultWords 删 f3+f4 两个滚动词副本，保留 f1/f2/f5/f6",
-    "bytes": 3162,
-    "sha256": "48387560d5a470ffbc2cefee6683cf92d7e8bfd4e48f9137dd87e4c95389456c",
+    "note": "DefaultWords 直接返回空 gRPC 帧（10 行）。响应整体只服务滚动词，清空即达目的；避免在 Loon 内解 gzip",
+    "bytes": 755,
+    "sha256": "6a7f583d8a1865de9224acafb0be4d6b2cc23fa725e20ff3c3ebf437e60dd645",
     "authored": "2026-09-28"
   }
 }
