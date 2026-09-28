@@ -19,7 +19,14 @@
 漏了这步的症状很隐蔽：一切照常运行，只是某个变量变成了 lat 里的某个字符，
 被当成坐标发了出去。本脚本用 build_token() 自动算偏移，并在写盘前逐个核回标记。
 
-网页模式（推荐）：快捷指令退化成纯入口，把链接喂给控制页。
+local 模式：照参考件原样保留 19 个动作（含 8 种输入类型声明），
+只把两处 URL 换成本地插件端点。
+    python3 build_shortcut.py --local https://map.com
+参考这个件的关键是 WFWorkflowInputContentItemClasses 里有
+WFMapsLinkContentItem —— 地图 App 分享地点时传的就是这个类型。
+少声明它，手工重搭的版本从地图分享会失败，而界面里没法补。
+
+网页模式（纯入口，6 个动作）：快捷指令退化成纯入口，把链接喂给控制页。
 解析和写入全在插件的本地页面里完成，**不需要任何外部解析服务**。
     python3 build_shortcut.py --web https://map.com
     python3 build_shortcut.py --web https://map.com --auto   # 解析完直接写入，少点一下
@@ -140,6 +147,61 @@ def write_out(doc, actions, report, a):
 
 
 
+def apply_local(doc, actions, a):
+    """把参考件的两处 URL 换成本地插件端点，动作结构与输入类型声明原样保留。"""
+    base = a.local.rstrip("/")
+    if not base.startswith("http"):
+        raise SystemExit("!! --local 要带 http(s):// 前缀")
+    hits = {"parse": 0, "save": 0}
+
+    for act in actions:
+        p = act.get("WFWorkflowActionParameters") or {}
+        val = (p.get("WFURL") or {}).get("Value")
+        if not isinstance(val, dict) or "string" not in val:
+            continue
+        s = val["string"]
+        if "/api/parse" in s:
+            tok, order = build_token(
+                "{{WebBase}}/geo-parse?u={{EncURL}}",
+                {"WebBase": {"Type": "ActionOutput", "OutputUUID": UUID_WEB_BASE, "OutputName": "WebBase"},
+                 "EncURL": next(r for r in val["attachmentsByRange"].values() if r.get("OutputName") == "EncURL")},
+            )
+            p["WFURL"] = tok
+            web_act = {
+                "WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
+                "WFWorkflowActionParameters": {
+                    "CustomOutputName": "WebBase",
+                    "UUID": UUID_WEB_BASE,
+                    "WFTextActionText": {"Value": {"string": base, "attachmentsByRange": {}},
+                                         "WFSerializationType": "WFTextTokenString"},
+                },
+            }
+            actions.insert(actions.index(act), web_act)
+            hits["parse"] += 1
+        elif "/wloc-settings/save" in s:
+            tok, _ = build_token(
+                "{{WebBase}}/geo-settings/save?lat={{Latitude}}&lon={{Longitude}}&acc=" + str(a.acc or 25),
+                {"WebBase": {"Type": "ActionOutput", "OutputUUID": UUID_WEB_BASE, "OutputName": "WebBase"},
+                 "Latitude": next(r for r in val["attachmentsByRange"].values() if r.get("OutputName") == "Latitude"),
+                 "Longitude": next(r for r in val["attachmentsByRange"].values() if r.get("OutputName") == "Longitude")},
+            )
+            p["WFURL"] = tok
+            hits["save"] += 1
+
+    if hits != {"parse": 1, "save": 1}:
+        raise SystemExit(f"!! 两处 URL 都要命中，实际 parse={hits['parse']} save={hits['save']}")
+    for act in actions:
+        for k, v in (act.get("WFWorkflowActionParameters") or {}).items():
+            if isinstance(v, str) and re.search("(?i)wloc", v):
+                act["WFWorkflowActionParameters"][k] = re.sub("(?i)wloc", "GeoFix", v)
+    return [
+        f"解析 URL → {base}/geo-parse?u=…（写入后：WebBase 文本动作，可自行改）",
+        f"写入 URL → {base}/geo-settings/save?…",
+        f"动作数 {len(actions)}（参考件结构原样保留）",
+        "输入类型声明原样保留，含 WFMapsLinkContentItem",
+    ]
+
+
 def build_web_mode(doc, actions, a):
     """网页模式：只保留「取链接 → 编码 → 打开控制页」，其余动作全删。"""
     def find(ident, out=None):
@@ -197,6 +259,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--worker", default=None, help="解析服务基地址，如 https://xxx.workers.dev")
     ap.add_argument("--web", default=None, help="网页模式：控制页地址，如 https://map.com")
+    ap.add_argument("--local", default=None, help="local 模式：保留参考件结构，两处 URL 指向本地插件，如 https://map.com")
     ap.add_argument("--auto", action="store_true", help="网页模式下加 &auto=1，解析完直接写入")
     ap.add_argument("--acc", type=int, default=None, help="定位精度，米（插件夹到 5–200）")
     ap.add_argument("--safe", action="store_true", help="只做纯字符串替换，不动结构")
@@ -218,6 +281,10 @@ def main():
     if a.web:
         doc, report = build_web_mode(doc, actions, a)
         write_out(doc, doc["WFWorkflowActions"], report, a)
+        return
+    if a.local:
+        report = apply_local(doc, actions, a)
+        write_out(doc, actions, report, a)
         return
 
     # ── ① 虚拟端点改名 ──────────────────────────────────────────────────
