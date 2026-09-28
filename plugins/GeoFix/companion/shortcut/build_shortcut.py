@@ -19,7 +19,12 @@
 漏了这步的症状很隐蔽：一切照常运行，只是某个变量变成了 lat 里的某个字符，
 被当成坐标发了出去。本脚本用 build_token() 自动算偏移，并在写盘前逐个核回标记。
 
-用法:
+网页模式（推荐）：快捷指令退化成纯入口，把链接喂给控制页。
+解析和写入全在插件的本地页面里完成，**不需要任何外部解析服务**。
+    python3 build_shortcut.py --web https://map.com
+    python3 build_shortcut.py --web https://map.com --auto   # 解析完直接写入，少点一下
+
+独立模式：快捷指令自己解析+写入，需要一个解析服务。
     python3 build_shortcut.py --worker https://geofix-parse.<你的子域>.workers.dev
     python3 build_shortcut.py --worker <地址> --acc 30
     python3 build_shortcut.py --safe          # 只做纯字符串替换，不动结构（最保守）
@@ -45,6 +50,8 @@ PH_OPEN, PH_CLOSE = "{{", "}}"
 UUID_PARSE_WORKER = "a1a10001-0000-4000-8000-000000000001"
 UUID_STATUS_FETCH = "a1a10002-0000-4000-8000-000000000002"
 UUID_MODE_KEY = "a1a10003-0000-4000-8000-000000000003"
+UUID_WEB_BASE = "a1a10004-0000-4000-8000-000000000004"
+UUID_OPEN_URL = "a1a10005-0000-4000-8000-000000000005"
 
 
 # ── token string 构造 ──────────────────────────────────────────────────────
@@ -85,9 +92,112 @@ def find_action(doc, ident, nth=0):
 
 
 # ── 主流程 ─────────────────────────────────────────────────────────────────
+def write_out(doc, actions, report, a):
+    # ── 写盘前自检：每个附件偏移必须仍落在 ￼ 上 ────────────────────────
+    bad, checked = [], 0
+    for act in actions:
+        for k, v in (act.get("WFWorkflowActionParameters") or {}).items():
+            val = v.get("Value") if isinstance(v, dict) else None
+            if isinstance(val, dict) and "string" in val:
+                s = val["string"]
+                for key in val.get("attachmentsByRange", {}):
+                    st, ln = int(key[1:key.index(",")]), int(key[key.index(",") + 2:-1])
+                    checked += 1
+                    if s[st:st + ln] != MARK:
+                        bad.append(f"{k} {key} → {s[st:st+ln]!r}")
+    if bad:
+        raise SystemExit("!! 附件偏移错位，中止：\n   " + "\n   ".join(bad))
+
+    # 每个被引用的 OutputUUID 都必须真实存在
+    uuids = set()
+    for act in actions:
+        uuids.add(act.get("WFWorkflowActionParameters", {}).get("UUID"))
+    for act in actions:
+        uuids.add(act.get("WFWorkflowActionParameters", {}).get("WFUUID"))
+    dangling = []
+    for act in actions:
+        for v in (act.get("WFWorkflowActionParameters") or {}).values():
+            val = v.get("Value") if isinstance(v, dict) else None
+            if isinstance(val, dict) and "attachmentsByRange" in val:
+                for ref in val["attachmentsByRange"].values():
+                    if ref.get("Type") == "ActionOutput" and ref.get("OutputUUID") not in uuids:
+                        dangling.append(f"{ref.get('OutputName')} → {ref.get('OutputUUID')}")
+            if isinstance(val, dict) and val.get("Type") == "ActionOutput" and val.get("OutputUUID") not in uuids:
+                dangling.append(f"{val.get('OutputName')} → {val.get('OutputUUID')}")
+    if dangling:
+        raise SystemExit("!! 引用了不存在的动作 UUID，中止：\n   " + "\n   ".join(sorted(set(dangling))))
+
+    out = Path(a.out) if a.out else HERE / "GeoFix位置.build.shortcut"
+    with open(out, "wb") as f:
+        plistlib.dump(doc, f, fmt=plistlib.FMT_BINARY, sort_keys=True)
+    # 回读一次，确认写出来的 plist 结构没坏
+    plistlib.load(open(out, "rb"))
+
+    print(f"✔ 已生成 {out.name}  ({out.stat().st_size} bytes, {len(actions)} 个动作)")
+    for line in report:
+        print(f"  · {line}")
+    print(f"  · 附件偏移自检 {checked} 处 ✔　引用完整性 ✔")
+
+
+
+def build_web_mode(doc, actions, a):
+    """网页模式：只保留「取链接 → 编码 → 打开控制页」，其余动作全删。"""
+    def find(ident, out=None):
+        for x in actions:
+            if x.get("WFWorkflowActionIdentifier") != ident:
+                continue
+            if out is None or (x.get("WFWorkflowActionParameters") or {}).get("CustomOutputName") == out:
+                return x
+        raise SystemExit("!! 原件里找不到 " + ident + " / " + str(out))
+
+    inp = find("is.workflow.actions.gettext", "InputURL")
+    enc = find("is.workflow.actions.urlencode", "EncURL")
+    opener = find("is.workflow.actions.openurl")
+    comment = actions[0] if actions[0].get("WFWorkflowActionIdentifier") == "is.workflow.actions.comment" else None
+
+    base = a.web.rstrip("/")
+    if not base.startswith("http"):
+        raise SystemExit("!! --web 要带 http(s):// 前缀")
+
+    web_act = {
+        "WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
+        "WFWorkflowActionParameters": {
+            "CustomOutputName": "WebBase",
+            "UUID": UUID_WEB_BASE,
+            "WFTextActionText": {"Value": {"string": base, "attachmentsByRange": {}},
+                                 "WFSerializationType": "WFTextTokenString"},
+        },
+    }
+    inp_uuid = inp["WFWorkflowActionParameters"]["UUID"]
+    enc_uuid = enc["WFWorkflowActionParameters"]["UUID"]
+    suffix = "&auto=1" if a.auto else ""
+    tok, _ = build_token(
+        "{{WebBase}}/?u={{EncURL}}" + suffix,
+        {"WebBase": attachment_ref(UUID_WEB_BASE, "WebBase"),
+         "EncURL": attachment_ref(enc_uuid, "EncURL")},
+    )
+    opener["WFWorkflowActionParameters"] = {
+        "WFInput": tok,
+        "WFUUID": UUID_OPEN_URL,
+    }
+    if comment:
+        comment["WFWorkflowActionParameters"]["WFCommentActionText"] = "从地图 App 分享链接过来，交给控制页处理"
+
+    keep = [x for x in actions if x in (comment, inp, enc, opener)]
+    doc["WFWorkflowActions"] = [x for x in [comment, web_act, inp, actions[actions.index(enc) - 1], enc, opener]
+                                if x is not None]
+    return doc, [
+        f"网页模式 → 打开 {base}{'/?u=…&auto=1' if a.auto else '/?u=…'}",
+        "解析与写入全部交给控制页（本地完成，无需解析服务）",
+        f"动作数 {len(actions)} → {len(doc['WFWorkflowActions'])}",
+    ]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--worker", default=None, help="解析服务基地址，如 https://xxx.workers.dev")
+    ap.add_argument("--web", default=None, help="网页模式：控制页地址，如 https://map.com")
+    ap.add_argument("--auto", action="store_true", help="网页模式下加 &auto=1，解析完直接写入")
     ap.add_argument("--acc", type=int, default=None, help="定位精度，米（插件夹到 5–200）")
     ap.add_argument("--safe", action="store_true", help="只做纯字符串替换，不动结构")
     ap.add_argument("--no-status", action="store_true", help="不加写入结果自检")
@@ -104,6 +214,11 @@ def main():
         return (act.get("WFWorkflowActionParameters") or {}).get("CustomOutputName")
 
     by_out = {out_name_of(act): act for act in actions if out_name_of(act)}
+
+    if a.web:
+        doc, report = build_web_mode(doc, actions, a)
+        write_out(doc, doc["WFWorkflowActions"], report, a)
+        return
 
     # ── ① 虚拟端点改名 ──────────────────────────────────────────────────
     save_act = next((x for x in actions
@@ -234,51 +349,7 @@ def main():
                 act["WFWorkflowActionParameters"][k] = re.sub(r"(?i)wloc", "GeoFix", v)
                 report.append(f"文案改名 → {k}")
 
-    # ── 写盘前自检：每个附件偏移必须仍落在 ￼ 上 ────────────────────────
-    bad, checked = [], 0
-    for act in actions:
-        for k, v in (act.get("WFWorkflowActionParameters") or {}).items():
-            val = v.get("Value") if isinstance(v, dict) else None
-            if isinstance(val, dict) and "string" in val:
-                s = val["string"]
-                for key in val.get("attachmentsByRange", {}):
-                    st, ln = int(key[1:key.index(",")]), int(key[key.index(",") + 2:-1])
-                    checked += 1
-                    if s[st:st + ln] != MARK:
-                        bad.append(f"{k} {key} → {s[st:st+ln]!r}")
-    if bad:
-        raise SystemExit("!! 附件偏移错位，中止：\n   " + "\n   ".join(bad))
-
-    # 每个被引用的 OutputUUID 都必须真实存在
-    uuids = set()
-    for act in actions:
-        uuids.add(act.get("WFWorkflowActionParameters", {}).get("UUID"))
-    for act in actions:
-        uuids.add(act.get("WFWorkflowActionParameters", {}).get("WFUUID"))
-    dangling = []
-    for act in actions:
-        for v in (act.get("WFWorkflowActionParameters") or {}).values():
-            val = v.get("Value") if isinstance(v, dict) else None
-            if isinstance(val, dict) and "attachmentsByRange" in val:
-                for ref in val["attachmentsByRange"].values():
-                    if ref.get("Type") == "ActionOutput" and ref.get("OutputUUID") not in uuids:
-                        dangling.append(f"{ref.get('OutputName')} → {ref.get('OutputUUID')}")
-            if isinstance(val, dict) and val.get("Type") == "ActionOutput" and val.get("OutputUUID") not in uuids:
-                dangling.append(f"{val.get('OutputName')} → {val.get('OutputUUID')}")
-    if dangling:
-        raise SystemExit("!! 引用了不存在的动作 UUID，中止：\n   " + "\n   ".join(sorted(set(dangling))))
-
-    out = Path(a.out) if a.out else HERE / "GeoFix位置.build.shortcut"
-    with open(out, "wb") as f:
-        plistlib.dump(doc, f, fmt=plistlib.FMT_BINARY, sort_keys=True)
-    # 回读一次，确认写出来的 plist 结构没坏
-    plistlib.load(open(out, "rb"))
-
-    print(f"✔ 已生成 {out.name}  ({out.stat().st_size} bytes, {len(actions)} 个动作)")
-    for line in report:
-        print(f"  · {line}")
-    print(f"  · 附件偏移自检 {checked} 处 ✔　引用完整性 ✔")
-
+    write_out(doc, actions, report, a)
     dump = {
         "name": "GeoFix设置位置",
         "clientVersion": doc.get("WFWorkflowClientVersion"),

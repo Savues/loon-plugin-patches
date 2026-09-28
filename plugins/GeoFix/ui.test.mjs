@@ -64,5 +64,78 @@ console.log('\n─── 页面内容 ───');
   t('无 eval / new Function', !b.includes('eval(') && !b.includes('new Function'));
 }
 
+console.log('\n─── ?u= 入口：把页面脚本真跑一遍 ───');
+{
+  // 抽出页面里的 <script>，用最小 DOM 桩跑，验证收到 ?u= 会真的去解析并填表单
+  const html = fs.readFileSync(path.join(SRC, 'ui.html'), 'utf8');
+  const m = html.match(/<script>([\s\S]*?)<\/script>/);
+  if (!m) { t('能抽出页面脚本', false); } else {
+    t('能抽出页面脚本', true, m[1].length + ' chars');
+
+    const runPage = (search, autoWrite) => {
+      const fields = {};
+      const calls = [];
+      const el = (id) => {
+        if (!fields[id]) fields[id] = { value: '', textContent: '', innerHTML: '', hidden: false, className: '', onclick: null, onchange: null };
+        return fields[id];
+      };
+      const fakeDoc = {
+        getElementById: el,
+        querySelectorAll: () => [],
+        createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }),
+      };
+      const store = {};
+      const sandbox = {
+        document: fakeDoc,
+        location: { host: 'map.com', search, origin: 'https://map.com', href: 'https://map.com' + search },
+        localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = v; } },
+        URLSearchParams: globalThis.URLSearchParams,
+        URL: globalThis.URL,
+        Promise, Math, JSON, Date, String, Number, isFinite, parseInt, parseFloat, confirm: () => true,
+        setTimeout: (f) => { f(); return 0; },
+        clearTimeout: () => {},
+        fetch: (u) => {
+          calls.push(u);
+          if (String(u).includes('/geo-parse')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ lat: 39.907829, lon: 116.391187, name: '天安门', originalSystem: 'GCJ-02', warnings: [] }) });
+          }
+          if (String(u).includes('/geo-settings/save')) {
+            return Promise.resolve({ ok: true, text: () => Promise.resolve('{"ok":true,"mode":"active"}') });
+          }
+          return Promise.resolve({ ok: true, text: () => Promise.resolve('{"ok":true,"mode":"active","moduleVersion":"1.2.0","tool":"Loon","patchCount":3,"passthroughCount":7}') });
+        },
+      };
+      sandbox.window = sandbox;
+      sandbox.globalThis = sandbox;
+      vm.createContext(sandbox);
+      vm.runInContext(m[1], sandbox, { filename: 'ui.html<script>' });
+      return new Promise((r) => setTimeout(() => r({ fields, calls }), 30));
+    };
+
+    // 无 ?u= 时不该有解析调用
+    const plain = await runPage('', false);
+    t('无 ?u= 时不触发解析', !plain.calls.some((c) => c.includes('/geo-parse')), plain.calls.join(' | '));
+
+    // 带 ?u= → 自动解析并填表
+    const link = 'https://uri.amap.com/marker?position=116.397428,39.90923&name=%E5%A4%A9%E5%AE%89%E9%97%A8';
+    const withU = await runPage('?u=' + encodeURIComponent(link), false);
+    const parsed = withU.calls.find((c) => c.includes('/geo-parse'));
+    t('带 ?u= 会调 /geo-parse', !!parsed, parsed ? parsed.slice(0, 96) : '(无)');
+    t('解析请求带 URL 编码的 u', !!parsed && parsed.includes('u=https%3A%2F%2Furi.amap.com'));
+    t('自动把坐标填进表单', withU.fields.lat.value === 39.907829 && withU.fields.lon.value === 116.391187,
+      `lat=${withU.fields.lat.value} lon=${withU.fields.lon.value}`);
+    t('显示解析结果与原始坐标系', withU.fields.pwarn.textContent.includes('天安门') && withU.fields.pwarn.textContent.includes('GCJ-02'),
+      withU.fields.pwarn.textContent);
+    t('默认不自动写入（写入是敏感动作）', !withU.calls.some((c) => c.includes('/save')));
+    t('会自动拉一次 status', withU.calls.some((c) => c.includes('/status')));
+
+    // &auto=1 → 解析完直接写入
+    const auto = await runPage('?u=' + encodeURIComponent(link) + '&auto=1', true);
+    const saved = auto.calls.find((c) => c.includes('/save'));
+    t('带 &auto=1 会直接写入', !!saved, saved ? saved.slice(0, 90) : '(无)');
+    t('写入地址正确', !!saved && saved.includes('lat=39.907829') && saved.includes('lon=116.391187') && saved.includes('acc=25'));
+  }
+}
+
 console.log(`\n${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

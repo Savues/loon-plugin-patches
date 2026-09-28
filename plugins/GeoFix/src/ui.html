@@ -159,39 +159,42 @@ function refresh() {
   });
 }
 
-el("save").onclick = function () {
+function doSave() {
   var lat = parseFloat(el("lat").value), lon = parseFloat(el("lon").value);
-  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { toast("经纬度填错了", true); return; }
+  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { toast("经纬度填错了", true); return Promise.resolve(false); }
   var acc = Math.max(5, Math.min(200, parseInt(el("acc").value, 10) || 25));
-  hit("/save?lat=" + lat + "&lon=" + lon + "&acc=" + acc + "&source=geofix-ui")
-    .then(function () { setStore(LKEY, { lat: lat, lon: lon, acc: acc }); toast("已写入 " + lat + ", " + lon); setTimeout(refresh, 400); })
-    .catch(function (e) { toast(e.message, true); });
-};
+  return hit("/save?lat=" + lat + "&lon=" + lon + "&acc=" + acc + "&source=geofix-ui")
+    .then(function () { setStore(LKEY, { lat: lat, lon: lon, acc: acc }); toast("已写入 " + lat + ", " + lon); setTimeout(refresh, 400); return true; });
+}
+el("save").onclick = function () { doSave().catch(function (e) { toast(e.message, true); }); };
 
 el("clear").onclick = function () {
   if (!confirm("恢复成真实定位？")) return;
   hit("/clear").then(function () { toast("已恢复"); setTimeout(refresh, 400); }).catch(function (e) { toast(e.message, true); });
 };
 
-el("parse").onclick = function () {
-  var u = el("link").value.trim();
-  if (!u) { toast("先粘个链接", true); return; }
+function doParse(u) {
   var w = el("pwarn");
   w.hidden = true;
-  fetch(PARSE + "?u=" + encodeURIComponent(u), { cache: "no-store" })
+  return fetch(PARSE + "?u=" + encodeURIComponent(u), { cache: "no-store" })
     .then(function (r) {
       return r.json().then(function (j) { if (!r.ok || j.lat === undefined) throw new Error(j.error || "解析失败"); return j; });
     })
     .then(function (j) {
       el("lat").value = j.lat;
       el("lon").value = j.lon;
-      var t = "解析到 " + (j.name || "未命名") + " · 原始坐标系 " + j.originalSystem;
-      if (j.warnings && j.warnings.length) t += " · " + j.warnings.join("；");
-      w.textContent = t;
+      var txt = "解析到 " + (j.name || "未命名") + " · 原始坐标系 " + j.originalSystem;
+      if (j.warnings && j.warnings.length) txt += " · " + j.warnings.join("；");
+      w.textContent = txt;
       w.hidden = false;
       toast("解析完成");
-    })
-    .catch(function (e) { toast(e.message, true); });
+      return j;
+    });
+}
+el("parse").onclick = function () {
+  var u = el("link").value.trim();
+  if (!u) { toast("先粘个链接", true); return; }
+  doParse(u).catch(function (e) { toast(e.message, true); });
 };
 
 function presets() { return getStore(PKEY, {}); }
@@ -234,6 +237,19 @@ el("pdel").onclick = function () {
 };
 
 el("where").textContent = "当前地址 " + location.host;
+
+/* 快捷指令入口：从分享菜单喂链接过来时，地址形如
+   https://map.com/?u=<URL 编码后的链接>
+   自动解析并填好；带 &auto=1 则解析完直接写入。 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var u = q.get("u");
+  if (!u) return;
+  el("link").value = u;
+  doParse(u).then(function () {
+    if (q.get("auto") === "1") return doSave();
+  }).catch(function (e) { toast(e.message, true); });
+})();
 var last = getStore(LKEY, null);
 if (last) { el("lat").value = last.lat; el("lon").value = last.lon; el("acc").value = last.acc; }
 fillPreset();
