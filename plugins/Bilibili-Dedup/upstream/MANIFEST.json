@@ -130,9 +130,10 @@
     "mirrored_at": "2026-09-28"
   },
   "upstream/adblock-hotsearch.js": {
-    "source": "本仓库自撰（bundle 只处理 trending，recommend 需后处理）",
-    "bytes": 673,
-    "sha256": "b85a6a7b4b177ece83d7cf7dccc45303f77c3e8edd01658717f322875514126b",
+    "source": "本仓库自撰",
+    "note": "搜索页下拉过滤 trending/recommend，保留 history。同端点双规则只有首条生效，故独立处理",
+    "bytes": 817,
+    "sha256": "75ef8fedba5086566c0a9978fd13adeec8a5bbbccedba4d846a17b22d914a70a",
     "authored": "2026-09-28"
   }
 }
