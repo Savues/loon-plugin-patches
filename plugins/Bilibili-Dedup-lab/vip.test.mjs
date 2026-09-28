@@ -224,4 +224,46 @@ t("$request 缺失：退回 body 判定，仍能处理空间页", () => {
   assert.strictEqual(JSON.parse(done.body).data.vip.vipStatus, 1);
 });
 
+// ---------- 专栏页 /x/v2/space/article ----------
+// 抓包实证：data.item[].author.vip 用的是「我的」页 schema，author 键 = mid/name/face/pendant/official_verify/nameplate/vip
+const article = (mid) => ({
+  code: 0,
+  data: { count: 2, lists_count: 1,
+          item: [{ author: { mid: String(mid), name: "a", vip: { type: 0, status: 0, due_date: 0, vip_pay_type: 0, theme_type: 0, label: { path: "p", text: "", label_theme: "" }, avatar_subscript: 0, nickname_color: "" } } },
+                 { author: { mid: String(mid), name: "b", vip: { type: 0, status: 0, due_date: 0, vip_pay_type: 0, theme_type: 0, label: {}, avatar_subscript: 0, nickname_color: "" } } }] },
+});
+
+t("专栏页·自己的主页：作者 vip 被注入，且不凭空造 data.vip", () => {
+  const r = run({ body: article(ME), url: URL_SPACE + "/article?mid=" + ME, arg: { myMid: String(ME) } });
+  const d = json(r).data;
+  assert.strictEqual(d.vip, undefined, "专栏页没有顶栏，不应造 data.vip");
+  assert.strictEqual(d.item[0].author.vip.status, 1);
+  assert.strictEqual(d.item[0].author.vip.due_date, DUE);
+  assert.strictEqual(d.item[0].author.vip.role, 15);
+  assert.strictEqual(d.item[0].author.vip.label.bg_color, "#00E07C");
+  assert.strictEqual(d.item[0].author.vip.vip_pay_type, 0, "原生字段必须保留");
+  assert.strictEqual(d.item[1].author.vip.status, 1, "列表里每篇都要改");
+  assert.strictEqual(d.item[0].author.name, "a", "同级字段不得动");
+});
+
+t("专栏页·别人的主页：透传", () => {
+  untouched(run({ body: article(999), url: URL_SPACE + "/article?mid=999", arg: { myMid: String(ME) } }));
+});
+
+t("专栏页·作者是真会员：透传", () => {
+  const f = article(ME);
+  f.data.item[0].author.vip.status = 1;
+  f.data.item[1].author.vip.status = 1;
+  untouched(run({ body: f, url: URL_SPACE + "/article?mid=" + ME, arg: { myMid: String(ME) } }));
+});
+
+t("专栏页·列表为空：无 mid 可判，透传", () => {
+  untouched(run({ body: { data: { count: 0, item: [] } }, url: URL_SPACE + "/article", arg: { myMid: String(ME) } }));
+});
+
+t("专栏页·article 响应不命中空间页分支（无 card 时不会误改作者）", () => {
+  // 走「我的」页分支：d.vip 不存在 → 透传，而不是去改 item[].author
+  untouched(run({ body: article(ME), url: "https://app.bilibili.com/x/v2/account/myinfo?k=1", arg: { myMid: String(ME) } }));
+});
+
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

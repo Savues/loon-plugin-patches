@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab 变更：会员伪装合并为单脚本 vip.js（行为与 v7.18 等价，另修个人主页配色漂移）；4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab2
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 03:50:00
+#!date=2026-09-29 04:20:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -64,7 +64,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 # 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）。
 # 我的页 + grpc 合并为一条：v7.18 的第一条规则漏了 https:// 前缀，实际从未命中，这次顺带修好。
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\?|^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 # kokoryh protobuf（完整参数，补回 blockAds 降级项）
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理

@@ -31,6 +31,8 @@ const urls = [
   "https://app.bilibili.com/bilibili.main.community.reply.v1.Reply/MainList",
   "https://app.bilibili.com/x/v2/space?mid=1",
   "https://app.biliapi.net/x/v2/space/archive/cursor?mid=1",
+  "https://app.bilibili.com/x/v2/space/article?mid=1",
+  "https://app.biliapi.net/x/v2/space/archive?mid=1",   // 负样本：archive 不该命中
   "https://app.bilibili.com/x/v2/splash/brand/list",
   "https://app.bilibili.com/x/v2/splash/event/list2",
   "https://app.biliapi.net/x/v2/splash/list",
@@ -93,6 +95,6 @@ console.log(bad ? "\n脚本集合不一致 " + bad + " 条 ✗" : "\n每个端�
 if (renamed) console.log("（" + renamed + " 条仅 tag 改名，属合并的预期代价）");
 if (dedup) console.log("（" + dedup + " 条新清单少跑了重复脚本，属合并的预期收益）");
 if (addedFor.length) {
-  console.log("\n⚠️ 以下端点**新增**了脚本（v7.18 的规则漏 https:// 前缀导致从未命中，这次修好）：");
+  console.log("\n⚠️ 以下端点**新增**了脚本（每条都需人确认：v7.18 漏 https:// 前缀从未命中 / lab2 新增专栏页覆盖）：");
   addedFor.forEach((s) => console.log("   + " + s));
 }

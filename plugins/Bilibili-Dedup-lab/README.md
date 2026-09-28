@@ -11,11 +11,11 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T03:50`
+**v7.19-lab2** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T04:20`
 
 | | 中文 | English |
 |---|---|---|
-| 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
+| 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor`、`x/v2/space/article` | same |
 | 脚本 | 会员伪装 1 个自撰 + 3 个上游镜像 + 6 个引擎包 5.6 MB（镜像仍在 `main` 分支原目录，未复制） | 1 in-house + 3 mirrored + 6 engine bundles |
 | 外部依赖 | 仅剩 `bsbsb.top`（广告时间库，无法镜像），见[第七章](#七空降助手机制--sponsorblock-mechanism) | only `bsbsb.top` remains |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
@@ -27,6 +27,7 @@
 
 | 变更 | 说明 |
 |---|---|
+| **补：`/x/v2/space/article`（lab2）** | 专栏页响应里 `data.item[].author.vip` 用的是**「我的」页** schema，此前顶栏显示伪装、专栏列表显示真实牌子或没有牌子。抓包实证后补上，与顶栏共用 UID 门禁；`/x/v2/space/archive` 无 vip，不需要管 |
 | 会员伪装合并为 `vip.js` | 原 `vip-theme.js` + `vip-space.js` 合并（226 行 → 120 行），同一张主题表、同一批牌子图、同一套默认值 |
 | 修：个人主页配色漂移 | 旧版空间页的 `bg`/`fg` 硬编码绿鲤鱼配色，选「大会员/年度/百年」时**个人主页是绿底、我的页是粉底**。现已统一为主题配色 |
 | 修：两页 `nickname_color` 不一致 | 空间页取用户手填背景色、我的页取主题色；现统一为主题色 |
@@ -36,12 +37,13 @@
 | 删 7 张无引用牌子图 | `upstream/vip-assets/` 11 张 → 4 张，省 117 KB |
 | 未动 | 3 个彩蛋参数（`vipAllUsers` / `vipTargetMid` / `vipFakeVerify`）全部保留 |
 
-验证：`node vip.test.mjs` 22 例全过（Node vm 模拟 Loon 运行时）；`node lpx-verify.mjs` 25 个 URL 端点逐条比对通过。
+验证：`node vip.test.mjs` 27 例全过（Node vm 模拟 Loon 运行时）；`node lpx-verify.mjs` 25 个 URL 端点逐条比对通过。
 
 ### 更新记录 · Changelog
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T04:20` | — | **v7.19-lab2** 补 `/x/v2/space/article` 专栏页：其 `data.item[].author.vip` 与「我的」页同 schema，v7.19-lab 之前顶栏伪装而专栏列表显示真实牌子。`mine()` 抽出后与「我的」页共用同一份构造 |
 | `2026-09-29T03:50` | — | **v7.19-lab** 代码精简：会员伪装合并单脚本、4 条规则并 1 条、清 7 张无引用素材、删 5 处失效注释；修个人主页配色漂移与「会员伪装规则漏 https:// 前缀」缺陷。详见上表 |
 | `2026-09-29T01:15` | `—` | 搜索框滚动推荐词改用 `[Rewrite]` mock 返回空 gRPC 帧（`app.bili*` 域名）；此前三轮 `[Script]` 方案均未生效，已作废 |
 | `2026-09-28T23:50` | `—` | **v7.18** 去广告改为强制生效：Loon 的 switch 参数无法可靠传入 bundle（DEBUG 日志显示 Settings=false 仍走「不去除」），删除全部 18 个开关，改为不声明即走 `default` 分支去除 |
@@ -117,7 +119,7 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 
 | | 账号页 / 我的页 | 个人资料页 |
 |---|---|---|
-| 端点 | `myinfo`、`account/mine` | `x/v2/space`(+`archive/cursor`) |
+| 端点 | `myinfo`、`account/mine` | `x/v2/space`(+`archive/cursor`、`article`) |
 | 类型 | `type` / `status` | `vipType` / `vipStatus` |
 | 到期 | `due_date` | `vipDueDate` |
 | 非会员时 | `vip.status == 0` | **整个 `vip` 字段不存在** |
