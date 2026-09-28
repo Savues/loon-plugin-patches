@@ -15,12 +15,12 @@ const DUE = 253402214399000;
 
 const THEMES = {
   vip: {
-    // 大会员「炮」版 249x60。
-    // 不用同目录的 d7b702ef 灰版（144x60）——那是非会员态标识，开通后显示不对。
+    // 大会员用 B 站官方灰版 144x60 —— 普通大会员本身权限与非会员相同，
+    // 灰底如实反映这一档位，故不用「炮」版（那是给真开通用户看的）。
     text: "大会员", role: 1,
     label_theme: "vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
     nickname_color: "#FB7299",
-    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/vip-cannon.png"
+    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/gray-vip.png"
   },
   annual_vip: {
     text: "年度大会员", role: 3,

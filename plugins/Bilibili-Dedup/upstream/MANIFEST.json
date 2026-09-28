@@ -121,5 +121,12 @@
     "bytes": 24569,
     "sha256": "a1ed8c99c0ad10f4c5ecb6265fdbe997cea5615e24e0b1ba0abe0e8b8e5c3e0c",
     "mirrored_at": "2026-09-28"
+  },
+  "vip-assets/gray-vip.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png",
+    "note": "非会员态标识。仅 vip(普通大会员) 主题使用",
+    "bytes": 2664,
+    "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
+    "mirrored_at": "2026-09-28"
   }
 }

@@ -23,7 +23,7 @@ const ME = Number(A.myMid) || 0;
 
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
-  vip:                          { text: "大会员",     type: 1, image: IMG + "/vip-cannon.png" },
+  vip:                          { text: "大会员",     type: 1, image: IMG + "/gray-vip.png" },
   annual_vip:                   { text: "年度大会员",  type: 2, image: IMG + "/annual.png" },
   ten_annual_vip:               { text: "十年大会员",  type: 2, image: IMG + "/ten-cannon.png" },
   hundred_annual_vip:           { text: "百年大会员",  type: 2, image: IMG + "/hundred.png" },
