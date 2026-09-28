@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab2** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T04:20`
+**v7.19-lab3** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T04:50`
 
 | | 中文 | English |
 |---|---|---|
@@ -27,6 +27,8 @@
 
 | 变更 | 说明 |
 |---|---|
+| **补：`Search/DefaultWords` 的 grpc 路径（lab3）** | 旧 mock 只覆盖 `app.bili*`，而实测 19 次请求里 **13 次走 `grpc.biliapi.net`** ⇒ 搜索框滚动推荐词在主力路径上从未被处理。mock 载荷本身是 gzip 帧，与该主机 `grpc-encoding: gzip` 一致 |
+| **修：开关的真值判断（lab3）** | `!!A.vipAllUsers` / `if (A.vipFakeVerify)` 遇到 Loon 传下来的字符串 `"false"` 会当真 —— 关着的「全员大会员」会变成**给所有用户的主页挂伪装牌子**。抽出 `on()` 统一判断，两处都改 |
 | **补：`/x/v2/space/article`（lab2）** | 专栏页响应里 `data.item[].author.vip` 用的是**「我的」页** schema，此前顶栏显示伪装、专栏列表显示真实牌子或没有牌子。抓包实证后补上，与顶栏共用 UID 门禁；`/x/v2/space/archive` 无 vip，不需要管 |
 | 会员伪装合并为 `vip.js` | 原 `vip-theme.js` + `vip-space.js` 合并（226 行 → 120 行），同一张主题表、同一批牌子图、同一套默认值 |
 | 修：个人主页配色漂移 | 旧版空间页的 `bg`/`fg` 硬编码绿鲤鱼配色，选「大会员/年度/百年」时**个人主页是绿底、我的页是粉底**。现已统一为主题配色 |
@@ -37,12 +39,13 @@
 | 删 7 张无引用牌子图 | `upstream/vip-assets/` 11 张 → 4 张，省 117 KB |
 | 未动 | 3 个彩蛋参数（`vipAllUsers` / `vipTargetMid` / `vipFakeVerify`）全部保留 |
 
-验证：`node vip.test.mjs` 27 例全过（Node vm 模拟 Loon 运行时）；`node lpx-verify.mjs` 25 个 URL 端点逐条比对通过。
+验证：`node vip.test.mjs` 30 例全过（Node vm 模拟 Loon 运行时）；`node lpx-verify.mjs` 25 个 URL 端点逐条比对通过。
 
 ### 更新记录 · Changelog
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T04:50` | — | **v7.19-lab3** 补 `Search/DefaultWords` 的 `grpc.biliapi.net`（实测主力路径，13/19 次）；修 `vipAllUsers` / `vipFakeVerify` 把字符串 `"false"` 当真的开关缺陷（用 `on()` 统一，`vip.test.mjs` 27 → 30 例）；`lpx-verify.mjs` 改相对路径并支持 Rewrite 白名单 |
 | `2026-09-29T04:20` | — | **v7.19-lab2** 补 `/x/v2/space/article` 专栏页：其 `data.item[].author.vip` 与「我的」页同 schema，v7.19-lab 之前顶栏伪装而专栏列表显示真实牌子。`mine()` 抽出后与「我的」页共用同一份构造 |
 | `2026-09-29T03:50` | — | **v7.19-lab** 代码精简：会员伪装合并单脚本、4 条规则并 1 条、清 7 张无引用素材、删 5 处失效注释；修个人主页配色漂移与「会员伪装规则漏 https:// 前缀」缺陷。详见上表 |
 | `2026-09-29T01:15` | `—` | 搜索框滚动推荐词改用 `[Rewrite]` mock 返回空 gRPC 帧（`app.bili*` 域名）；此前三轮 `[Script]` 方案均未生效，已作废 |
@@ -231,7 +234,7 @@ plugins/Bilibili-Dedup-lab/
 ├── Bilibili-Dedup-lab.lpx
 ├── icon.png               17 KB  插件图标（256×256，复制自已发布版本）
 ├── vip.js                  5.7 KB  会员伪装：我的页 + 个人主页
-├── vip.test.mjs             10 KB  回归测试，22 例（Node vm 模拟 Loon 运行时）
+├── vip.test.mjs             14 KB  回归测试，30 例（Node vm 模拟 Loon 运行时）
 ├── lpx-verify.mjs          5.8 KB  清单校验：与 v7.18 逐条比对 Rewrite/Rule/Mitm/Script
 └── （upstream/ 镜像仍在 main 分支的 plugins/Bilibili-Dedup/ 下，未复制到测试版目录）
 

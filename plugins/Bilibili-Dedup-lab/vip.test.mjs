@@ -266,4 +266,29 @@ t("专栏页·article 响应不命中空间页分支（无 card 时不会误改�
   untouched(run({ body: article(ME), url: "https://app.bilibili.com/x/v2/account/myinfo?k=1", arg: { myMid: String(ME) } }));
 });
 
+// ---------- 开关语义的回归点：Loon 可能把 switch 传成字符串 ----------
+// vipAllUsers 用 !!A.vipAllUsers 时，字符串 "false" 会被当真 ⇒ 关着的开关变成「全员生效」。
+// 这是 2026-09-29 真实载荷测试（pass4b.mjs）抓出来的。
+t("开关·vipAllUsers：布尔与字符串 false 都不生效（用别人的主页测）", () => {
+  for (const v of [false, "false", "", 0, undefined, null]) {
+    const f = spaceNonMember(); f.data.card.mid = "999";
+    untouched(run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAllUsers: v } }));
+  }
+});
+t("开关·vipAllUsers：布尔与字符串 true 都生效", () => {
+  for (const v of [true, "true"]) {
+    const f = spaceNonMember(); f.data.card.mid = "999";
+    const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAllUsers: v } });
+    assert.strictEqual(json(r).data.vip.vipStatus, 1, "值 " + JSON.stringify(v) + " 应生效");
+  }
+});
+t("开关·vipFakeVerify：关掉时不改 official_verify", () => {
+  for (const v of [false, "false", "", 0]) {
+    const f = spaceNonMember();
+    const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipFakeVerify: v } });
+    const ov = json(r).data.card.official_verify;
+    assert.notStrictEqual(ov && ov.type, 0, "值 " + JSON.stringify(v) + " 不应改 official_verify");
+  }
+});
+
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

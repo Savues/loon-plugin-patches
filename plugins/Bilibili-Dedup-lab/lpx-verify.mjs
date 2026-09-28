@@ -1,7 +1,14 @@
 // 校验：lab 清单的每条正则，对照 v7.18 清单逐条比对
-import { readFileSync } from "node:fs";
-const OLD = readFileSync("/var/minis/shared/lpp-work/plugins/Bilibili-Dedup/Bilibili-Dedup.lpx", "utf8");
-const NEW = readFileSync("/var/minis/shared/lpp-work/plugins/Bilibili-Dedup-lab/Bilibili-Dedup-lab.lpx", "utf8");
+import { readFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+// 路径一律相对本文件定位：写死 /var/minis 的话，别人 clone 下来这条闸门直接跑不了
+const HERE = dirname(fileURLToPath(import.meta.url));
+const OLD_P = resolve(HERE, "../Bilibili-Dedup/Bilibili-Dedup.lpx");
+const NEW_P = resolve(HERE, "Bilibili-Dedup-lab.lpx");
+if (!existsSync(OLD_P)) { console.error("找不到对照清单: " + OLD_P); process.exit(2); }
+const OLD = readFileSync(OLD_P, "utf8");
+const NEW = readFileSync(NEW_P, "utf8");
 const sec = (txt, name) => {
   const m = txt.match(new RegExp("^\\[" + name + "\\]$", "m"));
   if (!m) { throw new Error("no section " + name); }
@@ -10,10 +17,24 @@ const sec = (txt, name) => {
     .filter((s) => s && !s.startsWith("#"));   // 注释不算条目
 };
 
-// 1) [Rewrite] 必须逐字节一致
+// [Rewrite] 必须逐条一致 —— 除非落在显式白名单里（每条都要写明为什么）
+const EXPECTED_REWRITE_DELTA = [
+  // lab3：DefaultWords 的 mock 补 grpc.biliapi.net。依据：实测 19 次请求 13 次走 grpc，
+  // 旧规则只覆盖 app.bili*，滚动词在主力路径上根本没被处理。
+  /DefaultWords/,
+];
+const allowed = (line) => EXPECTED_REWRITE_DELTA.some((re) => re.test(line));
 const ro = sec(OLD, "Rewrite"), rn = sec(NEW, "Rewrite");
-console.log("Rewrite  " + (JSON.stringify(ro) === JSON.stringify(rn) ? "逐条一致 ✓" : "不一致 ✗"));
-if (JSON.stringify(ro) !== JSON.stringify(rn)) { ro.forEach((l, i) => l !== rn[i] && console.log("  -" + l + "\n  +" + rn[i])); }
+const dropped = ro.filter((l) => !rn.includes(l));
+const added = rn.filter((l) => !ro.includes(l));
+const realDelta = [...dropped, ...added].filter((l) => !allowed(l));
+const logged = [...dropped, ...added].filter(allowed);
+console.log("Rewrite  " + (realDelta.length === 0
+  ? "一致 ✓" + (logged.length ? "（含 " + logged.length + " 条已登记的改动）" : "")
+  : "有未登记的差异 ✗"));
+logged.forEach((l) => console.log("  已登记: " + l.slice(0, 96)));
+realDelta.forEach((l) => console.log("  ✗ 未登记: " + l.slice(0, 96)));
+if (realDelta.length) process.exitCode = 1;
 const uo = sec(OLD, "Rule"), un = sec(NEW, "Rule");
 console.log("Rule     " + (JSON.stringify(uo) === JSON.stringify(un) ? "逐条一致 ✓" : "不一致 ✗"));
 const mo = sec(OLD, "Mitm"), mn = sec(NEW, "Mitm");
@@ -39,6 +60,8 @@ const urls = [
   "https://app.bilibili.com/x/v2/splash/show",
   "https://app.biliapi.net/x/v2/search/square",
   "https://api.bilibili.com/x/web-interface/wbi/index/top/feed/rcmd?fresh_type=4",
+  "https://grpc.biliapi.net/bilibili.app.interface.v1.Search/DefaultWords",
+  "https://app.biliapi.net/bilibili.app.interface.v1.Search/DefaultWords",
   "https://api.bilibili.com/pgc/page/bangumi?ep_id=1",
   "https://api.biliapi.net/pgc/page/cinema/tab?x=1",
   "https://api.bilibili.com/pgc/page/cinema/tab?",

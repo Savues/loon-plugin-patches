@@ -19,7 +19,10 @@
 const A = $argument || {};
 const ME = Number(A.myMid) || 0;             // 我的UID，留空=0
 const TARGET = Number(A.vipTargetMid) || 0;   // 点名的 UID，0=不点名
-const ALL = !!A.vipAllUsers;                  // 全员生效（含真会员）
+// ⚠️ Loon 的 switch 关掉时可能传字符串 "false"/"0"，它们在 JS 里都是真值。
+// 所有开关一律走这个判断，别用 !! 或裸真值。两处历史上都栽过（全员生效 / 认证标识）。
+const on = (v) => v === true || v === "true";
+const ALL = on(A.vipAllUsers);
 
 // due_date 单位：【毫秒】—— 实测 B站原生响应为 1721577600000（=2024-07-21）。
 // 此前误采 zirawell 的秒级值 3818419199，与原生单位不一致。取 9999-12-30T23:59:59Z。
@@ -102,7 +105,7 @@ function patchSpace(d) {
     // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
     // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
     // type/title/splice_title 仍有效：认证文字会显示，只是头像角标不会出现。
-    if (A.vipFakeVerify) {
+    if (on(A.vipFakeVerify)) {
       const t = A.vipVerifyTitle || "认证用户";
       card.official_verify = Object.assign({}, card.official_verify || {}, {
         type: 0, role: 7, title: t, desc: t,
