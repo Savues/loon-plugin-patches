@@ -8,8 +8,8 @@
 | | 中文 | English |
 |---|---|---|
 | 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
-| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像） | all 5 self-hosted |
-| 外部依赖 | 脚本与图标均自托管；**空降助手运行时另需两个外部服务**，见[第七章](#七空降助手机制--sponsorblock-mechanism) | scripts & icons self-hosted; SponsorBlock still calls two external services |
+| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像 + 6 个引擎包 5.6 MB） | all self-hosted, incl. 6 engine bundles |
+| 外部依赖 | 仅剩 `bsbsb.top`（广告时间库，无法镜像），见[第七章](#七空降助手机制--sponsorblock-mechanism) | only `bsbsb.top` remains |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
@@ -19,12 +19,14 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-28T15:40` | — | 空降助手引擎包（chronos）镜像至 `upstream/chronos/`；`protobuf.response.js` 中 1 处 URL 改指本仓库，其余字节不变 |
 | `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正重复标点；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
 | `2026-09-28T14:25` | `b2b1c0d` | README 新增[第六章](#六上游脚本镜像--upstream-script-mirror)：目录结构、上游对应关系、SHA256 校验方法 |
 | `2026-09-28T14:22` | `2b083ea` | 3 个上游 JS 镜像至 `upstream/`；`.lpx` 中 5 处 `script-path` 改指本仓库 |
 
-**本次未升版本号**：脚本内容**逐字节未改**，与 [上游原版](upstream/MANIFEST.json) 比对一致，
-变的是**供给方**，不是功能 —— 断掉了对 kokoryh / BiliUniverse 仓库可用性的隐性依赖。
+**未升版本号**：`protobuf.response.js` 仅改 1 处 URL 指向，逻辑未动，
+用户侧行为一致；镜像目标为上游原包的逐字节副本。改的只是**供给方**。
+Bumped only the supply source, not behaviour.
 
 > 版本号无代码依据，仅存在于 `#!name` 与本文档，改动后须手动同步。
 > 版本号在代码层面无依据；`#!desc` 里的「搜 `PLUGIN_VERSION`」是 v4 时代残留，已删除。
@@ -189,8 +191,9 @@ plugins/Bilibili-Dedup/
 ├── vip-space.js          3.2 KB  个人资料页会员
 └── upstream/                    上游脚本镜像
     ├── protobuf.request.js     62 KB
-    ├── protobuf.response.js    95 KB
+    ├── protobuf.response.js    95 KB  ⚠️ 已改 URL，见下
     ├── adblock.bundle.js      842 KB
+    ├── chronos/                5.6 MB  空降助手引擎包 ×6
     └── MANIFEST.json
 ```
 
@@ -204,15 +207,45 @@ plugins/Bilibili-Dedup/
 | `icon.png` | BiliUniverse `src/assets/icon_rounded.png` | 插件图标；**原图 1024×1024 缩放至 256×256**（67 KB → 17 KB） |
 | `vip-theme.js` / `vip-space.js` | 本仓库自撰 · written in-house | 会员伪装 |
 
-三个上游**脚本**均**逐字节原样镜像**，未修改任何逻辑。版本固定在 BiliUniverse `v0.6.24`，
+三个上游**脚本**中，`protobuf.request.js` 与 `adblock.bundle.js` **逐字节原样镜像**，
+`protobuf.response.js` **仅改动 1 处 URL**（下方说明）。版本固定在 BiliUniverse `v0.6.24`，
 其余取自 kokoryh 提交 `master` 当时的快照。图标是唯一做过尺寸压缩的文件。
+
+### 唯一的改动：`protobuf.response.js` 的 chronos 地址
+
+空降助手需要 App 加载一个引擎包，原地址硬编码在 `ii()` 里：
+
+```js
+// 改前
+a.file = `https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/${n}.zip`
+// 改后
+a.file = `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/${n}.zip`
+```
+
+**全文仅此一处**（`${n}` 保持原样，映射表 6 个键不变），文件其余 97357−38 字节与上游完全一致。
+`MANIFEST.json` 中该条目标 `"modified": true` 并附改动说明。
+
+**为什么要改**：这三个依赖是三重冻结的 ——
+
+| 层面 | 冻结原因 |
+|---|---|
+| URL 模板 | 映射表 `Ti()` 的 6 个键写死在脚本里，上游新增的包脚本够不到 |
+| 文件名 | 只有这 6 个固定名字 |
+| 文件内容 | 6 个包每个**只提交过 1 次**，从未被覆盖 |
+
+后果：上游仍在维护（最近 push 2026-07-04），但你跑的是 `danmaku-flame-master` **2.7.4**，
+而上游已出到 **3.8.14** —— 跨一个大版本且**永远不会自动到达**。
+镜像后即使上游删库、删分支或删文件，均不影响本插件。
+
+> 另有两个新包（`21950f4b…` 3.8.14 / `28be59e0…` 3.8.2）**未镜像**：
+> 脚本的映射表够不到它们，除非同时改 `Ti()` 逻辑 —— 那属于修改上游行为，风险大于收益。
 
 > `.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，清单层已无指向
 > kokoryh / BiliUniverse 的可拉取地址。
 > `MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源，运行时不会被读取。
 >
-> ⚠️ **但脚本内部仍有硬编码的运行时依赖**，清单层扫不出来：`sponsorBlock` 功能会去拉
-> `bsbsb.top` 与 `kokoryh/chronos`，详见[第七章](#七空降助手机制--sponsorblock-mechanism)。
+> ⚠️ **脚本内部仍有一个硬编码依赖**：`sponsorBlock` 的广告时间数据库
+> `bsbsb.top`，`[Script]` 的 `script-path` 管不到，详见[第七章](#七空降助手机制--sponsorblock-mechanism)。
 
 ### 校验 · Verification
 
@@ -295,23 +328,34 @@ Automatically seeks past in-video ads ~2s in, offering a 5-second "撤销空降"
 | 依赖 | 地址 | 状态 |
 |---|---|---|
 | 广告时间数据库 | `bsbsb.top`（SponsorBlock 协议分支，Cloudflare） | 活；**个人第三方服务，非 B 站接口** |
-| chronos 引擎包 | `kokoryh/chronos` `master` 分支 | 活；最新包 2025-05-30，已 8 个月未更新 |
+| chronos 引擎包 | **本仓库 `upstream/chronos/`** | ✅ 已镜像 6 个（5.6 MB） |
 
-> 这两个是**脚本内部硬编码**的，`[Script]` 的 `script-path` 管不到，
-> 所以[第六章](#六上游脚本镜像--upstream-script-mirror)的镜像覆盖不到它们。
+> **`bsbsb.top` 是链路上唯一无法自持的依赖。** 广告时间不由 B 站接口提供
+> （实测 `PlayURL/PlayView` 响应内无任何广告段），只能靠社区提交 + 投票积累，
+> 而此实例**未开放提交端点**。因此自建服务解决不了「谁维护数据」——空库等于无功能。
+> UUID 支持 4 位前缀枚举，理论上可导出全库快照，但库在持续更新，
+> 快照会过时，且不解决新视频无数据的问题。**维持现状是唯一合理选择。**
+>
+> chronos 引擎包已镜像（见[第六章](#六上游脚本镜像--upstream-script-mirror)），
+> 上游删库不影响本插件。
+
+> 这两个是**脚本内部硬编码**的，`[Script]` 的 `script-path` 管不到。
+> chronos 包已通过改写 `ii()` 的 URL 镜像到本仓库；
+> `bsbsb.top` 因数据来源问题无法镜像（见上）。
 >
 > 失效表现：广告照播，**无任何提示**（脚本内 catch 后静默返回空列表）。
 > 排查时把 `logLevel` 调到 `debug` 可见。
 >
-> 关闭本功能可避开这两个依赖：`sponsorBlock` 关掉后 `enable=` 会跳过规则，
-> 两个脚本都不执行。
+> 关闭本功能可避开 `bsbsb.top` 依赖：`sponsorBlock` 关掉后 `enable=` 会跳过规则，
+> `request.js` 不执行。
 
 ---
 
 ## 致谢 · Credits
 
-上游脚本**逐字节原样镜像**至 [`upstream/`](upstream/)，图标缩放后存于插件根目录，均未修改任何逻辑；
-仅重组清单条目与参数声明。清单中另有两个本仓库自撰脚本（`vip-theme.js` / `vip-space.js`）。
+上游脚本镜像至 [`upstream/`](upstream/)，图标缩放后存于插件根目录。
+除 `protobuf.response.js` 中 1 处 chronos URL 外**未修改任何逻辑**；
+清单中另有两个本仓库自撰脚本（`vip-theme.js` / `vip-space.js`）。
 Upstream scripts are mirrored **byte-for-byte** — no logic modified, only manifest
 entries and parameter declarations reorganized. Two in-house scripts added.
 

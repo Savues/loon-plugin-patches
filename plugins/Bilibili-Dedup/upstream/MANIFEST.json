@@ -7,9 +7,11 @@
   },
   "protobuf.response.js": {
     "source": "https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.response.js",
-    "bytes": 97357,
-    "sha256": "11cfc005a11141a1d1fe08591b06fe14b470e074e61d4196a1b0fe0286e72eb9",
-    "mirrored_at": "2026-09-28"
+    "bytes": 97395,
+    "sha256": "810eba7705b19100406828d5f840e6a00bb745dab1969c1916aa83c8621928a9",
+    "mirrored_at": "2026-09-28",
+    "modified": true,
+    "modification": "仅改 ii() 中 chronos 包 URL：kokoryh/chronos → 本仓库 upstream/chronos/。其余字节与上游一致。"
   },
   "adblock.bundle.js": {
     "source": "https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js",
@@ -22,6 +24,42 @@
     "note": "1024x1024 原图缩放至 256x256",
     "bytes": 17456,
     "sha256": "da9e84b89d8bc4e0295740773bf350de1a5871f4db53041ebc432f0debd78ade",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/8c3feda2e92bf60e8a7aeade1a231586.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/8c3feda2e92bf60e8a7aeade1a231586.zip",
+    "bytes": 879023,
+    "sha256": "7d021dd18f8980db22dc0ac0d70df8b493e9225f4b79f24468f5949586380eee",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/932002070dc1b51241198a074d2279fc.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/932002070dc1b51241198a074d2279fc.zip",
+    "bytes": 879597,
+    "sha256": "cf7fced28a0b55f38595566bb7d067297cc51814a5c21daf8fff90c9b9dbe6c0",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/e5a968f1a5055bbe5c12e67b100a6dcb.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/e5a968f1a5055bbe5c12e67b100a6dcb.zip",
+    "bytes": 983408,
+    "sha256": "c82d74ac16e2d1ecb82f8f3d3cab2fc9fe5cc49d243964a9bd4a3877a642056e",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/ecca73e42e160074e0caf4b3ddb54a52.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/ecca73e42e160074e0caf4b3ddb54a52.zip",
+    "bytes": 1055273,
+    "sha256": "0ba74f51cf494ac7d470ad168d8631e6ab6eddc3578ef7898efb0a9ca2687e80",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/f993a054969a4f6ae6b20a65f1292e47.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/f993a054969a4f6ae6b20a65f1292e47.zip",
+    "bytes": 965523,
+    "sha256": "e22e06e114cbeb5bc749887d8eee4018832f0e7b4508979e9606a5a432cd3c02",
+    "mirrored_at": "2026-09-28"
+  },
+  "chronos/feaca416bbc1174b8e935cf87ff8f0b5.zip": {
+    "source": "https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/feaca416bbc1174b8e935cf87ff8f0b5.zip",
+    "bytes": 1054471,
+    "sha256": "e96786591f4d8345577a379926377c5f21aac2d61df4cbe2a6fd7d1497ee4962",
     "mirrored_at": "2026-09-28"
   }
 }
