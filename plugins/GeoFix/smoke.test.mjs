@@ -22,6 +22,7 @@ function makeRuntime({ store = {}, request = null, response = null } = {}) {
     $done: (v) => doneCalls.push(v),
     Date, Math, JSON, BigInt, Object, Array, String, Number, Boolean, RegExp, Error,
     isNaN, parseInt, parseFloat, encodeURIComponent, decodeURIComponent,
+    URL, atob, btoa, TextDecoder, TextEncoder, Uint8Array, ArrayBuffer,
     atob, btoa, TextDecoder, TextEncoder, Uint8Array, ArrayBuffer,
   };
   sandbox.globalThis = sandbox;
@@ -46,7 +47,7 @@ const t = (name, cond, extra = '') => {
 
 console.log('─── Bridge：写 / 查 / 清 ───');
 {
-  const rt = run('geo-bridge.js', {
+  const rt = run('geo-control.js', {
     request: { url: `${GS}/geo-settings/save?lat=31.230416&lon=121.473701&acc=25&name=LuJiaZui` },
   });
   t('save 返回 ok', body(rt).ok === true);
@@ -57,18 +58,18 @@ console.log('─── Bridge：写 / 查 / 清 ───');
   t('事件类型已改名', JSON.parse(rt.store.geo_events)[0].type === 'settings_saved');
 }
 {
-  const rt = run('geo-bridge.js', { request: { url: `${GS}/geo-settings/status` } });
+  const rt = run('geo-control.js', { request: { url: `${GS}/geo-settings/status` } });
   t('无坐标时 mode = passthrough', body(rt).mode === 'passthrough', body(rt).mode);
-  t('签名已改名', body(rt).signature === 'geofix-device-bridge', body(rt).signature);
+  t('签名已改名', body(rt).signature === 'geofix-control', body(rt).signature);
 }
 {
-  const rt = run('geo-bridge.js', { request: { url: `${GS}/geo-settings/save?lat=999&lon=999` } });
+  const rt = run('geo-control.js', { request: { url: `${GS}/geo-settings/save?lat=999&lon=999` } });
   t('非法坐标被拒（422）', rt.doneCalls[0].response.status === 422);
 }
 {
   const store = {};
-  run('geo-bridge.js', { store, request: { url: `${GS}/geo-settings/save?lat=31&lon=121` } });
-  const rt = run('geo-bridge.js', { store, request: { url: `${GS}/geo-settings/clear` } });
+  run('geo-control.js', { store, request: { url: `${GS}/geo-settings/save?lat=31&lon=121` } });
+  const rt = run('geo-control.js', { store, request: { url: `${GS}/geo-settings/clear` } });
   t('clear 写墓碑并置 enabled=false', JSON.parse(store.geo_settings).enabled === false);
   t('clear 后 mode 回到 passthrough', body(rt).mode === 'passthrough');
 }
@@ -109,6 +110,25 @@ console.log('\n─── Response：真实 protobuf 改写 ───');
   t('patchStats.wifi = 1', diag.patchStats && diag.patchStats.wifi === 1, JSON.stringify(diag.patchStats));
   t('mode = active', diag.mode === 'active');
   t('lastError 为空', diag.lastError === null, String(diag.lastError));
+}
+
+console.log('\n─── 一键形态 save?u=（不经过页面 JS） ───');
+{
+  const rt = run('geo-control.js', {
+    store: {},
+    request: { url: `${GS}/geo-settings/save?u=${encodeURIComponent('日内瓦地图项目https://maps.apple.com/place?coordinate=39.907829,116.391187&name=天安门')}&acc=30` },
+  });
+  const r = body(rt);
+  t('链接进来直接写入', r.ok === true && r.mode === 'active', JSON.stringify(r).slice(0, 110));
+  t('坐标解析正确', r.current.lat === 39.907829 && r.current.lon === 116.391187);
+  t('名称也带上了', r.current.name === '天安门', r.current.name);
+  t('精度可调', r.current.accuracy === 30, String(r.current.accuracy));
+  t('存进 geo_settings', JSON.parse(rt.store.geo_settings).lat === 39.907829);
+  t('事件带上了名称与坐标', /天安门.*39\.907829/.test(JSON.parse(rt.store.geo_events)[0].message), JSON.parse(rt.store.geo_events)[0].message);
+
+  const short = run('geo-control.js', { store: {}, request: { url: `${GS}/geo-settings/save?u=${encodeURIComponent('https://t.example/abc')}` } });
+  t('短链给明确提示（同步链路展开不了）', short.doneCalls[0].response.status === 422
+    && /短链/.test(JSON.parse(short.doneCalls[0].response.body).error), JSON.parse(short.doneCalls[0].response.body).error);
 }
 
 console.log('\n─── Route：存 / 播 / 停 ───');

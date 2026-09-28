@@ -66,6 +66,7 @@ UUID_WEB_BASE = "a1a10004-0000-4000-8000-000000000004"
 UUID_OPEN_URL = "a1a10005-0000-4000-8000-000000000005"
 UUID_G_LINK = "a1a10006-0000-4000-8000-000000000006"
 UUID_G_FETCH = "a1a10007-0000-4000-8000-000000000007"
+UUID_G_ENC = "a1a10008-0000-4000-8000-000000000008"
 
 
 # ── token string 构造 ──────────────────────────────────────────────────────
@@ -151,6 +152,47 @@ def write_out(doc, actions, report, a):
     for line in report:
         print(f"  · {line}")
     print(f"  · 附件偏移自检 {checked} 处 ✔　引用完整性 ✔")
+
+
+
+def build_save_u_mode(doc, actions, a):
+    """一键形态：把链接交给插件脚本去解析并写入，全程不需要 JS。"""
+    base = a.save_u.rstrip("/")
+    if not base.startswith("http"):
+        raise SystemExit("!! --save-u 要带 http(s):// 前缀")
+
+    def new(ident, params):
+        return {"WFWorkflowActionIdentifier": ident, "WFWorkflowActionParameters": params}
+
+    raw_act = new("is.workflow.actions.gettext", {
+        "CustomOutputName": "RawLink", "UUID": UUID_G_LINK,
+        "WFTextActionText": {"Value": {"Type": "ExtensionInput"}, "WFSerializationType": "WFTextTokenAttachment"},
+    })
+    enc_act = new("is.workflow.actions.urlencode", {
+        "WFInput": {"Value": {"string": "\ufffc", "attachmentsByRange": {"{0, 1}": {"Type": "ActionOutput", "OutputUUID": UUID_G_LINK, "OutputName": "RawLink"}}},
+                    "WFSerializationType": "WFTextTokenString"},
+        "WFEncodeMode": "Encode", "CustomOutputName": "EncLink", "UUID": UUID_G_ENC,
+    })
+    tok, _ = build_token(
+        "{{WebBase}}/geo-settings/save?u={{EncLink}}&acc=" + str(a.acc or 25),
+        {"WebBase": attachment_ref(UUID_WEB_BASE, "WebBase"), "EncLink": attachment_ref(UUID_G_ENC, "EncLink")},
+    )
+    fetch_act = new("is.workflow.actions.downloadurl", {"WFURL": tok, "WFHTTPMethod": "GET", "WFUUID": UUID_G_FETCH})
+    web_act = new("is.workflow.actions.gettext", {
+        "CustomOutputName": "WebBase", "UUID": UUID_WEB_BASE,
+        "WFTextActionText": {"Value": {"string": base, "attachmentsByRange": {}},
+                             "WFSerializationType": "WFTextTokenString"},
+    })
+    open_act = new("is.workflow.actions.openurl",
+                   {"WFInput": "prefs:root=Privacy&path=LOCATION", "WFUUID": UUID_OPEN_URL})
+
+    doc["WFWorkflowActions"] = [raw_act, enc_act, web_act, fetch_act, open_act]
+    return doc, [
+        f"一键 → GET {base}/geo-settings/save?u=…&acc={a.acc or 25}",
+        "解析与写入全在插件脚本里，不依赖页面 JS（Shortcuts 不执行 JS）",
+        f"动作数 {len(actions)} → 5",
+        "输入类型原样保留，含 WFMapsLinkContentItem",
+    ]
 
 
 
@@ -304,6 +346,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--worker", default=None, help="解析服务基地址，如 https://xxx.workers.dev")
     ap.add_argument("--web", default=None, help="网页模式：控制页地址，如 https://map.com")
+    ap.add_argument("--save-u", default=None, help="一键形态：GET <base>/geo-settings/save?u=<链接>，如 https://savues.com")
     ap.add_argument("--g", default=None, help="g 模式：三动作一键入口，如 https://savues.com")
     ap.add_argument("--local", default=None, help="local 模式：保留参考件结构，两处 URL 指向本地插件，如 https://map.com")
     ap.add_argument("--auto", action="store_true", help="网页模式下加 &auto=1，解析完直接写入")
@@ -326,6 +369,10 @@ def main():
 
     if a.web:
         doc, report = build_web_mode(doc, actions, a)
+        write_out(doc, doc["WFWorkflowActions"], report, a)
+        return
+    if a.save_u:
+        doc, report = build_save_u_mode(doc, actions, a)
         write_out(doc, doc["WFWorkflowActions"], report, a)
         return
     if a.g:

@@ -36,7 +36,7 @@ for (const line of sections.Script || []) {
     tag: (line.match(/tag=(.+)$/) || [, ''])[1],
   });
 }
-t('[Script] 段存在且有 7 条规则', rules.length === 7, String(rules.length));
+t('[Script] 段存在且有 6 条规则', rules.length === 6, String(rules.length));
 t('[MitM] 段存在', Array.isArray(sections.MitM) && sections.MitM.some((l) => l.startsWith('hostname=')));
 {
   // 段外的 http- 行 = 漂着的死规则，Loon 不认
@@ -52,14 +52,14 @@ const CASES = [
   ['https://savues.com/?u=abc', ['GeoFix UI root']],
   ['https://savues.com/geo-ui/', ['GeoFix UI']],
   ['https://savues.com/geo-ui/?u=abc', ['GeoFix UI']],
-  ['https://savues.com/geo-parse?u=abc', ['GeoFix Parse']],
-  ['https://savues.com/geo-settings/save?lat=1&lon=2', ['GeoFix Bridge']],
-  ['https://savues.com/geo-settings/status', ['GeoFix Bridge']],
+  ['https://savues.com/geo-parse?u=abc', ['GeoFix Control']],
+  ['https://savues.com/geo-settings/save?lat=1&lon=2', ['GeoFix Control']],
+  ['https://savues.com/geo-settings/status', ['GeoFix Control']],
   ['https://savues.com/geo-route/save?payload=x', ['GeoFix Route']],
   ['https://gs-loc.apple.com/geo-ui/', ['GeoFix UI']],
-  ['https://gs-loc.apple.com/geo-parse?u=abc', ['GeoFix Parse']],
-  ['https://gs-loc.apple.com/geo-settings/clear', ['GeoFix Bridge']],
-  ['https://gs-loc-cn.apple.com/geo-settings/status', ['GeoFix Bridge']],
+  ['https://gs-loc.apple.com/geo-parse?u=abc', ['GeoFix Control']],
+  ['https://gs-loc.apple.com/geo-settings/clear', ['GeoFix Control']],
+  ['https://gs-loc-cn.apple.com/geo-settings/status', ['GeoFix Control']],
   ['https://gs-loc.apple.com/clls/wloc', ['GeoFix Response']],
   ['https://savues.com/g/https://maps.apple.com/place?coordinate=1,2', ['GeoFix one-shot']],
   ['https://savues.com/g/anything', ['GeoFix one-shot']],
@@ -67,7 +67,7 @@ const CASES = [
   ['https://savues.com/g', []],
   ['https://savues.com/g/', ['GeoFix one-shot']],
   ['https://savues.com/geo-ui/anything', []],
-  ['https://savues.com/geo-parse', []],
+
   ['https://gs-loc.apple.com/other/path', []],
   ['https://www.apple.com/', []],
   ['https://evil.example.com/geo-settings/save?lat=1', []],

@@ -18,7 +18,7 @@ function call(u, httpStub) {
   if (httpStub) sandbox.$httpClient = { get: (o, cb) => httpStub(o, cb) };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(fs.readFileSync(path.join(SRC, 'geo-parse.js'), 'utf8'), sandbox, { filename: 'geo-parse.js' });
+  vm.runInContext(fs.readFileSync(path.join(SRC, 'geo-control.js'), 'utf8'), sandbox, { filename: 'geo-control.js' });
   if (!out) throw new Error('脚本没有调用 $done');
   return { status: out.status, body: JSON.parse(out.body) };
 }

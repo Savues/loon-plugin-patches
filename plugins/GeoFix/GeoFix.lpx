@@ -1,4 +1,4 @@
-#!name=GeoFix 网络定位重定向 v1.8
+#!name=GeoFix 网络定位重定向 v1.9
 #!desc=[构建 2026-09-28] 重写 Apple 网络定位接口返回的 WiFi/基站定位记录，使 iOS 把设备定位到你指定的坐标。脚本由本仓库托管，上游消失后仍可正常拉取。内置本地解析器与控制页，**不依赖任何外部服务**：浏览器打开 https://savues.com 即可；所有控制端点也都能从 savues.com 访问。坐标需通过 Bridge 端点写入（见插件 README），插件配置页没有经纬度输入框。只影响网络定位，不修改 GPS 硬件，也不全局改写 CoreLocation。 本仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: 见 UPSTREAM.md | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=定位,QA
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-28 14:10:00
-# ==== PLUGIN_VERSION: 1.8.0 | 一键入口 /g/<链接> | BUILD_BY: Savues ====
+# ==== PLUGIN_VERSION: 1.9.0 | 一键定位不依赖页面 JS | BUILD_BY: Savues ====
 #
 # 【为什么没有 [Argument] 段】
 # 上游清单里有一段 [Argument]（longitude / latitude / accuracy），但：
@@ -20,7 +20,8 @@
 # 【统一入口】所有控制端点都能从 savues.com 走，gs-loc.apple.com 是等价旧地址：
 #   https://savues.com/                        网页控制台
 #   https://savues.com/?u=<链接>               控制台 + 自动解析填表（&auto=1 自动写入）
-#   https://savues.com/g/<链接>               一键：解析 + 写入全自动，零点击
+#   https://savues.com/g/<链接>               一键：脚本直接解析+写入（不经过页面 JS）
+#   https://savues.com/geo-settings/save?u=… 一键：同上，URL 编码形式
 #   https://savues.com/geo-parse?u=<链接>      纯 JSON 解析（快捷指令用，不开网页）
 #   https://savues.com/geo-settings/save?..    写入坐标
 #   https://savues.com/geo-settings/status     查状态
@@ -32,11 +33,10 @@
 # 但 savues.com 在 MitM 列表里，访问它会被 Loon 解密后转发（能用，多一次 TLS 握手）。
 
 [Script]
-http-request ^https?:\/\/(gs-loc(-cn)?\.apple\.com|savues\.com)\/geo-settings\/(ping|status|save|clear|export|diag) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-bridge.js, timeout=10, tag=GeoFix Bridge
-http-request ^https?:\/\/(gs-loc(-cn)?\.apple\.com|savues\.com)\/geo-parse\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-parse.js, timeout=15, tag=GeoFix Parse
+http-request ^https?:\/\/(gs-loc(-cn)?\.apple\.com|savues\.com)\/(geo-settings\/(ping|status|save|clear|export|diag)|geo-parse)(\?.*)?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-control.js, timeout=15, tag=GeoFix Control
 http-request ^https?:\/\/(gs-loc(-cn)?\.apple\.com|savues\.com)\/geo-ui\/?(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-ui.js, timeout=10, tag=GeoFix UI
 http-request ^https?:\/\/savues\.com\/?(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-ui.js, timeout=10, tag=GeoFix UI root
-http-request ^https?:\/\/savues\.com\/g\/(.*)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-ui.js, timeout=15, tag=GeoFix one-shot
+http-request ^https?:\/\/savues\.com\/g\/(.*)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-control.js, timeout=15, tag=GeoFix one-shot
 http-request ^https?:\/\/(gs-loc(-cn)?\.apple\.com|savues\.com)\/geo-route\/(ping|save|start|pause|resume|stop|clear|status) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-route.js, timeout=10, tag=GeoFix Route
 http-response ^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-response.js, requires-body=true, binary-body-mode=true, timeout=30, tag=GeoFix Response
 

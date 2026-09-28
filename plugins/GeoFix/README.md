@@ -71,7 +71,8 @@ https://savues.com
 | 地址 | 干什么 | 谁在用 |
 |---|---|---|
 | `https://savues.com/` | 网页控制台 | 手动用、加书签 |
-| `https://savues.com/g/<链接>` | **一键：解析 + 写入全自动** | 5 动作快捷指令 |
+| `https://savues.com/geo-settings/save?u=<链接>&acc=25` | **一键：脚本直接解析 + 写入，零点击、不依赖 JS** | 5 动作快捷指令 |
+| `https://savues.com/g/<链接>` | 同一件事的网页版（浏览器打开才有效） | 手工/书签 |
 | `https://savues.com/?u=<链接>` | 控制台 + 自动解析填表（`&auto=1` 自动写入） | 网页手工用 |
 | `https://savues.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
 | `https://savues.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
@@ -200,10 +201,9 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | `GeoFix.lpx` | 插件本体 | Manifest |
-| `src/geo-bridge.js` | 写坐标 / 查状态 / 诊断 | Bridge |
 | `src/geo-route.js` | 动态路线 | Route |
 | `src/geo-response.js` | protobuf 改写 | Response patch |
-| `src/geo-parse.js` | 地图链接 → WGS84（本地） | Local link parser |
+| `src/geo-control.js` | 桥接 + 解析 + 一键写入，**合成一个脚本** | Control endpoints |
 | `src/geo-ui.js` | 本地控制页（**由 `build_ui.py` 生成**） | Local control page |
 | `src/ui.html` | 控制页源码，改这里 | Page source |
 | `build_ui.py` | 把 `ui.html` 注入成 `geo-ui.js` | UI builder |
