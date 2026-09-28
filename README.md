@@ -18,7 +18,7 @@ remote-config removal and identifiers, never business logic.
 |---|---|---|
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
-| [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 脚本自托管<br>Network-location redirect · self-hosted scripts | **v1.0** |
+| [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地<br>Network-location redirect · fully self-contained | **v1.1** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写<br>Dedupe against blockAds | 可用 OK |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
@@ -84,7 +84,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [patches/README.md](patches/README.md) | 退场范围与判定依据 · Removal scope and detection rules |
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
-| [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages）· Web UI |
+| [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages 托管，可选）· Web UI |
 
 ---
 

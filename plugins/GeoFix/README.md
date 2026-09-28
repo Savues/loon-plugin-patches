@@ -60,19 +60,48 @@ servers — the plugin answers them locally.
 
 手机 Safari 直接开这几个地址即可（需 Loon 在线 + MITM 生效）。
 
-### 网页版设置界面 · Web UI
+### 本地控制页 · Local UI
 
-**[`https://savues.github.io/loon-plugin-patches/`](https://savues.github.io/loon-plugin-patches/)** —— 单文件 HTML，已部署到 GitHub Pages。
-手机浏览器打开就能填坐标、看状态、恢复真位，**不需要账号、不需要订阅**。
-Bridge 响应带 `Access-Control-Allow-Origin: *`，所以跨域直接可用。
+```
+https://gs-loc.apple.com/geo-ui/
+```
+
+手机浏览器（Safari / Chrome）直接打开就是一个控制界面，**由插件自己在本地返回**。
+把这个地址加到主屏幕书签，以后一点就用。**不需要任何外部服务、不需要账号、不需要联网。**
 
 | 卡片 | 作用 |
 |---|---|
-| 状态 | 实时 `mode` / 当前坐标 / 已改写次数 / 上次写入与改写时间，异常时直接报 `lastError` |
+| 状态 | 实时 `mode` / 当前坐标 / 已改写次数 / 放行次数 / 上次写入与改写时间，异常时直接列出 `lastError` |
+| 粘贴地图链接 | 粘进去点「本地解析」，自动换算成 WGS84 并填进下面的框，原始坐标系也会显示出来 |
 | 写入坐标 | 填 lat / lon / acc，一键写入；「恢复真实定位」一键清除 |
-| 从地图链接解析 | 粘分享链接 → 调你自己的解析服务（`companion/worker/`）→ 自动填入 |
+| 收藏 | 常用地点存在本机 `localStorage`，换地点时不用再翻聊天记录 |
 
-源码在 `docs/index.html`，改完直接 commit 即可，Pages 会自动重新部署。
+页面源码在 `src/ui.html`（可读可改），由 `build_ui.py` 注入成 `src/geo-ui.js`。
+改完页面记得重跑：
+
+```bash
+python3 build_ui.py            # 生成 + node --check 语法自检
+python3 build_ui.py --check    # 只检查是否同步
+```
+
+Loon 只能用 `script-path` 拉一个 `.js`，读不到同目录的 `.html`，
+所以页面必须整个塞进脚本里。`build_ui.py` 用 `JSON.stringify` 的等价做法
+（`json.dumps`）把 HTML 变成一个安全的 JS 字符串字面量，换行、反斜杠、
+反引号、`${` 都不用手动转义。
+
+### 解析器 · Parser
+
+```
+https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
+```
+
+也在插件里本地算，WGS84 / GCJ-02 / BD-09 三种坐标系互转都是纯数学，没有网络往返。
+控制页的「本地解析」按钮调的就是它。
+
+支持：苹果 `?ll=` 与 `/place/…/@lon,lat,z`、Google `@` 与 `!3d!4d`、
+高德 `uri.amap.com/marker` 与 `@lon,lat,z`、百度 `@x,y,z` 墨卡托、裸坐标。
+另外会**尝试展开短链**（受控：限跳数、拦内网与云元数据地址），跳转后的页面里
+仍找不到坐标就明确报错，不会瞎猜。
 
 日常使用也可以走 `companion/shortcut` 的快捷指令：从地图 App 分享链接过来，
 它会自己解析经纬度再写入。
@@ -105,6 +134,7 @@ Bridge 响应带 `Access-Control-Allow-Origin: *`，所以跨域直接可用。
 4. 确认代理 / VPN 处于连接状态
 5. 打开 `https://gs-loc.apple.com/geo-settings/status`，看到 `"tool":"Loon"` 就说明桥接通了
 6. 重启 Loon
+7. 浏览器打开 `https://gs-loc.apple.com/geo-ui/`，加到主屏幕书签
 
 > ⚠️ 仓库是 public 的，`script-path` 走 `raw.githubusercontent.com` 可匿名拉取。
 > CDN 缓存最长约 24h，拉不到新脚本时在订阅地址加 `?cb=2`。
@@ -119,7 +149,12 @@ Bridge 响应带 `Access-Control-Allow-Origin: *`，所以跨域直接可用。
 | `src/geo-bridge.js` | 写坐标 / 查状态 / 诊断 | Bridge |
 | `src/geo-route.js` | 动态路线 | Route |
 | `src/geo-response.js` | protobuf 改写 | Response patch |
+| `src/geo-parse.js` | 地图链接 → WGS84（本地） | Local link parser |
+| `src/geo-ui.js` | 本地控制页（**由 `build_ui.py` 生成**） | Local control page |
+| `src/ui.html` | 控制页源码，改这里 | Page source |
+| `build_ui.py` | 把 `ui.html` 注入成 `geo-ui.js` | UI builder |
 | `smoke.test.mjs` | 28 个用例，Node 里模拟 Loon 运行时 | `node smoke.test.mjs` |
+| `parse.test.mjs` | 21 个用例，解析器 + SSRF 防护 | `node parse.test.mjs` |
 | `UPSTREAM.md` | 出处与移植改动逐条对照 | Provenance & porting diff |
 | `companion/` | iOS 快捷指令 + 自建解析 Worker | iOS companion (not a Loon plugin part) |
 

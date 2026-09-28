@@ -107,23 +107,34 @@ http-response ^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc …
 
 ## 本仓库新增 · New in this repo
 
+> v1.1 起，整条链路上**不再有任何外部服务依赖**。
+
 | 文件 | 说明 |
 |---|---|
+| `src/geo-parse.js` | **本仓库重写**的地图链接解析器，WGS84/GCJ-02/BD-09 互转全在本地算 |
+| `src/geo-ui.js` | 本地控制页，由 `http-request` 规则伪造 HTML 响应，浏览器直接打开 |
+| `src/ui.html` + `build_ui.py` | 控制页源码与注入生成器（Loon 读不到同目录 `.html`） |
 | `smoke.test.mjs` | Node 里模拟 Loon 运行时（`$request` / `$response` / `$persistentStore` / `$done` / `$loon`），28 个用例 |
+| `parse.test.mjs` | 解析器 21 个用例，含 SSRF 防护与两条坐标系回归 |
 | `companion/worker/src/index.js` | **独立重写**的地图链接解析 Worker，不含任何上游代码 |
 | `companion/shortcut/build_shortcut.py` | 配套 iOS 快捷指令的定点改写器 |
 
-### 解析 Worker 为什么重写
+### 解析逻辑为什么重写
 
-上游的解析服务实测有两个问题：
+v1.0 是做成独立的 Cloudflare Worker；v1.1 直接收进插件脚本，
+不用部署、不用填地址，网页和控制页同源，不用考虑跨域。实测的两个问题：
 
 | | 上游 | 本仓库重写版 |
 |---|---|---|
 | 苹果地图 `?ll=` | 按 GCJ-02 又减一次偏移，同一对数字走不同入口差 **482m** | 苹果 / Google 一律按 WGS84 原样输出 |
 | 百度 `@x,y` | 换算结果与 POI 名称能差 **1000+ km**，仍返回 200 且零告警 | 标准球面墨卡托还原 + BD-09→GCJ-02→WGS84，结果落回 POI 本体 |
 
-外加：境外坐标不套国内偏移、`@` 后经纬顺序自动消歧、短链展开带 SSRF 防护（限 3 跳、拦内网与云元数据地址）。
-`companion/worker/test.mjs` 19 个用例，含针对上述两条的回归断言。
+外加：境外坐标不套国内偏移、`@` 后经纬顺序自动消歧、短链展开带 SSRF 防护
+（限跳数、拦内网与云元数据地址；只有「确实没坐标」才会去抓，私网地址在抓之前就被拒）。
+`parse.test.mjs` 21 个用例，含针对上述两条的回归断言。
+
+`companion/worker/` 保留了一份独立的 Worker 实现，**现在已经不需要部署**，
+留着是为了在没有 Loon 的场景（比如在电脑上解析链接）也能用。
 
 ### 快捷指令改写器为什么这么写
 
