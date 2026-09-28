@@ -120,6 +120,7 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | `localVIPSpace` | switch | 开 | 个人资料页开关 |
 | `myMid` | input | 空 | 我的 UID；**留空则空间页伪装不生效**，他人主页始终不受影响 |
 | `vipAllUsers` | switch | 关 | 彩蛋：开启后**所有人的主页**都按上面的设置显示（含真会员） |
+| `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
 

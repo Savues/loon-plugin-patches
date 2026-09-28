@@ -20,8 +20,10 @@ const DUE = 253402214399000;   // 9999-12-30T23:59:59Z，毫秒
 // 不加此判断会把所有用户的资料页都显示成伪装的样子。
 // 取自己的 uid：个人空间页地址栏数字，或 App「我的」页 mid。
 const ME = Number(A.myMid) || 0;
-// 彩蛋：开启后所有用户的非会员主页都显示伪装效果（真会员不受影响）。
+// 彩蛋一：全员生效，等于把修复前的 bug 变成显式功能（默认关）。
 const ALL = !!A.vipAllUsers;
+// 彩蛋二：点名，只让指定 UID 的主页生效。填 0 表示不点名。
+const TARGET = Number(A.vipTargetMid) || 0;
 
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
@@ -94,9 +96,9 @@ try {
   //   2) 响应异常    —— 取不到 card.mid
   //   3) 已经是会员  —— 不冒充真会员
   // 非会员时 B 站直接删掉整个 vip 字段，故「不存在」也算未开通。
-  const passthrough = !d
-    || (!ALL && (who === undefined || who !== ME))
-    || (v && v.vipStatus === 1);
+  // 生效对象：全员 / 自己 / 点名的那位。who 为 undefined 时一律不动。
+  const hit = ALL || (who !== undefined && (who === ME || who === TARGET));
+  const passthrough = !d || !hit || (v && v.vipStatus === 1);
 
   if (passthrough) {
     $done({ body: $response.body });
