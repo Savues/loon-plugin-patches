@@ -59,7 +59,23 @@ servers — the plugin answers them locally.
 ```
 
 手机 Safari 直接开这几个地址即可（需 Loon 在线 + MITM 生效）。
-日常使用建议走 `companion/shortcut` 的快捷指令，从地图 App 分享链接过来自动解析。
+
+### 网页版设置界面 · Web UI
+
+**[`https://savues.github.io/loon-plugin-patches/`](https://savues.github.io/loon-plugin-patches/)** —— 单文件 HTML，已部署到 GitHub Pages。
+手机浏览器打开就能填坐标、看状态、恢复真位，**不需要账号、不需要订阅**。
+Bridge 响应带 `Access-Control-Allow-Origin: *`，所以跨域直接可用。
+
+| 卡片 | 作用 |
+|---|---|
+| 状态 | 实时 `mode` / 当前坐标 / 已改写次数 / 上次写入与改写时间，异常时直接报 `lastError` |
+| 写入坐标 | 填 lat / lon / acc，一键写入；「恢复真实定位」一键清除 |
+| 从地图链接解析 | 粘分享链接 → 调你自己的解析服务（`companion/worker/`）→ 自动填入 |
+
+源码在 `docs/index.html`，改完直接 commit 即可，Pages 会自动重新部署。
+
+日常使用也可以走 `companion/shortcut` 的快捷指令：从地图 App 分享链接过来，
+它会自己解析经纬度再写入。
 
 `acc` 会被夹到 5–200 米，默认 25。
 

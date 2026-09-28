@@ -84,6 +84,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [patches/README.md](patches/README.md) | 退场范围与判定依据 · Removal scope and detection rules |
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
+| [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages）· Web UI |
 
 ---
 
