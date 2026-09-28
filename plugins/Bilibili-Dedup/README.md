@@ -18,7 +18,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
-| `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正「退场。。」叠字；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
+| `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正重复标点；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
 | `2026-09-28T14:25` | `b2b1c0d` | README 新增[第六章](#六上游脚本镜像--upstream-script-mirror)：目录结构、上游对应关系、SHA256 校验方法 |
 | `2026-09-28T14:22` | `2b083ea` | 3 个上游 JS 镜像至 `upstream/`；`.lpx` 中 5 处 `script-path` 改指本仓库 |
 
@@ -48,9 +48,9 @@ CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v7
 ## 一、与 blockAds 的关系
 
 blockAds（奶思合集）内置了 kokoryh 的完整 B 站规则集，与本插件功能重叠。
-[`patch-blockads.py`](../../patches/README.md) 把合集里的 B 站部分**整体退场**：
+[`patch-blockads.py`](../../patches/README.md) 将合集里的 B 站部分**整段移除**：
 
-| 段 | 退场内容 |
+| 段 | 移除内容 |
 |---|---|
 | `[Rewrite]` | 23 条 |
 | `[Script]` | 4 条 |
@@ -143,7 +143,7 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | 冲突 | 说明 |
 |---|---|
 | Bilibili-UI 的 `Mine` 功能 | 两者都改 `account/mine`。字段不重叠（`vip` vs 服务列表），但同响应两脚本顺序不可控。要用我的页自定义时先关本插件 `localVIP` |
-| blockAds | 须使用**退场版**，否则 B 站规则重复执行 |
+| blockAds | 须使用**已移除 B 站部分的版本**，否则 B 站规则重复执行 |
 
 ---
 
