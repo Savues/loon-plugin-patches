@@ -8,7 +8,7 @@
 | | 中文 | English |
 |---|---|---|
 | 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
-| 脚本 | 2 个托管脚本 + 2 个远程引用 | 2 hosted + 2 remote |
+| 脚本 | 5 个全部由本仓库托管，**零外部依赖** | all 5 self-hosted, zero external deps |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
@@ -145,6 +145,57 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 
 > 另：App 对空间页会员标**走文字渲染**（`text` + `bg_color`），
 > 抓包里一次 `/bfs/vip/` 图片请求都不发，故 `image` 留空即可。
+
+---
+
+## 六、上游脚本镜像 · Upstream Script Mirror
+
+`[Script]` 段引用的 5 个脚本**全部由本仓库托管**，不依赖任何上游仓库的可用性。
+All 5 scripts referenced by `[Script]` are served from this repository.
+
+```
+plugins/Bilibili-Dedup/
+├── Bilibili-Dedup.lpx
+├── vip-theme.js          2.6 KB  会员主题
+├── vip-space.js          3.2 KB  个人资料页会员
+└── upstream/                    上游脚本镜像
+    ├── protobuf.request.js     62 KB
+    ├── protobuf.response.js    95 KB
+    ├── adblock.bundle.js      842 KB
+    └── MANIFEST.json
+```
+
+### 上游对应关系 · Provenance
+
+| 本地文件 | 上游来源 | 用途 |
+|---|---|---|
+| `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化、空降助手 |
+| `upstream/protobuf.response.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.response.js` | protobuf 响应处理 |
+| `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数） |
+| `vip-theme.js` / `vip-space.js` | 本仓库自撰 · written in-house | 会员伪装 |
+
+三个上游文件均**逐字节原样镜像**，未修改任何逻辑。版本固定在 BiliUniverse `v0.6.24`，
+其余取自 kokoryh 提交 `master` 当时的快照。
+
+### 校验 · Verification
+
+`upstream/MANIFEST.json` 记录每个文件的原始 URL、字节数、SHA256 与镜像日期。
+本地核对：
+
+```bash
+cd plugins/Bilibili-Dedup
+python3 -c "
+import json,hashlib,pathlib
+m=json.load(open('upstream/MANIFEST.json'))
+for k,v in m.items():
+    p=pathlib.Path('upstream',k)
+    h=hashlib.sha256(p.read_bytes()).hexdigest()
+    print(('OK  ' if h==v['sha256'] else 'FAIL'), k)"
+```
+
+> B 站去广告逻辑依赖 B 站接口，上游接口一变即失配。
+> 上游发布新版本时，改 `MANIFEST.json` 里的 `source`、替换文件、重算 SHA256。
+> Ad-block logic tracks Bilibili's API and breaks when upstream changes.
 
 ---
 
