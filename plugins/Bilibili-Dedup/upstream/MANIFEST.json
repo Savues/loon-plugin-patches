@@ -16,5 +16,12 @@
     "bytes": 862323,
     "sha256": "f805f7dd5dad9f43ac67ce47b9d3ac294b5848a59b1d0ea9d504707fe406f4a1",
     "mirrored_at": "2026-09-28"
+  },
+  "icon.png": {
+    "source": "https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png",
+    "note": "1024x1024 原图缩放至 256x256",
+    "bytes": 17456,
+    "sha256": "da9e84b89d8bc4e0295740773bf350de1a5871f4db53041ebc432f0debd78ade",
+    "mirrored_at": "2026-09-28"
   }
 }

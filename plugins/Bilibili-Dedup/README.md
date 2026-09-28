@@ -173,6 +173,7 @@ All 5 scripts referenced by `[Script]` are served from this repository.
 ```
 plugins/Bilibili-Dedup/
 ├── Bilibili-Dedup.lpx
+├── icon.png               17 KB  插件图标（256×256）
 ├── vip-theme.js          2.6 KB  会员主题
 ├── vip-space.js          3.2 KB  个人资料页会员
 └── upstream/                    上游脚本镜像
@@ -189,26 +190,34 @@ plugins/Bilibili-Dedup/
 | `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化、空降助手 |
 | `upstream/protobuf.response.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.response.js` | protobuf 响应处理 |
 | `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数） |
+| `icon.png` | BiliUniverse `src/assets/icon_rounded.png` | 插件图标；**原图 1024×1024 缩放至 256×256**（67 KB → 17 KB） |
 | `vip-theme.js` / `vip-space.js` | 本仓库自撰 · written in-house | 会员伪装 |
 
-三个上游文件均**逐字节原样镜像**，未修改任何逻辑。版本固定在 BiliUniverse `v0.6.24`，
-其余取自 kokoryh 提交 `master` 当时的快照。
+三个上游**脚本**均**逐字节原样镜像**，未修改任何逻辑。版本固定在 BiliUniverse `v0.6.24`，
+其余取自 kokoryh 提交 `master` 当时的快照。图标是唯一做过尺寸压缩的文件。
+
+> `.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，
+> 清单内已无任何指向 kokoryh / BiliUniverse 的可拉取地址。
+> `MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源，运行时不会被读取。
 
 ### 校验 · Verification
 
 `upstream/MANIFEST.json` 记录每个文件的原始 URL、字节数、SHA256 与镜像日期。
-本地核对：
+本地核对（在插件目录下执行）：
 
 ```bash
-cd plugins/Bilibili-Dedup
 python3 -c "
 import json,hashlib,pathlib
 m=json.load(open('upstream/MANIFEST.json'))
+base=pathlib.Path('upstream')
 for k,v in m.items():
-    p=pathlib.Path('upstream',k)
-    h=hashlib.sha256(p.read_bytes()).hexdigest()
-    print(('OK  ' if h==v['sha256'] else 'FAIL'), k)"
+    p=base/k
+    if not p.exists(): p=pathlib.Path(k)
+    ok=p.exists() and hashlib.sha256(p.read_bytes()).hexdigest()==v['sha256']
+    print('OK  ' if ok else 'FAIL', k)"
 ```
+
+脚本项在 `upstream/` 下，图标项 `icon.png` 在插件根目录 —— 故先试 `upstream/k`，回退到 `k`。
 
 > B 站去广告逻辑依赖 B 站接口，上游接口一变即失配。
 > 上游发布新版本时，改 `MANIFEST.json` 里的 `source`、替换文件、重算 SHA256。
@@ -218,7 +227,7 @@ for k,v in m.items():
 
 ## 致谢 · Credits
 
-上游脚本**逐字节原样镜像**至 [`upstream/`](upstream/)，未修改任何逻辑；
+上游脚本**逐字节原样镜像**至 [`upstream/`](upstream/)，图标缩放后存于插件根目录，均未修改任何逻辑；
 仅重组清单条目与参数声明。清单中另有两个本仓库自撰脚本（`vip-theme.js` / `vip-space.js`）。
 Upstream scripts are mirrored **byte-for-byte** — no logic modified, only manifest
 entries and parameter declarations reorganized. Two in-house scripts added.

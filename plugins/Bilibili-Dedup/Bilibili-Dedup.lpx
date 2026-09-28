@@ -6,7 +6,7 @@
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
 #!date=2026-09-28 23:59:00
 # ==== PLUGIN_VERSION: 7.15.0 | 修复 MITM/Rule 矛盾 + ap[ip] 收窄 ====
 
