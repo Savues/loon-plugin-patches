@@ -131,6 +131,29 @@ console.log('\n─── 一键形态 save?u=（不经过页面 JS） ───'
     && /短链/.test(JSON.parse(short.doneCalls[0].response.body).error), JSON.parse(short.doneCalls[0].response.body).error);
 }
 
+console.log('\n─── 一键形态 /g/<链接>（最短形态，不依赖页面 JS） ───');
+{
+  const LINK = 'https://maps.apple.com/place?address=%E5%A4%A9%E5%AE%89%E9%97%A8&coordinate=39.907829,116.391187&name=%E5%A4%A9%E5%AE%89%E9%97%A8';
+  const rt = run('geo-control.js', { store: {}, request: { url: `${GS.replace('gs-loc.apple.com','savues.com')}/g/${LINK}` } });
+  const r = body(rt);
+  t('原始链接直接写在路径里就能写入', r.ok === true && r.mode === 'active', JSON.stringify(r).slice(0, 100));
+  t('坐标解析正确', r.current.lat === 39.907829 && r.current.lon === 116.391187);
+  t('名称带上了', r.current.name === '天安门', r.current.name);
+  t('默认精度 25', r.current.accuracy === 25, String(r.current.accuracy));
+
+  const bare = run('geo-control.js', { store: {}, request: { url: 'https://savues.com/g/31.230416,121.473701' } });
+  t('/g/ 后面是裸坐标也行', body(bare).current.lat === 31.230416 && body(bare).current.lon === 121.473701);
+
+  const enc = run('geo-control.js', { store: {}, request: { url: 'https://savues.com/g/' + encodeURIComponent(LINK) } });
+  t('URL 编码形式也能吃', body(enc).current.lat === 39.907829, JSON.stringify(body(enc)).slice(0, 80));
+
+  const shortLink = run('geo-control.js', { store: {}, request: { url: 'https://savues.com/g/https://t.example/abc' } });
+  t('短链给明确提示', shortLink.doneCalls[0].response.status === 422 && /短链/.test(JSON.parse(shortLink.doneCalls[0].response.body).error));
+
+  const plain = run('geo-control.js', { store: {}, request: { url: `${GS}/geo-settings/status` } });
+  t('非 /g/ 请求不受影响', body(plain).mode !== undefined && body(plain).current === null);
+}
+
 console.log('\n─── Route：存 / 播 / 停 ───');
 {
   const store = {};

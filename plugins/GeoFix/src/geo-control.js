@@ -332,7 +332,22 @@
 
   const args = parseQuery(typeof $argument === "string" ? $argument : "");
   const query = parseQuery(requestUrl.split("?")[1] || "");
-  const action = actionFromURL(requestUrl, query);
+
+  // 一键形态：https://savues.com/g/<原始地图链接>
+  // 链接原样放在路径里 —— 不编码、不加任何后缀参数，这里同步解析并写入。
+  // 必须由脚本做完：快捷指令的「获取 URL 内容」不执行页面里的 JavaScript。
+  const gHit = requestUrl.match(/\/g\/([\s\S]*)$/);
+  const oneShot = !!gHit;
+  if (gHit) {
+    let link = gHit[1].trim();
+    if (!/^https?:\/\//i.test(link) && /%3A%2F%2F/i.test(link)) {
+      try { link = decodeURIComponent(link); } catch (e) { /* 用原样 */ }
+    }
+    query.u = link;
+    if (!query.acc) query.acc = "25";
+  }
+
+  const action = oneShot ? "save" : actionFromURL(requestUrl, query);
 
   try {
     // /geo-parse —— 只解析，返回 JSON。合并后的统一入口。

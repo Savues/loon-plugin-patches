@@ -71,8 +71,7 @@ https://savues.com
 | 地址 | 干什么 | 谁在用 |
 |---|---|---|
 | `https://savues.com/` | 网页控制台 | 手动用、加书签 |
-| `https://savues.com/geo-settings/save?u=<链接>&acc=25` | **一键：脚本直接解析 + 写入，零点击、不依赖 JS** | 5 动作快捷指令 |
-| `https://savues.com/g/<链接>` | 同一件事的网页版（浏览器打开才有效） | 手工/书签 |
+| `https://savues.com/g/<链接>` | **一键：脚本直接解析 + 写入。链接原样写在路径里，不编码、不加后缀** | 5 动作快捷指令 |
 | `https://savues.com/?u=<链接>` | 控制台 + 自动解析填表（`&auto=1` 自动写入） | 网页手工用 |
 | `https://savues.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
 | `https://savues.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
