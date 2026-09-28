@@ -85,6 +85,23 @@ def comment_out_rules(text):
     return '\n'.join(out) + ('\n' if text.endswith('\n') else ''), hit
 
 
+def drop_dead_params(text, names):
+    """从 [Argument] 段删除指定参数（连同其定义行）"""
+    out, n = [], 0
+    in_arg = False
+    for ln in text.splitlines():
+        t = ln.strip()
+        if re.match(r'^\[([A-Za-z ]+)\]', t):
+            in_arg = t.upper() == '[ARGUMENT]'
+        if in_arg and t and not t.startswith('#'):
+            nm = t.split('=')[0].strip()
+            if nm in names:
+                n += 1
+                continue
+        out.append(ln)
+    return '\n'.join(out) + ('\n' if text.endswith('\n') else ''), n
+
+
 def strip_mitm(text):
     """从 [MITM] hostname 列表中移除 B 站域名"""
     m = re.search(r'^(\[MITM\]|\[MitM\])[ \t]*$([\s\S]*?)(?=^\[[A-Za-z]|\Z)', text, re.M)
@@ -130,6 +147,11 @@ def main():
     if not a.keep_mitm:
         s, removed = strip_mitm(s)
     print(f'  已移除 MITM 域名: {len(removed)} 个' + (f'  {removed}' if removed else ''))
+
+    # P003 删除因退场而失活的参数
+    dead = ['bilimanhua_enable', 'sponsorBlock', 'logLevel', 'flightradar24_enable']
+    s, dn = drop_dead_params(s, dead)
+    print(f'  已删除失活参数: {dn}/{len(dead)}  {dead[:dn]}')
     print(f'输出: {len(s.encode())} B  ({len(s.splitlines())-len(before.splitlines()):+d} 行)')
 
     if a.dry_run:

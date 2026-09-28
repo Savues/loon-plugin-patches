@@ -60,6 +60,19 @@ python3 patch-blockads.py --keep-mitm -o out.plugin
 > ⚠️ **易漏点**：B 站漫画走的是 `hdslb.com`（CDN）和 `manhuaren.com`（漫画 API），
 > **都不含 `bilibili.com`**。只匹配主域名会漏掉 6 条规则 —— 这是实际踩过的坑。
 
+### P003 · 删除失活参数（自动应用）
+
+B 站退场后有 4 个开关变成死开关 —— 只被已注释的 B 站规则引用：
+
+| 参数 | 原因 |
+|---|---|
+| `bilimanhua_enable` | 哔哩哔哩漫画，规则已退场 |
+| `sponsorBlock` | B 站空降助手，规则已退场 |
+| `logLevel` | 标签为 `bilibili-日志等级`，仅 B 站脚本使用 |
+| `flightradar24_enable` | 上游 bug：声明了但无任何规则引用 |
+
+参数 **74 → 70**。其余 70 个各自控制 350 条生效规则，全部在用，不做进一步删减。
+
 ---
 
 ## 设计原则 · Design principles
