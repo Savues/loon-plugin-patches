@@ -19,6 +19,11 @@
 漏了这步的症状很隐蔽：一切照常运行，只是某个变量变成了 lat 里的某个字符，
 被当成坐标发了出去。本脚本用 build_token() 自动算偏移，并在写盘前逐个核回标记。
 
+g 模式：三动作一键入口，对应「https://savues.com/g/<链接>」
+    python3 build_shortcut.py --g https://savues.com
+    从分享菜单拿到链接 → 请求一次那个 URL → 解析和写入全在页面里自动完成
+    → 跳到系统「定位服务」。比 local 模式少 15 个动作。
+
 local 模式：照参考件原样保留 19 个动作（含 8 种输入类型声明），
 只把两处 URL 换成本地插件端点。
     python3 build_shortcut.py --local https://map.com
@@ -59,6 +64,8 @@ UUID_STATUS_FETCH = "a1a10002-0000-4000-8000-000000000002"
 UUID_MODE_KEY = "a1a10003-0000-4000-8000-000000000003"
 UUID_WEB_BASE = "a1a10004-0000-4000-8000-000000000004"
 UUID_OPEN_URL = "a1a10005-0000-4000-8000-000000000005"
+UUID_G_LINK = "a1a10006-0000-4000-8000-000000000006"
+UUID_G_FETCH = "a1a10007-0000-4000-8000-000000000007"
 
 
 # ── token string 构造 ──────────────────────────────────────────────────────
@@ -144,6 +151,44 @@ def write_out(doc, actions, report, a):
     for line in report:
         print(f"  · {line}")
     print(f"  · 附件偏移自检 {checked} 处 ✔　引用完整性 ✔")
+
+
+
+def build_g_mode(doc, actions, a):
+    """三动作：取文本 → 请求 https://<base>/g/<文本> → 跳定位服务设置。"""
+    base = a.g.rstrip("/")
+    if not base.startswith("http"):
+        raise SystemExit("!! --g 要带 http(s):// 前缀")
+
+    def new(ident, params):
+        return {"WFWorkflowActionIdentifier": ident, "WFWorkflowActionParameters": params}
+
+    text_act = new("is.workflow.actions.gettext", {
+        "CustomOutputName": "Link",
+        "UUID": UUID_G_LINK,
+        "WFTextActionText": {"Value": {"Type": "ExtensionInput"}, "WFSerializationType": "WFTextTokenAttachment"},
+    })
+    tok, _ = build_token(
+        "{{WebBase}}/g/{{Link}}",
+        {"WebBase": attachment_ref(UUID_WEB_BASE, "WebBase"), "Link": attachment_ref(UUID_G_LINK, "Link")},
+    )
+    fetch_act = new("is.workflow.actions.downloadurl", {"WFURL": tok, "WFHTTPMethod": "GET", "WFUUID": UUID_G_FETCH})
+    web_act = new("is.workflow.actions.gettext", {
+        "CustomOutputName": "WebBase", "UUID": UUID_WEB_BASE,
+        "WFTextActionText": {"Value": {"string": base, "attachmentsByRange": {}},
+                             "WFSerializationType": "WFTextTokenString"},
+    })
+    delay_act = new("is.workflow.actions.delay", {"WFDelayTime": 1})
+    open_act = new("is.workflow.actions.openurl",
+                   {"WFInput": "prefs:root=Privacy&path=LOCATION", "WFUUID": UUID_OPEN_URL})
+
+    doc["WFWorkflowActions"] = [text_act, web_act, fetch_act, delay_act, open_act]
+    return doc, [
+        f"一键入口 → GET {base}/g/<分享进来的链接>",
+        "解析与写入全在页面里自动完成，零点击",
+        f"动作数 {len(actions)} → 5",
+        "输入类型原样保留，含 WFMapsLinkContentItem",
+    ]
 
 
 
@@ -259,6 +304,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--worker", default=None, help="解析服务基地址，如 https://xxx.workers.dev")
     ap.add_argument("--web", default=None, help="网页模式：控制页地址，如 https://map.com")
+    ap.add_argument("--g", default=None, help="g 模式：三动作一键入口，如 https://savues.com")
     ap.add_argument("--local", default=None, help="local 模式：保留参考件结构，两处 URL 指向本地插件，如 https://map.com")
     ap.add_argument("--auto", action="store_true", help="网页模式下加 &auto=1，解析完直接写入")
     ap.add_argument("--acc", type=int, default=None, help="定位精度，米（插件夹到 5–200）")
@@ -280,6 +326,10 @@ def main():
 
     if a.web:
         doc, report = build_web_mode(doc, actions, a)
+        write_out(doc, doc["WFWorkflowActions"], report, a)
+        return
+    if a.g:
+        doc, report = build_g_mode(doc, actions, a)
         write_out(doc, doc["WFWorkflowActions"], report, a)
         return
     if a.local:

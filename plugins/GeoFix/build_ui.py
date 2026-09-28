@@ -42,7 +42,7 @@ TEMPLATE = r'''
   const requestUrl = (typeof $request !== "undefined" && $request.url) || "";
   let path = "";
   try { path = new URL(requestUrl).pathname; } catch (e) { path = String(requestUrl).split("?")[0] || ""; }
-  if (!/^\/(?:geo-ui\/?)?$/.test(path)) {
+  if (!/^\/(?:geo-ui\/?|g\/.*)?$/.test(path)) {
     if (typeof $done === "function") {
       $done({ response: { status: 404, headers: { "Content-Type": "text/plain" }, body: "not found" } });
     }

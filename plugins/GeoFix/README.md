@@ -71,7 +71,8 @@ https://savues.com
 | 地址 | 干什么 | 谁在用 |
 |---|---|---|
 | `https://savues.com/` | 网页控制台 | 手动用、加书签 |
-| `https://savues.com/?u=<链接>` | 控制台 + 自动解析填表 | 4 动作快捷指令 |
+| `https://savues.com/g/<链接>` | **一键：解析 + 写入全自动** | 5 动作快捷指令 |
+| `https://savues.com/?u=<链接>` | 控制台 + 自动解析填表（`&auto=1` 自动写入） | 网页手工用 |
 | `https://savues.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
 | `https://savues.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
 | `https://savues.com/geo-settings/status` | 查状态 | 控制台 / 排查 |
@@ -88,7 +89,17 @@ https://savues.com
 | 写入坐标 | 填 lat / lon / acc，一键写入；「恢复真实定位」一键清除 |
 | 收藏 | 常用地点存在本机 `localStorage`，换地点时不用再翻聊天记录 |
 
-**和快捷指令配合**：地址支持带 `?u=` 参数
+**和快捷指令配合**：把链接直接拼在路径里就行——
+
+```
+https://savues.com/g/<原始地图链接>
+```
+
+链接原样放进路径，插件从 `$request.url` 的 `/g/` 之后取回，连查询串一起保住
+（`&` 不会被当成外层参数）。页面读到就**自动解析 + 自动写入**，零点击。
+也接受 URL 编码形式（`/g/` 后面是编码过的链接）。
+
+另一种形式是带 `?u=` 参数
 
 ```
 https://savues.com/?u=<URL 编码后的地图链接>

@@ -29,8 +29,8 @@ function serve(url) {
   return out;
 }
 
-console.log('─── 短地址 map.com ───');
-for (const u of ['https://map.com/', 'https://map.com', 'https://map.com/?x=1', 'https://map.com/geo-ui/', 'https://map.com/geo-ui']) {
+console.log('─── 短地址 savues.com ───');
+for (const u of ['https://savues.com/', 'https://savues.com', 'https://savues.com/?x=1', 'https://savues.com/geo-ui/', 'https://savues.com/geo-ui']) {
   const r = serve(u);
   t(`返回控制页  ${u}`, r.status === 200 && r.headers['Content-Type'] === 'text/html; charset=utf-8', r.status + ' ' + r.headers['Content-Type']);
 }
@@ -42,7 +42,7 @@ for (const u of ['https://gs-loc.apple.com/geo-ui/', 'https://gs-loc.apple.com/g
 }
 
 console.log('\n─── 非 UI 路径必须放行（不能误拦真实流量） ───');
-for (const u of ['https://map.com/foo', 'https://map.com/foo/bar', 'https://gs-loc.apple.com/geo-ui/anything',
+for (const u of ['https://savues.com/foo', 'https://savues.com/foo/bar', 'https://gs-loc.apple.com/geo-ui/anything',
   'https://gs-loc.apple.com/clls/wloc', 'https://gs-loc.apple.com/geo-settings/save?lat=1&lon=2',
   'https://gs-loc.apple.com/geo-parse?u=1']) {
   const r = serve(u);
@@ -51,9 +51,9 @@ for (const u of ['https://map.com/foo', 'https://map.com/foo/bar', 'https://gs-l
 
 console.log('\n─── 页面内容 ───');
 {
-  const b = serve('https://map.com/').body;
+  const b = serve('https://savues.com/').body;
   t('完整 HTML', b.startsWith('<!DOCTYPE html>') && b.trimEnd().endsWith('</html>'), b.slice(0, 40) + ' …');
-  t('接口用绝对地址（否则从 map.com 打开会打错主机）',
+  t('接口用绝对地址（否则从 savues.com 打开会打错主机）',
     b.includes('var HOST = "https://gs-loc.apple.com"') && b.includes('var BASE = HOST + "/geo-settings"')
     && b.includes('var PARSE = HOST + "/geo-parse"'));
   t('没有裸相对路径 fetch', !b.includes('fetch("/geo') && !b.includes('= "/geo-'));
@@ -72,7 +72,7 @@ console.log('\n─── ?u= 入口：把页面脚本真跑一遍 ───');
   if (!m) { t('能抽出页面脚本', false); } else {
     t('能抽出页面脚本', true, m[1].length + ' chars');
 
-    const runPage = (search, autoWrite) => {
+    const runPage = (search, autoWrite, hrefOverride) => {
       const fields = {};
       const calls = [];
       const el = (id) => {
@@ -87,7 +87,11 @@ console.log('\n─── ?u= 入口：把页面脚本真跑一遍 ───');
       const store = {};
       const sandbox = {
         document: fakeDoc,
-        location: { host: 'map.com', search, origin: 'https://map.com', href: 'https://map.com' + search },
+        location: {
+          host: 'savues.com', search, origin: 'https://savues.com',
+          href: hrefOverride || ('https://savues.com' + search),
+          pathname: (hrefOverride || ('https://savues.com' + search)).split('?')[0],
+        },
         localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = v; } },
         URLSearchParams: globalThis.URLSearchParams,
         URL: globalThis.URL,
@@ -128,6 +132,26 @@ console.log('\n─── ?u= 入口：把页面脚本真跑一遍 ───');
       withU.fields.pwarn.textContent);
     t('默认不自动写入（写入是敏感动作）', !withU.calls.some((c) => c.includes('/save')));
     t('会自动拉一次 status', withU.calls.some((c) => c.includes('/status')));
+
+    // 形式 A：链接放在路径里 /g/<原始链接>，应当全自动
+    const oneShot = await runPage('', false, 'https://savues.com/g/' + link);
+    t('/g/ 入口：会调 /geo-parse', oneShot.calls.some((c) => c.includes('/geo-parse')));
+    t('/g/ 入口：解析后直接写入', oneShot.calls.some((c) => c.includes('/save')),
+      oneShot.calls.find((c) => c.includes('/save')) || '(无)');
+    t('/g/ 入口：坐标正确', oneShot.fields.lat.value === 39.907829 && oneShot.fields.lon.value === 116.391187,
+      `lat=${oneShot.fields.lat.value} lon=${oneShot.fields.lon.value}`);
+    t('/g/ 入口：原样保留链接里的查询串',
+      oneShot.calls.find((c) => c.includes('/geo-parse')).includes(encodeURIComponent(link).slice(0, 60)),
+      oneShot.calls.find((c) => c.includes('/geo-parse')).slice(0, 120));
+
+    // 编码形式兜底
+    const enc = await runPage('', false, 'https://savues.com/g/' + encodeURIComponent(link));
+    t('/g/ 入口：URL 编码形式也能解析', enc.calls.some((c) => c.includes('/save')),
+      enc.fields.lat.value === 39.907829 ? '坐标正确' : `lat=${enc.fields.lat.value}`);
+
+    // 根路径不该触发任何动作
+    const root = await runPage('', false, 'https://savues.com/');
+    t('根路径不自动解析也不自动写入', !root.calls.some((c) => c.includes('/geo-parse') || c.includes('/save')));
 
     // &auto=1 → 解析完直接写入
     const auto = await runPage('?u=' + encodeURIComponent(link) + '&auto=1', true);

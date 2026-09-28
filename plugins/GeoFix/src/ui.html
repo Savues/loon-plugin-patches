@@ -241,17 +241,46 @@ el("pdel").onclick = function () {
 
 el("where").textContent = "当前地址 " + location.host;
 
-/* 快捷指令入口：从分享菜单喂链接过来时，地址形如
-   https://savues.com/?u=<URL 编码后的链接>
-   自动解析并填好；带 &auto=1 则解析完直接写入。 */
-(function () {
+/* ── 快捷指令入口 ──────────────────────────────────────────────
+   形式 A（一击生效）：
+     https://savues.com/g/<原始地图链接>
+     链接原样放在路径里，插件从 $request.url 的 "/g/" 之后原样取回，
+     连查询串一起保住。解析 → 写入 全自动，不需要点任何按钮。
+
+   形式 B（只填表）：
+     https://savues.com/?u=<URL 编码后的链接>
+     解析后填好表单等你点「写入」；加 &auto=1 则自动写入。
+   ─────────────────────────────────────────────────────────── */
+function readEntry() {
+  var href = location.href;
+  var i = href.indexOf("/g/");
+  if (i >= 0) {
+    var raw = href.slice(i + 3);
+    // 编码形式兜底：链接被 URL 编码过再塞进路径的情况
+    if (!/^https?:\/\//i.test(raw) && /%3A%2F%2F/i.test(raw)) {
+      try { raw = decodeURIComponent(raw); } catch (e) { /* 用原样 */ }
+    }
+    return { link: raw, auto: true };
+  }
   var q = new URLSearchParams(location.search);
   var u = q.get("u");
-  if (!u) return;
-  el("link").value = u;
-  doParse(u).then(function () {
-    if (q.get("auto") === "1") return doSave();
-  }).catch(function (e) { toast(e.message, true); });
+  return u ? { link: u, auto: q.get("auto") === "1" } : { link: "", auto: false };
+}
+
+(function () {
+  var e = readEntry();
+  if (!e.link) return;
+  el("link").value = e.link;
+  var where = el("where");
+  where.textContent = e.auto ? "一键入口 · 自动解析并写入" : "当前地址 " + location.host;
+  doParse(e.link)
+    .then(function (j) {
+      if (!e.auto) return;
+      return doSave().then(function (ok) {
+        if (ok) toast("已自动应用 " + (j.name || "该地点"));
+      });
+    })
+    .catch(function (err) { toast(err.message, true); });
 })();
 var last = getStore(LKEY, null);
 if (last) { el("lat").value = last.lat; el("lon").value = last.lon; el("acc").value = last.acc; }
