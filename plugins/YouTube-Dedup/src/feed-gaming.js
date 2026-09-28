@@ -1,5 +1,7 @@
 /*
- * YouTube 去广告 · 清首页「游戏大本营」
+ * YouTube 去广告 · 信息流清理（browse / next）
+ *
+ * 做两件事：清信息流广告、清「游戏大本营」。
  *
  * 判据：列表项（同一父消息里出现 >=2 次的字段号）的内容里出现
  *      mini_app_panel / FEmini_apps_saved -> 整项删；删空后父消息跟着删，向上收敛。
@@ -26,11 +28,16 @@
 (function () {
   'use strict';
 
-  var N1 = 'mini_app_panel', N2 = 'FEmini_apps_saved';
-  var L1 = 14, L2 = 17;
+  // 判据：pagead（YouTube 内部广告标识，与上游 ni() 同一个）
+  // 或 EML 名 inline_injection_entrypoint_layout（上游 blackEml 的默认值）。
+  // pagead 在六份旧抓包里一次都没出现过，在新抓包里只出现在广告段里 ——
+  // 实测广告段 赞助x3、/vi/ 0~1 个；正常段 赞助x0、/vi/ 15 个。
+  // 上游的 >=1000 字节门槛是加在「未知字段」上的，不是加在整个列表项上；
+  // 我先前错加在整项上，导致 next（信息流续页）里的小广告项删不掉。
   var MAX_DEPTH = 20;      // 面板实测在 6~12 层，20 层足够；再深只会拖慢
   var MAX_CUTS = 256;
-  var hits = [];           // 判据命中位置（升序）
+  var hitPanel = [];       // 游戏大本营判据命中位置（升序）
+  var hitAd = [];          // 广告判据命中位置（升序）
   var ncuts = 0;
 
   function argOn(name, def) {
@@ -63,26 +70,35 @@
   // ---- 单遍扫描：记录两个判据串的起点 ----
   var H1 = 109, H2 = 70;   // 'm' / 'F'
   function buildHits(b) {
-    hits = [];
+    hitPanel = []; hitAd = [];
     for (var i = 0; i < b.length; i++) {
       var c = b[i];
-      if (c === H1 && b[i + 1] === 105 && b[i + 2] === 110 && b[i + 3] === 105 &&
-          b[i + 4] === 95 && b[i + 5] === 97 && b[i + 6] === 112 && b[i + 7] === 112 &&
-          b[i + 8] === 95 && b[i + 9] === 112) hits.push(i);
-      else if (c === H2 && b[i + 1] === 69 && b[i + 2] === 109 && b[i + 3] === 105 &&
-          b[i + 4] === 110 && b[i + 5] === 105 && b[i + 6] === 95 && b[i + 7] === 97 &&
-          b[i + 8] === 112 && b[i + 9] === 112 && b[i + 10] === 115) hits.push(i);
+      // 'm' -> mini_app_panel      'F' -> FEmini_apps_saved
+      // 'p' -> pagead              'i' -> inline_injection_entrypoint_layout
+      // 's' -> shorts（只是候选，还要在 EML 模板名上确认）
+      if (c === 109) { if (b[i+1]===105&&b[i+2]===110&&b[i+3]===105&&b[i+4]===95&&b[i+5]===97&&b[i+6]===112&&b[i+7]===112&&b[i+8]===95&&b[i+9]===112) hitPanel.push(i); }
+      else if (c === 70) { if (b[i+1]===69&&b[i+2]===109&&b[i+3]===105&&b[i+4]===110&&b[i+5]===105&&b[i+6]===95&&b[i+7]===97&&b[i+8]===112&&b[i+9]===112&&b[i+10]===115) hitPanel.push(i); }
+      else if (c === 112) { if (b[i+1]===97&&b[i+2]===103&&b[i+3]===101&&b[i+4]===97&&b[i+5]===100) hitAd.push(i); }
+      else if (c === 105) { if (b[i+1]===110&&b[i+2]===108&&b[i+3]===105&&b[i+4]===110&&b[i+5]===101&&b[i+6]===95&&b[i+7]===105&&b[i+8]===106) hitAd.push(i); }
     }
   }
 
-  /** hits 里是否有落在 [start, end - 10] 内的位置（两个串长度 ≥10，统一用 10 做右界） */
-  function hasHit(start, end) {
-    var limit = end - 10;
+  function hasAny(arr, start, end, len) {
+    var limit = end - len;
     if (limit < start) return false;
-    var lo = 0, hi = hits.length;
-    while (lo < hi) { var m = (lo + hi) >> 1; if (hits[m] < start) lo = m + 1; else hi = m; }
-    return lo < hits.length && hits[lo] <= limit;
+    var lo = 0, hi = arr.length;
+    while (lo < hi) { var m = (lo + hi) >> 1; if (arr[m] < start) lo = m + 1; else hi = m; }
+    return lo < arr.length && arr[lo] <= limit;
   }
+
+  function hasPanel(start, end) {
+    return opt.blockGaming && hasAny(hitPanel, start, end, 10);   // 两个串长度 >= 10
+  }
+  function hasAd(start, end) {
+    if (!opt.blockAds || end - start < 64) return false;          // 别删掉裸字符串
+    return hasAny(hitAd, start, end, 6) || hasAny(hitAd, start, end, 30);
+  }
+
 
   function readVarint(b, pos, end) {
     var r = 0, s = 0, c;
@@ -124,7 +140,7 @@
   }
 
   // ---- cuts：按文档顺序追加的「整条删除」区间 ----
-  function plan(b, start, end, depth) {
+  function plan(b, start, end, depth, opt) {
     if (depth > MAX_DEPTH || ncuts >= MAX_CUTS) return false;
     var fields = parseFields(b, start, end);
     if (fields.length === 0) return false;
@@ -138,13 +154,13 @@
       // hasHit 是对已排序命中位置做二分查找，等于白拿。
       // 少了这一句，同一批字节会在每层单例嵌套里被重新 parse 一遍，
       // 2.9 MB 的首页响应要 11 秒。
-      if (!hasHit(f.ps, f.pe)) continue;
+      if (!hasPanel(f.ps, f.pe) && !hasAd(f.ps, f.pe)) continue;
       if (counts[f.no] > 1) {
         cuts[ncuts++] = f.fs; cuts[ncuts++] = f.fe;
         changed = true;
         continue;
       }
-      if (plan(b, f.ps, f.pe, depth + 1)) changed = true;
+      if (plan(b, f.ps, f.pe, depth + 1, opt)) changed = true;
     }
     // 收敛：本层若一个字段都不剩，整层并入删除集合
     // （面板容器可能是单例字段、里面套重复列表，只删列表项会留下空壳）
@@ -211,14 +227,14 @@
     return res;
   }
 
-  function run() {
-    if (!argOn('blockGaming', true)) return 'off';
+  function run(opt) {
+    if (!opt.blockGaming && !opt.blockAds) return 'off';
     var b = toBytes($response && $response.body);
     if (!b || b.length < 64) return 'tiny';
     buildHits(b);
-    if (hits.length === 0) return 'clean';
+    if (hitPanel.length === 0 && hitAd.length === 0) return 'clean';
     cuts = [];
-    plan(b, 0, b.length, 0);
+    plan(b, 0, b.length, 0, opt);
     if (ncuts === 0) return 'nomatch';
     var out = rebuild(b, 0, b.length);
     if (out.length === 0) return 'allgaming';
@@ -227,20 +243,21 @@
   }
 
   var cuts = [];
+  var opt = { blockGaming: argOn('blockGaming', true), blockAds: argOn('blockAds', true) };
   var result = 'error';
-  try { result = run(); } catch (e) { result = 'error'; }
+  try { result = run(opt); } catch (e) { result = 'error'; }
 
   // 首次成功清理后弹一次「已生效 vX」的通知。
   // 目的：让「代码到底更新没更新」不用再靠猜 —— 连着四轮「改了还是不行」，
   // 每轮都分不清是代码不对、规则没跑、还是新脚本根本没送达。
   // 装上新版后下拉刷新首页看到这条，就说明跑的就是这一版；没看到就是没换上。
-  var VER = '5.6';
+  var VER = '5.7';
   if (result === 'done') {
     try {
       if ($persistentStore.read('YouTubeDedupFeedCleanerVer') !== VER) {
         $persistentStore.write('YouTubeDedupFeedCleanerVer', VER);
         $notification.post('YouTube 去广告', '游戏大本营 · 已生效',
-          '脚本 v' + VER + '，本次删除 ' + (ncuts / 2) + ' 项 / ' + hits.length + ' 处标识');
+          '脚本 v' + VER + '，本次删除 ' + (ncuts / 2) + ' 项 / ' + (hitPanel.length + hitAd.length) + ' 处判据');
       }
     } catch (e) { /* noop */ }
   }
@@ -248,7 +265,7 @@
   if (argOn('debug', false)) {
     try {
       $notification.post('YouTube 去广告', '游戏大本营 v' + VER + ' · ' + result,
-        result === 'done' ? '已删除 ' + (ncuts / 2) + ' 项 / ' + hits.length + ' 处标识'
+        result === 'done' ? '已删除 ' + (ncuts / 2) + ' 项 / ' + (hitPanel.length + hitAd.length) + ' 处判据'
         : result === 'clean' ? '本条响应没有游戏大本营'
         : result === 'nomatch' ? '看到判据但没能整项删除'
         : result === 'allgaming' ? '整条都是游戏内容，放弃改写以免弄坏首页'

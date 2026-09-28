@@ -97,14 +97,36 @@ console.log('feed-gaming.js');
 }
 
 {
-  const { out } = run(FIXTURE, { blockGaming: false });
-  check('blockGaming=false 时完全不动响应体', out === null);
-  const { out: out2 } = run(FIXTURE, { blockGaming: 'false' });
-  check('blockGaming="false"（字符串）同样不动', out2 === null);
-  const { out: out3 } = run(FIXTURE, { blockGaming: true });
-  check('blockGaming=true 仍然清除', !!out3);
-  const { out: out4 } = run(FIXTURE, {});
-  check('缺省参数时清除（默认开）', !!out4);
+  // v5.7 起 blockGaming 只管游戏大本营，广告过滤由 blockAds 独立控制。
+  // 关掉 blockGaming 时游戏模块必须留下，但广告照拦。
+  const e2 = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n = n >> 7; } o.push(n); return Buffer.from(o); };
+  const l2 = (no, p) => Buffer.concat([e2(no << 3 | 2), e2(p.length), p]);
+  const t2 = (s) => l2(1, Buffer.from(s, 'utf8'));
+  const adItem = l2(1, Buffer.concat([t2('/vi/adcreative123456'), t2('https://www.googleadservices.com/pagead/aclk?sa=L')]));
+  const gameItem = l2(1, Buffer.concat([t2('/vi/normalvideoxyz1'), t2('mini_app_panel')]));
+  const plainItem = l2(1, Buffer.concat([t2('/vi/normalvideoabc1'), t2('theme|a3941584')]));
+  const feed2 = Buffer.concat([adItem, gameItem, plainItem]);
+
+  const both = run(feed2, { blockGaming: true, blockAds: true });
+  check('默认：广告与游戏模块都删掉',
+    both.out !== null && count(both.out, '/vi/') === 1, both.out ? `剩 ${count(both.out, '/vi/')} 项` : '未改动');
+
+  const noGame = run(feed2, { blockGaming: false, blockAds: true });
+  check('blockGaming=false：游戏模块保留、广告照删',
+    noGame.out !== null && count(noGame.out, 'mini_app_panel') === 1 && count(noGame.out, 'pagead') === 0,
+    noGame.out ? `panel x${count(noGame.out, 'mini_app_panel')} pagead x${count(noGame.out, 'pagead')}` : '未改动');
+
+  const noAd = run(feed2, { blockGaming: true, blockAds: false });
+  check('blockAds=false：广告保留、游戏模块照删',
+    noAd.out !== null && count(noAd.out, '/vi/adcreative123456') === 1 && count(noAd.out, 'mini_app_panel') === 0,
+    noAd.out ? `ad x${count(noAd.out, '/vi/adcreative123456')} panel x${count(noAd.out, 'mini_app_panel')}` : '未改动');
+
+  const off = run(FIXTURE, { blockGaming: false, blockAds: false });
+  check('两个开关都关：完全不动响应体', off.out === null);
+  const offStr = run(FIXTURE, { blockGaming: 'false', blockAds: 'false' });
+  check('两个开关用字符串 "false"：同样不动', offStr.out === null);
+  const on = run(FIXTURE, {});
+  check('缺省参数：照常清除（默认都开）', !!on.out);
 }
 
 {

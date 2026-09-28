@@ -1,5 +1,5 @@
-#!name=YouTube去广告(完整+调试) v5.6.0
-#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.6.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」模块。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.6 给自研脚本的 URL 加了版本参数并内置版本播报：更新后下拉刷新首页，会弹一次「游戏大本营 · 已生效 脚本 v5.6」—— 看到就说明新脚本真的换上并跑起来了，没看到就是没换上，不必再靠猜。代价：信息流（browse/next）不再走上游脚本，首页 Shorts 不再被过滤。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(完整+调试) v5.7.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.7.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」与信息流广告。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.7 起因合集的 YouTube 规则退场导致信息流广告反弹，自研脚本补上广告判据（pagead / inline_injection），与游戏大本营共用同一遍扫描。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,18 +7,19 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 07:35:00
+#!date=2026-09-29 07:55:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
 blockShorts=switch, false, true, tag=隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
 blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
 blockGaming=switch, true, true, tag=清除游戏大本营, desc=移除首页/信息流里的「YouTube 游戏大本营」模块（YouTube Playables 小程序面板）
+blockAds=switch, true, true, tag=过滤信息流广告, desc=删除首页信息流里的赞助内容（pagead 判据），与「清除游戏大本营」互不影响
 captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻译语言, desc=需要把YouTube字幕翻译为何种语言
 debug=switch, true, true, tag=启用调试模式, desc=已默认开启，排查完成后可关闭
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=56, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{debug}], tag=清除游戏大本营
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=57, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{blockAds},{debug}], tag=清除游戏大本营
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
 
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
@@ -32,43 +33,41 @@ hostname=*.googlevideo.com, youtubei.googleapis.com
 #
 #
 #
-# ==== PLUGIN_VERSION: 5.6.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-# 【v5.6.0：把「更新到底送达到了没有」变成看得见的事】
-#   连着四轮「改了还是不行」，每一轮我都分不清是代码不对、规则没执行、
-#   还是新脚本根本没送达 —— 因为插件不出现在抓包里，Loon 的脚本缓存也不可见。
-#   两处结构性堵漏：
+# ==== PLUGIN_VERSION: 5.7.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-#   1. 自研脚本的 script-path 后面加了 ?v=56
-#      Loon 按 URL 缓存远程脚本，raw.githubusercontent 的 CDN 缓存最长 24h。
-#      URL 不变就可能一直拿旧文件。带上版本参数后 URL 每次发布都是新的，
-#      两层缓存同时失效。以后改脚本不用再操心「怎么让用户拿到新版」。
-#   2. 脚本内置版本播报
-#      第一次成功清理后弹一次「游戏大本营 · 已生效 脚本 v5.6」，并把版本号写进
-#      persistentStore，之后不再重复弹。
-#      => 装上新版、下拉刷新首页：看到通知 = 跑的就是这一版；没看到 = 没换上。
-#      一张截图就能定位，不用再靠推。
+# 【v5.7.0：合集退场后信息流广告反弹，补上广告判据】
+#   2026-09-29 07:31 的抓包证实：合集的 YouTube 规则退场后，首页广告暴涨。
+#   那些广告是**整段的 feed section**（140~180 KB，含 pagead 与「赞助」标签，
+#   每段 3 条广告素材），而 browse/next 当时只由「清游戏大本营」的脚本处理，
+#   它不删广告 —— 于是全部漏网。
 #
-# 【v5.5 的性能修复保持不变】
-#   脚本改为：开头一遍扫描建判据索引 -> 之后二分查找；无判据子树整棵跳过；
-#   重建用 subarray + set（memcpy）。
-#   四份抓包共 51 条 browse/next 全部重跑：12 条改写、39 条逐字节未动；
-#   面板标识归零；/vi/ 计数全部不变；上游脚本能解析全部 51 条输出。
+#   现在自研脚本同时清两样：
+#     · 游戏大本营：mini_app_panel / FEmini_apps_saved
+#     · 信息流广告：pagead（YouTube 内部广告标识，与上游 ni() 同一个）
+#                   或 EML 名 inline_injection_entrypoint_layout
+#   两类判据共用开头那一遍扫描（hitPanel / hitAd 两个有序数组），
+#   所以加广告判据几乎不花时间。blockGaming 与 blockAds 可分别关闭。
+#
+#   判据精度（实测）：广告段 赞助x3、/vi/ 0~1 个（那是广告素材自己的 ID）；
+#   正常段 赞助x0、/vi/ 15 个。pagead 在前六份抓包里一次都没出现过。
+#   误伤防护：已删掉一版「按 EML 名删 Shorts」的规则 —— 从 EML 名往回反查 64 字节
+#   太松，实测把正常视频卡也删了。宁可少删，不可误伤。
+#
+#   七份抓包共 68 条 browse/next 全部重跑：改写后 pagead+赞助 出现次数 73 -> 25，
+#   上游脚本能解析全部 68 条输出。回归测试 31 例。
+#
+# 【还没覆盖的：next（信息流续页）里的广告】
+#   那里的广告不是「重复列表项」，而是**单例**顶层字段（每条 next 响应里 2 个，
+#   字段号 14/15，里面各塞 3~5 条广告素材）。现有判据只删重复元素，够不着。
+#   实测这 5 条 next 响应里 39 处判据未被清除。要做需要单独处理单例容器，
+#   风险是误删同容器里的正常内容，不在本次范围。
 #
 # 【规则顺序（v5.4 起，未变）】
-#   Loon 的 [Script] 是 first-match-wins：同一个 URL 只执行第一条完整命中的规则，
-#   后面的不执行，也不把输出喂给后一条。链式只存在于 [Rewrite]。
-#   所以「清除游戏大本营」排在去广告规则之前，上游规则里移除 browse|next。
-#   三条 http-response 规则按 URL 完全互斥（16 条真实 URL 重叠 0），
-#   无论「第一条命中」还是「全部执行」结果都一样。
+#   Loon 的 [Script] 是 first-match-wins，同一 URL 只执行第一条完整命中的规则。
+#   「清除游戏大本营」排在去广告规则之前，上游规则里移除 browse|next。
+#   合集侧已由 BlockAds-Patched 把 YouTube 部分整体退场，两边不会抢。
 #
-# 【会员试用弹窗：仍不在处理范围】
-#   premium_upsell 只出现在 youtubei/v1/get_watch 与 /player，不在信息流里。
-#   前四份抓包里都有（9 / 6 / 17 / 9 处），是 A/B 实验投放，不是回归；
-#   上游去广告脚本从来也不处理会员推销。要做需单独定位推销弹窗渲染器。
-#
-# 【仍需用户确认：装的是不是这一版】
-#   第五份抓包导出于 07:02:50，而 v5.5.0 是 06:58:48 推送的 —— 间隔 4 分钟，
-#   不够重导入插件 + 重启 Loon + 重开 YouTube + 刷首页，所以那份抓包里
-#   跑的仍然是 v5.4（规则顺序已对、但脚本跑不完）。v5.6 的版本播报就是为了
-#   终结这种「靠时间戳推」的排查方式。
+# 【怎么确认脚本在跑】
+#   首次成功清理后弹一次「游戏大本营 · 已生效 脚本 v5.7」；之后不再重复弹。
+#   打开「启用调试模式」则每次都报：done / clean / nomatch / off。
