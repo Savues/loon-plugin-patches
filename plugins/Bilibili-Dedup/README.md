@@ -3,7 +3,7 @@
 > B 站去广告 + 漫画净化 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block, comics cleanup and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.15** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script
+**v7.15** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script · 更新 `2026-09-28T14:32`
 
 | | 中文 | English |
 |---|---|---|
@@ -14,15 +14,22 @@
 
 > 本文只描述**当前状态**。Why things are the way they are → 迭代记录。
 
-### v7.15 变更 · What changed in v7.15
+### 更新记录 · Changelog
 
-| | |
-|---|---|
-| 上游脚本镜像 | 3 个上游 JS 收进 [`upstream/`](upstream/)，`script-path` 全部改指本仓库 → **断掉对 kokoryh / BiliUniverse 仓库可用性的隐性依赖** |
-| 描述修正 | `#!desc` 版本号 v6.0 → v7.15；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明；修正叠字 |
+| 时间 | 提交 | 变更 |
+|---|---|---|
+| `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正「退场。。」叠字；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
+| `2026-09-28T14:25` | `b2b1c0d` | README 新增[第六章](#六上游脚本镜像--upstream-script-mirror)：目录结构、上游对应关系、SHA256 校验方法 |
+| `2026-09-28T14:22` | `2b083ea` | 3 个上游 JS 镜像至 `upstream/`；`.lpx` 中 5 处 `script-path` 改指本仓库 |
 
-> 脚本内容**逐字节未改**，故不另升版本号，与 [上游原版](upstream/MANIFEST.json) 比对一致。
-> 变的是**供给方**，不是功能。细节见[第六章](#六上游脚本镜像--upstream-script-mirror)。
+**本次未升版本号**：脚本内容**逐字节未改**，与 [上游原版](upstream/MANIFEST.json) 比对一致，
+变的是**供给方**，不是功能 —— 断掉了对 kokoryh / BiliUniverse 仓库可用性的隐性依赖。
+
+> 版本号无代码依据，仅存在于 `#!name` 与本文档，改动后须手动同步。
+> 版本号在代码层面无依据；`#!desc` 里的「搜 `PLUGIN_VERSION`」是 v4 时代残留，已删除。
+>
+> 表中时间为**各次提交的墙钟时间**（`git log` 原值），非脚本构建时间。
+> Times are commit wall-clock (`git log`), not a build timestamp.
 
 ---
 
