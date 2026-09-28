@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab7** · 18 参数 / 5 Rule / 12 Rewrite / 7 Script · 5 MITM 域名 · 更新 `2026-09-29T06:20`
+**v7.19-lab8** · 18 参数 / 5 Rule / 13 Rewrite / 7 Script · 5 MITM 域名 · 更新 `2026-09-29T06:45`
 
 | | 中文 | English |
 |---|---|---|
@@ -19,6 +19,7 @@
 | 脚本 | 会员伪装 1 个自撰 + 3 个上游镜像 + 6 个引擎包 5.6 MB（镜像仍在 `main` 分支原目录，未复制） | 1 in-house + 3 mirrored + 6 engine bundles |
 | 外部依赖 | 仅剩 `bsbsb.top`（广告时间库，无法镜像），见[第七章](#七空降助手机制--sponsorblock-mechanism) | only `bsbsb.top` remains |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
+| 客户端 | 已在 **国行 iPad（`bili-hd2`）与 国际版 iPhone（`bili-inter`）** 两台设备上实测：后者走 `viewunite` 变体端点、chronos 走 `inter` 兜底包，两者响应均无广告泄漏 | tested on two client builds |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
 > 本文描述**当前状态**；第六、七章共 269 行是**上游脚本的机制档案**（镜像 provenance + 空降助手逆向），
@@ -29,6 +30,7 @@
 
 | 变更 | 说明 |
 |---|---|
+| **恢复：`x/resource/show/skin`（lab8）** | lab6 把它当死端点删了 —— 依据是"6 份抓包 0 次触发 + 同族只见 `tab/bubble` 与 `tab/v2`"。**加入第二台设备（国际版 iPhone `bili-inter`）后推翻了**：该端点在国行 iPad 上确实不请求，但国际版会请求（返回 43B 空 `data`）。**「0 次触发」只在单一客户端下成立，不能作为死端点的证据。** 当前行为影响为零（删的 `common_equip` 键本来就不存在），但规则本身是对的 |
 | **补：`Teenagers/ModeStatus` 的 app 主机（lab7）** | 与 lab3 修的 `DefaultWords` **完全同型**：规则只写了 `grpc.biliapi.net`，而 7 份抓包里 grpc 与 `app.bilibili.com` 各占一半（各 6 次），app 那半从未被 mock |
 | **移：`[Mitm]` 里的 `api.vc.bilibili.com`（lab7）** | lab6 删掉那 3 条 `api.vc.*` 规则后它变成**零覆盖** —— 没有规则作用于它，却仍在解密 TLS。已在 `[Mitm]` 处写下不变量注释：每个列出的域名都必须有规则作用于它 |
 | **补：番剧首页 `/pgc/page/`（lab6）** | 此前**零覆盖**：bundle 规则只匹配 `/pgc/page/bangumi` 与 `/pgc/page/cinema/tab`，而 App 实际请求的是裸路径 `pgc/page/?access_key=…`（6 份抓包 24 次，44KB–309KB）。实测该响应 `module_id=1638` 的 banner 模块带 1 个非 `play` 广告。改用 jq 复刻 bundle 的 4 条清理规则 —— bundle 自身也处理不了裸路径（内部 `switch(gC.pathname)` 同样只认那两条） |
@@ -54,6 +56,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T06:45` | — | **v7.19-lab8** 恢复 `x/resource/show/skin` 规则（lab6 误判为死端点，国际版在用）；同时修正 lab5 注释里的错误理由 —— grpc 两端点"没被请求过"是假的（国际版正走 `viewunite` 变体），真正的理由是它们响应里没有 vip 字段 |
 | `2026-09-29T06:20` | — | **v7.19-lab7** `Teenagers/ModeStatus` 的 mock 补 `app.bili*`（与 lab3 修的 DefaultWords 同型，实测一半请求漏网）；`[Mitm]` 摘掉零覆盖的 `api.vc.bilibili.com`（lab6 删规则后的遗留），并在该处写下不变量注释 |
 | `2026-09-29T05:50` | — | **v7.19-lab6** 补番剧首页 `/pgc/page/` 的 jq 去广告（此前零覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则。依据：6 份抓包 4803 条响应逐条比对 |
 | `2026-09-29T05:30` | — | **v7.19-lab5** 会员伪装规则收窄到 `x/v2/account/*`（移除实测无 vip 字段的 grpc 两端点，`Reply/MainList` 本次命中 10 次全空转）；`patchMine` 内联进 try 块（唯一调用方）；三个一次性分析脚本移出仓库目录。**行为零变化** |
