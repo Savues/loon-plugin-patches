@@ -9,3 +9,6 @@
 *.key
 ca-backup*
 loon-ca.crt
+
+# GeoFix 生成物
+plugins/GeoFix/companion/shortcut/GeoFix位置.build.shortcut

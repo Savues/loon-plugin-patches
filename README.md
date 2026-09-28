@@ -4,11 +4,11 @@
 > A personal collection of patched Loon plugins.
 
 修改范围以**清单层**为主 —— MitM 域名、`[Argument]` 参数、`[Script]` / `[Rewrite]` 规则条目。
-个别插件额外托管了一份改造过的上游脚本，改动同样**仅限于取参与去远程配置依赖**，不触碰业务逻辑。
+个别插件额外托管了上游脚本，改动同样**仅限于取参、远程配置依赖与标识符**，不触碰业务逻辑。
 
 Scope is **manifest-layer only** — MITM hostnames, `[Argument]` params, `[Script]`/`[Rewrite]` rules.
-One plugin also ships a patched upstream script; changes there are limited to argument
-parsing and remote-config removal, never business logic.
+Two plugins ship upstream scripts; changes there are limited to argument parsing,
+remote-config removal and identifiers, never business logic.
 
 ---
 
@@ -18,17 +18,27 @@ parsing and remote-config removal, never business logic.
 |---|---|---|
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
+| [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 脚本自托管<br>Network-location redirect · self-hosted scripts | **v1.0** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写<br>Dedupe against blockAds | 可用 OK |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
-### 唯一托管改造脚本的插件
+### 托管了脚本的两个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
 
-`Bilibili-UI` is the only plugin shipping a patched script: the upstream accepts a single
-string, so real switches require changing argument parsing. Two IIFEs and four BoxJS
-removals — business logic untouched.
+`GeoFix` —— 走的是另一条路：**不改逻辑，只改托管位置和字符串**。
+上游三个脚本原本从作者站点 `script-path` 拉取，站点一旦消失，已导入的插件会直接加载失败；
+本仓库把它们收进 `plugins/GeoFix/src/`，并做了一轮标识符与虚拟端点改名。
+移植前后的逻辑等价性由 `smoke.test.mjs` 的 28 个用例覆盖（含一次真实 protobuf 改写），
+逐条改动见 [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md)。
+
+Two plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
+fetched its three scripts from the author's site, so the plugin would break outright if
+that site disappeared. Scripts now live in `plugins/GeoFix/src/`, with identifiers and
+virtual endpoints renamed. Equivalence is covered by 28 tests, including a real
+protobuf rewrite.
 
 ---
 
@@ -37,10 +47,12 @@ removals — business logic untouched.
 | # | 中文 | English |
 |---|---|---|
 | 1 | 优先只改清单层 | Prefer manifest-layer changes |
-| 2 | 确需改脚本时，仅限取参与远程配置依赖 | When a script must change, limit to argument parsing / remote config |
+| 2 | 确需改脚本时，仅限取参、远程配置依赖与标识符 | When a script must change, limit to argument parsing, remote config and identifiers |
 | 3 | 每条改动注明依据 | Document the reasoning for every change |
 | 4 | 保留上游署名与许可 | Preserve upstream attribution and licensing |
-| 5 | 踩坑记录进迭代文档，不留在插件 README | Keep post-mortems in the iteration log, not plugin READMEs |
+| 5 | 公开仓库不带上游产品名，出处改记在 `UPSTREAM.md` | Keep upstream product names out of a public repo; preserve attribution in `UPSTREAM.md` |
+| 6 | 改过脚本的插件必须带可运行的回归测试 | Any plugin shipping modified scripts ships a runnable regression test |
+| 7 | 踩坑记录进迭代文档，不留在插件 README | Keep post-mortems in the iteration log, not plugin READMEs |
 
 ---
 
@@ -71,6 +83,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [BILIBILI-ITERATION.md](BILIBILI-ITERATION.md) | 49 次提交的完整复盘 · Full post-mortem of 49 commits |
 | [patches/README.md](patches/README.md) | 退场范围与判定依据 · Removal scope and detection rules |
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
+| [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
 
 ---
 
