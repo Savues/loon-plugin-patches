@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab3
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab4
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 04:45:00
+#!date=2026-09-29 05:10:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -69,8 +69,12 @@ http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
-# BiliUniverse bundle，仅 blockAds 未覆盖的 4 个端点，v7.18 的 4 条合并为 1 条
-http-response ^https?:\/\/(app\.bili(bili\.com|api\.net)\/x\/v2\/splash\/(brand\/list|event\/list2|list|show)|api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?)|api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\?|api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=BiliUniverse去广告
+# BiliUniverse bundle，仅 blockAds 未覆盖的 3 个端点，v7.18 的 4 条合并为 1 条。
+# lab4 移除了其中的 splash 分支：同一端点上 [Rewrite] 与 [Script] 同时命中时
+# Loon 只执行 Rewrite（抓包实证：bundle 会删 account/event_list/preload/show，
+# 而抓包里这些键全都还在，是 jq 置空的）。splash 交给上面的 jq 规则；
+# brand/list 上 bundle 本来就是零改动（那 4 个键不在该载荷里）。
+http-response ^https?:\/\/(api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?)|api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\?|api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=BiliUniverse去广告
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock-hotsearch.js, requires-body=1, timeout=10, tag=去除搜索推荐
 
 [Mitm]

@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab3** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T04:50`
+**v7.19-lab4** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T05:10`
 
 | | 中文 | English |
 |---|---|---|
@@ -27,6 +27,7 @@
 
 | 变更 | 说明 |
 |---|---|
+| **移：bundle 规则的 splash 分支（lab4）** | 抓包+离线复现证明：同一端点上 `[Rewrite]` 与 `[Script]` 同时命中时，**Loon 只执行 Rewrite**。bundle 的 splash 分支要 `delete account/event_list/preload/show`，而抓包里这些键全都还在（是 jq 置空的）⇒ 该分支从未执行。splash 一直由 jq 规则处理；`brand/list` 上 bundle 本来就零改动。**行为零变化** |
 | **补：`Search/DefaultWords` 的 grpc 路径（lab3）** | 旧 mock 只覆盖 `app.bili*`，而实测 19 次请求里 **13 次走 `grpc.biliapi.net`** ⇒ 搜索框滚动推荐词在主力路径上从未被处理。mock 载荷本身是 gzip 帧，与该主机 `grpc-encoding: gzip` 一致 |
 | **修：开关的真值判断（lab3）** | `!!A.vipAllUsers` / `if (A.vipFakeVerify)` 遇到 Loon 传下来的字符串 `"false"` 会当真 —— 关着的「全员大会员」会变成**给所有用户的主页挂伪装牌子**。抽出 `on()` 统一判断，两处都改 |
 | **补：`/x/v2/space/article`（lab2）** | 专栏页响应里 `data.item[].author.vip` 用的是**「我的」页** schema，此前顶栏显示伪装、专栏列表显示真实牌子或没有牌子。抓包实证后补上，与顶栏共用 UID 门禁；`/x/v2/space/archive` 无 vip，不需要管 |
@@ -45,6 +46,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T05:10` | — | **v7.19-lab4** bundle 规则移除 splash 分支（死配置，行为零变化）。依据：同一 URL 上 `[Rewrite]` 与 `[Script]` 冲突时 Loon 只跑 Rewrite —— bundle 会删 `account/event_list/preload/show` 四键，而抓包里四键俱在、`event_list` 值为 `[]`（jq 的手笔）；离线把 bundle 架起来跑同一条载荷，它确实会删这四个键，说明有能力执行只是没被执行 |
 | `2026-09-29T04:50` | — | **v7.19-lab3** 补 `Search/DefaultWords` 的 `grpc.biliapi.net`（实测主力路径，13/19 次）；修 `vipAllUsers` / `vipFakeVerify` 把字符串 `"false"` 当真的开关缺陷（用 `on()` 统一，`vip.test.mjs` 27 → 30 例）；`lpx-verify.mjs` 改相对路径并支持 Rewrite 白名单 |
 | `2026-09-29T04:20` | — | **v7.19-lab2** 补 `/x/v2/space/article` 专栏页：其 `data.item[].author.vip` 与「我的」页同 schema，v7.19-lab 之前顶栏伪装而专栏列表显示真实牌子。`mine()` 抽出后与「我的」页共用同一份构造 |
 | `2026-09-29T03:50` | — | **v7.19-lab** 代码精简：会员伪装合并单脚本、4 条规则并 1 条、清 7 张无引用素材、删 5 处失效注释；修个人主页配色漂移与「会员伪装规则漏 https:// 前缀」缺陷。详见上表 |
@@ -254,7 +256,7 @@ plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
 |---|---|---|
 | `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化、空降助手 |
 | `upstream/protobuf.response.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.response.js` | protobuf 响应处理 |
-| `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数） |
+| `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数）。**现只用于番剧页 / 网页端推荐 / 直播房间 3 个端点**；splash 由 `[Rewrite]` 的 jq 负责 |
 | `icon.png` | BiliUniverse `src/assets/icon_rounded.png` | 插件图标；**原图 1024×1024 缩放至 256×256**（67 KB → 17 KB） |
 | `vip.js` | 本仓库自撰 · written in-house | 会员伪装（我的页 + 个人主页） |
 
