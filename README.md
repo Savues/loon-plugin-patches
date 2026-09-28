@@ -8,8 +8,9 @@
 两者都**不修改上游 JavaScript 的任何一行**。
 
 Scope is **manifest-layer first** — MITM hostnames, `[Argument]` params, `[Script]`/`[Rewrite]` rules.
-Three plugins ship scripts: two only relocate or rename upstream code, and one adds its own
-script for an endpoint upstream can no longer parse. **No upstream JavaScript is modified.**
+Three plugins ship scripts: two only relocate or rename upstream code, and one adds scripts of our
+own for endpoints upstream can no longer parse or features it never had.
+**No upstream JavaScript is modified.**
 
 ---
 
@@ -20,7 +21,7 @@ script for an endpoint upstream can no longer parse. **No upstream JavaScript is
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
-| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 按抓包修复 config 崩溃<br>Dedupe against blockAds · config parse crash fixed from a real capture | **v5.1** |
+| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃 · 清游戏大本营<br>Dedupe against blockAds · config fix · Gaming Hub removal | **v5.2** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的三个插件
@@ -34,17 +35,19 @@ script for an endpoint upstream can no longer parse. **No upstream JavaScript is
 移植前后的逻辑等价性由 `smoke.test.mjs` 的 28 个用例覆盖（含一次真实 protobuf 改写），
 逐条改动见 [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md)。
 
-`YouTube-Dedup` —— 第三条路：**上游解析不了某个端点时，另写一个自研脚本顶上**。
+`YouTube-Dedup` —— 第三条路：**上游解析不了某个端点、或压根没有某项功能时，另写自研脚本顶上**。
 上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），
-于是 `src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来，
-上游脚本一个字没动，16 个回归用例把行为钉死。
+`src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来；
+上游也没有「清除游戏大本营」这个功能，`src/feed-gaming.js` 按「结构 + 内容」把首页那个
+61 KB 的 mini-app 面板从 feed 里摘掉。两份脚本都不含上游代码，各有 16 / 22 个回归用例。
 
 Three plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
-that site disappeared. `YouTube-Dedup` takes a third route — when upstream cannot parse an
-endpoint at all, a purpose-built script of our own takes over that one endpoint while
-upstream's code stays untouched. Equivalence is covered by 28 and 16 tests respectively.
+that site disappeared. `YouTube-Dedup` takes two further routes — a purpose-built script for
+an endpoint upstream cannot parse (`config`), and one for a feature upstream never had
+(removing the Gaming Hub module from the home feed). Equivalence is covered by 28, 16 and 22
+tests respectively.
 
 ---
 

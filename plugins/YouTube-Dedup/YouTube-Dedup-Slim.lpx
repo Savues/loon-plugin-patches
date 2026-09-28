@@ -1,5 +1,5 @@
-#!name=YouTube去广告(精简版) v5.1.0
-#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.1.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(精简版) v5.2.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.2.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、可选清除「游戏大本营」模块，功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,26 +7,29 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 03:10:00
+#!date=2026-09-29 03:45:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
 blockShorts=switch, false, true, tag=隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
 blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
+blockGaming=switch, true, true, tag=清除游戏大本营, desc=移除首页/信息流里的「YouTube 游戏大本营」模块（YouTube Playables 小程序面板）
 captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻译语言, desc=精简版不支持字幕翻译，请改用完整版
 debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=YouTube去广告
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
+
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js, requires-body=true, binary-body-mode=true, argument=[{blockGaming}], tag=清除游戏大本营
 
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
 
-http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=请求日志事件
+http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=请求日志事件
 
 [MitM]
 hostname=youtubei.googleapis.com
 
-# ==== PLUGIN_VERSION: 5.1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 5.2.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
 # 【v5.1.0 依据：2026-09-29 用户真机抓包】
 #   Loon HAR，YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58。
@@ -63,3 +66,17 @@ hostname=youtubei.googleapis.com
 #     代价远大于收益，故不内置，README 给了可选的手动写法。
 #   · 字幕翻译依赖 googlevideo 的 initplayback，本版不解密 googlevideo，
 #     字幕请交给「YouTube双语翻译」插件。
+#
+# 【v5.2.0 新增：blockGaming，清除「游戏大本营」】
+#   依据：2026-09-29 第二份真机抓包（253 条，含 player 响应）。
+#   首页（browseId=FEwhat_to_watch）会插一个 61 KB 的「YouTube 游戏大本营」模块，
+#   它不是视频，而是 YouTube 的 mini app（EML 渲染）面板，前端 key 为 mini_app_panel。
+#   脚本挂在 browse|next 上：自上而下遍历 protobuf，凡是「同一父消息里出现 >=2 次的字段号」
+#   的元素就是列表里的一项，该元素内容里出现 mini_app_panel / FEmini_apps_saved 就整项删掉，
+#   删空后父消息若也不剩内容就一并收敛。不认任何 schema，只认结构 + 内容。
+#   marker 选型做过精度评估（见 ITERATION.md）：
+#     mini_app_panel / FEmini_apps_saved  每次恰好命中 1 个元素，频道/订阅/媒体库/搜索命中 0 个
+#     mini_game_card                      会连带删掉 error_message 占位卡与 channel_action_buttons
+#     FEmini_app_destination              会连带删掉 more_drawer_button（更多按钮）
+#   所以只用最保守的两个。该规则排在去广告规则之后：即使 Loon 只跑第一条规则，
+#   也只是游戏模块留着，去广告不会失效。

@@ -1,11 +1,106 @@
 # YouTube-Dedup 迭代记录 · Iteration Log
 
-> 一次真机抓包 → 两个脚本级缺陷 → v5.0.0 → v5.1.0 的完整过程。
-> One real capture → two script-level defects → v5.1.0.
+> 两次真机抓包 → 三个脚本级缺陷 → v5.0.0 → v5.2.0 的完整过程。
+> Two real captures → three script-level defects → v5.2.0.
 
 ---
 
-## 2026-09-29 · v5.1.0：按抓包更新
+## 2026-09-29 · v5.2.0：清除首页「游戏大本营」
+
+### 输入
+
+第二份 HAR：**253 条，71 秒**（`03:13:14.391` – `03:14:25.725`）。这份比第一份有价值得多 ——
+**有 `player` 响应**（37182 B），播放页这条主路径终于覆盖到了。
+
+### 它是什么
+
+首页（`browseId=FEwhat_to_watch`）里插了一个 61342 字节的模块，标题「YouTube 游戏大本营」。
+它**不是视频**，是 YouTube 的 **mini app（EML 渲染）面板**。证据链：
+
+```
+Browse.content(9) → sectionListRenderer(49399797) → sectionListSupportedRenderers(1)×16
+  └─ 其中 1 项 → itemSectionRenderer(50195462) → richItemContents(1)
+       └─ videoWithContextRenderer(153515154) → elementRenderer(172660663)
+            └─ videoInfo(1) → videoContext(168777401) → videoContent(5)
+                 └─ 未知字段 312131490（60766 B）= mini_app_panel 的数据
+```
+
+面板里能读到的技术标识：
+
+| 标识 | 出现位置 |
+|---|---|
+| `mini_app_panel` | 面板定义 |
+| `FEmini_apps_saved` | 面板定义 |
+| `%mini_game_card.eml-fe\|998e208b2b3ddc1` | 每一张游戏卡的 EML 模板 |
+| `youtube_outline_experimental/playables_24pt` | 承载它的实验开关 |
+| `FEmini_app_destination` | 独立游戏货架页的 browseId |
+
+### 怎么定位的
+
+HAR 全是 protobuf，字符串搜索只能搜到**明文字符串**。这次能定位靠的是给上游脚本打洞：
+把 `ii()` 里的 `let t = e.msgType.fromBinary(...)` 后面插一行 `globalThis.__DUMP(e.path, t)`，
+让**上游自己**把 `browse` 响应解析成带字段名的 JSON，再倒查 `大本营` 出现在哪个对象的哪个 `@@unknown` 里
+（上游 schema 不认识新字段时，会把原始字节挂在 `Symbol.for("protobuf-ts/unknown")` 上）。
+
+定位到 `videoContent` 下挂着一个上游不认识的字段 `312131490`，顺藤摸瓜才看到 `mini_app_panel`。
+
+### marker 选型：本次最花时间也最值钱的一步
+
+第一版 marker 用了 `mini_game_card` + `FEmini_app`。跑下去发现**删多了**：
+
+| 被误删的元素 | 后果 |
+|---|---|
+| `more_drawer_button.eml-fe\|f8bc3d9f67dab8ec` | 视频卡的「更多」按钮没了 |
+| `channel_action_buttons_phone.eml-js-fe` | **订阅按钮没了** |
+| `error_message.eml-fe\|9d9047059c0dc572` | 占位卡被删（这条无所谓） |
+
+根因：这些标识在响应里到处都是，**tracking params 也会带**。
+
+于是写了个 marker 精度评估（8 个候选 × 8 条响应，逐个列出该 marker 会删掉哪些元素），
+结论是**只有 `mini_app_panel` / `FEmini_apps_saved` 干净** —— 每次恰好命中 1 个元素，
+频道页/订阅页/媒体库/搜索页/`get_watch` 命中 0 个。`playables_` 更是连 `get_watch` 都命中，直接淘汰。
+
+另外**明确不用「游戏大本营」这个中文串**做 marker：正常视频标题里完全可能出现。
+
+### 算法
+
+不认 schema，只认结构：
+
+```
+遍历 protobuf：
+  「同一父消息里出现 >=2 次的字段号」的元素 = 列表里的一项
+  该项内容含 marker        → 整项删
+  删完后父消息一项都不剩   → 父消息也删，依次向上收敛
+```
+
+这样 YouTube 换 schema、换 A/B 分桶都不用改代码。实测三种形态都覆盖到了：
+整块 section（首页）、货架里的游戏卡（游戏页）、以及更小的子列表。
+
+### 三个自己踩的坑
+
+1. **`hasMarker` 写错了首字符比较**。原本用「末字符」做外层快速过滤、只比 `s[1..]`，
+   结果一个 marker 都匹配不上，而且**不报错** —— 静默失效，差点以为是结构判断错了。
+2. **重建 protobuf 时把长度前缀算进了输出长度，却漏了 tag 本身**。
+   症状很阴：`out.length` 和 `outLen` 在浅层一直相等，只有发生过重写的深层才差几个字节，
+   结果就是输出被**截尾**，上游脚本报 `RangeError: premature EOF`。
+   定位办法：先在 Python 里写一份等价实现当参照，对比两边输出的字节数和合法性 —— 算法没问题，是 JS 抄错了。
+3. **逗号表达式里的求值顺序**：`const no = Math.floor(rv() / 8), wire = rv() & 7;`
+   两次 `rv()` 用的是同一个游标，第二个读到的是长度字节。写测试辅助函数时又犯了一次。
+
+### 验收方式
+
+不是「跑通就算」，而是三条硬指标：
+
+1. **上游脚本能解析改写后的字节**（报 `premature EOF` 就说明输出坏了）
+2. **视频条目一个不少**：`/vi/` 出现次数改写前后必须相等（52 → 52、49 → 49）
+3. **关掉开关时逐字节等于原响应**
+
+四条带游戏面板的响应全部改写并通过，另外 21 条 browse/next/get_watch/player/reel/guide
+**一字节未动**。回归测试 22 例。
+
+---
+
+## 2026-09-29 · v5.1.0：按第一份抓包更新
 
 ### 输入
 

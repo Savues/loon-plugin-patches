@@ -1,15 +1,57 @@
 # YouTube-Dedup · 哔哩哔哩同源去重版
 
-> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修复 config 端点解析崩溃。
-> Removes duplicated rewrites against blockAds; v5.1 fixes a config-endpoint parse crash found in a real capture.
+> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修 config 解析崩溃，v5.2 起清除首页「游戏大本营」。
+> Removes duplicated rewrites against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module.
 
-**v5.1.0** · 3 个变体 · 3 variants
+**v5.2.0** · 3 个变体 · 3 variants
+
+---
+
+## v5.2.0：清除首页「游戏大本营」
+
+依据：2026-09-29 第二份真机 Loon 抓包（253 条，03:13:14–03:14:25，含 `player` 响应）。
+回归测试 `node test/feed-gaming.test.mjs`（22 例全过）。
+
+首页（`browseId=FEwhat_to_watch`）会插一个 **61342 字节**的「YouTube 游戏大本营」模块。
+它不是视频，而是 YouTube 的 **mini app（EML 渲染）面板**；另有一个 `browseId=FEmini_app_destination`
+的游戏货架页，里面是 60 张游戏卡。
+
+新脚本 `src/feed-gaming.js` 挂在 `browse|next` 上，**不认任何 protobuf schema**，只认「结构 + 内容」：
+
+1. 自上而下遍历；「同一父消息里出现 ≥2 次的字段号」的元素 = 列表里的一项
+   （feed 卡片 / 货架格子 / section）
+2. 该元素内容里出现 marker → 整项删掉
+3. 删空后父消息若也不剩内容，一并收敛
+
+| 响应 | 大小 | 删掉 | 保留 |
+|---|---|---|---|
+| `browse` 首页（HAR2 #240） | 399608 B | 游戏面板 61372 B | 52 个视频条目**一个不少** |
+| `browse` 首页续页（#33） | 224289 B | 61342 B | 49 个视频条目 |
+| `browse` 游戏货架页（#15） | 587223 B | 570257 B | —（整页都是游戏） |
+| 其余 21 条 browse/next/get_watch/player/reel/guide | — | **0** | 逐字节未动 |
+
+### marker 选型（做过精度评估，结论是只用最保守的两个）
+
+| 候选 | 命中 | 连带误删 |
+|---|---|---|
+| `mini_app_panel` / `FEmini_apps_saved` | 每次恰好 1 个元素，就是面板本身 | **无** |
+| `mini_game_card` | 多命中 | `error_message` 占位卡；极端情况连带 `channel_action_buttons`（**订阅按钮**） |
+| `FEmini_app_destination` / `FEmini_app` | 多命中 | `more_drawer_button`（**更多按钮**） |
+| `playables_` | 命中 get_watch 等无关响应 | 误伤面太大 |
+| `游戏大本营`（本地化文案） | — | **绝不使用**：正常视频标题里可能出现 |
+
+### 开关
+
+`[Argument] blockGaming`，**默认开**。关掉后脚本对任何响应都是逐字节原样放行（有测试钉死）。
+
+> 该规则写在去广告规则**之后**。Loon 会按书写顺序依次执行匹配的规则（后一条拿到前一条的输出），
+> 所以顺序颠倒也能工作；但这样排，万一 Loon 只跑第一条，受影响的也只是游戏模块，去广告不会失效。
 
 ---
 
 ## v5.1.0 改了什么
 
-依据：2026-09-29 用户真机 Loon 抓包（YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58）。
+依据：2026-09-29 第一份真机 Loon 抓包（YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58）。
 复现材料在 `test/fixtures/`，回归测试 `node test/config-onesie.test.mjs`（16 例全过）。
 
 | # | 现象（抓包证据） | 原因 | 处理 |
@@ -73,7 +115,7 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 ## 改动对照 · What changed
 
-| | 原版 v5.0.0 | 本插件 v5.1.0 |
+| | 原版 v5.0.0 | 本插件 v5.2.0 |
 |---|---|---|
 | `[MitM]` | `*.googlevideo.com` + `youtubei.googleapis.com` | 仅 `youtubei.googleapis.com` |
 | `captionLang` | 6 个选项 | **移除**（依赖被拦截的 initplayback） |
@@ -81,6 +123,7 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 | config 端点 | 交给上游脚本 → **解析崩溃** | 本仓库 `src/config-onesie.js` → 正常采集密钥 |
 | http-response 覆盖端点 | 含 `log_event`（实为 GIF，必崩） | 已移除 |
 | 覆盖端点 | 含 `log_event` / `config` | `browse` `next` `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch` + `config`（自研脚本） |
+| 游戏大本营 | 无处理 | **`blockGaming` 开关，默认开** |
 | 去广告 / 画中画 / 后台播放 | ✅ | ✅ **完整保留** |
 
 ---
@@ -93,9 +136,12 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 | `YouTube-Dedup-Slim.lpx` | 保留 captionLang | 供不装合集的用户 |
 | `YouTube-Dedup-Debug.lpx` | 完整功能 + debug 默认开 | Full + debug on |
 | `src/config-onesie.js` | v5.1 新增，自研 | 从 config 响应采集 UMP onesie 密钥 |
-| `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试，跑 `node test/config-onesie.test.mjs` |
+| `src/feed-gaming.js` | v5.2 新增，自研 | 清除首页「游戏大本营」模块 |
+| `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试 |
+| `test/feed-gaming.test.mjs` | v5.2 新增 | 22 例回归测试 |
 | `test/fixtures/config-response.bin` | 抓包响应体 | 80364 B，已确认不含任何令牌 |
 | `test/fixtures/log_event-response.bin` | 抓包响应体 | 42 B GIF89a |
+| `test/fixtures/feed-with-gaming.bin` | 抓包响应体 | 81588 B，3 个真实 feed section（1 个游戏面板 + 2 个普通视频） |
 
 ---
 
@@ -115,8 +161,11 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 - YouTube **PO Token** 机制：player 接口对未完成 BotGuard 挑战的客户端返回
   `400 FAILED_PRECONDITION`，属服务端要求，**脚本层无解**
 - 完整约 60 个标签页类的配置走 App 内原生功能，脚本只能提供常用项
-- 本次抓包是**冷启动**，没有 `player` 响应，因此**播放页广告未被本次验证覆盖**；
-  覆盖到的只有 `browse` / `config` / `guide` / `account/get_setting` 四类
+- 「游戏大本营」只在 `browse` / `next` 上拦。若 YouTube 把它塞进别的端点（例如 `guide` 侧边栏），
+  当前规则不会命中 —— 判据是内容标识，届时脚本会自动跟上，无需改清单
+- **Debug 变体**的 `initplayback` 规则依赖 v5.1 修复后采集到的 onesie 密钥；
+  密钥命中时会把 UMP 请求重定向到 `https://init-stream.maasea.workers.dev/`（第三方）。
+  推荐版不含该规则，不涉及
 
 ---
 
@@ -128,5 +177,7 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
 
-`src/config-onesie.js` 为本仓库自研，参照的是 YouTube inner tube 协议公开可观测的字段编号，
-不含上游代码，许可同本仓库 LICENSE。
+`src/config-onesie.js` 与 `src/feed-gaming.js` 均为本仓库自研：前者只按公开可观测的 protobuf 字段编号
+取密钥，后者只按「结构 + 内容」删列表项，都不含上游代码，许可同本仓库 LICENSE。
+
+`test/fixtures/*.bin` 是抓包响应体，已逐字节确认不含 `ya29` / `Bearer` / `AIza` / visitor-id。
