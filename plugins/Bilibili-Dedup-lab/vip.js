@@ -5,7 +5,9 @@
  *   x/v2/account/(myinfo|mine)  data.vip = { type, status, due_date, role, label }
  *   x/v2/space                  data.vip = { vipType, vipStatus, vipDueDate, ... }
  *   x/v2/space/article          data.item[].author.vip = **「我的」页那套**（status/label/due_date）
- *   grpc View/View、Reply/MainList  同「我的」页
+ *
+ * 曾覆盖 grpc 的 View/View 与 Reply/MainList，已移除：5 份抓包 22 个样本，
+ * 这两个端点的响应里**一个 vip 字段都没有**，规则纯属白跑一次 JSON.parse。
  *
  * 空间页的三个坑（均为抓包实证，改动前先读）：
  *   1) 非会员时 B 站**整个删掉** vip 字段，不是给 vipStatus:0 → 判据只能是「不存在或未开通」
@@ -64,14 +66,6 @@ function mine(v) {
   });
 }
 
-// 「我的」页。已开通的真实大会员不动（判据 status == 0）。
-function patchMine(d) {
-  if (!d.vip || d.vip.status != 0) { return false; }
-  d.vip = mine(d.vip);
-  d.vip_type = 2;
-  return true;
-}
-
 // 个人资料页（顶栏 + 专栏列表）。x/v2/space 访问任何人主页都走它，故必须按 UID 限定生效范围。
 function patchSpace(d) {
   // ⚠️ card 可能是数组/字符串，typeof 判定不能省
@@ -80,7 +74,7 @@ function patchSpace(d) {
   const a0 = items[0] && items[0].author;
   // ⚠️ UID 来源有两处：主页在 card.mid，专栏页在 item[].author.mid，JSON 里都是**字符串**
   const who = Number(card ? card.mid : (a0 ? a0.mid : NaN));  // 取不到或非法 → NaN，永远不等于 ME/TARGET
-  const v = d.vip;
+  const v = d.vip;   // 空间页判据是 vipStatus（我的页是 status，两者不通用）
   // 三种情况原样透传：别人的主页 / 响应异常 / 已经是会员
   if (!(ALL || who === ME || who === TARGET) || (v && v.vipStatus === 1)) { return false; }
 
@@ -126,10 +120,19 @@ function patchSpace(d) {
 try {
   const j = JSON.parse($response.body);
   const d = j && j.data;
-  // 空间页判定：URL 优先，取不到 $request 就认 body（我的页/grpc 没有 data.card）。
+  // 空间页判定：URL 优先，取不到 $request 就认 body（「我的」页没有 data.card）
   const url = (typeof $request !== "undefined" && $request && $request.url) || "";
   const space = /\/x\/v2\/space/.test(url) || !!(d && d.card && d.card.mid != null);
-  const changed = d && (space ? patchSpace(d) : patchMine(d));
+  let changed = false;
+  if (d) {
+    if (space) {
+      changed = patchSpace(d);
+    } else if (d.vip && d.vip.status == 0) {   // 已开通的真实大会员不动
+      d.vip = mine(d.vip);
+      d.vip_type = 2;
+      changed = true;
+    }
+  }
   $done(changed ? { body: JSON.stringify(j) } : {});
 } catch (e) {
   $done({});

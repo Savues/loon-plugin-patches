@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab4** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T05:10`
+**v7.19-lab5** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T05:30`
 
 | | 中文 | English |
 |---|---|---|
@@ -21,12 +21,16 @@
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
-> 本文描述**当前状态**与上游脚本机制（第六、七章）；踩坑过程 → 迭代记录。
+> 本文描述**当前状态**；第六、七章共 269 行是**上游脚本的机制档案**（镜像 provenance + 空降助手逆向），
+> 不属于本插件说明，只是恰好放在这里 —— 要压缩文档先搬它们，别动前面的内容。
+> 踩坑过程 → [迭代记录](../../BILIBILI-ITERATION.md)。
 
 ### v7.19-lab 相对 v7.18 的变更
 
 | 变更 | 说明 |
 |---|---|
+| **收窄：会员伪装只管「我的」页（lab5）** | 规则原先还挂 `viewunite.v1.View/View` 与 `Reply/MainList`。前者 5 份抓包 0 次被请求；后者命中 10 次/份，但 22 个样本的响应里**一个 vip 字段都没有** ⇒ 每开一个评论列表白跑一次 `requires-body` + JSON.parse（最大 59KB）。两支都移除 |
+| **移：三个一次性分析脚本（lab5）** | `pass4/pass4b/pass6.mjs` 写死本机 `/var/minis/attachments` 路径，clone 下来必然跑不了。移到仓库目录外保留，其结论已固化进 `vip.test.mjs`（30 例） |
 | **移：bundle 规则的 splash 分支（lab4）** | 抓包+离线复现证明：同一端点上 `[Rewrite]` 与 `[Script]` 同时命中时，**Loon 只执行 Rewrite**。bundle 的 splash 分支要 `delete account/event_list/preload/show`，而抓包里这些键全都还在（是 jq 置空的）⇒ 该分支从未执行。splash 一直由 jq 规则处理；`brand/list` 上 bundle 本来就零改动。**行为零变化** |
 | **补：`Search/DefaultWords` 的 grpc 路径（lab3）** | 旧 mock 只覆盖 `app.bili*`，而实测 19 次请求里 **13 次走 `grpc.biliapi.net`** ⇒ 搜索框滚动推荐词在主力路径上从未被处理。mock 载荷本身是 gzip 帧，与该主机 `grpc-encoding: gzip` 一致 |
 | **修：开关的真值判断（lab3）** | `!!A.vipAllUsers` / `if (A.vipFakeVerify)` 遇到 Loon 传下来的字符串 `"false"` 会当真 —— 关着的「全员大会员」会变成**给所有用户的主页挂伪装牌子**。抽出 `on()` 统一判断，两处都改 |
@@ -34,7 +38,7 @@
 | 会员伪装合并为 `vip.js` | 原 `vip-theme.js` + `vip-space.js` 合并（226 行 → 120 行），同一张主题表、同一批牌子图、同一套默认值 |
 | 修：个人主页配色漂移 | 旧版空间页的 `bg`/`fg` 硬编码绿鲤鱼配色，选「大会员/年度/百年」时**个人主页是绿底、我的页是粉底**。现已统一为主题配色 |
 | 修：两页 `nickname_color` 不一致 | 空间页取用户手填背景色、我的页取主题色；现统一为主题色 |
-| 修：会员伪装规则从未命中 | v7.18 第一条 `[Script]` 漏了 `https://` 前缀（`^(grpc\.biliapi\.net\|…`），真实 URL 永远不匹配。合并后已修正，`View/View` 与 `Reply/MainList` 首次真正生效 |
+| 修：会员伪装规则从未命中 | v7.18 第一条 `[Script]` 漏了 `https://` 前缀，真实 URL 永远不匹配。lab1 补上前缀后规则开始命中，但 lab5 查明那两端点的响应里根本没有 vip 字段（22 个样本），已收窄回「我的」页 |
 | 4 条 BiliUniverse 规则并 1 条 | 开屏 / 网页端推荐 / 番剧页 / 直播房间 → 1 条 alternation，正则逐条比对等价（见 `lpx-verify.mjs`） |
 | `[Rewrite]` / `[Rule]` / `[Mitm]` | **零改动**，逐条字节比对一致 |
 | 删 7 张无引用牌子图 | `upstream/vip-assets/` 11 张 → 4 张，省 117 KB |
@@ -46,6 +50,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T05:30` | — | **v7.19-lab5** 会员伪装规则收窄到 `x/v2/account/*`（移除实测无 vip 字段的 grpc 两端点，`Reply/MainList` 本次命中 10 次全空转）；`patchMine` 内联进 try 块（唯一调用方）；三个一次性分析脚本移出仓库目录。**行为零变化** |
 | `2026-09-29T05:10` | — | **v7.19-lab4** bundle 规则移除 splash 分支（死配置，行为零变化）。依据：同一 URL 上 `[Rewrite]` 与 `[Script]` 冲突时 Loon 只跑 Rewrite —— bundle 会删 `account/event_list/preload/show` 四键，而抓包里四键俱在、`event_list` 值为 `[]`（jq 的手笔）；离线把 bundle 架起来跑同一条载荷，它确实会删这四个键，说明有能力执行只是没被执行 |
 | `2026-09-29T04:50` | — | **v7.19-lab3** 补 `Search/DefaultWords` 的 `grpc.biliapi.net`（实测主力路径，13/19 次）；修 `vipAllUsers` / `vipFakeVerify` 把字符串 `"false"` 当真的开关缺陷（用 `on()` 统一，`vip.test.mjs` 27 → 30 例）；`lpx-verify.mjs` 改相对路径并支持 Rewrite 白名单 |
 | `2026-09-29T04:20` | — | **v7.19-lab2** 补 `/x/v2/space/article` 专栏页：其 `data.item[].author.vip` 与「我的」页同 schema，v7.19-lab 之前顶栏伪装而专栏列表显示真实牌子。`mine()` 抽出后与「我的」页共用同一份构造 |

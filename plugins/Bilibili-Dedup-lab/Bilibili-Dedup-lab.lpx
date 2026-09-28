@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab4
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab5
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 05:10:00
+#!date=2026-09-29 05:30:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -62,8 +62,10 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Script]
 # 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）。
-# 我的页 + grpc 合并为一条：v7.18 的第一条规则漏了 https:// 前缀，实际从未命中，这次顺带修好。
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\?|^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
+# lab5 收窄到「我的」页：原先还挂着 grpc 的 View/View 与 Reply/MainList，
+# 但 5 份抓包 22 个样本里这两个端点的响应一个 vip 字段都没有，规则纯属白跑
+# 一次 requires-body + JSON.parse（最大 59KB/次）。
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/lab/plugins/Bilibili-Dedup-lab/vip.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 # kokoryh protobuf（完整参数，补回 blockAds 降级项）
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
