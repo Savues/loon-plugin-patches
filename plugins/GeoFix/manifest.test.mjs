@@ -13,8 +13,19 @@ const t = (name, cond, extra = '') => {
   console.log(`  ${cond ? '✔' : '✘'} ${name}${extra ? '\n      ' + extra : ''}`);
 };
 
+// v1.5 事故：段头 [Script] 被冲掉，规则成了漂在文件里的裸行，Loon 全不认，
+// 而当时的测试只数「以 http- 开头的行」，照样全绿 —— 盲区正好是 bug 本身。
+// 所以这里按段解析：只收 [Script] 段里的规则，段头缺失会直接 0 条。
+const sections = {};
+let cur = null;
+for (const raw of lpx.split('\n')) {
+  const line = raw.trim();
+  const m = line.match(/^\[([A-Za-z]+)\]$/);
+  if (m) { cur = m[1]; sections[cur] = []; continue; }
+  if (cur && line && !line.startsWith('#')) sections[cur].push(line);
+}
 const rules = [];
-for (const line of lpx.split('\n')) {
+for (const line of sections.Script || []) {
   if (!line.startsWith('http-')) continue;
   const pattern = line.slice(line.indexOf(' ') + 1, line.indexOf(' script-path='));
   rules.push({
@@ -25,7 +36,14 @@ for (const line of lpx.split('\n')) {
     tag: (line.match(/tag=(.+)$/) || [, ''])[1],
   });
 }
-t('规则条数 = 6', rules.length === 6, String(rules.length));
+t('[Script] 段存在且有 6 条规则', rules.length === 6, String(rules.length));
+t('[MitM] 段存在', Array.isArray(sections.MitM) && sections.MitM.some((l) => l.startsWith('hostname=')));
+{
+  // 段外的 http- 行 = 漂着的死规则，Loon 不认
+  const inScript = new Set(sections.Script || []);
+  const stray = lpx.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('http-') && !inScript.has(l));
+  t('没有漂在 [Script] 段外的规则', stray.length === 0, stray.length + ' 条');
+}
 
 const hit = (u) => rules.filter((r) => r.re.test(u)).map((r) => r.tag);
 
@@ -75,7 +93,7 @@ console.log('\n─── 清单结构 ───');
 for (const k of ['#!name', '#!desc', '#!author', '#!homepage', '#!date']) t(`含 ${k}`, lpx.includes(k));
 t('script-path 全部指向本仓库', lpx.includes('loon-plugin-patches/main/plugins/GeoFix/src/'));
 t('MitM 含三个域名', /gs-loc\.apple\.com.*gs-loc-cn\.apple\.com.*map\.com/.test(lpx));
-t('无独立 [Argument] 段', !/^\[Argument\]\s*$/m.test(lpx));
+t('无独立 [Argument] 段', !sections.Argument, Object.keys(sections).join(','));
 
 console.log(`\n${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
