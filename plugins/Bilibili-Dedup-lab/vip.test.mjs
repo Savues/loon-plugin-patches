@@ -12,7 +12,8 @@ const DUE = 253402214399000;
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const URL_MINE = "https://app.bilibili.com/x/v2/account/myinfo?access_key=x";
 const URL_SPACE = "https://app.bilibili.com/x/v2/space?mid=14895065";
-const URL_GRPC = "https://grpc.biliapi.net/bilibili.app.viewunite.v1.View/View";
+// 注：lab5 已把 grpc 的 View/View 与 Reply/MainList 从清单移除（那些响应里没有 vip 字段），
+//     所以这里不再有 grpc 端点的样本 —— 曾经有过的用例已随那次收窄一起删掉。
 const ME = 14895065;
 
 // 跑一次脚本，返回 $done 收到的参数
@@ -83,10 +84,6 @@ t("我的页·无 vip 字段：透传", () => {
   untouched(run({ body: { data: { mid: ME } }, url: URL_MINE }));
 });
 
-t("grpc View/View：与我的页同处理", () => {
-  const r = run({ body: mineNonMember(), url: URL_GRPC });
-  assert.strictEqual(json(r).data.vip.status, 1);
-});
 
 // ---------- 空间页：UID 门禁 ----------
 t("空间页·自己的主页：data.vip 与 card.vip 都写入", () => {
@@ -139,7 +136,7 @@ t("彩蛋·全员：别人的主页也注入", () => {
   assert.strictEqual(json(r).data.vip.vipStatus, 1);
 });
 
-t("彩蛋·全员优先于点名", () => {
+t("彩蛋·点名：命中与不命中（全员开关未开时不生效）", () => {
   const f = spaceNonMember();
   f.data.card.mid = "777";
   const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipTargetMid: "888" } });
