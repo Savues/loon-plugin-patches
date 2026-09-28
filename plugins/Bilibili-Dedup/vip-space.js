@@ -21,20 +21,21 @@ const DUE = 253402214399000;   // 9999-12-30T23:59:59Z，毫秒
 // 取自己的 uid：个人空间页地址栏数字，或 App「我的」页 mid。
 const ME = Number(A.myMid) || 0;
 
+const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
-  vip:                          { text: "大会员",     type: 1 },
-  annual_vip:                   { text: "年度大会员",  type: 2 },
-  ten_annual_vip:               { text: "十年大会员",  type: 2 },
-  hundred_annual_vip:           { text: "百年大会员",  type: 2 },
-  fools_day_hundred_annual_vip: { text: "小会员",     type: 2 }
+  vip:                          { text: "大会员",     type: 1, image: IMG + "/vip-cannon.png" },
+  annual_vip:                   { text: "年度大会员",  type: 2, image: IMG + "/annual.png" },
+  ten_annual_vip:               { text: "十年大会员",  type: 2, image: IMG + "/ten-cannon.png" },
+  hundred_annual_vip:           { text: "百年大会员",  type: 2, image: IMG + "/hundred.png" },
+  fools_day_hundred_annual_vip: { text: "小会员",     type: 2, image: "" }
 };
 
 const T = THEMES[A.vipTheme] || THEMES.fools_day_hundred_annual_vip;
 const bg = A.vipBg || "#00E07C";
 const fg = A.vipFg || "#000000";
 const text = A.vipText || T.text;
-// 实测：App 对空间页的会员标走文字渲染（text + bg_color），
-// 一次 /bfs/vip/ 图片请求都不会发。image 留空，与 myinfo 侧保持一致。
+// 牌子图与 myinfo 侧共用 upstream/vip-assets/ 下同一批素材。
+// 小会员（绿鲤鱼）是愚人节特制，无公开图，仍走文字渲染。
 
 function build(v) {
   const label = Object.assign({}, (v && v.label) || {}, {
@@ -46,7 +47,11 @@ function build(v) {
     bg_style: 1,
     bg_color: bg,
     border_color: "",
-    image: ""
+    // 与 myinfo 侧（vip-theme.js）一致：主题默认图，可被 vipImg 覆盖。
+    // 空间页原生 label **没有** use_img_label 字段（只有 myinfo 侧有），
+    // 不显式补 true 的话 App 可能仍按文字渲染，图片不生效。
+    image: A.vipImg || T.image || "",
+    use_img_label: true
   });
 
   // 补齐与 myinfo 侧（vip-theme.js）一致的字段集，两个页面的对象逐字段相同。
