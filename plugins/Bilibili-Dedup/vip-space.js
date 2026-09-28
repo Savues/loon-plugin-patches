@@ -20,6 +20,8 @@ const DUE = 253402214399000;   // 9999-12-30T23:59:59Z，毫秒
 // 不加此判断会把所有用户的资料页都显示成伪装的样子。
 // 取自己的 uid：个人空间页地址栏数字，或 App「我的」页 mid。
 const ME = Number(A.myMid) || 0;
+// 彩蛋：开启后所有用户的非会员主页都显示伪装效果（真会员不受影响）。
+const ALL = !!A.vipAllUsers;
 
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
@@ -93,8 +95,7 @@ try {
   //   3) 已经是会员  —— 不冒充真会员
   // 非会员时 B 站直接删掉整个 vip 字段，故「不存在」也算未开通。
   const passthrough = !d
-    || who === undefined
-    || who !== ME
+    || (!ALL && (who === undefined || who !== ME))
     || (v && v.vipStatus === 1);
 
   if (passthrough) {
