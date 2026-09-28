@@ -1,5 +1,5 @@
-#!name=GeoFix 网络定位重定向 v1.1
-#!desc=[构建 2026-09-28] 重写 Apple 网络定位接口返回的 WiFi/基站定位记录，使 iOS 把设备定位到你指定的坐标。脚本由本仓库托管，上游消失后仍可正常拉取。内置本地解析器与控制页，**不依赖任何外部服务**：浏览器打开 https://gs-loc.apple.com/geo-ui/ 即可。坐标需通过 Bridge 端点写入（见插件 README），插件配置页没有经纬度输入框。只影响网络定位，不修改 GPS 硬件，也不全局改写 CoreLocation。 本仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=GeoFix 网络定位重定向 v1.2
+#!desc=[构建 2026-09-28] 重写 Apple 网络定位接口返回的 WiFi/基站定位记录，使 iOS 把设备定位到你指定的坐标。脚本由本仓库托管，上游消失后仍可正常拉取。内置本地解析器与控制页，**不依赖任何外部服务**：浏览器打开 https://map.com 即可。坐标需通过 Bridge 端点写入（见插件 README），插件配置页没有经纬度输入框。只影响网络定位，不修改 GPS 硬件，也不全局改写 CoreLocation。 本仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: 见 UPSTREAM.md | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=定位,QA
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-28 14:10:00
-# ==== PLUGIN_VERSION: 1.1.0 | 脚本自托管 + 死参数清理 + 本地解析器与控制页 | BUILD_BY: Savues ====
+# ==== PLUGIN_VERSION: 1.2.0 | 脚本自托管 + 死参数清理 + 本地解析器与控制页 | BUILD_BY: Savues ====
 #
 # 【为什么没有 [Argument] 段】
 # 上游清单里有一段 [Argument]（longitude / latitude / accuracy），但：
@@ -21,8 +21,9 @@
 http-request ^https?:\/\/gs-loc(-cn)?\.apple\.com\/geo-settings\/(ping|status|save|clear|export|diag) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-bridge.js, timeout=10, tag=GeoFix Bridge
 http-request ^https?:\/\/gs-loc(-cn)?\.apple\.com\/geo-parse\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-parse.js, timeout=15, tag=GeoFix Parse
 http-request ^https?:\/\/gs-loc(-cn)?\.apple\.com\/geo-ui\/?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-ui.js, timeout=10, tag=GeoFix UI
+http-request ^https?:\/\/map\.com\/(?:geo-ui\/?)?(?:\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-ui.js, timeout=10, tag=GeoFix UI short
 http-request ^https?:\/\/gs-loc(-cn)?\.apple\.com\/geo-route\/(ping|save|start|pause|resume|stop|clear|status) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-route.js, timeout=10, tag=GeoFix Route
 http-response ^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/src/geo-response.js, requires-body=true, binary-body-mode=true, timeout=30, tag=GeoFix Response
 
 [MitM]
-hostname=gs-loc.apple.com, gs-loc-cn.apple.com
+hostname=gs-loc.apple.com, gs-loc-cn.apple.com, map.com

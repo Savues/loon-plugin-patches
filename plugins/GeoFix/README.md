@@ -63,11 +63,11 @@ servers — the plugin answers them locally.
 ### 本地控制页 · Local UI
 
 ```
-https://gs-loc.apple.com/geo-ui/
+https://map.com
 ```
 
-手机浏览器（Safari / Chrome）直接打开就是一个控制界面，**由插件自己在本地返回**。
-把这个地址加到主屏幕书签，以后一点就用。**不需要任何外部服务、不需要账号、不需要联网。**
+浏览器直接打开就是一个控制界面，**由插件自己在本地返回**。
+加到主屏幕书签，以后一点就用。**不需要任何外部服务、不需要账号、不需要联网。**
 
 | 卡片 | 作用 |
 |---|---|
@@ -76,8 +76,28 @@ https://gs-loc.apple.com/geo-ui/
 | 写入坐标 | 填 lat / lon / acc，一键写入；「恢复真实定位」一键清除 |
 | 收藏 | 常用地点存在本机 `localStorage`，换地点时不用再翻聊天记录 |
 
-页面源码在 `src/ui.html`（可读可改），由 `build_ui.py` 注入成 `src/geo-ui.js`。
-改完页面记得重跑：
+完整的备用地址（短地址之外的等价入口）：
+
+```
+https://gs-loc.apple.com/geo-ui/
+https://gs-loc-cn.apple.com/geo-ui/
+```
+
+#### ⚠️ 关于 `map.com` 这个短地址
+
+`map.com` 是个真实存在的域名。加进来之后：
+
+- 规则**只**匹配根路径和 `/geo-ui/`，该域名其它路径原样放行；
+- 但 `map.com` 因此进了 **MitM 列表**。你真去访问该域名时，流量会被 Loon 解密后转发
+  —— 能正常用，只是每次多一次 TLS 握手；
+- 你若不希望这个域名进 MitM 列表，把 `GeoFix.lpx` 里两处 `map.com` 删掉即可
+  （一条 `[Script]` 规则 + MitM 行），控制页在 `gs-loc.apple.com/geo-ui/` 照常可用。
+
+页面里的接口调用用的是**绝对地址**（`https://gs-loc.apple.com/geo-settings`），
+所以从哪个域名打开都能通 —— 否则从 `map.com` 打开会去请求 `map.com/geo-settings`，
+那条规则不匹配。
+
+页面源码在 `src/ui.html`（可读可改），由 `build_ui.py` 注入成 `src/geo-ui.js`：
 
 ```bash
 python3 build_ui.py            # 生成 + node --check 语法自检
@@ -85,9 +105,8 @@ python3 build_ui.py --check    # 只检查是否同步
 ```
 
 Loon 只能用 `script-path` 拉一个 `.js`，读不到同目录的 `.html`，
-所以页面必须整个塞进脚本里。`build_ui.py` 用 `JSON.stringify` 的等价做法
-（`json.dumps`）把 HTML 变成一个安全的 JS 字符串字面量，换行、反斜杠、
-反引号、`${` 都不用手动转义。
+所以页面必须整个塞进脚本里。`build_ui.py` 用 `json.dumps` 把 HTML 变成一个安全的
+JS 字符串字面量，换行、反斜杠、反引号、`${` 都不用手动转义。
 
 ### 解析器 · Parser
 
@@ -134,7 +153,7 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 4. 确认代理 / VPN 处于连接状态
 5. 打开 `https://gs-loc.apple.com/geo-settings/status`，看到 `"tool":"Loon"` 就说明桥接通了
 6. 重启 Loon
-7. 浏览器打开 `https://gs-loc.apple.com/geo-ui/`，加到主屏幕书签
+7. 浏览器打开 `https://map.com`，加到主屏幕书签
 
 > ⚠️ 仓库是 public 的，`script-path` 走 `raw.githubusercontent.com` 可匿名拉取。
 > CDN 缓存最长约 24h，拉不到新脚本时在订阅地址加 `?cb=2`。
@@ -155,6 +174,7 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 | `build_ui.py` | 把 `ui.html` 注入成 `geo-ui.js` | UI builder |
 | `smoke.test.mjs` | 28 个用例，Node 里模拟 Loon 运行时 | `node smoke.test.mjs` |
 | `parse.test.mjs` | 21 个用例，解析器 + SSRF 防护 | `node parse.test.mjs` |
+| `ui.test.mjs` | 22 个用例，哪些地址出页面、哪些放行 | `node ui.test.mjs` |
 | `UPSTREAM.md` | 出处与移植改动逐条对照 | Provenance & porting diff |
 | `companion/` | iOS 快捷指令 + 自建解析 Worker | iOS companion (not a Loon plugin part) |
 

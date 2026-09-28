@@ -56,6 +56,7 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding
 <div class="wrap">
   <h1>GeoFix · 定位设置</h1>
   <div class="sub">本地控制页 · 由插件自己返回 · 无外部依赖</div>
+  <div class="sub" id="where" style="margin-top:-8px"></div>
 
   <div class="card">
     <h2>状态</h2>
@@ -103,8 +104,9 @@ code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding
 <div id="toast"></div>
 
 <script>
-var BASE = "/geo-settings";
-var PARSE = "/geo-parse";
+var HOST = "https://gs-loc.apple.com";
+var BASE = HOST + "/geo-settings";
+var PARSE = HOST + "/geo-parse";
 var PKEY = "geofix.presets";
 var LKEY = "geofix.last";
 function el(id) { return document.getElementById(id); }
@@ -231,6 +233,7 @@ el("pdel").onclick = function () {
   toast("已删除 " + n);
 };
 
+el("where").textContent = "当前地址 " + location.host;
 var last = getStore(LKEY, null);
 if (last) { el("lat").value = last.lat; el("lon").value = last.lon; el("acc").value = last.acc; }
 fillPreset();

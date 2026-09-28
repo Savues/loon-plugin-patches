@@ -40,8 +40,9 @@ TEMPLATE = r'''
   // 换行、反斜杠、反引号、${ 都不用操心。必须先于下面的 $done 声明。
   const PAGE = __PAGE__;
   const requestUrl = (typeof $request !== "undefined" && $request.url) || "";
-  const path = String(requestUrl).split("?")[0] || "";
-  if (!/\/geo-ui\/?$/.test(path)) {
+  let path = "";
+  try { path = new URL(requestUrl).pathname; } catch (e) { path = String(requestUrl).split("?")[0] || ""; }
+  if (!/^\/(?:geo-ui\/?)?$/.test(path)) {
     if (typeof $done === "function") {
       $done({ response: { status: 404, headers: { "Content-Type": "text/plain" }, body: "not found" } });
     }
