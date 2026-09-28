@@ -74,12 +74,6 @@
     "sha256": "fa8fe17042bac09192f7465217b5c04bbaefa66f7178255b3fb084e02a51f739",
     "mirrored_at": "2026-09-28"
   },
-  "vip-assets/vip.png": {
-    "source": "https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png",
-    "bytes": 2664,
-    "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
-    "mirrored_at": "2026-09-28"
-  },
   "vip-assets/annual-super.png": {
     "source": "https://i1.hdslb.com/bfs/vip/10df1f7f4af1292f773489e36554a05177785143.png",
     "bytes": 25518,
