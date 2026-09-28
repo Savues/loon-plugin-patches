@@ -16,6 +16,11 @@ const A = $argument || {};
 
 const DUE = 253402214399000;   // 9999-12-30T23:59:59Z，毫秒
 
+// 只改自己的主页。x/v2/space 是**通用端点**，访问任何人主页都走它；
+// 不加此判断会把所有用户的资料页都显示成伪装的样子。
+// 换账号时改这里（自己的 uid，去个人空间页地址栏取）。
+const ME = 14895065;
+
 const THEMES = {
   vip:                          { text: "大会员",     type: 1 },
   annual_vip:                   { text: "年度大会员",  type: 2 },
@@ -31,15 +36,7 @@ const text = A.vipText || T.text;
 // 实测：App 对空间页的会员标走文字渲染（text + bg_color），
 // 一次 /bfs/vip/ 图片请求都不会发。image 留空，与 myinfo 侧保持一致。
 
-try {
-  const j = JSON.parse($response.body);
-  const d = j && j.data;
-  if (!d) { $done({}); }
-
-  const v = d.vip;
-  // 非会员时 B 站直接删掉整个 vip 字段，因此以「不存在或未开通」为判据
-  if (v && v.vipStatus === 1) { $done({ body: $response.body }); return; }  // 已开通，不动
-
+function build(v) {
   const label = Object.assign({}, (v && v.label) || {}, {
     path: "",
     text: text,
@@ -51,11 +48,10 @@ try {
     border_color: "",
     image: ""
   });
-  // 构造结果与 myinfo 侧（vip-theme.js）逐字段相同，
-  // 只多出空间页 schema 特有的 vipType/vipStatus/vipDueDate 等字段。
 
-  // 补齐与 myinfo 侧一致的字段集，两个页面的对象逐字段相同
-  const FULL = {
+  // 补齐与 myinfo 侧（vip-theme.js）一致的字段集，两个页面的对象逐字段相同。
+  // 只多出空间页 schema 特有的 vipType/vipStatus/vipDueDate 等字段。
+  return Object.assign({}, v || {}, {
     vipType: T.type,
     vipDueDate: DUE,
     dueRemark: "",
@@ -69,23 +65,42 @@ try {
     end_time: 0,
     silence_url: "",
     nickname_color: bg
-  };
+  });
+}
 
-  d.vip = Object.assign({}, v || {}, FULL);
+try {
+  const j = JSON.parse($response.body);
+  const d = j && j.data;
 
-  // 空间页的到期提示开关，与会员样本一致
-  if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
+  const v = d.vip;
+  // 三种情况原样透传，绝不改写：
+  //   1) 别人的主页  —— mid 不匹配
+  //   2) 响应异常    —— 无 data
+  //   3) 已经是会员  —— 不冒充真会员
+  // 非会员时 B 站直接删掉整个 vip 字段，故「不存在」也算未开通。
+  const passthrough = !d
+    || (d.mid !== undefined && d.mid !== ME)
+    || (v && v.vipStatus === 1);
 
-  // 关键：主页顶栏实际读 data.card.vip，不是 data.vip。
-  // 抓包实证（非会员主页，v7.10 注入后）：
-  //   data.vip -> vipStatus:1   我们写的，App 不看
-  //   card.vip -> vipStatus:0   App 读这个，所以一直显示灰色
-  // 两处都写：card.vip 决定顶栏，data.vip 供其他页面使用。
-  if (d.card && typeof d.card === "object") {
-    d.card.vip = Object.assign({}, d.card.vip || {}, FULL);
+  if (passthrough) {
+    $done({ body: $response.body });
+  } else {
+    d.vip = build(v);
+
+    // 空间页的到期提示开关，与会员样本一致
+    if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
+
+    // 关键：主页顶栏实际读 data.card.vip，不是 data.vip。
+    // 抓包实证（非会员主页，v7.10 注入后）：
+    //   data.vip -> vipStatus:1   我们写的，App 不看
+    //   card.vip -> vipStatus:0   App 读这个，所以一直显示灰色
+    // 两处都写：card.vip 决定顶栏，data.vip 供其他页面使用。
+    if (d.card && typeof d.card === "object") {
+      d.card.vip = build(d.card.vip || {});
+    }
+
+    $done({ body: JSON.stringify(j) });
   }
-
-  $done({ body: JSON.stringify(j) });
 } catch (e) {
   $done({});
 }
