@@ -77,7 +77,10 @@ try {
   // 6 次 x/v2/space 响应中 data.mid 全部 undefined，card.mid 才有值）。
   // 读错位置会导致判定失效，所有用户主页都被改成伪装的样子。
   const card0 = (d.card && typeof d.card === "object") ? d.card : {};
-  const who = card0.mid;
+  // ⚠️ card.mid 在 JSON 里是**字符串**（实测 "14895065"），ME 是数字，
+  // 严格比较会判不等 → 自己的主页反被当成别人的透传。必须转成数字比。
+  const who = (card0.mid === undefined || card0.mid === null)
+    ? undefined : Number(card0.mid);
 
   // 三种情况原样透传，绝不改写：
   //   1) 别人的主页  —— card.mid 与自己不符
