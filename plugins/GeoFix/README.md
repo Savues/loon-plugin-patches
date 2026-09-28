@@ -128,7 +128,8 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 也在插件里本地算，WGS84 / GCJ-02 / BD-09 三种坐标系互转都是纯数学，没有网络往返。
 控制页的「本地解析」按钮调的就是它。
 
-支持：苹果 `?ll=` 与 `/place/…/@lon,lat,z`、Google `@` 与 `!3d!4d`、
+支持：苹果 `?ll=`、**`place?…&coordinate=lat,lon`**（苹果地图 App 分享出来的就是这个格式）、
+`/place/…/@lon,lat,z`、Google `@` 与 `!3d!4d`、
 高德 `uri.amap.com/marker` 与 `@lon,lat,z`、百度 `@x,y,z` 墨卡托、裸坐标。
 另外会**尝试展开短链**（受控：限跳数、拦内网与云元数据地址），跳转后的页面里
 仍找不到坐标就明确报错，不会瞎猜。
@@ -184,7 +185,7 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 | `src/ui.html` | 控制页源码，改这里 | Page source |
 | `build_ui.py` | 把 `ui.html` 注入成 `geo-ui.js` | UI builder |
 | `smoke.test.mjs` | 28 个用例，Node 里模拟 Loon 运行时 | `node smoke.test.mjs` |
-| `parse.test.mjs` | 21 个用例，解析器 + SSRF 防护 | `node parse.test.mjs` |
+| `parse.test.mjs` | 26 个用例，解析器 + SSRF 防护 + 短链判定 | `node parse.test.mjs` |
 | `ui.test.mjs` | 22 个用例，哪些地址出页面、哪些放行 | `node ui.test.mjs` |
 | `UPSTREAM.md` | 出处与移植改动逐条对照 | Provenance & porting diff |
 | `companion/` | iOS 快捷指令 + 自建解析 Worker | iOS companion (not a Loon plugin part) |

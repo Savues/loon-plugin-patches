@@ -45,7 +45,14 @@
     if (err && /只支持|被拒绝|过长|缺少|非法/.test(message(err))) return false;
     let u;
     try { u = new URL(raw); } catch (e) { return false; }
-    return !isPrivateHost(u.hostname);
+    if (isPrivateHost(u.hostname)) return false;
+    // 只有「看起来确实像短链」才去抓：路径只有一段、且没有 query。
+    // 完整链接（哪怕没解析出坐标）不该发请求出去。
+    const segs = u.pathname.split("/").filter(Boolean);
+    const looksShort = segs.length <= 1 && !u.search;
+    if (!looksShort) return false;
+    if (/\.(js|css|json|png|jpg|svg|xml|rss|mp4)$/i.test(u.pathname)) return false;
+    return true;
   }
 
   // ── 短链：受控展开 ──────────────────────────────────────────────────────
@@ -112,7 +119,10 @@
     const isAmap = host.indexOf("amap") >= 0 || host.indexOf("gaode") >= 0;
 
     // 1) ?ll= / ?latlon= / ?center= / ?location=
-    const ll = q.get("ll") || q.get("latlon") || q.get("center") || q.get("location");
+    // coordinate 是 Apple 分享链接真正在用的那个：
+    //   maps.apple.com/place?address=…&coordinate=46.263615,2.178741&name=…
+    const ll = q.get("ll") || q.get("latlon") || q.get("center") || q.get("location")
+            || q.get("coordinate") || q.get("coordinates");
     if (ll && /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(ll)) {
       const p = ll.split(",").map(Number);
       return toWgs84(p[0], p[1], "WGS84", warns, host);

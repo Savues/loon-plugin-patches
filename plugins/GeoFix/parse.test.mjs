@@ -41,6 +41,10 @@ const CASES = [
   ['https://www.amap.com/detail/B0FFH3Z4XC/@121.473701,31.230416,17z', '高德 @lon,lat', 31.232345, 121.469163, 'GCJ-02'],
   ['https://uri.amap.com/marker?position=139.745435,35.658581&name=东京塔', '境外不套国内偏移', 35.658581, 139.745435, 'GCJ-02'],
   ['https://map.baidu.com/poi/天安门/@110507394,50853266,19z', '百度墨卡托 → 落回 POI 本体', 39.9078, 116.3912, 'BD-09'],
+  // ↓ 用户实测的苹果地图 App 真实分享格式（原先没认 coordinate，直接 422）
+  ['https://maps.apple.com/place?address=%E6%B3%95%E5%9B%BD&auid=4983140303602022410&coordinate=46.263615,2.178741&lsp=7618&name=%E6%B3%95%E5%9B%BD&map=explore',
+   '苹果 place?coordinate=（真机分享）', 46.263615, 2.178741, 'WGS84'],
+  ['https://maps.apple.com/place?address=北京&coordinate=39.9078,116.3912&name=北京', '苹果 place?coordinate= 简化版', 39.9078, 116.3912, 'WGS84'],
 ];
 
 console.log('─── 解析用例 ───');
@@ -50,6 +54,12 @@ for (const [input, desc, eLat, eLon, eSys] of CASES) {
   const ok = r.status === 200 && near(j.lat, eLat) && near(j.lon, eLon) && j.originalSystem === eSys;
   ok ? pass++ : fail++;
   console.log(`${ok ? '✔' : '✘'} [${r.status}] ${desc}\n     ${input}\n     → ${j.lat}, ${j.lon} (${j.originalSystem}) name=${JSON.stringify(j.name)}`);
+}
+
+console.log('\n─── 名称提取 ───');
+{
+  const j = call('https://maps.apple.com/place?address=%E6%B3%95%E5%9B%BD&coordinate=46.263615,2.178741&name=%E6%B3%95%E5%9B%BD').body;
+  t('苹果 place 链接取到 name 参数', j.name === '法国', JSON.stringify(j.name));
 }
 
 console.log('\n─── 拒绝 / 报错 ───');
@@ -70,6 +80,14 @@ for (const [input, why] of [
 }
 
 console.log('\n─── 短链展开 ───');
+{
+  // 完整链接即使没坐标也不该发请求出去
+  let fetched = 0;
+  const spy = (o, cb) => { fetched++; cb(null, { headers: {} }, ''); };
+  const r = call('https://maps.apple.com/place?foo=1&bar=2', spy);
+  t('完整链接不触发网络抓取', fetched === 0, 'fetched=' + fetched + ' status=' + r.status);
+  t('完整链接直接 422', r.status === 422, r.body.error);
+}
 {
   const stub = (o, cb) => cb(null, { headers: {} }, '页面源码 <a href="https://maps.apple.com/?ll=35.658581,139.745435">这里</a>');
   const r = call('https://t.example/short123', stub);
