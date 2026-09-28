@@ -18,12 +18,21 @@ const sec = (txt, name) => {
 };
 
 // [Rewrite] 必须逐条一致 —— 除非落在显式白名单里（每条都要写明为什么）
+// 白名单用**字面子串**而不是正则：lpx 里的点和斜杠都是转义过的（pgc\/page\/channel），
+// 写正则要处理两层转义，很容易漏登记 —— 闸门会把漏的报成「未登记的差异」。
 const EXPECTED_REWRITE_DELTA = [
-  // lab3：DefaultWords 的 mock 补 grpc.biliapi.net。依据：实测 19 次请求 13 次走 grpc，
-  // 旧规则只覆盖 app.bili*，滚动词在主力路径上根本没被处理。
-  /DefaultWords/,
+  "DefaultWords",              // lab3 加：mock 补 grpc.biliapi.net。实测 19 次请求 13 次走 grpc，旧规则只覆盖 app.bili*
+  // lab6 删的 7 条：6 份抓包 4803 条响应 0 次触发，且同族兄弟端点也从未出现 ⇒ 端点已下线
+  "get_shopping_info",         // xlive 电商接口，xlive 电商相关端点 0 次
+  "TFInfo",                    // view*.v1.View/* 只出现过 View 与 ViewProgress
+  "pgc\\/page\\/channel",       // pgc/page 系列出现过 4 种形态，独独没有 channel
+  "show\\/skin",               // x/resource/show/* 只出现过 tab/bubble 与 tab/v2
+  "api\\.vc\\.bilibili\\.com", // api.vc 上只出现过 x/im/* 与 link_setting/*（3 条）
+  "grpc-status 0",             // lab6：mock 删掉后，header 规则里对应的 TFInfo/EndPage 分支也一并摘除
+  "result.modules",            // lab6 加：番剧首页 /pgc/page/ 此前零覆盖，实测漏 1 个 banner 广告。
+                               // 不用 bundle 是因为它内部 switch(gC.pathname) 只认 bangumi / cinema-tab
 ];
-const allowed = (line) => EXPECTED_REWRITE_DELTA.some((re) => re.test(line));
+const allowed = (line) => EXPECTED_REWRITE_DELTA.some((k) => line.includes(k));
 const ro = sec(OLD, "Rewrite"), rn = sec(NEW, "Rewrite");
 const dropped = ro.filter((l) => !rn.includes(l));
 const added = rn.filter((l) => !ro.includes(l));

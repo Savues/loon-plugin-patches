@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab5** · 18 参数 / 5 Rule / 18 Rewrite / 7 Script · 更新 `2026-09-29T05:30`
+**v7.19-lab6** · 18 参数 / 5 Rule / 12 Rewrite / 7 Script · 更新 `2026-09-29T05:50`
 
 | | 中文 | English |
 |---|---|---|
@@ -29,6 +29,8 @@
 
 | 变更 | 说明 |
 |---|---|
+| **补：番剧首页 `/pgc/page/`（lab6）** | 此前**零覆盖**：bundle 规则只匹配 `/pgc/page/bangumi` 与 `/pgc/page/cinema/tab`，而 App 实际请求的是裸路径 `pgc/page/?access_key=…`（6 份抓包 24 次，44KB–309KB）。实测该响应 `module_id=1638` 的 banner 模块带 1 个非 `play` 广告。改用 jq 复刻 bundle 的 4 条清理规则 —— bundle 自身也处理不了裸路径（内部 `switch(gC.pathname)` 同样只认那两条） |
+| **删：7 条给已下线端点写的规则（lab6）** | `get_shopping_info`、`view.v1.View/TFInfo`、`viewunite.v1.View/ViewEndPage`、`pgc/page/channel`、`x/resource/show/skin`、3 条 `api.vc.*`（search_svr / topic_svr / dynamic_svr）。判定依据不是「这次没走到」，而是**同族兄弟端点也一次都没出现过**（如 `x/resource/show/*` 只出现 `tab/bubble` 与 `tab/v2`）。`feed/index/story`（短视频流）保留 —— 那只是没进过那个 tab |
 | **收窄：会员伪装只管「我的」页（lab5）** | 规则原先还挂 `viewunite.v1.View/View` 与 `Reply/MainList`。前者 5 份抓包 0 次被请求；后者命中 10 次/份，但 22 个样本的响应里**一个 vip 字段都没有** ⇒ 每开一个评论列表白跑一次 `requires-body` + JSON.parse（最大 59KB）。两支都移除 |
 | **移：三个一次性分析脚本（lab5）** | `pass4/pass4b/pass6.mjs` 写死本机 `/var/minis/attachments` 路径，clone 下来必然跑不了。移到仓库目录外保留，其结论已固化进 `vip.test.mjs`（30 例） |
 | **移：bundle 规则的 splash 分支（lab4）** | 抓包+离线复现证明：同一端点上 `[Rewrite]` 与 `[Script]` 同时命中时，**Loon 只执行 Rewrite**。bundle 的 splash 分支要 `delete account/event_list/preload/show`，而抓包里这些键全都还在（是 jq 置空的）⇒ 该分支从未执行。splash 一直由 jq 规则处理；`brand/list` 上 bundle 本来就零改动。**行为零变化** |
@@ -50,6 +52,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T05:50` | — | **v7.19-lab6** 补番剧首页 `/pgc/page/` 的 jq 去广告（此前零覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则。依据：6 份抓包 4803 条响应逐条比对 |
 | `2026-09-29T05:30` | — | **v7.19-lab5** 会员伪装规则收窄到 `x/v2/account/*`（移除实测无 vip 字段的 grpc 两端点，`Reply/MainList` 本次命中 10 次全空转）；`patchMine` 内联进 try 块（唯一调用方）；三个一次性分析脚本移出仓库目录。**行为零变化** |
 | `2026-09-29T05:10` | — | **v7.19-lab4** bundle 规则移除 splash 分支（死配置，行为零变化）。依据：同一 URL 上 `[Rewrite]` 与 `[Script]` 冲突时 Loon 只跑 Rewrite —— bundle 会删 `account/event_list/preload/show` 四键，而抓包里四键俱在、`event_list` 值为 `[]`（jq 的手笔）；离线把 bundle 架起来跑同一条载荷，它确实会删这四个键，说明有能力执行只是没被执行 |
 | `2026-09-29T04:50` | — | **v7.19-lab3** 补 `Search/DefaultWords` 的 `grpc.biliapi.net`（实测主力路径，13/19 次）；修 `vipAllUsers` / `vipFakeVerify` 把字符串 `"false"` 当真的开关缺陷（用 `on()` 统一，`vip.test.mjs` 27 → 30 例）；`lpx-verify.mjs` 改相对路径并支持 Rewrite 白名单 |
@@ -111,7 +114,7 @@ The other 700+ apps are byte-for-byte untouched; Actions re-syncs every 6 hours.
 
 ### 去广告 · Ad removal
 推荐流 / 动态 / 搜索 / 番剧 / 直播 / 评论 / 播放页 / 开屏 / 短视频流 / 视频内插广告
-Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video ads.
+Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, playback, splash, shorts, in-video ads.
 
 ### 本地会员伪装 · Local VIP
 

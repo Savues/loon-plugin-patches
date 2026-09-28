@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab5
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab6
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab6 变更：新增 /pgc/page/ 番剧首页的 jq 去广告（此前完全无覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则（6 份抓包 4803 条响应 0 次触发）。lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 05:30:00
+#!date=2026-09-29 05:50:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -40,25 +40,20 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
-^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\? reject-dict
+# 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
+# /pgc/page/bangumi 与 /pgc/page/cinema/tab，裸路径它即使被路由到也处理不了。
 ^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
 ^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
 ^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAAAAfiwgA1J26agL/AwAAAAAAAAAAAA==" mock-data-is-base64=true
-^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ mock-response-body data-type=text data="AAAAAAA=" mock-data-is-base64=true
-^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)|view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ response-header-add grpc-status 0
+^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
 ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
 ^https:\/\/api\.bilibili\.com\/pgc\/view\/v2\/app\/season\? response-body-json-jq 'del(.data.payment)'
-^https:\/\/api\.bilibili\.com\/pgc\/page\/channel\? response-body-json-jq '.data.modules |= map(select(.type != "TIP") | if .type == "BANNER" then .module_data.items |= map(select(.url | startswith("https://www.bilibili.com/blackboard/era/") | not)) else . end)'
-^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
 ^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
+^https:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/?\? response-body-json-jq '.result.modules |= map(if (.style // "") | startswith("banner") then .items |= map(select((.link // "") | contains("play"))) elif (.style // "") | startswith("function") then .items |= map(select((.blink // "") | startswith("bilibili"))) elif .module_id | IN(241, 1283, 1284, 1441) then .items = [] elif (.style // "") | startswith("tip") then .items = [] else . end)'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
-# 以下 3 条为 BiliUniverse 独占端点(api.vc.bilibili.com)，blockAds 完全未覆盖
-^https?:\/\/api\.vc\.bilibili\.com\/search_svr\/v\d+\/Search\/recommend_words - reject-dict
-^https?:\/\/api\.vc\.bilibili\.com\/topic_svr\/v1\/topic_svr - reject-dict
-^https?:\/\/api\.vc\.bilibili\.com\/dynamic_svr\/v1\/dynamic_svr\/mix_uplist - reject-dict
 
 [Script]
 # 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）。
