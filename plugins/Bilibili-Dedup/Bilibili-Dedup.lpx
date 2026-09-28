@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.17
-#!desc=[插件版本 v7.17 / 构建 2026-09-28T21:05] 与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7 起全部脚本与图标改由本仓库托管，不再依赖上游仓库可用性。确认是否为本版：看标题栏 v7.17。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.18
+#!desc=[插件版本 v7.18 / 构建 2026-09-28T21:05] 与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7 起全部脚本与图标改由本仓库托管，不再依赖上游仓库可用性。确认是否为本版：看标题栏 v7.18。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
 #!system=iOS, iPadOS
@@ -12,28 +12,10 @@
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
-Splash = switch,false,tag=[开屏] 保留广告,desc=true=保留原样；false=去除（默认）
 # ---- BiliUniverse 开关 ----
 # ⚠️ 语义注意：这些参数是「是否**保留**」，true=保留不去除，false=去除。
 # 全部默认 false（=全部去除）。改前仅声明 Splash 且写成 true，等于默认不去除，
 # 导致开屏/热搜/动态/番剧/播放页/评论广告全部失效。以下为补全的 19 项。
-Search.AD = switch,false,tag=[搜索] 保留广告,desc=true=保留；false=去除（默认）
-Search.HotSearch = switch,false,tag=[搜索] 保留热搜榜,desc=true=保留热搜；false=去除热搜，只留历史与推荐（默认）
-PGC.AD = switch,false,tag=[番剧] 保留广告,desc=true=保留；false=去除（默认）
-Xlive.AD = switch,false,tag=[直播] 保留广告,desc=true=保留；false=去除（默认）
-View.AD = switch,false,tag=[播放页] 保留广告,desc=true=保留；false=去除（默认）
-Reply.AD = switch,false,tag=[评论] 保留广告,desc=true=保留；false=去除（默认）
-Feed.AD = switch,false,tag=[首页] 保留广告,desc=true=保留；false=去除（默认）
-Feed.Activity = switch,true,tag=[首页] 保留活动入口,desc=true=保留；false=去除（默认）
-Feed.Vertical = switch,true,tag=[首页] 保留竖排短视频,desc=true=保留；false=去除（默认）
-Feed.BlockUpLiveList = switch,false,tag=[首页] 保留直播列表,desc=true=保留；false=去除（默认，上游默认保留）
-Feed.Story = switch,false,tag=[首页] 保留 Story 流,desc=true=保留；false=去除（默认）
-DM.Command = switch,true,tag=[弹幕] 保留指令弹幕,desc=true=保留；false=去除（默认）
-DM.Colorful = switch,true,tag=[弹幕] 保留彩色弹幕,desc=true=保留；false=去除（默认）
-Dynamic.HotTopics = switch,false,tag=[动态] 保留热门话题,desc=true=保留；false=去除（默认）
-Dynamic.MostVisited = switch,true,tag=[动态] 保留常访问,desc=true=保留；false=去除（默认）
-Dynamic.MostVisitedLiveOnly = switch,true,tag=[动态] 仅直播时常访,desc=true=保留；false=去除（默认）
-Dynamic.AdCard = switch,false,tag=[动态] 保留广告卡,desc=true=保留；false=去除（默认）
 localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
 vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）；十年/年度/百年带牌子图；绿鲤鱼无公开图走文字渲染
 vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
@@ -95,10 +77,10 @@ http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bili
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
 # ==== B. BiliUniverse bundle（仅 blockAds 未覆盖的端点，完整 19 项参数）====
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/(splash\/(brand\/list|event\/list2|list|show)|search\/square) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=开屏与搜索
-http-response ^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=网页端推荐
-http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=番剧页
-http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=直播房间
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/(splash\/(brand\/list|event\/list2|list|show)|search\/square) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=开屏与搜索
+http-response ^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=网页端推荐
+http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=番剧页
+http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=直播房间
 
 # ==== C. 漫画去广告脚本（自 blockAds 迁入）====
 
