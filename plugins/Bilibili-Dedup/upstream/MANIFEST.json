@@ -135,5 +135,12 @@
     "bytes": 817,
     "sha256": "75ef8fedba5086566c0a9978fd13adeec8a5bbbccedba4d846a17b22d914a70a",
     "authored": "2026-09-28"
+  },
+  "upstream/adblock-defaultwords.js": {
+    "source": "本仓库自撰",
+    "note": "DefaultWords(gRPC/protobuf) 删 f4 短版滚动词，保留 f3 完整句。6 个真实抓包样本回归通过",
+    "bytes": 3143,
+    "sha256": "6b38e35b39953bbe5a45394f3c729a7477fb34de7bef5361d6e05985c69c3af5",
+    "authored": "2026-09-28"
   }
 }
