@@ -230,13 +230,29 @@
   var result = 'error';
   try { result = run(); } catch (e) { result = 'error'; }
 
+  // 首次成功清理后弹一次「已生效 vX」的通知。
+  // 目的：让「代码到底更新没更新」不用再靠猜 —— 连着四轮「改了还是不行」，
+  // 每轮都分不清是代码不对、规则没跑、还是新脚本根本没送达。
+  // 装上新版后下拉刷新首页看到这条，就说明跑的就是这一版；没看到就是没换上。
+  var VER = '5.6';
+  if (result === 'done') {
+    try {
+      if ($persistentStore.read('YouTubeDedupFeedCleanerVer') !== VER) {
+        $persistentStore.write('YouTubeDedupFeedCleanerVer', VER);
+        $notification.post('YouTube 去广告', '游戏大本营 · 已生效',
+          '脚本 v' + VER + '，本次删除 ' + (ncuts / 2) + ' 项 / ' + hits.length + ' 处标识');
+      }
+    } catch (e) { /* noop */ }
+  }
+
   if (argOn('debug', false)) {
     try {
-      $notification.post('YouTube 去广告', '游戏大本营 · ' + result,
+      $notification.post('YouTube 去广告', '游戏大本营 v' + VER + ' · ' + result,
         result === 'done' ? '已删除 ' + (ncuts / 2) + ' 项 / ' + hits.length + ' 处标识'
         : result === 'clean' ? '本条响应没有游戏大本营'
-        : result === 'nomatch' ? '看到标识但没能整项删除'
+        : result === 'nomatch' ? '看到判据但没能整项删除'
         : result === 'allgaming' ? '整条都是游戏内容，放弃改写以免弄坏首页'
+        : result === 'off' ? 'blockGaming 已关闭'
         : '未改动（' + result + '）');
     } catch (e) { /* noop */ }
   }

@@ -1,5 +1,5 @@
-#!name=YouTube去广告(完整+调试) v5.5.0
-#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.5.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」模块。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.5 重写了信息流清理脚本：改为单遍扫描 + 无判据子树剪枝 + 整段内存拷贝，2.9 MB 的首页响应从跑不完变成一次线性扫描（此前会撞穿 Loon 的 10 秒脚本超时，等于规则没生效）。代价：信息流（browse/next）不再走上游脚本，首页 Shorts 不再被过滤。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(完整+调试) v5.6.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.6.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」模块。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.6 给自研脚本的 URL 加了版本参数并内置版本播报：更新后下拉刷新首页，会弹一次「游戏大本营 · 已生效 脚本 v5.6」—— 看到就说明新脚本真的换上并跑起来了，没看到就是没换上，不必再靠猜。代价：信息流（browse/next）不再走上游脚本，首页 Shorts 不再被过滤。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 07:20:00
+#!date=2026-09-29 07:35:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -18,7 +18,7 @@ captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻
 debug=switch, true, true, tag=启用调试模式, desc=已默认开启，排查完成后可关闭
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{debug}], tag=清除游戏大本营
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=56, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{debug}], tag=清除游戏大本营
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
 
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
@@ -31,50 +31,44 @@ http-request ^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.* script-p
 hostname=*.googlevideo.com, youtubei.googleapis.com
 #
 #
-# ==== PLUGIN_VERSION: 5.5.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-# 【v5.5.0：为什么又重写了一次脚本 —— 脚本自己跑不完，等于规则没生效】
-#   v5.2~v5.4 的脚本是「每进入一层嵌套，就用 contains() 把这段字节全量扫一遍」。
-#   一次首页响应有约 8 层单例嵌套、每层都是 MB 量级，同一批字节在每层被重扫 4 遍。
-#   在用户真机那份 2919476 B 的首页响应上实测：跑满 60 秒仍未结束 —— 远超 Loon 的
-#   10 秒脚本超时，脚本被杀掉，响应原样放行，于是「模块还在」。
-#   这才是连续几轮「改了还是不行」的真正原因，跟规则顺序无关。
+# ==== PLUGIN_VERSION: 5.6.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-#   现在改成三件事：
-#     1. 开头做一遍扫描，把判据串的命中位置记成有序数组 —— 整条响应只扫一遍
-#     2. 遍历时「这段里一处判据都没有」就整棵子树跳过，不再 parse
-#     3. 重建用 subarray + set（memcpy），不再 out.push(b[i]) 逐字节推
-#   同一份 2919476 B 响应：>60 s（超时）-> 11 s。
+# 【v5.6.0：把「更新到底送达到了没有」变成看得见的事】
+#   连着四轮「改了还是不行」，每一轮我都分不清是代码不对、规则没执行、
+#   还是新脚本根本没送达 —— 因为插件不出现在抓包里，Loon 的脚本缓存也不可见。
+#   两处结构性堵漏：
 #
-#   注：11 s 是在一个被限速的沙盒里测的 —— 那边跑一个 2.4 M 次的空循环要 7.3 s，
-#   比真机慢两到三个数量级。真机上就是一次线性扫描的量级。
+#   1. 自研脚本的 script-path 后面加了 ?v=56
+#      Loon 按 URL 缓存远程脚本，raw.githubusercontent 的 CDN 缓存最长 24h。
+#      URL 不变就可能一直拿旧文件。带上版本参数后 URL 每次发布都是新的，
+#      两层缓存同时失效。以后改脚本不用再操心「怎么让用户拿到新版」。
+#   2. 脚本内置版本播报
+#      第一次成功清理后弹一次「游戏大本营 · 已生效 脚本 v5.6」，并把版本号写进
+#      persistentStore，之后不再重复弹。
+#      => 装上新版、下拉刷新首页：看到通知 = 跑的就是这一版；没看到 = 没换上。
+#      一张截图就能定位，不用再靠推。
 #
-#   验证：三份抓包共 33 条 browse/next 全部重跑 ——
-#     · 8 条含游戏面板的被改写，25 条逐字节未动
-#     · 改写后 mini_app_panel / FEmini_apps_saved 归零
-#     · /vi/ 计数全部不变（52->52、49->49、55->55、270->270、519->519 …）
-#     · 上游脚本能解析全部 33 条输出（结构合法）
-#   回归测试 29 例。
+# 【v5.5 的性能修复保持不变】
+#   脚本改为：开头一遍扫描建判据索引 -> 之后二分查找；无判据子树整棵跳过；
+#   重建用 subarray + set（memcpy）。
+#   四份抓包共 51 条 browse/next 全部重跑：12 条改写、39 条逐字节未动；
+#   面板标识归零；/vi/ 计数全部不变；上游脚本能解析全部 51 条输出。
 #
-# 【没做：会员试用弹窗】
-#   premium_upsell 只出现在 youtubei/v1/get_watch（每条 2~3 处），不在信息流里。
-#   它在第二、三份抓包里就有（9 处 / 6 处），这次是 17 处 —— 是 A/B 实验投放变多，
-#   不是 v5.4 改动引起的回归；上游去广告脚本从来也不处理会员推销。
-#   试过用同一个判据方案删它：标识能扫到，但它不在任何「重复列表项」里，
-#   按现有删除规则够不着。要做需要单独定位推销弹窗的渲染器，不在本次范围内。
-#
-# 【v5.4.0 的规则顺序，v5.5 保持不变】
-#   Loon 的 [Script] 是 first-match-wins：同一个 URL 只执行第一条完整命中的规则。
-#     "Response Script ... 始终按照原配置顺序选择第一条最终条件为 true 的规则"
-#   链式执行只存在于 [Rewrite]。所以「清除游戏大本营」必须排在去广告规则之前，
-#   并从上游规则里移除 browse|next。
-#   v5.5 的三条 http-response 规则按 URL 完全互斥（三份抓包 16 条真实 URL 重叠 0），
+# 【规则顺序（v5.4 起，未变）】
+#   Loon 的 [Script] 是 first-match-wins：同一个 URL 只执行第一条完整命中的规则，
+#   后面的不执行，也不把输出喂给后一条。链式只存在于 [Rewrite]。
+#   所以「清除游戏大本营」排在去广告规则之前，上游规则里移除 browse|next。
+#   三条 http-response 规则按 URL 完全互斥（16 条真实 URL 重叠 0），
 #   无论「第一条命中」还是「全部执行」结果都一样。
 #
-# 【怎么确认规则真的在跑】
-#   把插件参数里的「启用调试模式」打开，然后下拉刷新首页：
-#     · 「游戏大本营 · done」     -> 规则在跑，删掉了 N 项 / M 处标识
-#     · 「游戏大本营 · clean」    -> 规则在跑，这条响应里本来就没有
-#     · 「游戏大本营 · nomatch」  -> 看到了判据但没能整项删除
-#     · 「游戏大本营 · off」      -> blockGaming 被关掉了
-#     · 完全没有通知             -> 规则没被执行
+# 【会员试用弹窗：仍不在处理范围】
+#   premium_upsell 只出现在 youtubei/v1/get_watch 与 /player，不在信息流里。
+#   前四份抓包里都有（9 / 6 / 17 / 9 处），是 A/B 实验投放，不是回归；
+#   上游去广告脚本从来也不处理会员推销。要做需单独定位推销弹窗渲染器。
+#
+# 【仍需用户确认：装的是不是这一版】
+#   第五份抓包导出于 07:02:50，而 v5.5.0 是 06:58:48 推送的 —— 间隔 4 分钟，
+#   不够重导入插件 + 重启 Loon + 重开 YouTube + 刷首页，所以那份抓包里
+#   跑的仍然是 v5.4（规则顺序已对、但脚本跑不完）。v5.6 的版本播报就是为了
+#   终结这种「靠时间戳推」的排查方式。
