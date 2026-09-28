@@ -1,0 +1,20 @@
+{
+  "protobuf.request.js": {
+    "source": "https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.request.js",
+    "bytes": 63369,
+    "sha256": "d092d4b606fa00d3712b80f589599959d03c6088884955bf4d48e2830bfc573e",
+    "mirrored_at": "2026-09-28"
+  },
+  "protobuf.response.js": {
+    "source": "https://raw.githubusercontent.com/kokoryh/Sparkle/master/dist/bilibili.protobuf.response.js",
+    "bytes": 97357,
+    "sha256": "11cfc005a11141a1d1fe08591b06fe14b470e074e61d4196a1b0fe0286e72eb9",
+    "mirrored_at": "2026-09-28"
+  },
+  "adblock.bundle.js": {
+    "source": "https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js",
+    "bytes": 862323,
+    "sha256": "f805f7dd5dad9f43ac67ce47b9d3ac294b5848a59b1d0ea9d504707fe406f4a1",
+    "mirrored_at": "2026-09-28"
+  }
+}
