@@ -24,6 +24,9 @@ const ME = Number(A.myMid) || 0;
 const ALL = !!A.vipAllUsers;
 // 彩蛋二：点名，只让指定 UID 的主页生效。填 0 表示不点名。
 const TARGET = Number(A.vipTargetMid) || 0;
+// 认证图标。默认用 B 站官方地址：实测自定义域名（raw.githubusercontent）
+// 下 App 不画认证角标，疑似防盗链。可用 vipVerifyIcon 参数覆盖。
+const OFFICIAL_VERIFY_ICON = "https://i0.hdslb.com/bfs/activity-plat/static/20230828/e3b8ebec8e86f060b930a2c0536bb88b/72wejSxl9Z.png";
 
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
@@ -126,7 +129,7 @@ try {
         title: A.vipVerifyTitle || "认证用户",
         desc: A.vipVerifyTitle || "认证用户",
         splice_title: A.vipVerifyTitle ? "bilibili UP主认证：" + A.vipVerifyTitle : "",
-        icon: IMG + "/verify.png"
+        icon: A.vipVerifyIcon || OFFICIAL_VERIFY_ICON
       });
     }
 
