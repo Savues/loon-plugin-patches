@@ -4,11 +4,12 @@
 > A personal collection of patched Loon plugins.
 
 修改范围以**清单层**为主 —— MitM 域名、`[Argument]` 参数、`[Script]` / `[Rewrite]` 规则条目。
-个别插件额外托管了上游脚本，改动同样**仅限于取参、远程配置依赖与标识符**，不触碰业务逻辑。
+个别插件额外托管了脚本：或只改托管位置与标识符，或在上游解析不了某个端点时**另写一个自研脚本**顶上，
+两者都**不修改上游 JavaScript 的任何一行**。
 
-Scope is **manifest-layer only** — MITM hostnames, `[Argument]` params, `[Script]`/`[Rewrite]` rules.
-Two plugins ship upstream scripts; changes there are limited to argument parsing,
-remote-config removal and identifiers, never business logic.
+Scope is **manifest-layer first** — MITM hostnames, `[Argument]` params, `[Script]`/`[Rewrite]` rules.
+Three plugins ship scripts: two only relocate or rename upstream code, and one adds its own
+script for an endpoint upstream can no longer parse. **No upstream JavaScript is modified.**
 
 ---
 
@@ -19,10 +20,10 @@ remote-config removal and identifiers, never business logic.
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
-| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写<br>Dedupe against blockAds | 可用 OK |
+| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 按抓包修复 config 崩溃<br>Dedupe against blockAds · config parse crash fixed from a real capture | **v5.1** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
-### 托管了脚本的两个插件
+### 托管了脚本的三个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -33,12 +34,17 @@ remote-config removal and identifiers, never business logic.
 移植前后的逻辑等价性由 `smoke.test.mjs` 的 28 个用例覆盖（含一次真实 protobuf 改写），
 逐条改动见 [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md)。
 
-Two plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+`YouTube-Dedup` —— 第三条路：**上游解析不了某个端点时，另写一个自研脚本顶上**。
+上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），
+于是 `src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来，
+上游脚本一个字没动，16 个回归用例把行为钉死。
+
+Three plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
-that site disappeared. Scripts now live in `plugins/GeoFix/src/`, with identifiers and
-virtual endpoints renamed. Equivalence is covered by 28 tests, including a real
-protobuf rewrite.
+that site disappeared. `YouTube-Dedup` takes a third route — when upstream cannot parse an
+endpoint at all, a purpose-built script of our own takes over that one endpoint while
+upstream's code stays untouched. Equivalence is covered by 28 and 16 tests respectively.
 
 ---
 
@@ -85,6 +91,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
+| [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages 托管，可选）· Web UI |
 
 ---

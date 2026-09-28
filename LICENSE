@@ -34,4 +34,12 @@ GeoFix
 
   使用前请自行确认上游服务条款。
   作者的私有归档仓库中保留了逐字节原件与 SHA256，便于比对。
+
+YouTube-Dedup
+  去广告主体仍走远程 script-path 指向上游原版，**未修改上游 JavaScript 任何部分**。
+  仓库内另有 plugins/YouTube-Dedup/src/config-onesie.js，为**本仓库自研**：
+  它只用 YouTube inner tube 协议中公开可观测的 protobuf 字段编号，
+  沿固定路径取出 UMP onesie 的 clientKey / encryptKey 并写入 persistentStore，
+  不含任何上游代码、不改写响应体。
+  另含 test/ 下的回归测试与抓包响应体样本（已确认不含任何令牌）。
 ────────────────────────────────────────────────────────────────────────

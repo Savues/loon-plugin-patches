@@ -1,5 +1,5 @@
-#!name=YouTube去广告(精简版) v5.0.0
-#!desc=移除YouTube视频、瀑布流、搜索和Shorts中的广告，强开画中画与后台播放。相比原版移除了 *.youtube.com 和 *.googlevideo.com 的解密，可显著降低App加载延迟。需启用 MitM over HTTP/2 与 QUIC 回退保护。如需字幕翻译请用完整版。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(精简版) v5.1.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.1.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-27 22:40:00
+#!date=2026-09-29 03:10:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -17,10 +17,49 @@ captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻
 debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=YouTube去广告
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=YouTube去广告
+
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
 
 http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=请求日志事件
 
 [MitM]
 hostname=youtubei.googleapis.com
-# ==== PLUGIN_VERSION: 5.0.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+
+# ==== PLUGIN_VERSION: 5.1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v5.1.0 依据：2026-09-29 用户真机抓包】
+#   Loon HAR，YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58。
+#
+# 【改动 1】config 端点不再交给上游脚本，改用本仓库自带的 src/config-onesie.js
+#   上游把 youtube.response.config.GlobalConfigGroup 的 field 6 (coldConfigGroup)
+#   当成「空 schema 消息」解析，而它的 internalBinaryRead 直接 return、一个字节都不消费。
+#   YouTube 现在必定下发 coldConfigGroup（实测 42 KB），reader 立刻错位，随后把一个
+#   298 字节的嵌套 protobuf 当成 field 4 的 string 解码 →
+#   TypeError: The encoded data was not valid for encoding utf-8
+#   后果：config 处理器永远跑不到，UMP onesie 的 clientKey/encryptKey 永远采集不到，
+#   于是同插件的 *_request.js 每次 log_event 都要删掉 x-youtube-hot-hash-data 头。
+#   新脚本只沿固定路径取密钥、不改响应体，行为与上游 ri() 等价（有回归测试钉死）。
+#
+# 【改动 2】http-response 正则里删掉 log_event
+#   抓包里 youtubei/v1/log_event 的响应是 content-type: image/gif、42 字节 GIF89a。
+#   上游把 log_event 和 config 映射到同一个 Config 消息类型，遇到 GIF 首字节 0x47
+#   （= tag field 8 / wire 7）必然抛 Error: illegal tag: field no 8 wire type 7。
+#   而 onesie 密钥只存在于 config 响应里，log_event 响应从来给不出它 —— 纯负担。
+#   http-request 的 log_event 规则保留：它只读请求头，实测能正常改写 17 个头。
+#
+# 【不要放宽正则】脚本内部用 url.includes(path) 做端点匹配，抓包里新出现的
+#   att/get、mdx/handoff、notification_registration/* 一个都不在它的表里，
+#   放进去只会不停弹「脚本需要更新」。
+#   尤其 notification_registration/get_settings 的 URL 含子串 get_setting，
+#   会被误判成 youtube.response.setting.Setting 并改写响应体 —— 正则里的
+#   account\/get_setting 正是挡住它的锚点。
+#
+# 【不要把 youtubei/v1/generate_204 圈进来】那是 HEAD 连通性探测，拦了会误判断网。
+#
+# 【没做的两件事及原因】
+#   · www.google.com/ads/on-device/{clicks,conversions} 是每次启动都发的广告归因
+#     埋点（api_version=3&oda_eid=0.0.0）。想拦必须把 www.google.com 加进 MitM，
+#     代价远大于收益，故不内置，README 给了可选的手动写法。
+#   · 字幕翻译依赖 googlevideo 的 initplayback，本版不解密 googlevideo，
+#     字幕请交给「YouTube双语翻译」插件。
