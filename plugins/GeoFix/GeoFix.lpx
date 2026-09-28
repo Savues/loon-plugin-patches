@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-28 14:10:00
-# ==== PLUGIN_VERSION: 1.11.0 | /g/# ==== PLUGIN_VERSION: 1.9.0 | 一键定位不依赖页面 JS | BUILD_BY: Savues ====lt;链接# ==== PLUGIN_VERSION: 1.9.0 | 一键定位不依赖页面 JS | BUILD_BY: Savues ====gt; 直接写入 | BUILD_BY: Savues ====
+# ==== PLUGIN_VERSION: 1.11.0 | 脚本自托管 · 本地解析 · 本地控制页 · 一键定位 / 恢复 | BUILD_BY: Savues ====
 #
 # 【为什么没有 [Argument] 段】
 # 上游清单里有一段 [Argument]（longitude / latitude / accuracy），但：

@@ -3,7 +3,7 @@
 > 在**网络定位**这一层把 iOS 的定位结果改写到指定坐标。
 > Redirects iOS network-derived location to a chosen coordinate.
 
-**可用 OK** · 脚本自托管 · 自带解析后端
+**可用 OK** · 脚本自托管 · 解析和控制页都在插件里
 
 ---
 
@@ -180,6 +180,9 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 ```
 
 ---
+
+> 📖 想知道这东西怎么来的、踩过哪些坑 → [ITERATION.md](ITERATION.md)
+> 想核对出处与许可 → [UPSTREAM.md](UPSTREAM.md)
 
 ## 安装 · Install
 
