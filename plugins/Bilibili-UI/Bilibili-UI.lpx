@@ -1,4 +1,4 @@
-#!name=哔哩哔哩界面增强 v3.1
+#!name=小破站界面增强 v3.1
 #!desc=只保留【首页标签页】与【底部导航栏】两组自定义，支持真开关点选。已移除 BoxJS 与 PersistentStore，配置只读本插件参数页。需启用 MitM over HTTP/2。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches

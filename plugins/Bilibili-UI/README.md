@@ -1,4 +1,4 @@
-# Bilibili-UI · 哔哩哔哩界面增强
+# Bilibili-UI · 小破站界面增强
 
 > 首页标签页与底部导航的自定义，真开关点选。
 > Home tab bar and bottom navigation, with real toggle switches.
