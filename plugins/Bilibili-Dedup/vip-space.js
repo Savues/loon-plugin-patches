@@ -73,13 +73,20 @@ try {
   const d = j && j.data;
 
   const v = d.vip;
+  // ⚠️ 用户 ID 在 data.card.mid，**不在 data.mid**（抓包实证：
+  // 6 次 x/v2/space 响应中 data.mid 全部 undefined，card.mid 才有值）。
+  // 读错位置会导致判定失效，所有用户主页都被改成伪装的样子。
+  const card0 = (d.card && typeof d.card === "object") ? d.card : {};
+  const who = card0.mid;
+
   // 三种情况原样透传，绝不改写：
-  //   1) 别人的主页  —— mid 不匹配
-  //   2) 响应异常    —— 无 data
+  //   1) 别人的主页  —— card.mid 与自己不符
+  //   2) 响应异常    —— 取不到 card.mid
   //   3) 已经是会员  —— 不冒充真会员
   // 非会员时 B 站直接删掉整个 vip 字段，故「不存在」也算未开通。
   const passthrough = !d
-    || (d.mid !== undefined && d.mid !== ME)
+    || who === undefined
+    || who !== ME
     || (v && v.vipStatus === 1);
 
   if (passthrough) {
