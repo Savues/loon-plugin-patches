@@ -171,10 +171,19 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | 观察项 | 抓包证据 |
 |---|---|
 | API 返回真实数据 | `bsbsb.top` 返 `segment:[118.933,157.766]`、`videoDuration:384.986` |
-| chronos 已被改写 | `ViewProgress` 响应内 `file` 指向 `raw.githubusercontent.com/kokoryh/chronos/…`，非 `hdslb.com` |
+| chronos 已被改写 | 首次抓包（**镜像前**）`file` 指向 `raw.githubusercontent.com/kokoryh/chronos/…`，非 `hdslb.com` |
 | 原生路径被旁路 | `ObtainChronosPackage` 仍请求，但其 md5 不在脚本映射表内，未被采用 |
 | 自动跳转时刻 | 用户实测：播放至 2:00 自动跳至 2:38，与 `segment` 端点吻合 |
 | 撤销按钮 | 用户实测：播放器左下弹出粉色「撤销空降」，与 chronos 包 `AirborneToast` 的 `fillColor=BILI_PINK` 一致 |
+
+**镜像改写的实机验证**（第二次抓包，238 条，iPhone 国际版）：
+
+| 观察项 | 证据 |
+|---|---|
+| 改写生效 | `ViewProgress` 响应 `chronos.f2` = `raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/8c3feda2….zip` |
+| 弹幕注入 | `DmSegMobile` 响应中确认含 `空指部已就位`（同批另一条请求不含） |
+| 无重复下载 | 全程无 chronos zip 请求 → App 命中 MD5 缓存（镜像包与原包字节相同） |
+| 兜底路径 | UA `bili-inter/82300200` → `inter` 档 → `8c3feda2…`，与表一致 |
 
 ---
 
@@ -216,7 +225,7 @@ plugins/Bilibili-Dedup/
 空降助手需要 App 加载一个引擎包，原地址硬编码在 `ii()` 里：
 
 ```js
-// 改前
+// 改前（镜像前）
 a.file = `https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/${n}.zip`
 // 改后
 a.file = `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/${n}.zip`
@@ -311,6 +320,26 @@ res/                       资源
 你当前 App 下发 `325e7073…`（B 站原生包），命中第一行，全程未走兜底。
 App 更新导致 md5 变化时才会触发兜底，**届时会静默换成 3.8.20，无任何提示**。
 
+### 实测两条路径都走过
+
+两次抓包分别命中**不同分支**，验证了上表：
+
+| | iPad（`bili-hd2/37100100`） | iPhone 国际版（`bili-inter/82300200`） |
+|---|---|---|
+| 端点 | `view.v1.View/ViewProgress` | `viewunite.v1.View/ViewProgress` |
+| App 下发 md5 | `325e7073…`（表内**键**） | 非表内值 → 走兜底 |
+| 判定 | ① md5 命中 | ② `xi()` 读 UA → `bili-inter` → `inter` 档 |
+| 拿到 | `93200207…`（2.7.4） | `8c3feda2…`（2.7.3） |
+| `chronos.file` | 指向本仓库 ✅ | 指向本仓库 ✅ |
+
+**两台设备的 `chronos.file` 都指向本仓库** —— 镜像改写实机验证通过。
+
+国际版那次也印证了兜底逻辑本身：`inter` 档的目标 `8c3feda2…` 与实际响应完全一致。
+
+> iPhone 全程无 zip 下载记录（238 条中仅有的 3 个 `.zip` 是 `fawkes` 灰度配置，无关）。
+> App 按 **MD5 = 文件名** 判重，镜像包与原包字节相同 → 缓存键相同 → 命中已有缓存。
+> 这同时验证了镜像的等价性。
+
 > `.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，清单层已无指向
 > kokoryh / BiliUniverse 的可拉取地址。
 > `MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源，运行时不会被读取。
@@ -364,9 +393,9 @@ Automatically seeks past in-video ads ~2s in, offering a 5-second "撤销空降"
      progress = 广告起点×1000 + 2000
      action   = airborne:<广告终点×1000>
 
-③ protobuf.response.js  ii()   （仅 ViewProgress 端点）
+③ protobuf.response.js  ii()   （ViewProgress 端点，共两处调用）
    改写响应里的 chronos 字段：
-     file → raw.githubusercontent.com/kokoryh/chronos/.../<md5>.zip
+     file → raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/<md5>.zip
      sign → 清空
 
 ④ App 加载该 chronos 包（弹幕焰火引擎），到点识别 content 匹配
