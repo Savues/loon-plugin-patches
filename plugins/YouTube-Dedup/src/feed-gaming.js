@@ -213,34 +213,56 @@
   }
 
   // ---------- 入口 ----------
+  // sawMarker=true 但一个字节没改，是「规则在跑、但这次没东西可删」。
+  // debug 模式下要能把这两种情况区分开，否则「规则根本没跑」和「规则跑了但没删掉」
+  // 在外面看一模一样，只能靠猜。
   function run() {
-    if (!argOn('blockGaming', true)) return false;
+    if (!argOn('blockGaming', true)) return 'off';
     var b = toBytes($response && $response.body);
-    if (!b || b.length < 32) return false;
-    if (!hasMarker(b, 0, b.length)) return false;   // 快速排除，绝大多数响应走这里
+    if (!b || b.length < 32) return 'tiny';
+    if (!hasMarker(b, 0, b.length)) return 'clean';
     var r = scrub(b, 0, b.length, 0);
-    if (!r.changed || !r.bytes) return false;
+    if (!r.changed || !r.bytes) return 'nomatch';
+    // 整条响应被判为游戏内容时不要下发空 body —— 那会让 App 直接报错。
+    // 这种情况下宁可原样放行（用户还能看见模块），也不能把首页弄坏。
+    if (r.bytes.length === 0) return 'allgaming';
     $done({ body: r.bytes });
-    return true;
+    return 'done';
   }
 
-  var debug = false;
-  try {
-    var a = $argument;
-    if (a && typeof a === 'object' && a.debug) debug = true;
-  } catch (e) { /* noop */ }
-
-  var handled = false;
-  try {
-    handled = run();
-  } catch (e) {
-    handled = false;
-  }
-  if (debug) {
+  function debugOn() {
     try {
-      $notification.post('YouTube 去广告', '游戏大本营',
-        '已删除 ' + store.dropped + ' 项 / ' + store.bytes + ' 字节');
+      var a = $argument;
+      if (a === undefined || a === null) return false;
+      if (typeof a === 'string') {
+        if (a.indexOf('{{{') === 0) return false;
+        try { a = JSON.parse(a); } catch (e) { return false; }
+      }
+      return !!a.debug;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  var result = 'error';
+  try {
+    result = run();
+  } catch (e) {
+    result = 'error';
+  }
+
+  if (debugOn()) {
+    try {
+      var note = result === 'done' ? '已删除 ' + store.dropped + ' 项 / ' + store.bytes + ' 字节'
+        : result === 'clean' ? '本条响应没有游戏大本营'
+        : result === 'nomatch' ? '检测到标识但未能整项删除'
+        : result === 'allgaming' ? '整条响应都是游戏内容，已放弃改写以免弄坏首页'
+        : result === 'off' ? 'blockGaming 已关闭'
+        : '未改动（' + result + '）';
+      $notification.post('YouTube 去广告', '游戏大本营 · ' + result, note);
     } catch (e) { /* noop */ }
   }
-  if (!handled) $done({});
+
+  // $done 只在 run() 里真的改了响应时已经调用过；其余情况原样放行
+  if (result !== 'done') $done({});
 })();

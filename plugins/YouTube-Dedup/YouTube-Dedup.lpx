@@ -1,5 +1,5 @@
-#!name=YouTube去广告(去重版) v5.2.0
-#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.2.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、可选清除「游戏大本营」模块，功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(去重版) v5.4.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.4.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」模块。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.4 起信息流（browse/next）改由自研脚本处理：Loon 的 Script 是 first-match-wins，同一 URL 只能挂一条规则，原先把清除游戏放在去广告之后等于从未生效。代价：首页信息流里的 Shorts 不再被过滤（播放器与搜索页去广告不受影响）。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 03:45:00
+#!date=2026-09-29 05:10:00
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -17,9 +17,8 @@ blockGaming=switch, true, true, tag=清除游戏大本营, desc=移除首页/信
 debug=switch, false, true, tag=启用调试模式, desc=排查问题时开启，正常使用建议关闭
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=YouTube去广告
-
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js, requires-body=true, binary-body-mode=true, argument=[{blockGaming}], tag=清除游戏大本营
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{debug}], tag=清除游戏大本营
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=YouTube去广告
 
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
 
@@ -27,55 +26,40 @@ http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event scrip
 
 [MitM]
 hostname=youtubei.googleapis.com
-
-# ==== PLUGIN_VERSION: 5.2.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-# 【v5.1.0 依据：2026-09-29 用户真机抓包】
-#   Loon HAR，YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58。
+# ==== PLUGIN_VERSION: 5.4.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-# 【改动 1】config 端点不再交给上游脚本，改用本仓库自带的 src/config-onesie.js
-#   上游把 youtube.response.config.GlobalConfigGroup 的 field 6 (coldConfigGroup)
-#   当成「空 schema 消息」解析，而它的 internalBinaryRead 直接 return、一个字节都不消费。
-#   YouTube 现在必定下发 coldConfigGroup（实测 42 KB），reader 立刻错位，随后把一个
-#   298 字节的嵌套 protobuf 当成 field 4 的 string 解码 →
-#   TypeError: The encoded data was not valid for encoding utf-8
-#   后果：config 处理器永远跑不到，UMP onesie 的 clientKey/encryptKey 永远采集不到，
-#   于是同插件的 *_request.js 每次 log_event 都要删掉 x-youtube-hot-hash-data 头。
-#   新脚本只沿固定路径取密钥、不改响应体，行为与上游 ri() 等价（有回归测试钉死）。
+# 【v5.4.0 为什么改了规则顺序 —— 这是 v5.2 失效的真正原因】
+#   Loon 的 [Script] 是 first-match-wins：同一个 URL 只执行第一条完整命中的
+#   http-response 规则，后面的不再执行，也不会把前一条的输出喂给后一条。
+#   官方新版 Script 文档（loon0x00.github.io/docs/Script/script_v2）：
+#     "Response Script ... 始终按照原配置顺序选择第一条最终条件为 true 的规则"
+#     "Request 和 Response 分别最多选择一条"
+#   链式执行只存在于 [Rewrite]，脚本从来没有这个特性。
+#   搜索引擎里说「多条脚本按顺序依次执行」的资料，是把 Rewrite 的语义错套到了 Script 上。
 #
-# 【改动 2】http-response 正则里删掉 log_event
-#   抓包里 youtubei/v1/log_event 的响应是 content-type: image/gif、42 字节 GIF89a。
-#   上游把 log_event 和 config 映射到同一个 Config 消息类型，遇到 GIF 首字节 0x47
-#   （= tag field 8 / wire 7）必然抛 Error: illegal tag: field no 8 wire type 7。
-#   而 onesie 密钥只存在于 config 响应里，log_event 响应从来给不出它 —— 纯负担。
-#   http-request 的 log_event 规则保留：它只读请求头，实测能正常改写 17 个头。
+#   v5.2 把「清除游戏大本营」排在去广告规则后面，两条正则都匹配 browse|next，
+#   结果后一条从来没有执行过 —— 模块一直在，不是代码不对，是规则没被调用。
+#   本版把游戏规则提到最前，并从上游规则里移除 browse|next。
 #
-# 【不要放宽正则】脚本内部用 url.includes(path) 做端点匹配，抓包里新出现的
-#   att/get、mdx/handoff、notification_registration/* 一个都不在它的表里，
-#   放进去只会不停弹「脚本需要更新」。
-#   尤其 notification_registration/get_settings 的 URL 含子串 get_setting，
-#   会被误判成 youtube.response.setting.Setting 并改写响应体 —— 正则里的
-#   account\/get_setting 正是挡住它的锚点。
+# 【代价，如实说明】
+#   browse/next 不再走上游脚本，于是丢掉了上游在信息流上的 Shorts 过滤
+#   （Fi() 里的 /shorts(?!_pivot_item)/）。player / search / guide /
+#   account-get_setting / get_watch / reel_watch_sequence 仍然走上游脚本，去广告不受影响。
+#   上游另外两条信息流判据（未知字段含 pagead、EML 名为 inline_injection_entrypoint_layout）
+#   在三份真机抓包共 25 条 browse/next 里一次都没出现过，上游自己也一次都没改过信息流响应，
+#   丢不丢没有实际区别。
 #
-# 【不要把 youtubei/v1/generate_204 圈进来】那是 HEAD 连通性探测，拦了会误判断网。
+# 【已知未完成：把 Shorts 过滤补回来自研脚本】
+#   已实现并验证正确（三份抓包 25 条：游戏面板清零、/vi/ 计数全部不变、
+#   上游脚本能解析全部输出），但 1.2 MB 以上的响应要 5~40 秒，
+#   远超 Loon 的 10 秒脚本超时，所以没有发出来。
+#   慢的原因是「每层嵌套都把这批字节重新扫一遍」，而信息流有 ~8 层单例嵌套。
+#   方向已经明确：开头做一遍扫描，把判据命中位置建成有序索引，之后每次判定走二分查找。
 #
-# 【没做的两件事及原因】
-#   · www.google.com/ads/on-device/{clicks,conversions} 是每次启动都发的广告归因
-#     埋点（api_version=3&oda_eid=0.0.0）。想拦必须把 www.google.com 加进 MitM，
-#     代价远大于收益，故不内置，README 给了可选的手动写法。
-#   · 字幕翻译依赖 googlevideo 的 initplayback，本版不解密 googlevideo，
-#     字幕请交给「YouTube双语翻译」插件。
-#
-# 【v5.2.0 新增：blockGaming，清除「游戏大本营」】
-#   依据：2026-09-29 第二份真机抓包（253 条，含 player 响应）。
-#   首页（browseId=FEwhat_to_watch）会插一个 61 KB 的「YouTube 游戏大本营」模块，
-#   它不是视频，而是 YouTube 的 mini app（EML 渲染）面板，前端 key 为 mini_app_panel。
-#   脚本挂在 browse|next 上：自上而下遍历 protobuf，凡是「同一父消息里出现 >=2 次的字段号」
-#   的元素就是列表里的一项，该元素内容里出现 mini_app_panel / FEmini_apps_saved 就整项删掉，
-#   删空后父消息若也不剩内容就一并收敛。不认任何 schema，只认结构 + 内容。
-#   marker 选型做过精度评估（见 ITERATION.md）：
-#     mini_app_panel / FEmini_apps_saved  每次恰好命中 1 个元素，频道/订阅/媒体库/搜索命中 0 个
-#     mini_game_card                      会连带删掉 error_message 占位卡与 channel_action_buttons
-#     FEmini_app_destination              会连带删掉 more_drawer_button（更多按钮）
-#   所以只用最保守的两个。该规则排在去广告规则之后：即使 Loon 只跑第一条规则，
-#   也只是游戏模块留着，去广告不会失效。
+# 【怎么确认「清除游戏大本营」真的在跑】
+#   把插件参数里的「启用调试模式」打开，然后下拉刷新首页：
+#     · 「游戏大本营 · done」     -> 规则在跑，删掉了 N 项 / M 字节
+#     · 「游戏大本营 · clean」    -> 规则在跑，这条响应里本来就没有
+#     · 「游戏大本营 · nomatch」  -> 看到了判据但没能整项删除（结构变了，需要重新定位）
+#     · 完全没有通知             -> 规则没被执行

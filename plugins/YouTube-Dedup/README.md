@@ -1,16 +1,72 @@
 # YouTube-Dedup · 哔哩哔哩同源去重版
 
-> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修 config 解析崩溃，v5.2 起清除首页「游戏大本营」。
-> Removes duplicated rewrites against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module.
+> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 修 config 解析崩溃，v5.2 清除首页「游戏大本营」，
+> v5.4 修好了让 v5.2 一直没生效的那个 bug：Loon 的 Script 是 first-match-wins。
+> Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
+> v5.4 fixes why v5.2 never actually ran.
 
-**v5.2.0** · 3 个变体 · 3 variants
+**v5.4.0** · 3 个变体 · 3 variants
+
+---
+
+## v5.4.0：为什么 v5.2 一直没生效
+
+用户反馈「游戏大本营还是没有去处」。查下来不是代码不对，是**规则根本没被调用**。
+
+**Loon 的 `[Script]` 是 first-match-wins**：同一个 URL 只执行第一条完整命中的 `http-response` 规则，
+后面的不再执行，也不会把前一条的输出喂给后一条。官方新版 Script 文档
+（<https://loon0x00.github.io/docs/Script/script_v2>）写得很明确：
+
+> Response Script … 始终按照原配置顺序选择**第一条最终条件为 true 的规则**
+> Request 和 Response 分别最多选择一条
+
+**链式执行只存在于 `[Rewrite]`**（3.2.3 起专门加的特性），脚本从来没有这个特性。
+搜索引擎上「Loon 多条脚本按顺序依次执行」的说法，是把 Rewrite 的语义错套到了 Script 上。
+
+v5.2 把「清除游戏大本营」排在去广告规则**后面**，两条正则都匹配 `browse|next` → 后一条从未执行。
+本版把它提到**最前**，并从上游规则里移除 `browse|next`。改完每条端点只命中一条规则，已逐条核对。
+
+### 代价（如实说明）
+
+`browse/next` 不再走上游脚本，于是丢掉了上游在信息流上的 **Shorts 过滤**
+（`Fi()` 里的 `/shorts(?!_pivot_item)/`）。`player` / `search` / `guide` /
+`account/get_setting` / `get_watch` / `reel_watch_sequence` 仍然走上游脚本，去广告不受影响。
+
+上游另外两条信息流判据（未知字段含 `pagead`、EML 名为 `inline_injection_entrypoint_layout`）
+在三份真机抓包共 25 条 `browse/next` 里一次都没出现过，上游自己也一次都没改过信息流响应 ——
+丢不丢没有实际区别。
+
+### 还没做完：把 Shorts 过滤补回来自研脚本
+
+已经写出来并**验证正确**（三份抓包 25 条：游戏面板清零、`/vi/` 计数全部不变、
+上游脚本能解析全部输出），但 1.2 MB 以上的响应要 5~40 秒，**远超 Loon 的 10 秒脚本超时**，
+所以没有发出来。慢的原因是「每层嵌套都把这批字节重新扫一遍」，而信息流有约 8 层单例嵌套。
+方向已经明确：开头做一遍扫描把判据命中位置建成有序索引，之后每次判定走二分查找。
+
+## v5.3.0：给「清除游戏大本营」加诊断
+
+**为什么要加**：2026-09-29 04:13 的第三份抓包里，游戏大本营仍然存在。逐条核对后确认 ——
+**那份抓包是在 v5.2 推送后第 2 分钟导出的**（v5.2 commit 时间 `04:11:10`，抓包覆盖 `04:13:28`–`04:14:49`），
+设备上跑的还是没有这条规则的旧插件；再加上 `raw.githubusercontent` 的 CDN 缓存最长 24 小时。
+把那份抓包的 13 条 browse 响应逐条喂给当前脚本离线重跑：4 条改写、9 条逐字节不动，
+视频条目数完全一致，上游脚本能解析全部输出 —— **代码本身没问题，是版本没换上**。
+
+但「规则没跑」和「规则跑了却没删掉」在外面看一模一样，只能靠猜。所以加了诊断：
+
+| 开关 `debug` 打开后下拉刷新首页 | 含义 |
+|---|---|
+| `游戏大本营 · done` | 规则在跑，删掉了 N 项 / M 字节 |
+| `游戏大本营 · clean` | 规则在跑，这条响应里本来就没有 |
+| `游戏大本营 · nomatch` | 看到标识但没能整项删除 → 结构变了，需要重新定位 |
+| `游戏大本营 · off` | `blockGaming` 被关掉了 |
+| **完全没有通知** | **规则没被执行** → 插件是旧版本，或同一 URL 上有更靠前的规则抢先 |
 
 ---
 
 ## v5.2.0：清除首页「游戏大本营」
 
 依据：2026-09-29 第二份真机 Loon 抓包（253 条，03:13:14–03:14:25，含 `player` 响应）。
-回归测试 `node test/feed-gaming.test.mjs`（22 例全过）。
+回归测试 `node test/feed-gaming.test.mjs`（29 例全过）。
 
 首页（`browseId=FEwhat_to_watch`）会插一个 **61342 字节**的「YouTube 游戏大本营」模块。
 它不是视频，而是 YouTube 的 **mini app（EML 渲染）面板**；另有一个 `browseId=FEmini_app_destination`
@@ -29,6 +85,26 @@
 | `browse` 首页续页（#33） | 224289 B | 61342 B | 49 个视频条目 |
 | `browse` 游戏货架页（#15） | 587223 B | 570257 B | —（整页都是游戏） |
 | 其余 21 条 browse/next/get_watch/player/reel/guide | — | **0** | 逐字节未动 |
+
+第三份抓包（HAR3，13 条 browse）重跑同样通过：4 条改写、9 条逐字节不动，
+`/vi/` 计数全部保持（55→55、49→49、96→96、270→270、519→519 …）。
+
+### 清除之后**故意保留**的那一项
+
+HAR3 里，清除后仍会剩下一个元素，它的模板清单长这样：
+
+```
+chip_bar_collection_with_controller.eml-fe
+mini_app_game_info.eml-fe
+mini_app_splash_screen.eml-fe
+%mini_game_card.eml-fe|998e208b2b3ddc1
+*more_drawer_button.eml-fe|f8bc3d9f67dab8ec
+7channel_action_buttons_phone.eml-js-fe
+```
+
+**它是一个普通视频卡**，只是这张卡的模板清单里恰好列了游戏相关模板。
+拿 `mini_game_card` 当 marker 就会把它删掉 —— 那等于从首页拿掉一个正常视频。
+这条已写成回归测试（`误伤防护：只带游戏模板名的普通视频卡必须保留`）。
 
 ### marker 选型（做过精度评估，结论是只用最保守的两个）
 
@@ -115,14 +191,15 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 ## 改动对照 · What changed
 
-| | 原版 v5.0.0 | 本插件 v5.2.0 |
+| | 原版 v5.0.0 | 本插件 v5.4.0 |
 |---|---|---|
 | `[MitM]` | `*.googlevideo.com` + `youtubei.googleapis.com` | 仅 `youtubei.googleapis.com` |
 | `captionLang` | 6 个选项 | **移除**（依赖被拦截的 initplayback） |
 | `googlevideo` 规则 | 有 | **移除**（仅 Debug 变体保留） |
 | config 端点 | 交给上游脚本 → **解析崩溃** | 本仓库 `src/config-onesie.js` → 正常采集密钥 |
 | http-response 覆盖端点 | 含 `log_event`（实为 GIF，必崩） | 已移除 |
-| 覆盖端点 | 含 `log_event` / `config` | `browse` `next` `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch` + `config`（自研脚本） |
+| 覆盖端点 | 含 `log_event` / `config` | `browse` `next`（自研）+ `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch`（上游）+ `config`（自研） |
+| 信息流 Shorts 过滤 | 由上游脚本负责 | **暂无**（见「代价」） |
 | 游戏大本营 | 无处理 | **`blockGaming` 开关，默认开** |
 | 去广告 / 画中画 / 后台播放 | ✅ | ✅ **完整保留** |
 

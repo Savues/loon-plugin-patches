@@ -118,10 +118,12 @@ console.log('feed-gaming.js');
   check('合成结构：命中后长度变短', out && out.length < list.length, out ? `${list.length} -> ${out.length}` : 'no output');
   check('合成结构：只剩 3 项', out && count(out, 'normal-') === 3, out ? String(count(out, 'normal-')) : '');
   check('合成结构：marker 消失', out && count(out, 'mini_app_panel') === 0);
-  // 全部元素都命中 → 整条列表被删空
+  // 全部元素都命中 → 整条列表被删空。
+  // 但「整条响应都空了」是另一回事：那时必须原样放行，不能下发空 body（见后面那个用例）。
   const allBad = Buffer.concat([item('mini_app_panel'), item('FEmini_apps_saved')]);
   const { out: out2 } = run(allBad, {});
-  check('合成结构：全部命中时整条删空', out2 !== null && out2.length < allBad.length / 2, out2 ? String(out2.length) : 'no output');
+  check('合成结构：全部命中时不下发空 body', out2 === null || out2.length > 0,
+    out2 ? `${allBad.length} -> ${out2.length}` : '已原样放行');
 }
 
 {
@@ -147,6 +149,72 @@ console.log('feed-gaming.js');
   const again = run(a.out, {});
   check('对已清理过的响应再跑一次不再改动', again.out === null,
     again.out ? `又删了 ${FIXTURE.length - a.out.length - again.out.length} 字节` : '');
+}
+
+{
+  // 2026-09-29 第三份抓包（HAR3 #42）暴露的新形态：
+  // 面板容器本身是「单例」字段，里面套一个 12 项的重复列表，每一项各带一次 marker。
+  // 正确行为是 12 项全删 → 容器空 → 容器也跟着删（收敛），而不是只删掉最外层那一项。
+  const enc = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n = n >> 7; } o.push(n); return Buffer.from(o); };
+  const ld = (no, payload) => Buffer.concat([enc(no << 3 | 2), enc(payload.length), payload]);
+  const txt = (s) => ld(1, Buffer.from(s, 'utf8'));
+  const leaf = (marker) => ld(1, Buffer.concat([txt('capabilities|3ce02e49007505cd'), txt(marker), txt('theme|a3941584009a2c54')]));
+  const panel = ld(1, Buffer.concat([
+    ld(2, Buffer.concat([txt('theme|a3941584009a2c54'), txt('mini_app_panel')])),
+    ld(3, Buffer.concat(Array.from({ length: 12 }, () => leaf('mini_app_panel')))),
+  ]));
+  const feed = Buffer.concat([ld(1, txt('/vi/real-video-one')), panel, ld(1, txt('/vi/real-video-two'))]);
+  const r = run(feed, {});
+  check('嵌套形态：12 项全删后容器收敛', r.out !== null && count(r.out, 'mini_app_panel') === 0,
+    r.out ? `panel x${count(r.out, 'mini_app_panel')}` : 'no output');
+  check('嵌套形态：普通视频仍在', r.out && count(r.out, '/vi/') === 2, r.out ? String(count(r.out, '/vi/')) : '');
+}
+
+{
+  // 2026-09-29 第三份抓包里，清除后**故意保留**的那一项：
+  // 一个普通视频卡，模板清单里恰好列了 mini_game_card / mini_app_splash_screen /
+  // more_drawer_button / channel_action_buttons_phone。
+  // 它长得像游戏卡但绝不能删 —— 删了就是从首页拿掉一个正常视频。
+  // 这是本脚本最关键的一条「不许误伤」回归。
+  const enc = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n = n >> 7; } o.push(n); return Buffer.from(o); };
+  const ld = (no, payload) => Buffer.concat([enc(no << 3 | 2), enc(payload.length), payload]);
+  const txt = (s) => ld(1, Buffer.from(s, 'utf8'));
+  const templates = [
+    'chip_bar_collection_with_controller.eml-fe|175bb0ee37bf288c',
+    'mini_app_game_info.eml-fe|3c4823c6c7def44f',
+    'mini_app_splash_screen.eml-fe|bd126ea7076d092f',
+    '%mini_game_card.eml-fe|998e208b2b3ddc1',
+    '*more_drawer_button.eml-fe|f8bc3d9f67dab8ec',
+    '7channel_action_buttons_phone.eml-js-fe|fd1b03038226fb81',
+  ];
+  const normalCard = ld(1, Buffer.concat([txt('/vi/abcdefghijklmn'), txt(templates.join(' '))]));
+  const gamingCard = ld(1, Buffer.concat([txt('/vi/zzzzzzzzzzzzzz'), txt('mini_app_panel')]));
+  const feed = Buffer.concat([normalCard, gamingCard, ld(1, txt('/vi/qqqqqqqqqqqqqqq'))]);
+  const r = run(feed, {});
+  check('误伤防护：只带游戏模板名的普通视频卡必须保留',
+    r.out !== null && count(r.out, '/vi/abcdefghijklmn') === 1, r.out ? String(count(r.out, '/vi/abcdefghijklmn')) : 'no output');
+  check('误伤防护：该卡里的 mini_game_card 字符串不能作为删除依据',
+    r.out !== null && count(r.out, 'mini_game_card') === 1, r.out ? String(count(r.out, 'mini_game_card')) : '');
+  check('误伤防护：订阅按钮 / 更多按钮没被连带删掉',
+    r.out !== null && count(r.out, 'channel_action_buttons_phone') === 1 && count(r.out, 'more_drawer_button') === 1);
+  check('误伤防护：真正的游戏卡还是被删了', r.out !== null && count(r.out, '/vi/') === 2,
+    r.out ? String(count(r.out, '/vi/')) : '');
+}
+
+{
+  // 整条响应都是游戏内容时，输出会变成 0 字节。
+  // 绝不能把空 body 发给 App（会直接报错），必须放弃改写、原样放行。
+  const enc = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n = n >> 7; } o.push(n); return Buffer.from(o); };
+  const ld = (no, payload) => Buffer.concat([enc(no << 3 | 2), enc(payload.length), payload]);
+  const txt = (s) => ld(1, Buffer.from(s, 'utf8'));
+  const allGaming = Buffer.concat([
+    ld(1, Buffer.concat([txt('theme|a3941584009a2c54'), txt('mini_app_panel')])),
+    ld(1, Buffer.concat([txt('/vi/only-gaming-a'), txt('FEmini_apps_saved')])),
+    ld(1, Buffer.concat([txt('/vi/only-gaming-b'), txt('mini_app_panel')])),
+  ]);
+  const r = run(allGaming, {});
+  check('全游戏内容：不下发空 body，改为原样放行', r.out === null,
+    r.out ? '下发了 ' + r.out.length + ' 字节' : '');
 }
 
 console.log(`\n${pass} passed, ${failures.length} failed`);
