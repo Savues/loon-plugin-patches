@@ -61,5 +61,17 @@
     "bytes": 1054471,
     "sha256": "e96786591f4d8345577a379926377c5f21aac2d61df4cbe2a6fd7d1497ee4962",
     "mirrored_at": "2026-09-28"
+  },
+  "vip-assets/hundred.png": {
+    "source": "https://i0.hdslb.com/bfs/activity-plat/static/20230907/e41bd47e5579cfff81770e41f5107ba2/WIOlCPa1Ch.png",
+    "bytes": 21187,
+    "sha256": "3d975192a6b6a15f0a828eee473e5800658f924348b856a7ab34e47d964287bd",
+    "mirrored_at": "2026-09-28"
+  },
+  "vip-assets/annual.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
+    "bytes": 3803,
+    "sha256": "fa8fe17042bac09192f7465217b5c04bbaefa66f7178255b3fb084e02a51f739",
+    "mirrored_at": "2026-09-28"
   }
 }

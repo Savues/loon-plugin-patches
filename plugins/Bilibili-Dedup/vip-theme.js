@@ -3,7 +3,8 @@
  * 从 [Rewrite] 迁到 [Script]：Loon 的 enable= 只对 [Script] 生效。
  *
  * 每个主题一套完整配置，年度大会员取自 zirawell/R-Store 的 bilibiliJson.js
- * （含真实牌子图 URL）；其余主题无公开图 URL，image 留空走文字渲染。
+ * （含真实牌子图 URL）；图片已镜像至 upstream/vip-assets/，避免官方素材下线。
+ * 其余主题无公开图 URL，image 留空走文字渲染。
  */
 const A = $argument || {};
 
@@ -22,7 +23,7 @@ const THEMES = {
     text: "年度大会员", role: 3,
     label_theme: "annual_vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
     nickname_color: "#FB7299",
-    image: "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
+    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/annual.png"
   },
   ten_annual_vip: {
     text: "十年大会员", role: 7,
@@ -30,12 +31,12 @@ const THEMES = {
     nickname_color: "#FB7299", image: ""
   },
   hundred_annual_vip: {
-    // 「超·百年大会员」牌子图 249x60，B站官方 2023-09 活动素材。
+    // 「超·百年大会员」牌子图 249x60，B站 2023-09 活动素材，已镜像至 upstream/vip-assets/。
     // use_img_label 时 App 优先渲染此图，text 字段不显示。
     text: "百年大会员", role: 15,
     label_theme: "hundred_annual_vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
     nickname_color: "#FB7299",
-    image: "https://i0.hdslb.com/bfs/activity-plat/static/20230907/e41bd47e5579cfff81770e41f5107ba2/WIOlCPa1Ch.png"
+    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/hundred.png"
   },
   fools_day_hundred_annual_vip: {
     text: "小会员", role: 15,
