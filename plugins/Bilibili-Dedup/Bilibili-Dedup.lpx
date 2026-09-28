@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.16
-#!desc=[插件版本 v7.16 / 构建 2026-09-28T21:05] 与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7 起全部脚本与图标改由本仓库托管，不再依赖上游仓库可用性。确认是否为本版：看标题栏 v7.16。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.17
+#!desc=[插件版本 v7.17 / 构建 2026-09-28T21:05] 与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7 起全部脚本与图标改由本仓库托管，不再依赖上游仓库可用性。确认是否为本版：看标题栏 v7.17。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
 #!system=iOS, iPadOS
