@@ -28,9 +28,11 @@ const THEMES = {
     image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/annual.png"
   },
   ten_annual_vip: {
+    // 十年大会员「炮」版 249x60
     text: "十年大会员", role: 7,
     label_theme: "ten_annual_vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
-    nickname_color: "#FB7299", image: ""
+    nickname_color: "#FB7299",
+    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/ten-cannon.png"
   },
   hundred_annual_vip: {
     // 「超·百年大会员」牌子图 249x60，B站 2023-09 活动素材，已镜像至 upstream/vip-assets/。
