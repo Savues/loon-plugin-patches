@@ -3,7 +3,13 @@
 > 首页标签页与底部导航的自定义，真开关点选。
 > Home tab bar and bottom navigation, with real toggle switches.
 
-**v3.1** · 20 参数 / 1 条规则 · 20 parameters, 1 rule
+**v3.1** · 20 参数 / 1 条规则 · 20 parameters, 1 rule · 更新 `2026-09-28T14:55`
+
+| | 中文 | English |
+|---|---|---|
+| 脚本 | 1 个，**由本仓库托管** | 1 script, self-hosted |
+| 图标 | **自托管** `icon.png` | self-hosted |
+| 外部依赖 | **无** —— 所有 URL 指向本仓库 | none |
 
 ---
 
@@ -110,7 +116,40 @@ App-side config takes precedence over these parameters.
 ## 兼容性 · Compatibility
 
 与 [Bilibili-Dedup](../Bilibili-Dedup/) **可共存** —— 端点不重叠（本插件只碰 `x/resource/show/tab/v2`）。
-blockAds 需使用**退场版**。
+blockAds 需使用**已移除 B 站部分的版本**。
+
+---
+
+## 文件 · Files
+
+```
+plugins/Bilibili-UI/
+├── Bilibili-UI.lpx
+├── Enhanced.response.js   163 KB  改造自 Biliverse response.bundle.js
+├── icon.png                20 KB  256×256
+├── MANIFEST.json                  图标来源记录
+└── README.md
+```
+
+| 文件 | 说明 |
+|---|---|
+| `Enhanced.response.js` | **改造过的上游脚本**（非原样镜像），见[实现说明](#实现说明--implementation) |
+| `icon.png` | Biliverse `src/assets/icon_rounded.png`，**1024×1024 缩放至 256×256**（77 KB → 20 KB） |
+| `MANIFEST.json` | 记录图标原始 URL、字节数、SHA256、镜像日期 |
+
+`.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，清单内无任何指向
+Biliverse / VirgilClyne 的可拉取地址。`MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源。
+
+校验：
+
+```bash
+python3 -c "
+import json,hashlib,pathlib
+for k,v in json.load(open('MANIFEST.json')).items():
+    p=pathlib.Path(k)
+    ok=p.exists() and hashlib.sha256(p.read_bytes()).hexdigest()==v['sha256']
+    print('OK  ' if ok else 'FAIL', k)"
+```
 
 ---
 
