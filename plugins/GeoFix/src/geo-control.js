@@ -336,6 +336,25 @@
   // 一键形态：https://savues.com/g/<原始地图链接>
   // 链接原样放在路径里 —— 不编码、不加任何后缀参数，这里同步解析并写入。
   // 必须由脚本做完：快捷指令的「获取 URL 内容」不执行页面里的 JavaScript。
+  // 恢复：https://savues.com/off （别名 /r、/0）
+  const offHit = requestUrl.match(/\/(?:off|r|0)\/?(?:\?.*)?$/);
+  if (offHit) {
+    const clearedAt = Date.now();
+    const tombstone = { schemaVersion: SETTINGS_SCHEMA_VERSION, enabled: false, clearedAt, updatedAt: clearedAt };
+    writeJSON(SETTINGS_KEY, tombstone);
+    const diag = readDiag();
+    diag.mode = activeRoute(readJSON(ROUTE_KEY, null)) ? "route" : "passthrough";
+    diag.moduleVersion = VERSION;
+    diag.tool = env;
+    diag.lastClearAt = clearedAt;
+    diag.lastError = null;
+    diag.updatedAt = clearedAt;
+    writeJSON(DIAG_KEY, diag);
+    appendEvent("settings_cleared", "Restored real location via /off");
+    respond(Object.assign({ ok: true, restored: true }, statusPayload(true)), 200);
+    return;
+  }
+
   const gHit = requestUrl.match(/\/g\/([\s\S]*)$/);
   const oneShot = !!gHit;
   if (gHit) {

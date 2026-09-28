@@ -154,6 +154,21 @@ console.log('\n─── 一键形态 /g/<链接>（最短形态，不依赖页�
   t('非 /g/ 请求不受影响', body(plain).mode !== undefined && body(plain).current === null);
 }
 
+console.log('\n─── /off 恢复 ───');
+{
+  const st = {};
+  run('geo-control.js', { store: st, request: { url: 'https://savues.com/g/31.230416,121.473701' } });
+  t('先写进去', body(run('geo-control.js', { store: st, request: { url: 'https://savues.com/geo-settings/status' } })).mode === 'active');
+  for (const u of ['https://savues.com/off', 'https://savues.com/r', 'https://savues.com/0']) {
+    const rt = run('geo-control.js', { store: st, request: { url: u } });
+    t(`${u.replace('https://savues.com','')} 恢复真实定位`, body(rt).ok === true && body(rt).mode === 'passthrough' && body(rt).restored === true);
+  }
+  t('存储里置 enabled=false', JSON.parse(st.geo_settings).enabled === false);
+  t('offline 这类路径不受影响',
+    run('geo-control.js', { store: {}, request: { url: 'https://savues.com/offline' } }).doneCalls[0].response.status === 404
+    || body(run('geo-control.js', { store: {}, request: { url: 'https://savues.com/offline' } })).restored === undefined);
+}
+
 console.log('\n─── Route：存 / 播 / 停 ───');
 {
   const store = {};

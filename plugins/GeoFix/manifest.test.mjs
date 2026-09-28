@@ -36,7 +36,7 @@ for (const line of sections.Script || []) {
     tag: (line.match(/tag=(.+)$/) || [, ''])[1],
   });
 }
-t('[Script] 段存在且有 6 条规则', rules.length === 6, String(rules.length));
+t('[Script] 段存在且有 7 条规则', rules.length === 7, String(rules.length));
 t('[MitM] 段存在', Array.isArray(sections.MitM) && sections.MitM.some((l) => l.startsWith('hostname=')));
 {
   // 段外的 http- 行 = 漂着的死规则，Loon 不认
@@ -63,6 +63,12 @@ const CASES = [
   ['https://gs-loc.apple.com/clls/wloc', ['GeoFix Response']],
   ['https://savues.com/g/https://maps.apple.com/place?coordinate=1,2', ['GeoFix one-shot']],
   ['https://savues.com/g/anything', ['GeoFix one-shot']],
+  ['https://savues.com/off', ['GeoFix off']],
+  ['https://savues.com/r', ['GeoFix off']],
+  ['https://savues.com/0', ['GeoFix off']],
+  ['https://savues.com/off/', ['GeoFix off']],
+  ['https://savues.com/offline', []],
+  ['https://savues.com/0abc', []],
   ['https://savues.com/foo', []],
   ['https://savues.com/g', []],
   ['https://savues.com/g/', ['GeoFix one-shot']],
