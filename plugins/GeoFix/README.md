@@ -63,20 +63,20 @@ servers — the plugin answers them locally.
 ### 本地控制页 · Local UI
 
 ```
-https://map.com
+https://savues.com
 ```
 
-**所有控制端点都统一在 `map.com`**（`gs-loc.apple.com` 是等价旧地址，两边都通）：
+**所有控制端点都统一在 `savues.com`**（`gs-loc.apple.com` 是等价旧地址，两边都通）：
 
 | 地址 | 干什么 | 谁在用 |
 |---|---|---|
-| `https://map.com/` | 网页控制台 | 手动用、加书签 |
-| `https://map.com/?u=<链接>` | 控制台 + 自动解析填表 | 4 动作快捷指令 |
-| `https://map.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
-| `https://map.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
-| `https://map.com/geo-settings/status` | 查状态 | 控制台 / 排查 |
-| `https://map.com/geo-settings/clear` | 恢复真实定位 | 控制台 |
-| `https://map.com/geo-route/save?payload=…` | 动态路线 | 手动 |
+| `https://savues.com/` | 网页控制台 | 手动用、加书签 |
+| `https://savues.com/?u=<链接>` | 控制台 + 自动解析填表 | 4 动作快捷指令 |
+| `https://savues.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
+| `https://savues.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
+| `https://savues.com/geo-settings/status` | 查状态 | 控制台 / 排查 |
+| `https://savues.com/geo-settings/clear` | 恢复真实定位 | 控制台 |
+| `https://savues.com/geo-route/save?payload=…` | 动态路线 | 手动 |
 
 浏览器直接打开就是一个控制界面，**由插件自己在本地返回**。
 加到主屏幕书签，以后一点就用。**不需要任何外部服务、不需要账号、不需要联网。**
@@ -91,7 +91,7 @@ https://map.com
 **和快捷指令配合**：地址支持带 `?u=` 参数
 
 ```
-https://map.com/?u=<URL 编码后的地图链接>
+https://savues.com/?u=<URL 编码后的地图链接>
 ```
 
 打开即自动解析并填好表单，显示原始坐标系；加 `&auto=1` 则解析完直接写入。
@@ -106,18 +106,18 @@ https://gs-loc.apple.com/geo-ui/
 https://gs-loc-cn.apple.com/geo-ui/
 ```
 
-#### ⚠️ 关于 `map.com` 这个短地址
+#### ⚠️ 关于 `savues.com` 这个短地址
 
-`map.com` 是个真实存在的域名。加进来之后：
+`savues.com` 是个真实存在的域名。加进来之后：
 
 - 规则**只**匹配根路径和 `/geo-ui/`，该域名其它路径原样放行；
-- 但 `map.com` 因此进了 **MitM 列表**。你真去访问该域名时，流量会被 Loon 解密后转发
+- 但 `savues.com` 因此进了 **MitM 列表**。你真去访问该域名时，流量会被 Loon 解密后转发
   —— 能正常用，只是每次多一次 TLS 握手；
-- 你若不希望这个域名进 MitM 列表，把 `GeoFix.lpx` 里两处 `map.com` 删掉即可
+- 你若不希望这个域名进 MitM 列表，把 `GeoFix.lpx` 里两处 `savues.com` 删掉即可
   （一条 `[Script]` 规则 + MitM 行），控制页在 `gs-loc.apple.com/geo-ui/` 照常可用。
 
 页面里的接口调用用的是**绝对地址**（`https://gs-loc.apple.com/geo-settings`），
-所以从哪个域名打开都能通 —— 否则从 `map.com` 打开会去请求 `map.com/geo-settings`，
+所以从哪个域名打开都能通 —— 否则从 `savues.com` 打开会去请求 `savues.com/geo-settings`，
 那条规则不匹配。
 
 页面源码在 `src/ui.html`（可读可改），由 `build_ui.py` 注入成 `src/geo-ui.js`：
@@ -142,7 +142,7 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 
 支持：苹果 `?ll=`、**`place?…&coordinate=lat,lon`**（苹果地图 App 分享出来的就是这个格式）、
 `/place/…/@lon,lat,z`、Google `@` 与 `!3d!4d`、
-高德 `uri.amap.com/marker` 与 `@lon,lat,z`、百度 `@x,y,z` 墨卡托、裸坐标。
+高德 `uri.asavues.com/marker` 与 `@lon,lat,z`、百度 `@x,y,z` 墨卡托、裸坐标。
 另外会**尝试展开短链**（受控：限跳数、拦内网与云元数据地址），跳转后的页面里
 仍找不到坐标就明确报错，不会瞎猜。
 
@@ -177,7 +177,7 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 4. 确认代理 / VPN 处于连接状态
 5. 打开 `https://gs-loc.apple.com/geo-settings/status`，看到 `"tool":"Loon"` 就说明桥接通了
 6. 重启 Loon
-7. 浏览器打开 `https://map.com`，加到主屏幕书签
+7. 浏览器打开 `https://savues.com`，加到主屏幕书签
 
 > ⚠️ 仓库是 public 的，`script-path` 走 `raw.githubusercontent.com` 可匿名拉取。
 > CDN 缓存最长约 24h，拉不到新脚本时在订阅地址加 `?cb=2`。

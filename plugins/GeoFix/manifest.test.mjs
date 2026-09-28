@@ -48,26 +48,26 @@ t('[MitM] 段存在', Array.isArray(sections.MitM) && sections.MitM.some((l) => 
 const hit = (u) => rules.filter((r) => r.re.test(u)).map((r) => r.tag);
 
 const CASES = [
-  ['https://map.com/', ['GeoFix UI root']],
-  ['https://map.com/?u=abc', ['GeoFix UI root']],
-  ['https://map.com/geo-ui/', ['GeoFix UI']],
-  ['https://map.com/geo-ui/?u=abc', ['GeoFix UI']],
-  ['https://map.com/geo-parse?u=abc', ['GeoFix Parse']],
-  ['https://map.com/geo-settings/save?lat=1&lon=2', ['GeoFix Bridge']],
-  ['https://map.com/geo-settings/status', ['GeoFix Bridge']],
-  ['https://map.com/geo-route/save?payload=x', ['GeoFix Route']],
+  ['https://savues.com/', ['GeoFix UI root']],
+  ['https://savues.com/?u=abc', ['GeoFix UI root']],
+  ['https://savues.com/geo-ui/', ['GeoFix UI']],
+  ['https://savues.com/geo-ui/?u=abc', ['GeoFix UI']],
+  ['https://savues.com/geo-parse?u=abc', ['GeoFix Parse']],
+  ['https://savues.com/geo-settings/save?lat=1&lon=2', ['GeoFix Bridge']],
+  ['https://savues.com/geo-settings/status', ['GeoFix Bridge']],
+  ['https://savues.com/geo-route/save?payload=x', ['GeoFix Route']],
   ['https://gs-loc.apple.com/geo-ui/', ['GeoFix UI']],
   ['https://gs-loc.apple.com/geo-parse?u=abc', ['GeoFix Parse']],
   ['https://gs-loc.apple.com/geo-settings/clear', ['GeoFix Bridge']],
   ['https://gs-loc-cn.apple.com/geo-settings/status', ['GeoFix Bridge']],
   ['https://gs-loc.apple.com/clls/wloc', ['GeoFix Response']],
-  ['https://map.com/foo', []],
-  ['https://map.com/geo-ui/anything', []],
-  ['https://map.com/geo-parse', []],
+  ['https://savues.com/foo', []],
+  ['https://savues.com/geo-ui/anything', []],
+  ['https://savues.com/geo-parse', []],
   ['https://gs-loc.apple.com/other/path', []],
   ['https://www.apple.com/', []],
   ['https://evil.example.com/geo-settings/save?lat=1', []],
-  ['https://map.com.evil.com/geo-settings/save?lat=1', []],
+  ['https://savues.com.evil.com/geo-settings/save?lat=1', []],
 ];
 
 console.log('\n─── 路由 ───');
@@ -80,19 +80,19 @@ for (const [u, want] of CASES) {
 
 console.log('\n─── 安全性 ───');
 {
-  // 模式里主机是转义过的（map\.com），先把反斜杠去掉再比对
+  // 模式里主机是转义过的（savues\.com），先把反斜杠去掉再比对
   const unescape = (s) => s.replace(/\\/g, '');
-  const stray = rules.filter((r) => !/gs-loc|map\.com/.test(unescape(r.pattern)));
+  const stray = rules.filter((r) => !/gs-loc|savues\.com/.test(unescape(r.pattern)));
   t('没有规则脱离限定主机', stray.length === 0, stray.map((r) => r.pattern).join(' | '));
   t('相似恶意主机全部放行', CASES.filter(([u]) => /evil/.test(u)).every(([u]) => hit(u).length === 0));
   const resp = rules.find((r) => r.tag === 'GeoFix Response').pattern;
-  t('clls/wloc 规则只认 gs-loc', /gs-loc/.test(resp) && !/map\.com/.test(resp), resp);
+  t('clls/wloc 规则只认 gs-loc', /gs-loc/.test(resp) && !/savues\.com/.test(resp), resp);
 }
 
 console.log('\n─── 清单结构 ───');
 for (const k of ['#!name', '#!desc', '#!author', '#!homepage', '#!date']) t(`含 ${k}`, lpx.includes(k));
 t('script-path 全部指向本仓库', lpx.includes('loon-plugin-patches/main/plugins/GeoFix/src/'));
-t('MitM 含三个域名', /gs-loc\.apple\.com.*gs-loc-cn\.apple\.com.*map\.com/.test(lpx));
+t('MitM 含三个域名', /gs-loc\.apple\.com.*gs-loc-cn\.apple\.com.*savues\.com/.test(lpx));
 t('无独立 [Argument] 段', !sections.Argument, Object.keys(sections).join(','));
 
 console.log(`\n${pass} pass / ${fail} fail`);

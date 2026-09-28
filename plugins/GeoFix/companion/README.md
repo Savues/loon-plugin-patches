@@ -41,11 +41,11 @@
 | 收藏 / 历史 | 页面里有 | 无 |
 
 ```bash
-# 网页模式：打开 https://map.com/?u=… ，页面自动解析并填表
-python3 build_shortcut.py --web https://map.com
+# 网页模式：打开 https://savues.com/?u=… ，页面自动解析并填表
+python3 build_shortcut.py --web https://savues.com
 
 # 加 &auto=1：解析完直接写入，少点一下
-python3 build_shortcut.py --web https://map.com --auto
+python3 build_shortcut.py --web https://savues.com --auto
 
 # 独立模式：快捷指令自己解析+写入
 python3 build_shortcut.py --worker https://geofix-parse.<你的子域>.workers.dev --acc 30
@@ -62,7 +62,7 @@ python3 build_shortcut.py --worker https://geofix-parse.<你的子域>.workers.d
 
 ```
 [0] 注释     从地图 App 分享链接过来，交给控制页处理
-[1] 文本     WebBase   = https://map.com          ← 想换地址改这里
+[1] 文本     WebBase   = https://savues.com          ← 想换地址改这里
 [2] 文本     InputURL  = ￼（Extension Input）
 [3] 注释     URL 编码链接
 [4] URL编码  EncURL
@@ -154,9 +154,9 @@ GET /api/parse?u=31.230416,121.473701       # 也接受裸坐标
 | 裸坐标 | `31.230416,121.473701` | WGS84 |
 | 苹果地图 | `?ll=lat,lon`、`/place/…/@lon,lat,z` | WGS84 |
 | Google | `@lat,lon,z`、`!3d!4d` | WGS84 |
-| 高德 | `uri.amap.com/marker?position=lon,lat`、`@lon,lat,z` | GCJ-02 → WGS84 |
+| 高德 | `uri.asavues.com/marker?position=lon,lat`、`@lon,lat,z` | GCJ-02 → WGS84 |
 | 百度 | `…/@x,y,z`（墨卡托网格） | BD-09 → GCJ-02 → WGS84 |
 | 短链 | 没有明显坐标参数、靠 302 跳转的 | 跟随 ≤3 跳后按上面规则 |
 
-**不支持**（返回 422）：苹果 `?q=` 纯搜索词、高德 `www.amap.com/search` 搜索结果页。
+**不支持**（返回 422）：苹果 `?q=` 纯搜索词、高德 `www.asavues.com/search` 搜索结果页。
 这些格式本身就不含坐标，只能靠网页脚本注入。

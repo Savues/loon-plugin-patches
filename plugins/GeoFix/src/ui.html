@@ -242,7 +242,7 @@ el("pdel").onclick = function () {
 el("where").textContent = "当前地址 " + location.host;
 
 /* 快捷指令入口：从分享菜单喂链接过来时，地址形如
-   https://map.com/?u=<URL 编码后的链接>
+   https://savues.com/?u=<URL 编码后的链接>
    自动解析并填好；带 &auto=1 则解析完直接写入。 */
 (function () {
   var q = new URLSearchParams(location.search);
