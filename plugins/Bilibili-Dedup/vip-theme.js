@@ -30,9 +30,12 @@ const THEMES = {
     nickname_color: "#FB7299", image: ""
   },
   hundred_annual_vip: {
+    // 「超·百年大会员」牌子图 249x60，B站官方 2023-09 活动素材。
+    // use_img_label 时 App 优先渲染此图，text 字段不显示。
     text: "百年大会员", role: 15,
     label_theme: "hundred_annual_vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
-    nickname_color: "#FB7299", image: ""
+    nickname_color: "#FB7299",
+    image: "https://i0.hdslb.com/bfs/activity-plat/static/20230907/e41bd47e5579cfff81770e41f5107ba2/WIOlCPa1Ch.png"
   },
   fools_day_hundred_annual_vip: {
     text: "小会员", role: 15,
