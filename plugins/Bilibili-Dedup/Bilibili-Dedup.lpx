@@ -13,16 +13,16 @@
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
 Splash = switch,true,tag=[开屏] 去除广告
-localVIP = switch,true,tag=本地会员伪装,desc=总开关；关闭后不再改写任何会员信息
-vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。每个主题自带配置，年度含真实牌子图，其余走文字渲染
+localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
+vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）；十年/年度/百年带牌子图；绿鲤鱼无公开图走文字渲染
 vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
 vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
 localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
-myMid = input,"",tag=我的UID,desc=空间页伪装只作用于该 UID 的主页；留空则不生效，不影响其他页面
-vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有人的主页都按上面的设置显示（含真会员，仅供娱乐）
-vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的主页变成上面设定的主题；与「全员」开关同时开时全员仍生效
-vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=把主页显示为「已认证」状态（黄底闪电）
-vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」；会拼进「bilibili UP主认证：xxx」
+myMid = input,"",tag=我的UID,desc=个人主页伪装只作用于该 UID；留空则不生效。「我的」页伪装不受此项影响
+vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有用户的个人主页都按上面的设置显示（含真会员）。仅影响个人主页，「我的」页不变
+vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的个人主页按上面的设置显示。可与「我的UID」叠加；同时开「全员」时全员优先
+vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「bilibili UP主认证：xxx」文字。⚠️头像角标改不动（App 本地渲染，不读 icon）
+vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」
 vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
 vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
@@ -66,7 +66,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Script]
 # ==== 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）====
-http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装
+http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-space.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], enable={localVIP}, tag=会员伪装
 # ==== A. kokoryh protobuf（完整参数，补回 blockAds 降级项）====
