@@ -19,6 +19,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-28T21:30` | `—` | 新增参数 `myMid`：空间页伪装改为只作用于该 UID 的主页，**留空即关闭**（此前硬编码） |
 | `2026-09-28T21:05` | `—` | **v7.16** 修空间页误改他人资料：`x/v2/space` 加 mid 判定，只改自己的主页；同时修掉 try 块顶层 `return` 的语法错误 |
 | `2026-09-28T15:40` | — | 空降助手引擎包（chronos）镜像至 `upstream/chronos/`；`protobuf.response.js` 中 1 处 URL 改指本仓库，其余字节不变 |
 | `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正重复标点；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
@@ -116,6 +117,7 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 |---|---|---|---|
 | `localVIP` | switch | 开 | 账号页总开关 |
 | `localVIPSpace` | switch | 开 | 个人资料页开关 |
+| `myMid` | input | 空 | 我的 UID；**留空则空间页伪装不生效**，他人主页始终不受影响 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认 |
 
