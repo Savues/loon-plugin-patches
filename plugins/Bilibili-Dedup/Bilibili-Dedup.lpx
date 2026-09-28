@@ -1,4 +1,4 @@
-#!name=哔哩哔哩去广告(合并版) v7.14
+#!name=哔哩哔哩去广告(合并版) v7.15
 #!desc=[插件版本 v6.0 / 构建 2026-09-27T23:10] 与 blockAds 合集去重。v6 起接管合集的漫画去广告与空降助手请求侧，合集B站部分已整体退场。。修 v2-v4 的致命缺陷：protobuf 规则缺 https:// 前缀导致完全空转。默认全开去广告。确认是否为本版：在插件里搜 PLUGIN_VERSION 或看标题 v5。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
@@ -7,8 +7,8 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://github.com/BiliUniverse/ADBlock/raw/main/src/assets/icon_rounded.png
-#!date=2026-09-28 23:55:00
-# ==== PLUGIN_VERSION: 7.14.0 | 漫画规则清理 12→9 ====
+#!date=2026-09-28 23:59:00
+# ==== PLUGIN_VERSION: 7.15.0 | 修复 MITM/Rule 矛盾 + ap[ip] 收窄 ====
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
@@ -20,7 +20,6 @@ vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
 localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
 vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
 vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
-mangaAD = switch,true,tag=[漫画] 去除广告,desc=仅控制漫画脚本；[Rewrite] 侧规则无条件生效（Loon 的 Rewrite 不支持 enable=）
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 # ---- kokoryh 参数 ----
 displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
@@ -42,7 +41,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 ^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\? reject-dict
 ^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
-^https:\/\/ap[ip]\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
+^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AAAAACEaHeaQnOe0ouinhumikeOAgeeVquWJp+aIlnVw5Li7KAE=" mock-data-is-base64=true
@@ -55,20 +54,11 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 ^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
-# ==== 漫画去广告（自 blockAds 迁入）====
-^https?:\/\/mangaapi\.manhuaren\.com\/v\d\/public\/getStartPageAds reject
-^https?:\/\/.*mangaapi\.manhuaren\.\w{2,4}\/v\d\/public\/(getStartUpMessage|getStartPageAds|getShelfActivity) reject
-^https?:\/\/.*mangaapi\.manhuaren\.\w{2,4}\/v\d\/ad reject
 # ==== 以下 3 条为 BiliUniverse 独占端点(api.vc.bilibili.com)，blockAds 完全未覆盖 ====
 ^https?:\/\/api\.vc\.bilibili\.com\/search_svr\/v\d+\/Search\/recommend_words - reject-dict
 ^https?:\/\/api\.vc\.bilibili\.com\/topic_svr\/v1\/topic_svr - reject-dict
 ^https?:\/\/api\.vc\.bilibili\.com\/dynamic_svr\/v1\/dynamic_svr\/mix_uplist - reject-dict
 
-^https?:\/\/manga\.bilibili\.com\/twirp\/user\.v\d\.SeasonV\d\/GetSeasonInfo - reject-dict
-^https?:\/\/manga\.bilibili\.com\/twirp\/user\.v\d\.Read\/ActInfo - reject-200
-^https?:\/\/manga\.bilibili\.com\/twirp\/novel\.v\d\.Novel\/MoreRecommend - reject-dict
-^https?:\/\/manga\.bilibili\.com\/twirp\/comic\.v\d\.Comic\/(?>Recommend|MoreRecommend|Flash|ListFlash|GetActInfo|GetBubbles|GetActivityTab|GetCommonBanner|GetComicConfigPicList|SearchBanner|AppInit) - reject-dict
-^https?:\/\/manga\.bilibili\.com\/twirp\/comic\.v\d\.Shop\/GetShopItems - reject-dict
 [Script]
 # ==== 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）====
 http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装
@@ -85,8 +75,7 @@ http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cin
 http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom script-path=https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js, requires-body=1, argument=[{Splash},{Feed.AD},{Feed.Activity},{Feed.Vertical},{Feed.BlockUpLiveList},{Feed.Story},{Search.AD},{Search.HotSearch},{PGC.AD},{Xlive.AD},{Dynamic.HotTopics},{Dynamic.MostVisited},{Dynamic.MostVisitedLiveOnly},{Dynamic.AdCard},{View.AD},{DM.Command},{DM.Colorful},{Reply.AD},{LogLevel}], tag=直播房间
 
 # ==== C. 漫画去广告脚本（自 blockAds 迁入）====
-http-response ^https?:\/\/manga\.bilibili\.com\/twirp\/(user\.v\d\.User\/(UCenterConf|GetInitInfo)|comic\.v\d\.(Home\/HomeFeed|Comment\/Main)) script-path=https://raw.githubusercontent.com/zirawell/R-Store/main/Res/Scripts/AntiAd/bilibiliManga.js, requires-body=true, timeout=60, enable={mangaAD}, tag=哔哩哔哩漫画
 
 [Mitm]
-hostname=api.vc.bilibili.com, manga.bilibili.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, app.biliapi.net, api.bilibili.com, api.biliapi.net, grpc.biliapi.net, api.live.bilibili.com
+hostname=api.vc.bilibili.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com
 h2 = true

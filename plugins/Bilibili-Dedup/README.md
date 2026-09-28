@@ -3,7 +3,7 @@
 > B 站去广告 + 漫画净化 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block, comics cleanup and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.14** · 15 参数 / 5 Rule / 24 Rewrite / 11 Script
+**v7.15** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script
 
 | | 中文 | English |
 |---|---|---|
@@ -98,12 +98,13 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认 |
 
-### 漫画 · Comics
-`mangaAD` — `manga.bilibili.com` 推荐流、活动入口、促销接口、搜索配置等。
+### 规则设计约定
 
-> ⚠️ 该开关**只控制漫画脚本**（`[Script]` 段）。`[Rewrite]` 段的 9 条漫画规则
-> **无条件生效** —— Loon 官方手册中 `enable=` 仅记载于 `[Script]`，`[Rewrite]` 不支持。
-> 若要彻底关闭，只能注释掉那 9 条规则。
+| 约定 | 说明 |
+|---|---|
+| `[Rule]` 层 REJECT 的域名 | 走 DNS 拦截，**不进 `[MITM]`** |
+| `[Rewrite]` 规则 | **无条件生效** —— Loon 手册中 `enable=` 仅记载于 `[Script]` |
+| URL 正则 | 只写实际使用的域名，不留 `ap[ip]` 这类历史变体分支 |
 
 ### kokoryh 脚本 · kokoryh scripts
 
