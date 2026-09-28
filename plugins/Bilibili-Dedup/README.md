@@ -8,7 +8,8 @@
 | | 中文 | English |
 |---|---|---|
 | 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
-| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像），**零外部依赖** | all 5 self-hosted, zero external deps |
+| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像） | all 5 self-hosted |
+| 外部依赖 | 脚本与图标均自托管；**空降助手运行时另需两个外部服务**，见[第七章](#七空降助手机制--sponsorblock-mechanism) | scripts & icons self-hosted; SponsorBlock still calls two external services |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
@@ -127,7 +128,7 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
-| `sponsorBlock` | 开 | 空降助手（跳过视频内插广告） |
+| `sponsorBlock` | 开 | 空降助手（自动跳过视频内插广告），依赖两个外部服务，见[第七章](#七空降助手机制--sponsorblock-mechanism) |
 | `optimizeRequest` | 开 | 优化评论区加载 |
 | `purifyComment` | 开 | 移除评论区置顶商品广告 |
 | `displayUpList` | `show` | 最常访问：`show`/`hide`/`auto` |
@@ -163,6 +164,16 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 > 另：App 对空间页会员标**走文字渲染**（`text` + `bg_color`），
 > 抓包里一次 `/bfs/vip/` 图片请求都不发，故 `image` 留空即可。
 
+**空降助手**结论来自一次完整抓包（164 条，含自动跳过全过程）：
+
+| 观察项 | 抓包证据 |
+|---|---|
+| API 返回真实数据 | `bsbsb.top` 返 `segment:[118.933,157.766]`、`videoDuration:384.986` |
+| chronos 已被改写 | `ViewProgress` 响应内 `file` 指向 `raw.githubusercontent.com/kokoryh/chronos/…`，非 `hdslb.com` |
+| 原生路径被旁路 | `ObtainChronosPackage` 仍请求，但其 md5 不在脚本映射表内，未被采用 |
+| 自动跳转时刻 | 用户实测：播放至 2:00 自动跳至 2:38，与 `segment` 端点吻合 |
+| 撤销按钮 | 用户实测：播放器左下弹出粉色「撤销空降」，与 chronos 包 `AirborneToast` 的 `fillColor=BILI_PINK` 一致 |
+
 ---
 
 ## 六、上游脚本镜像 · Upstream Script Mirror
@@ -196,9 +207,12 @@ plugins/Bilibili-Dedup/
 三个上游**脚本**均**逐字节原样镜像**，未修改任何逻辑。版本固定在 BiliUniverse `v0.6.24`，
 其余取自 kokoryh 提交 `master` 当时的快照。图标是唯一做过尺寸压缩的文件。
 
-> `.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，
-> 清单内已无任何指向 kokoryh / BiliUniverse 的可拉取地址。
+> `.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，清单层已无指向
+> kokoryh / BiliUniverse 的可拉取地址。
 > `MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源，运行时不会被读取。
+>
+> ⚠️ **但脚本内部仍有硬编码的运行时依赖**，清单层扫不出来：`sponsorBlock` 功能会去拉
+> `bsbsb.top` 与 `kokoryh/chronos`，详见[第七章](#七空降助手机制--sponsorblock-mechanism)。
 
 ### 校验 · Verification
 
@@ -222,6 +236,75 @@ for k,v in m.items():
 > B 站去广告逻辑依赖 B 站接口，上游接口一变即失配。
 > 上游发布新版本时，改 `MANIFEST.json` 里的 `source`、替换文件、重算 SHA256。
 > Ad-block logic tracks Bilibili's API and breaks when upstream changes.
+
+---
+
+## 七、空降助手机制 · SponsorBlock Mechanism
+
+开关 `sponsorBlock`。**到广告起点后 2 秒自动跳到广告终点**，播放器左下角弹出
+「撤销空降」按钮，5 秒后自动消失。下方为抓包逆向所得，非官方文档。
+
+Automatically seeks past in-video ads ~2s in, offering a 5-second "撤销空降" undo.
+
+### 完整链路
+
+```
+① protobuf.request.js  Pt()
+   GET https://bsbsb.top/api/skipSegments?videoID=<bvid>&cid=<cid>&category=sponsor
+   ← 广告时间段在这里（第三方服务，非 B 站接口）
+   tn() 过滤：actionType=="skip" 且 segment 时长 ≥ 8 秒
+
+② protobuf.request.js  nn()
+   往弹幕流注入一条：
+     content = "空指部已就位"        ← 触发钥匙
+     progress = 广告起点×1000 + 2000
+     action   = airborne:<广告终点×1000>
+
+③ protobuf.response.js  ii()   （仅 ViewProgress 端点）
+   改写响应里的 chronos 字段：
+     file → raw.githubusercontent.com/kokoryh/chronos/.../<md5>.zip
+     sign → 清空
+
+④ App 加载该 chronos 包（弹幕焰火引擎），到点识别 content 匹配
+   → 自动 seekTo(广告终点) + 弹出「撤销空降」
+```
+
+**两个脚本缺一不可**：② 造弹幕，③ 换引擎。只有 ② 会得到一条需要手点的弹幕；
+只有 ③ 则 App 不认识 `airborne:` 动作。
+
+### 撤销按钮的两种触发
+
+| 触发 | 撤销行为 |
+|---|---|
+| 自动（弹幕到点） | `seekTo(广告起点+1秒)` |
+| 手动点弹幕 | `seekTo(点击那一刻)` |
+
+### 三个硬编码阈值
+
+| 值 | 位置 | 含义 |
+|---|---|---|
+| `≥ 8` 秒 | `tn()` | 短于 8 秒的广告不跳 |
+| `+ 2000` ms | `nn()` | 弹幕在广告开始后 2 秒出现 |
+| `5` 秒 | chronos 包内 | 撤销按钮停留时长 |
+
+均写死在脚本里，**参数无法调节**。`sponsorBlock` 只控制 `.lpx` 的 `enable=`，
+脚本内部并不读这个值。
+
+### 两个外部依赖
+
+| 依赖 | 地址 | 状态 |
+|---|---|---|
+| 广告时间数据库 | `bsbsb.top`（SponsorBlock 协议分支，Cloudflare） | 活；**个人第三方服务，非 B 站接口** |
+| chronos 引擎包 | `kokoryh/chronos` `master` 分支 | 活；最新包 2025-05-30，已 8 个月未更新 |
+
+> 这两个是**脚本内部硬编码**的，`[Script]` 的 `script-path` 管不到，
+> 所以[第六章](#六上游脚本镜像--upstream-script-mirror)的镜像覆盖不到它们。
+>
+> 失效表现：广告照播，**无任何提示**（脚本内 catch 后静默返回空列表）。
+> 排查时把 `logLevel` 调到 `debug` 可见。
+>
+> 关闭本功能可避开这两个依赖：`sponsorBlock` 关掉后 `enable=` 会跳过规则，
+> 两个脚本都不执行。
 
 ---
 
