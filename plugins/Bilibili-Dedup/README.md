@@ -3,7 +3,7 @@
 > B 站去广告 + 漫画净化 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block, comics cleanup and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.12** · 32 参数 / 5 Rule / 29 Rewrite / 11 Script
+**v7.13** · 15 参数 / 5 Rule / 29 Rewrite / 11 Script
 
 | | 中文 | English |
 |---|---|---|
@@ -98,7 +98,10 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认 |
 
-### 其他 · Other
+### 漫画 · Comics
+`mangaAD` — `manga.bilibili.com` 推荐流、热搜、促销弹窗等。
+
+### kokoryh 脚本 · kokoryh scripts
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
@@ -106,8 +109,8 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | `optimizeRequest` | 开 | 优化评论区加载 |
 | `purifyComment` | 开 | 移除评论区置顶商品广告 |
 | `displayUpList` | `show` | 最常访问：`show`/`hide`/`auto` |
-| `mangaAD` | 开 | 漫画去广告 |
-| `logLevel` / `LogLevel` | `off` / `WARN` | 两套脚本各自的日志等级 |
+| `logLevel` | `off` | kokoryh 脚本日志 |
+| `LogLevel` | `WARN` | BiliUniverse 脚本日志 |
 
 > 界面（顶栏/标签页/底栏）由 [Bilibili-UI](../Bilibili-UI/) 负责，本插件不控制。
 
