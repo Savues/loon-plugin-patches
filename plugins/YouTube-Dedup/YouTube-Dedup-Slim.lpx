@@ -37,6 +37,10 @@ hostname=youtubei.googleapis.com
 #     "Response Script ... 始终按照原配置顺序选择第一条最终条件为 true 的规则"
 #     "Request 和 Response 分别最多选择一条"
 #   链式执行只存在于 [Rewrite]，脚本从来没有这个特性。
+#
+#   附带好处：本版三条 http-response 规则按 URL 完全互斥（browse|next / 其余端点 / config），
+#   用三份抓包 16 条真实 URL 核对重叠为 0。所以无论 Loon 走「第一条命中」还是「全部执行」，
+#   结果都一样 —— 旧语法页面对此没有明文，v5.4 不把正确性押在那上面。
 #   搜索引擎里说「多条脚本按顺序依次执行」的资料，是把 Rewrite 的语义错套到了 Script 上。
 #
 #   v5.2 把「清除游戏大本营」排在去广告规则后面，两条正则都匹配 browse|next，

@@ -24,7 +24,23 @@
 搜索引擎上「Loon 多条脚本按顺序依次执行」的说法，是把 Rewrite 的语义错套到了 Script 上。
 
 v5.2 把「清除游戏大本营」排在去广告规则**后面**，两条正则都匹配 `browse|next` → 后一条从未执行。
-本版把它提到**最前**，并从上游规则里移除 `browse|next`。改完每条端点只命中一条规则，已逐条核对。
+本版把它提到**最前**，并从上游规则里移除 `browse|next`。
+
+### 一个附带的好处：这一版不再依赖「到底是哪种语义」
+
+新版 Script 文档写死了第一条命中，但**旧语法页面对此没有明文**（只对 `network-changed` 写过
+「有多个这种类型的脚本，只会调用配置文件中的第一个」）。而 v5.4 的三条 `http-response` 规则
+按 URL 完全互斥：
+
+| 端点 | 规则 | 脚本 |
+|---|---|---|
+| `browse` `next` | 1 | `feed-gaming.js`（自研） |
+| `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch` | 2 | 上游 `youtube.response.js` |
+| `config` | 3 | `config-onesie.js`（自研） |
+
+用三份真机抓包共 16 条真实 URL 逐条核对：**重叠 0**。
+所以无论 Loon 走「第一条命中」还是「全部执行」，v5.4 的结果完全一样 ——
+不再把正确性押在一条只有新版文档写死的语义上。
 
 ### 代价（如实说明）
 
