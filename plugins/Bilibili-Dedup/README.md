@@ -8,11 +8,21 @@
 | | 中文 | English |
 |---|---|---|
 | 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
-| 脚本 | 5 个全部由本仓库托管，**零外部依赖** | all 5 self-hosted, zero external deps |
+| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像），**零外部依赖** | all 5 self-hosted, zero external deps |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
 > 本文只描述**当前状态**。Why things are the way they are → 迭代记录。
+
+### v7.15 变更 · What changed in v7.15
+
+| | |
+|---|---|
+| 上游脚本镜像 | 3 个上游 JS 收进 [`upstream/`](upstream/)，`script-path` 全部改指本仓库 → **断掉对 kokoryh / BiliUniverse 仓库可用性的隐性依赖** |
+| 描述修正 | `#!desc` 版本号 v6.0 → v7.15；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明；修正叠字 |
+
+> 脚本内容**逐字节未改**，故不另升版本号，与 [上游原版](upstream/MANIFEST.json) 比对一致。
+> 变的是**供给方**，不是功能。细节见[第六章](#六上游脚本镜像--upstream-script-mirror)。
 
 ---
 
@@ -201,8 +211,10 @@ for k,v in m.items():
 
 ## 致谢 · Credits
 
-未修改上游脚本任何逻辑，仅重组清单条目与参数声明。
-No upstream logic modified — only manifest entries and parameter declarations.
+上游脚本**逐字节原样镜像**至 [`upstream/`](upstream/)，未修改任何逻辑；
+仅重组清单条目与参数声明。清单中另有两个本仓库自撰脚本（`vip-theme.js` / `vip-space.js`）。
+Upstream scripts are mirrored **byte-for-byte** — no logic modified, only manifest
+entries and parameter declarations reorganized. Two in-house scripts added.
 
 | 作者 | 项目 |
 |---|---|
