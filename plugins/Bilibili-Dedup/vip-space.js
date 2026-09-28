@@ -24,9 +24,6 @@ const ME = Number(A.myMid) || 0;
 const ALL = !!A.vipAllUsers;
 // 彩蛋二：点名，只让指定 UID 的主页生效。填 0 表示不点名。
 const TARGET = Number(A.vipTargetMid) || 0;
-// 认证图标。默认用 B 站官方地址：实测自定义域名（raw.githubusercontent）
-// 下 App 不画认证角标，疑似防盗链。可用 vipVerifyIcon 参数覆盖。
-const OFFICIAL_VERIFY_ICON = "https://i0.hdslb.com/bfs/activity-plat/static/20230828/e3b8ebec8e86f060b930a2c0536bb88b/72wejSxl9Z.png";
 
 const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets";
 const THEMES = {
@@ -120,7 +117,11 @@ try {
       d.card.vip = build(d.card.vip || {});
     }
 
-    // 彩蛋三：伪装「已认证」标识。type:0 才显示 icon，-1 是无认证。
+    // 彩蛋三：伪装「已认证」标识。
+    // 注意：**不写 icon**。抓包实证 App 从不请求 official_verify.icon
+    // （自定义域名和 i0.hdslb.com 都零请求），角标是本地按状态渲染的内置图标，
+    // 改 JSON 改不动。type/title/splice_title 仍有效——认证文字会显示，
+    // 只是头像右下角的角标不会出现。
     if (A.vipFakeVerify && d.card && typeof d.card === "object") {
       const ov = d.card.official_verify;
       d.card.official_verify = Object.assign({}, ov || {}, {
@@ -129,7 +130,6 @@ try {
         title: A.vipVerifyTitle || "认证用户",
         desc: A.vipVerifyTitle || "认证用户",
         splice_title: A.vipVerifyTitle ? "bilibili UP主认证：" + A.vipVerifyTitle : "",
-        icon: A.vipVerifyIcon || OFFICIAL_VERIFY_ICON
       });
     }
 
