@@ -52,7 +52,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 ^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
-^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AAAAACEaHeaQnOe0ouinhumikeOAgeeVquWJp+aIlnVw5Li7KAE=" mock-data-is-base64=true
+^https?:\/\/app\.bili(bili\.com|api\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAAAAfiwgA1J26agL/AwAAAAAAAAAAAA==" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ mock-response-body data-type=text data="AAAAAAA=" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)|view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ response-header-add grpc-status 0
 ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
@@ -69,7 +69,6 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Script]
 # ==== 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）====
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock-defaultwords.js, requires-body=1, binary-body-mode=1, timeout=10, tag=去搜索框滚动推荐
 http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-space.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], enable={localVIP}, tag=会员伪装

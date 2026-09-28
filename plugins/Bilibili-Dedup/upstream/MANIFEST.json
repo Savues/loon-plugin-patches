@@ -135,12 +135,5 @@
     "bytes": 817,
     "sha256": "75ef8fedba5086566c0a9978fd13adeec8a5bbbccedba4d846a17b22d914a70a",
     "authored": "2026-09-28"
-  },
-  "upstream/adblock-defaultwords.js": {
-    "source": "本仓库自撰",
-    "note": "DefaultWords 直接返回空 gRPC 帧（10 行）。响应整体只服务滚动词，清空即达目的；避免在 Loon 内解 gzip",
-    "bytes": 755,
-    "sha256": "6a7f583d8a1865de9224acafb0be4d6b2cc23fa725e20ff3c3ebf437e60dd645",
-    "authored": "2026-09-28"
   }
 }
