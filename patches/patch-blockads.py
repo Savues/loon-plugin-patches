@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-patch-blockads.py —— 把 blockAds.plugin 的【B 站部分】整体退场
+patch-blockads.py —— 把 blockAds.plugin 的【B 站部分】和【YouTube 部分】整体退场
 
 为什么需要
 ----------
@@ -18,14 +18,31 @@ B 站部分的三个问题
 3. **跨插件冲突**：show/tab/v2、account/mine、feed/index 三个端点与
    Biliverse Enhanced / ADBlock 直接打架，后执行者覆盖前者
 
+YouTube 部分：一条规则就够了，但后果和 B 站一样致命
+---------------------------------------------------
+Loon 的 [Script] 是 **first-match-wins**：同一个 URL 只执行第一条完整命中的规则，
+后一条永不执行（官方 script_v2："始终按照原配置顺序选择第一条最终条件为 true 的规则"）。
+blockAds 的这条
+
+    http-response ^https:\\/\\/youtubei\\.googleapis\\.com\\/youtubei\\/v1\\/(browse|next|player|...)  script-path=...youtube.response.js
+
+与本仓库 YouTube-Dedup 的规则命中**同一批 URL**，谁排在前面谁赢。
+实测 2026-09-29：blockAds 在前 → YouTube-Dedup 的「清除游戏大本营」规则
+**一次都没执行过**，用户连着五轮看到游戏大本营删不掉；
+而 blockAds 自己那份脚本与上游同源、去广告照常工作，所以「其他功能都正常」，极具迷惑性。
+
 本补丁
 ------
-**把 blockAds 的 B 站相关规则整体注释掉**，B 站能力由独立插件承担：
+**把 blockAds 的 B 站 + YouTube 相关规则整体注释掉**，这两块能力改由独立插件承担：
 
-  [Rewrite]  23 条  → 注释
-  [Script]    8 条  → 注释
-  [Rule]      5 条  → 注释
-  [MITM]      6 个域名 → 移除
+  B 站：  [Rewrite] 23 条 / [Script] 8 条 / [Rule] 5 条 / [MITM] 6 个域名
+  YouTube：
+    [SCRIPT]  1 条（youtube.response.js，与 YouTube-Dedup 抢同一批 URL）→ 注释
+    [REWRITE] 1 条（rr*.googlevideo.com/initplayback? reject-dict，无 enable 保护，
+                   会打断 UMP 与字幕翻译）→ 注释
+    [Argument] 1 个（youtube_enable 随之失活）→ 删除
+
+  保留：[Rule] DOMAIN, ads.youtube.com, REJECT —— 纯域名拦截，不碰脚本，无冲突。
 
 其余 700+ App 的规则逐字节保持原样。
 
@@ -43,8 +60,15 @@ UA = 'Loon/765 CFNetwork/1568.0.3 Darwin/23.5.0'
 # 注意：B 站漫画走的是 hdslb.com 与 manhuaren.com，不含 bilibili.com，
 # 只匹配 bilibili 系域名会漏掉这 6 条规则。
 BILI = re.compile(
-    r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com'
+    r'(bilibili\.com|biliapi\.net|biliapi\.com|bigame\.com'
     r'|hdslb\.com|manhuaren)', re.I)
+
+# YouTube：只要一条 http-response 规则就足以和 YouTube-Dedup 抢同一批 URL
+YT = re.compile(r'(youtubei\.googleapis\.com|youtube\.com|googlevideo\.com'
+                r'|ytimg\.com|ggpht\.com|youtu\.be)', re.I)
+# 纯域名拦截不碰脚本、没有冲突，留着
+YT_KEEP = re.compile(r'^\s*DOMAIN\s*,\s*ads\.youtube\.com\s*,', re.I)
+
 SKIP_SECT = {'ARGUMENT', 'GENERAL', 'MITM'}   # MITM 由 strip_mitm 单独处理
 
 
@@ -54,6 +78,11 @@ def norm(t):
 
 def is_bili(line):
     return bool(BILI.search(norm(line)))
+
+
+def is_yt_rule(line):
+    """该行是否属于要退场的 YouTube 规则（保留 ads.youtube.com 的纯域名拦截）"""
+    return bool(YT.search(norm(line))) and not YT_KEEP.match(line.strip())
 
 
 def fetch(url):
@@ -69,20 +98,41 @@ def fetch(url):
 
 
 def comment_out_rules(text):
-    """在 [Rewrite] / [Script] / [Rule] 段内，注释掉含 B 站域名的规则行"""
+    """在 [Rewrite] / [Script] / [Rule] 段内，注释掉含 B 站或 YouTube 域名的规则行"""
     lines = text.splitlines()
-    out, sec, hit = [], None, []
+    out, sec, hit, yhit = [], None, [], []
     for ln in lines:
         t = ln.strip()
         m = re.match(r'^\[([A-Za-z ]+)\]', t)
         if m:
             sec = m.group(1).upper()
-        if sec not in SKIP_SECT and t and not t.startswith('#') and is_bili(t):
-            out.append('# [bilibili-removed] ' + ln)
-            hit.append((sec, norm(t)[:70]))
-        else:
-            out.append(ln)
-    return '\n'.join(out) + ('\n' if text.endswith('\n') else ''), hit
+        if sec not in SKIP_SECT and t and not t.startswith('#'):
+            if is_bili(t):
+                out.append('# [bilibili-removed] ' + ln)
+                hit.append((sec, norm(t)[:70]))
+                continue
+            if is_yt_rule(t):
+                out.append('# [youtube-removed] ' + ln)
+                yhit.append((sec, norm(t)[:70]))
+                continue
+        out.append(ln)
+    return '\n'.join(out) + ('\n' if text.endswith('\n') else ''), hit, yhit
+
+
+def verify_no_yt_rules(text):
+    """自检：产物里不得残留任何未注释的 YouTube 脚本/复写规则。
+    上游哪天改了写法，这里会直接报错，绝不会把坏产物推上去。"""
+    bad, sec = [], None
+    for ln in text.splitlines():
+        t = ln.strip()
+        m = re.match(r'^\[([A-Za-z ]+)\]', t)
+        if m:
+            sec = m.group(1).upper()
+        if sec in ('SCRIPT', 'REWRITE') and t and not t.startswith('#') and is_yt_rule(t):
+            bad.append(t[:100])
+    if bad:
+        raise SystemExit('自检失败：产物里仍有未退场的 YouTube 规则\n  ' + '\n  '.join(bad))
+    return True
 
 
 def drop_dead_params(text, names):
@@ -137,21 +187,33 @@ def main():
     before = s
     print(f'输入: {"本地" if src else "上游"}  {len(before.encode())} B')
 
-    s, hits = comment_out_rules(s)
+    s, hits, yhits = comment_out_rules(s)
     by = {}
     for sec, t in hits:
         by[sec] = by.get(sec, 0) + 1
-    print('  已注释规则: ' + (', '.join(f'{k} {v} 条' for k, v in sorted(by.items())) or '无'))
+    print('  已注释 B 站规则: ' + (', '.join(f'{k} {v} 条' for k, v in sorted(by.items())) or '无'))
+
+    yby = {}
+    for sec, t in yhits:
+        yby[sec] = yby.get(sec, 0) + 1
+    print('  已注释 YouTube 规则: ' + (', '.join(f'{k} {v} 条' for k, v in sorted(yby.items())) or '无'))
+    for sec, t in yhits:
+        print(f'      [{sec}] {t[:90]}')
 
     removed = []
     if not a.keep_mitm:
         s, removed = strip_mitm(s)
     print(f'  已移除 MITM 域名: {len(removed)} 个' + (f'  {removed}' if removed else ''))
 
-    # P003 删除因退场而失活的参数
-    dead = ['bilimanhua_enable', 'sponsorBlock', 'logLevel', 'flightradar24_enable']
+    # 删除因退场而失活的参数
+    dead = ['bilimanhua_enable', 'sponsorBlock', 'logLevel', 'flightradar24_enable',
+            'youtube_enable']
     s, dn = drop_dead_params(s, dead)
     print(f'  已删除失活参数: {dn}/{len(dead)}  {dead[:dn]}')
+
+    verify_no_yt_rules(s)
+    print('  自检: 产物中无未退场的 YouTube 脚本/复写规则 ✔')
+
     print(f'输出: {len(s.encode())} B  ({len(s.splitlines())-len(before.splitlines()):+d} 行)')
 
     if a.dry_run:

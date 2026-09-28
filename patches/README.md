@@ -1,12 +1,43 @@
-# blockAds 退场补丁 · blockAds Bilibili-Removal Patch
+# blockAds 退场补丁 · blockAds Bilibili + YouTube Removal Patch
 
-> 把合集里的 B 站部分整体退场，其余 700+ App 逐字节不动。
-> Removes the Bilibili portion from the collection; other 700+ apps stay byte-for-byte intact.
+> 把合集里的 **B 站**与 **YouTube** 部分整体退场，其余 700+ App 逐字节不动。
+> Removes the Bilibili and YouTube portions from the collection; other 700+ apps stay byte-for-byte intact.
 
 `blockAds.plugin`（[fmz200/wool_scripts](https://github.com/fmz200/wool_scripts)，730+ App）
 内置了 kokoryh 的完整 B 站规则集，与本仓库的 [Bilibili-Dedup](../plugins/Bilibili-Dedup/README.md) 功能重叠。
 
 本补丁把合集里的 **B 站部分整体退场**，其余 700+ App 逐字节不动。
+
+---
+
+## 为什么 YouTube 也要退场
+
+合集里这条规则：
+
+```
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)
+    script-path=.../Maasea/sgmodule/.../youtube.response.js  enable={youtube_enable}
+```
+
+与本仓库 **YouTube-Dedup** 的规则命中**同一批 URL**。而 Loon 的 `[Script]` 是
+**first-match-wins**（官方 script_v2：「始终按照原配置顺序选择第一条最终条件为 true 的规则」），
+后一条永不执行。
+
+2026-09-29 实测踩到的：合集排在前面 → YouTube-Dedup 的「清除游戏大本营」规则
+**一次都没执行过**，用户连着五轮看到游戏大本营删不掉；
+而合集自己那份脚本与上游同源，去广告照常工作，所以「其他功能都正常」，极具迷惑性。
+
+所以本补丁把 YouTube 部分一并退场，让 YouTube 能力**只由 YouTube-Dedup 一个插件承担**：
+
+| 行 | 处理 |
+|---|---|
+| `[SCRIPT]` `youtube.response.js`（与 YouTube-Dedup 抢同一批 URL） | 注释 |
+| `[REWRITE]` `rr*.googlevideo.com/initplayback? reject-dict`（无 `enable` 保护，打断 UMP 与字幕翻译） | 注释 |
+| `[Argument]` `youtube_enable`（随之失活） | 删除 |
+| `[Rule]` `DOMAIN, ads.youtube.com, REJECT` | **保留**（纯域名拦截，不碰脚本） |
+
+**自检**：补丁器打完会再扫一遍产物，只要还剩任何未注释的 YouTube 脚本/复写规则就
+**直接报错退出**，自动同步的 Action 随之变红 —— 不会把坏产物推上去。
 
 ---
 

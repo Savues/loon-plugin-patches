@@ -5,7 +5,26 @@
 > Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
 > v5.4 fixes why v5.2 never actually ran.
 
-**v5.5.0** · 3 个变体 · 3 variants
+**v5.6.0** · 3 个变体 · 3 variants
+
+---
+
+## ⚠️ 如果「游戏大本营」怎么都删不掉
+
+**多半是 `blockAds` 合集的 YouTube 规则排在了本插件前面。**
+
+合集里有一条同源的 `http-response`，命中 `browse|next|player|...` —— 和本插件完全同一批 URL。
+Loon 的 `[Script]` 是 **first-match-wins**，谁在前谁赢，后一条永不执行。
+合集赢的时候：游戏大本营删不掉，但去广告照常工作（合集自己在做），所以「其他功能都正常」，
+极具迷惑性 —— 2026-09-29 就这么排查了五轮。
+
+**已经并进仓库了。** 从 v5.6 起，[BlockAds-Patched](../BlockAds-Patched/)
+会把合集里的 YouTube 部分一并退场（脚本规则 + `initplayback` 拦截 + 死开关 `youtube_enable`），
+由 GitHub Actions 每 6 小时自动同步重施。改用那个订阅地址即可，
+**不用再手动去合集里关开关**。
+
+补丁器带自检：产物里只要还剩未注释的 YouTube 脚本/复写规则就直接报错退出，
+自动同步的 Action 随之变红，不会把坏产物推上去。
 
 ---
 
