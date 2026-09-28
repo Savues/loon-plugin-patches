@@ -128,5 +128,11 @@
     "bytes": 2664,
     "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
     "mirrored_at": "2026-09-28"
+  },
+  "upstream/adblock-hotsearch.js": {
+    "source": "本仓库自撰（bundle 只处理 trending，recommend 需后处理）",
+    "bytes": 673,
+    "sha256": "b85a6a7b4b177ece83d7cf7dccc45303f77c3e8edd01658717f322875514126b",
+    "authored": "2026-09-28"
   }
 }
