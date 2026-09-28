@@ -10,5 +10,5 @@
 ca-backup*
 loon-ca.crt
 
-# GeoFix 生成物
+# GeoFix 生成物（dist/ 里的成品要入库，给用户直接下载）
 plugins/GeoFix/companion/shortcut/GeoFix位置.build.shortcut

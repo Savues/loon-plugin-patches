@@ -32,7 +32,7 @@
         "CustomOutputName": "ParseWorker",
         "WFTextActionText": {
           "Value": {
-            "string": "geofix-parse.demo.workers.dev",
+            "string": "wloc-spoofer.wloc.workers.dev",
             "attachmentsByRange": {}
           },
           "WFSerializationType": "WFTextTokenString"
@@ -213,7 +213,7 @@
       "params": {
         "WFURL": {
           "Value": {
-            "string": "https://gs-loc.apple.com/geo-settings/save?lat=￼&lon=￼&acc=30",
+            "string": "https://gs-loc.apple.com/geo-settings/save?lat=￼&lon=￼&acc=25",
             "attachmentsByRange": {
               "{47, 1}": {
                 "OutputUUID": "2af7f406-aee5-42b8-aef8-dc3427275b7c",
