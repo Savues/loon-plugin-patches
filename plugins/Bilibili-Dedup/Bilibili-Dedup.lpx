@@ -12,7 +12,28 @@
 
 [Argument]
 # ---- BiliUniverse 开关（默认全开去广告）----
-Splash = switch,true,tag=[开屏] 去除广告
+Splash = switch,false,tag=[开屏] 保留广告,desc=true=保留原样；false=去除（默认）
+# ---- BiliUniverse 开关 ----
+# ⚠️ 语义注意：这些参数是「是否**保留**」，true=保留不去除，false=去除。
+# 全部默认 false（=全部去除）。改前仅声明 Splash 且写成 true，等于默认不去除，
+# 导致开屏/热搜/动态/番剧/播放页/评论广告全部失效。以下为补全的 19 项。
+Search.AD = switch,false,tag=[搜索] 保留广告,desc=true=保留；false=去除（默认）
+Search.HotSearch = switch,false,tag=[搜索] 保留热搜榜,desc=true=保留热搜；false=去除热搜，只留历史与推荐（默认）
+PGC.AD = switch,false,tag=[番剧] 保留广告,desc=true=保留；false=去除（默认）
+Xlive.AD = switch,false,tag=[直播] 保留广告,desc=true=保留；false=去除（默认）
+View.AD = switch,false,tag=[播放页] 保留广告,desc=true=保留；false=去除（默认）
+Reply.AD = switch,false,tag=[评论] 保留广告,desc=true=保留；false=去除（默认）
+Feed.AD = switch,false,tag=[首页] 保留广告,desc=true=保留；false=去除（默认）
+Feed.Activity = switch,true,tag=[首页] 保留活动入口,desc=true=保留；false=去除（默认）
+Feed.Vertical = switch,true,tag=[首页] 保留竖排短视频,desc=true=保留；false=去除（默认）
+Feed.BlockUpLiveList = switch,false,tag=[首页] 保留直播列表,desc=true=保留；false=去除（默认，上游默认保留）
+Feed.Story = switch,false,tag=[首页] 保留 Story 流,desc=true=保留；false=去除（默认）
+DM.Command = switch,true,tag=[弹幕] 保留指令弹幕,desc=true=保留；false=去除（默认）
+DM.Colorful = switch,true,tag=[弹幕] 保留彩色弹幕,desc=true=保留；false=去除（默认）
+Dynamic.HotTopics = switch,false,tag=[动态] 保留热门话题,desc=true=保留；false=去除（默认）
+Dynamic.MostVisited = switch,true,tag=[动态] 保留常访问,desc=true=保留；false=去除（默认）
+Dynamic.MostVisitedLiveOnly = switch,true,tag=[动态] 仅直播时常访,desc=true=保留；false=去除（默认）
+Dynamic.AdCard = switch,false,tag=[动态] 保留广告卡,desc=true=保留；false=去除（默认）
 localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
 vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）；十年/年度/百年带牌子图；绿鲤鱼无公开图走文字渲染
 vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
