@@ -28,6 +28,7 @@ const EXPECTED_REWRITE_DELTA = [
   "pgc\\/page\\/channel",       // pgc/page 系列出现过 4 种形态，独独没有 channel
   "show\\/skin",               // x/resource/show/* 只出现过 tab/bubble 与 tab/v2
   "api\\.vc\\.bilibili\\.com", // api.vc 上只出现过 x/im/* 与 link_setting/*（3 条）
+  "Teenagers",                // lab7 加：mock 补 app.bili*。实测 grpc 与 app 各占一半，app 那半从未被 mock
   "grpc-status 0",             // lab6：mock 删掉后，header 规则里对应的 TFInfo/EndPage 分支也一并摘除
   "result.modules",            // lab6 加：番剧首页 /pgc/page/ 此前零覆盖，实测漏 1 个 banner 广告。
                                // 不用 bundle 是因为它内部 switch(gC.pathname) 只认 bangumi / cinema-tab
@@ -46,8 +47,24 @@ realDelta.forEach((l) => console.log("  ✗ 未登记: " + l.slice(0, 96)));
 if (realDelta.length) process.exitCode = 1;
 const uo = sec(OLD, "Rule"), un = sec(NEW, "Rule");
 console.log("Rule     " + (JSON.stringify(uo) === JSON.stringify(un) ? "逐条一致 ✓" : "不一致 ✗"));
-const mo = sec(OLD, "Mitm"), mn = sec(NEW, "Mitm");
-console.log("Mitm     " + (JSON.stringify(mo) === JSON.stringify(mn) ? "逐条一致 ✓" : "不一致 ✗"));
+// [Mitm] 同样走白名单：删域名是有意为之（零覆盖 = 白解密），但必须登记
+// [Mitm] 同样走白名单：删域名是有意为之（零覆盖 = 白解密），但必须登记
+const EXPECTED_MITM_DELTA = [
+  // lab7：摘掉 api.vc.bilibili.com（lab6 删掉那 3 条 api.vc 规则后它零覆盖）
+  "hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com",
+];
+const allowedMitm = (l) => l.includes("api.vc.bilibili.com") || EXPECTED_MITM_DELTA.some((k) => l.includes(k));
+const mo = sec(OLD, "Mitm").filter((l) => l.startsWith("hostname="));
+const mn = sec(NEW, "Mitm").filter((l) => l.startsWith("hostname="));
+const mitmDropped = mo.filter((l) => !mn.includes(l));
+const mitmAdded = mn.filter((l) => !mo.includes(l));
+const mitmBad = [...mitmDropped, ...mitmAdded].filter((l) => !allowedMitm(l));
+console.log("Mitm     " + (mitmBad.length === 0
+  ? "一致 ✓" + (mitmDropped.length || mitmAdded.length ? "（含 " + (mitmDropped.length + mitmAdded.length) + " 条已登记的改动）" : "")
+  : "有未登记的差异 ✗"));
+mitmDropped.forEach((l) => console.log("  " + (allowedMitm(l) ? "已登记-删: " : "✗ 未登记-删: ") + l.slice(0, 110)));
+mitmAdded.forEach((l) => console.log("  " + (allowedMitm(l) ? "已登记-增: " : "✗ 未登记-增: ") + l.slice(0, 110)));
+if (mitmBad.length) process.exitCode = 1;
 const ao = sec(OLD, "Argument"), an = sec(NEW, "Argument");
 console.log("Argument " + ao.length + " -> " + an.length + " 项");
 

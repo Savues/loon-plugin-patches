@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab6
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab6 变更：新增 /pgc/page/ 番剧首页的 jq 去广告（此前完全无覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则（6 份抓包 4803 条响应 0 次触发）。lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab7
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab7 变更：Teenagers/ModeStatus 的 mock 补 app.bili*（实测 7 份抓包里 grpc 与 app 各占一半，app 那半从未被 mock）；[Mitm] 摘掉零覆盖的 api.vc.bilibili.com。lab6 变更：新增 /pgc/page/ 番剧首页的 jq 去广告（此前完全无覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则（6 份抓包 4803 条响应 0 次触发）。lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 05:50:00
+#!date=2026-09-29 06:20:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -45,7 +45,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 ^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
 ^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
-^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
+^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
 ^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAAAAfiwgA1J26agL/AwAAAAAAAAAAAA==" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
 ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
@@ -75,5 +75,7 @@ http-response ^https?:\/\/(api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|ci
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock-hotsearch.js, requires-body=1, timeout=10, tag=去除搜索推荐
 
 [Mitm]
-hostname=api.vc.bilibili.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com
+# 不变量：这里每个域名都要有 [Rewrite]/[Script] 规则作用于它，否则等于白解密一份 TLS。
+# api.vc.bilibili.com 已于 lab7 移出（那 3 条 reject-dict 规则在 lab6 随死规则一起删掉后零覆盖）。
+hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com
 h2 = true
