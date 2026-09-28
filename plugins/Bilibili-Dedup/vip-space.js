@@ -117,6 +117,19 @@ try {
       d.card.vip = build(d.card.vip || {});
     }
 
+    // 彩蛋三：伪装「已认证」标识。type:0 才显示 icon，-1 是无认证。
+    if (A.vipFakeVerify && d.card && typeof d.card === "object") {
+      const ov = d.card.official_verify;
+      d.card.official_verify = Object.assign({}, ov || {}, {
+        type: 0,
+        role: 7,
+        title: A.vipVerifyTitle || "认证用户",
+        desc: A.vipVerifyTitle || "认证用户",
+        splice_title: A.vipVerifyTitle ? "bilibili UP主认证：" + A.vipVerifyTitle : "",
+        icon: IMG + "/verify.png"
+      });
+    }
+
     $done({ body: JSON.stringify(j) });
   }
 } catch (e) {

@@ -128,5 +128,12 @@
     "bytes": 2664,
     "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
     "mirrored_at": "2026-09-28"
+  },
+  "vip-assets/verify.png": {
+    "source": "https://i0.hdslb.com/bfs/activity-plat/static/20230828/e3b8ebec8e86f060b930a2c0536bb88b/72wejSxl9Z.png",
+    "note": "B站官方认证标识（黄底闪电 54x54）",
+    "bytes": 510,
+    "sha256": "d2e71ebf14b7f7889b0eb63621d8a7d01190b4ee2639d1853a05ee18d38238a0",
+    "mirrored_at": "2026-09-28"
   }
 }
