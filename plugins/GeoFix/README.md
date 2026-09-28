@@ -66,6 +66,18 @@ servers — the plugin answers them locally.
 https://map.com
 ```
 
+**所有控制端点都统一在 `map.com`**（`gs-loc.apple.com` 是等价旧地址，两边都通）：
+
+| 地址 | 干什么 | 谁在用 |
+|---|---|---|
+| `https://map.com/` | 网页控制台 | 手动用、加书签 |
+| `https://map.com/?u=<链接>` | 控制台 + 自动解析填表 | 4 动作快捷指令 |
+| `https://map.com/geo-parse?u=<链接>` | 纯 JSON 解析，**不开网页** | 8 动作快捷指令 |
+| `https://map.com/geo-settings/save?lat=…&lon=…&acc=…` | 写入坐标 | 所有路径 |
+| `https://map.com/geo-settings/status` | 查状态 | 控制台 / 排查 |
+| `https://map.com/geo-settings/clear` | 恢复真实定位 | 控制台 |
+| `https://map.com/geo-route/save?payload=…` | 动态路线 | 手动 |
+
 浏览器直接打开就是一个控制界面，**由插件自己在本地返回**。
 加到主屏幕书签，以后一点就用。**不需要任何外部服务、不需要账号、不需要联网。**
 
@@ -185,7 +197,8 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 | `src/ui.html` | 控制页源码，改这里 | Page source |
 | `build_ui.py` | 把 `ui.html` 注入成 `geo-ui.js` | UI builder |
 | `smoke.test.mjs` | 28 个用例，Node 里模拟 Loon 运行时 | `node smoke.test.mjs` |
-| `parse.test.mjs` | 26 个用例，解析器 + SSRF 防护 + 短链判定 | `node parse.test.mjs` |
+| `parse.test.mjs` | 34 个用例，解析器 + SSRF 防护 + 脏输入 | `node parse.test.mjs` |
+| `manifest.test.mjs` | 32 个用例，清单规则的路由与安全 | `node manifest.test.mjs` |
 | `ui.test.mjs` | 22 个用例，哪些地址出页面、哪些放行 | `node ui.test.mjs` |
 | `UPSTREAM.md` | 出处与移植改动逐条对照 | Provenance & porting diff |
 | `companion/` | iOS 快捷指令 + 自建解析 Worker | iOS companion (not a Loon plugin part) |
