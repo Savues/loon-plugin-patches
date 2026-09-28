@@ -181,9 +181,12 @@ function doParse(u) {
       return r.json().then(function (j) { if (!r.ok || j.lat === undefined) throw new Error(j.error || "解析失败"); return j; });
     })
     .then(function (j) {
+      // 解析器会把清洗后的串回传（只发生清洗时才有），输入框改写成干净版本
+      if (j.input) el("link").value = j.input;
       el("lat").value = j.lat;
       el("lon").value = j.lon;
       var txt = "解析到 " + (j.name || "未命名") + " · 原始坐标系 " + j.originalSystem;
+      if (j.input) txt = "已忽略前导文字，只取 http 开头的部分\n" + txt;
       if (j.warnings && j.warnings.length) txt += " · " + j.warnings.join("；");
       w.textContent = txt;
       w.hidden = false;

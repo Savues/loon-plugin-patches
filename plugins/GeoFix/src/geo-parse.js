@@ -8,7 +8,7 @@
  * 端点： GET https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
  */
 (() => {
-  const VERSION = "1.0.0";
+  const VERSION = "1.4.0";
   const SIGNATURE = "geofix-local-parse";
   const MAX_INPUT = 4096;
   const MAX_REDIRECTS = 3;
@@ -21,7 +21,8 @@
 
   const requestUrl = (typeof $request !== "undefined" && $request.url) || "";
   const query = parseQuery(String(requestUrl).split("?")[1] || "");
-  const input = String(query.u || query.url || "").trim();
+  const rawInput = String(query.u || query.url || "").trim();
+  const input = extractUrl(rawInput);
 
   if (!input) { respond({ ok: false, error: "缺少参数 u" }, 422); return; }
   if (input.length > MAX_INPUT) { respond({ ok: false, error: "输入过长（上限 " + MAX_INPUT + " 字符）" }, 422); return; }
@@ -282,8 +283,24 @@
     try { return decodeURIComponent(String(v).replace(/\+/g, " ")); } catch (e) { return String(v); }
   }
   function fail(msg) { respond({ ok: false, error: msg, warnings }, 422); }
+  // input 字段：只有发生清洗时才带上，页面据此把输入框改写成干净版本
   function finish(payload, status) {
-    respond(Object.assign({ ok: true, signature: SIGNATURE, version: VERSION, checkedAt: Date.now() }, payload), status);
+    respond(Object.assign({ ok: true, signature: SIGNATURE, version: VERSION, checkedAt: Date.now() },
+                          input !== rawInput ? { input: input } : {}, payload), status);
+  }
+
+  // 地图 App 分享到快捷指令时，经常在链接前面粘一段地点/收藏夹名：
+  //   "日内瓦地图项目https://maps.apple.com/place?address=…"
+  // 只取从第一个 http 开始的部分，后面第一个空白也切掉（尾随文字同样会污染 query）。
+  function extractUrl(raw) {
+    const s = String(raw).trim();
+    if (/^https?:\/\//i.test(s) || /^-?\d/.test(s)) return s;
+    const m = s.match(/https?:\/\//i);
+    if (m) {
+      return s.slice(m.index).split(/[\s\u3000]+/)[0].replace(/[\uff0c\u3002\u3001,;\uff1b)\uff09\u3011\]\u300d]+\s*$/, "");
+    }
+    const c = s.match(/(-?\d+(?:\.\d+)?\s*[,，]\s*-?\d+(?:\.\d+)?)/);
+    return c ? c[1].replace(/[\s\u3000]/g, "") : s;
   }
   function respond(payload, status) {
     if (typeof $done === "function") {

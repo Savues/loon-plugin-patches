@@ -56,6 +56,29 @@ for (const [input, desc, eLat, eLon, eSys] of CASES) {
   console.log(`${ok ? '✔' : '✘'} [${r.status}] ${desc}\n     ${input}\n     → ${j.lat}, ${j.lon} (${j.originalSystem}) name=${JSON.stringify(j.name)}`);
 }
 
+console.log('\n─── 分享脏输入：前缀/尾随文字 ───');
+{
+  const L = 'https://maps.apple.com/place?address=%E6%B3%95%E5%9B%BD&coordinate=46.263615,2.178741&name=%E6%B3%95%E5%9B%BD';
+  const cases = [
+    ['纯链接', L, 46.263615, 2.178741],
+    ['前置中文（用户实测）', '日内瓦地图项目' + L, 46.263615, 2.178741],
+    ['前置 + 空格', '  日内瓦地图项目 ' + L + '  ', 46.263615, 2.178741],
+    ['前置 + 尾随文字', '我的收藏·日内瓦 ' + L + ' 来自地图', 46.263615, 2.178741],
+    ['尾随中文标点', L + '。', 46.263615, 2.178741],
+    ['高德链接带前缀', '常去的地方' + 'https://uri.amap.com/marker?position=116.397428,39.90923', 39.907829, 116.391187],
+    ['名称 + 裸坐标', '公司 31.230416,121.473701', 31.230416, 121.473701],
+  ];
+  for (const [name, input, eLat, eLon] of cases) {
+    const j = call(input).body;
+    const ok = j.lat !== undefined && near(j.lat, eLat) && near(j.lon, eLon);
+    ok ? pass++ : fail++;
+    console.log(`${ok ? '✔' : '✘'} ${name.padEnd(20)} → ${j.lat}, ${j.lon}${j.input ? '　(input 已回传清洗结果)' : ''}`);
+  }
+  // 纯链接不该被改动
+  const clean = call(L).body;
+  t('纯链接原样回传（不产生多余 input 字段）', clean.input === undefined, JSON.stringify(clean.input));
+}
+
 console.log('\n─── 名称提取 ───');
 {
   const j = call('https://maps.apple.com/place?address=%E6%B3%95%E5%9B%BD&coordinate=46.263615,2.178741&name=%E6%B3%95%E5%9B%BD').body;
