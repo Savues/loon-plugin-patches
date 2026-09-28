@@ -15,9 +15,11 @@ const DUE = 253402214399000;
 
 const THEMES = {
   vip: {
+    // 大会员牌子图 144x60，B站官方 bfs/vip/ 素材
     text: "大会员", role: 1,
     label_theme: "vip", text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
-    nickname_color: "#FB7299", image: ""
+    nickname_color: "#FB7299",
+    image: "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/vip-assets/vip.png"
   },
   annual_vip: {
     text: "年度大会员", role: 3,
