@@ -35,7 +35,7 @@ own for endpoints upstream can no longer parse or features it never had.
 移植前后的逻辑等价性由 `smoke.test.mjs` 的 28 个用例覆盖（含一次真实 protobuf 改写），
 逐条改动见 [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md)。
 
-`YouTube-Dedup` —— 第三条路：**上游解析不了某个端点、或压根没有某项功能时，另写自研脚本顶上**。
+`YouTube-Dedup` —— 第三条路：**上游解析不了某个端点时，另写自研脚本顶上**。
 上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），
 `src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来。
 该脚本不含上游代码，有 16 个回归用例。
