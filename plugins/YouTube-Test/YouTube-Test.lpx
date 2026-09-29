@@ -1,4 +1,4 @@
-#!name=YouTube去广告+双语字幕 v1.0
+#!name=YouTube去广告+双语字幕 v1.1
 #!desc=去广告、底栏按钮清理、字幕双语翻译、YouTube Music 歌词翻译，一次到位。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、去广告响应体脚本、字幕双通道脚本。去广告规则排在最前：Loon 的 [Script] 先匹配先执行，与独立字幕插件分开装时必须手动摆顺序，合订后顺序已写死。5 个脚本均由本仓库托管（上游逐字节副本），不再依赖 kelee.one。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne / DualSubs | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,字幕翻译
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 12:00:00
+#!date=2026-09-29 12:40:00
 
 [Argument]
 # ===== 去广告 =====
@@ -43,9 +43,9 @@ http-response ^https?:\/\/(www|m|tv)\.youtube\.com\/youtubei\/v1\/player\?(.*) s
 
 http-request ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/player\?(.*) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_request.js, requires-body=true, binary-body-mode=true, tag=字幕-Proto播放器请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
 
-http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=(Official|External) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Composite_Subtitles_response.js, requires-body=true, argument=, tag=字幕-合成定时文本
+http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=(Official|External) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Composite_Subtitles_response.js, requires-body=true, argument=[{Type},{AutoCC},{ShowOnly},{Position}], tag=字幕-合成定时文本
 
-http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=, tag=字幕-翻译定时文本
+http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=[{Type},{AutoCC},{ShowOnly},{Position}], tag=字幕-翻译定时文本
 
 http-request ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_request.js, requires-body=false, tag=字幕-定时文本请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
 
@@ -53,14 +53,28 @@ http-request ^https?:\/\/music\.youtube\.com\/youtubei\/v1\/browse\?(.*) script-
 
 http-request ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_request.js, requires-body=true, binary-body-mode=true, tag=字幕-Proto Music浏览请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
 
-http-response ^https?:\/\/music\.youtube\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=, tag=字幕-Music翻译歌词
+http-response ^https?:\/\/music\.youtube\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=[{Type},{AutoCC},{ShowOnly},{Position}], tag=字幕-Music翻译歌词
 
-http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, binary-body-mode=true, argument=, tag=字幕-Proto Music翻译歌词
+http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js, requires-body=true, binary-body-mode=true, argument=[{Type},{AutoCC},{ShowOnly},{Position}], tag=字幕-Proto Music翻译歌词
 
 [Mitm]
 hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.youtube.com, tv.youtube.com, music.youtube.com
 
-# ==== PLUGIN_VERSION: 1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.1 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.1 修复】补上 4 条响应规则的 argument= ——「原文字幕位置」开关失效
+#   上游 YouTube双语翻译 的 4 条 **http-response** 规则写的是空的 `argument=`，
+#   而 Position / ShowOnly 只在**响应**脚本里被读取（Jl() 拼双语那一步）：
+#     function Jl(l,n,u=false,e="Forward",t="\n"){ switch(e){
+#       case"Forward": default: return `${l}${t}${n}`;   // 原文\n译文
+#       case"Reverse": return `${n}${t}${l}` } }          // 译文\n原文
+#   argument 为空 ⇒ $argument 是 null ⇒ 拿不到 Position ⇒ 恒走默认 Forward
+#   ⇒ 无论怎么设置「原文字幕位置」，永远是英文在上。
+#   请求侧的 http-request 规则本来就有完整 argument（所以 Type 生效、双语能出），
+#   响应侧没有（所以 Position 失效）—— 这个功能在原版里就是坏的。
+#   修法：4 条响应规则全部补上 argument=[{Type},{AutoCC},{ShowOnly},{Position}]，
+#   脚本本身一行未动。新增 argument-wiring.test.mjs 钉死这件事。
+#
 #
 # 本插件 = YouTube 去广告（从广告拦截合集原样提取）
 #       + 双语字幕翻译（VirgilClyne / DualSubs，12 条规则保留 10 条）
@@ -75,7 +89,7 @@ hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.yout
 #   ⚠️ 副本的「内容」仍会发往翻译服务商（见 UPSTREAM.md 的审计结论），托管解决的是
 #      可用性，不是数据流向。
 #
-# ==== PLUGIN_VERSION: 1.2-lab | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== 以下为 v1.2-lab 及更早的排查记录，保留备查 · Earlier investigation log ====
 #
 # 【合并了什么】
 #   去广告 = YouTube-Test v1.1（合集原样提取 + v1.1 补的 argument= 接线）

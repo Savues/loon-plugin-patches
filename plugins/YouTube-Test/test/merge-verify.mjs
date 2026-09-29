@@ -42,7 +42,10 @@ for (const l of rules) {
 const en = lab.match(/enable=\{(\w+)\}/)?.[1]
 ok(!!en && declared.has(en), `enable={${en}} 已声明`)
 
-// ④ 字幕规则与原版一致（只允许改 tag / argument 顺序）
+// ④ 字幕规则与原版一致 —— URL / script-path / requires-body / binary-body-mode 必须相同。
+//    ⚠️ argument= **不在比对范围内**：上游 4 条 http-response 规则的 argument= 是空的，
+//    而 Position/ShowOnly 只在响应脚本里读，导致「原文字幕位置」恒为默认 Forward。
+//    逐字节一致 ≠ 正确 —— 这里刻意放行 argument 的差异，改由 argument-wiring.test.mjs 盯。
 const strip = s => s
   .replace(/, *tag=[^,]*/, '')
   .replace(/, *argument=\[[^\]]*\]/, '')
@@ -52,7 +55,7 @@ const changed = rules.filter(l => {
   const orig = subRules.find(s => s.startsWith(head(l) + ' ') && s.includes(l.split(' ')[2]))
   return orig && strip(orig) !== strip(l)
 })
-ok(changed.length === 0, `保留的字幕规则与原版一致（仅改 tag）${changed.length ? ' → ' + changed.length + ' 条被改' : ''}`)
+ok(changed.length === 0, `保留的字幕规则与原版一致（tag/argument 除外，见 argument-wiring.test.mjs）${changed.length ? ' → ' + changed.length + ' 条被改' : ''}`)
 
 // ⑤ 丢弃的必须恰好是与去广告真撞的 2 条
 const dropped = subRules.filter(s => !rules.some(l => head(l) === head(s)))
