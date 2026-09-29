@@ -79,3 +79,16 @@ hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.yout
 #   说的正是这条 first-match-wins 顺序；合并后顺序由本文件固定，不再依赖用户摆放。
 #
 # 【代价】MitM 从 2 个域名涨到 6 个，多解密 4 个 YouTube 主域，App 启动会变慢。
+#
+# 【2026-09-29 真机排查：字幕 429】
+#   现象：字幕加载不出来。HAR 证据 —— www.youtube.com/api/timedtext 两次都返回
+#   HTTP 429，正文是 Google 的「Sorry... your computer or network may be sending
+#   automated queries」HTML 页，不是字幕数据。同一份 HAR 里 videoplayback、
+#   storyboard、stats 全是 200/204，只有 timedtext 被限流。
+#   已排除清单层：把本清单与「Test v1.1 + 字幕插件」并用做逐 URL 行为对拍
+#   （14 个 URL × request/response 两个方向 = 28 组），**0 处差异**，
+#   命中的 script-path 完全一致。字幕脚本也确实跑了：它把 URL 改写成了
+#   &tlang=zh-Hans，改写内容正确。
+#   ⇒ 结论：429 是 Google 对该出口 IP 的限流，与合并无关。
+#   判别办法：把「字幕-自动显示翻译字幕」(AutoCC) 关掉再试。关掉后脚本不再追加
+#   tlang，App 会直接请求原始字幕轨；若这样能出字幕，即坐实是 tlang 请求被限流。
