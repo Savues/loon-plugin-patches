@@ -1,0 +1,35 @@
+{
+  "_comment": "Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. Regenerate with: python3 tools/vendor-check.py --manifest",
+  "sources": {
+    "plugins/YouTube-Test/src/youtube.response.js": {
+      "upstream": "https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js",
+      "bytes": 132973,
+      "sha256": "f98483d5f5017514f82502253c0db5ce2d4ffb7839887aa2cadc22666f5a7f12"
+    },
+    "plugins/YouTube-Test/src/YouTube_Subtitles_request.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js",
+      "bytes": 66369,
+      "sha256": "069cb5f3158c7777a8c0dbac926d3ce0ca605587d3123c386dc65a15d51fabc8"
+    },
+    "plugins/YouTube-Test/src/YouTube_Subtitles_response.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_response.js",
+      "bytes": 65371,
+      "sha256": "624bec4a6b3162971a458e2ccb097efd20a906016b82293c341d344152edc09c"
+    },
+    "plugins/YouTube-Test/src/YouTube_Composite_Subtitles_response.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Composite_Subtitles_response.js",
+      "bytes": 54038,
+      "sha256": "01283e2c53e347382bd697f1fc7cb1b04cdc93baf33aa58d149e604a18054ad4"
+    },
+    "plugins/YouTube-Test/src/YouTube_Subtitles_Translate_response.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js",
+      "bytes": 653656,
+      "sha256": "08ce488d49732ea1e74e53a05310f28e0f44eb1c65b5873118dc4ca07e3a7364"
+    },
+    "plugins/YouTube-Dedup/src/remove-ads-request.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js",
+      "bytes": 44157,
+      "sha256": "af0646890f9847aa4576181b0637e31b86a3e2f6dd4d2041a56ffa971aacc10b"
+    }
+  }
+}

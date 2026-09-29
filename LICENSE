@@ -36,7 +36,11 @@ GeoFix
   作者的私有归档仓库中保留了逐字节原件与 SHA256，便于比对。
 
 YouTube-Dedup
-  去广告主体仍走远程 script-path 指向上游原版，**未修改上游 JavaScript 任何部分**。
+  去广告主体原本走远程 script-path 指向上游原版，**未修改上游 JavaScript 任何部分**。
+  2026-09-29 起 script-path 改为指向本仓库托管的副本
+  （plugins/YouTube-Test/src/youtube.response.js、plugins/YouTube-Dedup/src/remove-ads-request.js），
+  目的只有一个：上游站点消失时插件不至于直接加载失败。副本与上游逐字节一致，
+  SHA-256 记录在 plugins/YouTube-Test/manifest.json，可用 tools/vendor-check.py 校验。
   仓库内另有 plugins/YouTube-Dedup/src/ 下的两个脚本，为**本仓库自研**：
   config-onesie.js 只用 YouTube inner tube 协议中公开可观测的 protobuf 字段编号，
   沿固定路径取出 UMP onesie 的 clientKey / encryptKey 并写入 persistentStore；
@@ -44,4 +48,12 @@ YouTube-Dedup
   把内容里带 mini_app_panel 的整项从 feed 里删掉。
   两者都不含任何上游代码、不改写与广告无关的部分。
   另含 test/ 下的回归测试与抓包响应体样本（已确认不含任何令牌）。
+
+YouTube-Test
+  托管 6 个上游脚本的逐字节副本，源码位于 plugins/YouTube-Test/src/ 与
+  plugins/YouTube-Dedup/src/remove-ads-request.js。**一行未改。**
+  上游为 Maasea/sgmodule、VirgilClyne 与 DualSubs（DualSubs/Universal、DualSubs/YouTube）。
+  本仓库的贡献仅限：托管位置从上游站点改为本仓库、补出处记录与 SHA-256 清单。
+  出处见 plugins/YouTube-Test/UPSTREAM.md；外发审计见其 test/external-audit.mjs
+  —— 结论是除字幕翻译脚本会调用 6 家翻译服务商外，其余脚本无任何对外请求。
 ────────────────────────────────────────────────────────────────────────
