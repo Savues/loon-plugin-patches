@@ -4,7 +4,7 @@
 // 运行：node test/manifest.test.mjs
 // 无外部依赖，jq 走 node:child_process 调用系统 jq（缺失则跳过 jq 组用例）
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -122,7 +122,38 @@ t('MITM 域名未削减', /hostname\s*=\s*api\.pinduoduo\.com,\s*m\.pinduoduo\.n
 const rw = section('REWRITE')
 t('28 条 [Rewrite] 保留', rw.length === 28, `实际 ${rw.length} 条`)
 
+// ── 7. 外部资源收敛（脚本层的第三方依赖）─────────────────────
+console.log('\n【7】外部资源收敛')
+const SRC = join(HERE, '..', 'src')
+const script = readFileSync(join(SRC, 'PinDuoDuo_remove_ads.js'), 'utf8')
+const upstream = readFileSync(join(SRC, 'upstream', 'PinDuoDuo_remove_ads.js'), 'utf8')
+t('上游原件存在（src/upstream/）', existsSync(join(SRC, 'upstream', 'PinDuoDuo_remove_ads.js')))
+t('被加载的脚本不含 kelee.one', !script.includes('kelee.one'),
+  '仍引第三方域名：' + (script.match(/https?:\/\/[^"'\s]*kelee[^"'\s]*/) || ['?'])[0])
+// 唯一允许的改动：newChunk 指向本仓库
+const upLines = upstream.split('\n'), curLines = script.split('\n')
+t('与上游原件行数相同', upLines.length === curLines.length, `上游 ${upLines.length} / 现在 ${curLines.length}`)
+const diffIdx = upLines.map((l, i) => l === curLines[i] ? -1 : i).filter(i => i >= 0)
+t('仅 1 行不同', diffIdx.length === 1, `实际 ${diffIdx.length} 行不同: ${diffIdx.map(i => i + 1).join(',')}`)
+t('改的是 newChunk 那一行', diffIdx.length === 1 && /const newChunk =/.test(upLines[diffIdx[0]]),
+  diffIdx.length ? `改的是: ${upLines[diffIdx[0]].slice(0, 60)}` : '')
+t('oldChunk 仍指向拼多多官方 CDN', script.includes('https://pfile.pddpic.com/mdkd/'))
+// 托管的 chunk
+const chunkPath = join(SRC, 'chunks', '9410-b8806e870a26db7d.js')
+t('chunk 已收进仓库', existsSync(chunkPath))
+if (existsSync(chunkPath)) {
+  const chunk = readFileSync(chunkPath, 'utf8')
+  t('chunk 是 webpack chunk', chunk.includes('webpackChunk_N_E'))
+  t('chunk 保留 4 个模块', ['82115', '75637', '43435', '70242'].every(m => chunk.includes(m)))
+  const url = (script.match(/const newChunk = "([^"]+)"/) || [])[1] || ''
+  t('newChunk 指向本仓库托管路径', url.includes('Savues/loon-plugin-patches') && url.endsWith('9410-b8806e870a26db7d.js'), url)
+}
+// 运行时不得再有第三方脚本域名
+t('脚本内无第三方脚本域名', !/https?:\/\/(?!pfile\.pddpic\.com|raw\.githubusercontent\.com)[^"'\s]+\.js/.test(script),
+  (script.match(/https?:\/\/[^"'\s]+\.js/g) || []).join(' '))
+
 // ── 汇总 ────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(60))
 console.log(`通过 ${pass} · 失败 ${fail}${skip ? ` · 跳过 ${skip}` : ''}`)
 process.exit(fail ? 1 : 0)
+

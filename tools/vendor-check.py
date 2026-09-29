@@ -35,17 +35,25 @@ SOURCES = {
         'https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js',
     'plugins/YouTube-Dedup/src/remove-ads-request.js':
         'https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js',
-    'plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js':
+    'plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js':
         'https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js',
+    'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js':
+        'https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js',
 }
 
 # 源文件 -> 它登记在哪个 manifest.json 里。
 # 显式列出而非按目录推导：YouTube-Dedup 的脚本历史上就登记在 YouTube-Test 的
 # manifest 里，挪走会让已有文件凭空多出一次 diff。
+#
+# 注意 PinDuoDuo 的分工：src/upstream/ 放上游原件（只读，永不打补丁），
+# src/ 下的同名副本是实际被 script-path 加载的、允许本仓库改远程依赖 URL。
+# 漂移比对只针对 upstream/ 那份，否则改过 URL 的副本会永远报漂移。
 MANIFEST_OF = {
     **{r: 'plugins/YouTube-Test/manifest.json' for r in SOURCES
        if r.startswith('plugins/YouTube-')},
     'plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js': 'plugins/PinDuoDuo/manifest.json',
+    'plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js': 'plugins/PinDuoDuo/manifest.json',
+    'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js': 'plugins/PinDuoDuo/manifest.json',
 }
 
 

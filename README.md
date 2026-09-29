@@ -23,7 +23,7 @@ own for endpoints upstream can no longer parse or features it never had.
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 从合集原样提取的 YouTube 规则 · A/B 对照<br>YouTube rules extracted from blockAds | **v1.0** |
-| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 修聊天刷新与 jq 崩溃<br>Ad-block · chat refresh & jq crash fixes | **v1.1** |
+| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 修聊天刷新与 jq 崩溃<br>Ad-block · chat refresh & jq crash fixes | **v1.2** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的四个插件
@@ -39,6 +39,7 @@ own for endpoints upstream can no longer parse or features it never had.
 
 `PinDuoDuo` —— 沿用 YouTube-Test 的做法：上游脚本收进 `src/` 并登记 sha256，`script-path` 改指本仓库。
 本次同时修掉了两个上游缺陷（切断了消息推送 WebSocket、jq 空值崩溃），依据是一份未开插件的基线 HAR。
+上游脚本里还硬编码了一个 kelee.one 的 chunk 地址（会把官方 JS 换成第三方版本），已连同 chunk 一并收进仓库。
 
 `YouTube-Dedup` —— 第三条路：**上游解析不了某个端点时，另写自研脚本顶上**。
 上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），

@@ -3,11 +3,11 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.1** · 2 开关 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T11:55`
+**v1.2** · 2 开关 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T12:30`
 
 | | 中文 | English |
 |---|---|---|
-| 脚本 | 1 个，**上游逐字节副本**，已收进本仓库 | 1 script, **byte-for-byte copy**, vendored here |
+| 脚本 | 1 个，**仅改 1 行远程 URL**；原件另存只读 | 1 script, **one line changed**; pristine copy kept |
 | 改动范围 | 仅清单层：1 处 jq 表达式 + 4 条 `enable` | Manifest only: 1 jq expression, 4 `enable` guards |
 | 证据 | 用户基线 HAR（461 请求，未开插件） | Baseline HAR, plugin disabled |
 | 完整性 | `manifest.json` 记 sha256，`tools/vendor-check.py` 可校验 | sha256 in `manifest.json`, verifiable |
@@ -137,8 +137,46 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 node test/manifest.test.mjs
 ```
 
-35 个用例，覆盖开关声明与引用一致、三条高风险规则确已移除、
-jq 在真实抓包数据与四种异常结构下均不崩、去广告功能未被误伤。
+46 个用例，覆盖开关声明与引用一致、三条高风险规则确已移除、
+jq 在真实抓包数据与四种异常结构下均不崩、去广告功能未被误伤、
+外部资源全部收在仓库内且对上游脚本的改动仅 1 行。
+
+---
+
+## 外部资源 · External resources
+
+运行时会碰到的外部资源**全部收在本仓库**，不再有任何第三方脚本域名：
+
+| 资源 | 位置 | 说明 |
+|---|---|---|
+| 主脚本 | `src/PinDuoDuo_remove_ads.js` | 被 `script-path` 加载 |
+| 上游原件 | `src/upstream/PinDuoDuo_remove_ads.js` | 只读对照，不加载 |
+| 页面 chunk | `src/chunks/9410-b8806e870a26db7d.js` | 见下 |
+| 图标 | `raw.githubusercontent.com/luestr/IconResource` | 插件图标，Loon 拉取 |
+
+### 上游脚本里藏着的第二个脚本
+
+上游 `PinDuoDuo_remove_ads.js` 硬编码了一个 chunk 地址，会把拼多多页面里的官方 JS
+替换成第三方服务器上的版本：
+
+```js
+const oldChunk = "https://pfile.pddpic.com/mdkd/mdkd/_next/static/chunks/9410-…js";
+const newChunk = "https://kelee.one/…/9410-….js";   // ← 页面运行时再去第三方取代码
+```
+
+这不是"引用"，是"替换"。两边实测对比：
+
+```
+官方 pfile.pddpic.com    12669 B   6 个模块: 53203 27519 82115 75637 43435 70242
+kelee.one 托管版          5131 B   4 个模块:               82115 75637 43435 70242
+                                                    ↑ 少 53203（商品推荐逻辑）与 27519
+```
+
+⇒ 本仓库把该 chunk 一并收进 `src/chunks/`，并把 `newChunk` 指向自己的 raw URL。
+**对上游脚本的唯一改动就是这一行 URL**，业务逻辑一个字节没动，测试会逐行比对并断言差异仅此一处。
+
+> 该 chunk 只在「扫码取件」页（`m.pinduoduo.net/mdkd/package?from_app_scan`）加载，
+> 两份基线抓包里都没有触发过，删掉也不影响日常使用。保留是为了功能完整。
 
 ---
 
@@ -160,7 +198,9 @@ jq 在真实抓包数据与四种异常结构下均不崩、去广告功能未�
 |---|---|---|
 | `PinDuoDuo.lpx` | 插件清单 | Manifest |
 | `UPSTREAM.md` | 出处与逐条改动依据 | Provenance & per-change reasoning |
-| `src/PinDuoDuo_remove_ads.js` | 上游脚本逐字节副本 | Byte-for-byte upstream copy |
+| `src/PinDuoDuo_remove_ads.js` | 上游脚本，仅改 1 行 chunk URL | Upstream script, one line changed |
+| `src/upstream/PinDuoDuo_remove_ads.js` | 上游原件，只读 | Pristine upstream, read-only |
+| `src/chunks/9410-*.js` | 页面 chunk 托管副本（上游第三方托管） | Vendored page chunk |
 | `manifest.json` | 托管脚本的 sha256 登记 | Vendored script hashes |
 | `test/manifest.test.mjs` | 35 个清单层回归用例 | 35 manifest-layer tests |
 | `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |

@@ -25,13 +25,28 @@ Loon 版另外新增 4 个端点、3 条规则、1 条 `host`→`DOMAIN` 改写�
 > QX 片段本身还含 `ip-cidr` 形式的 7 条 IP 屏蔽与 `host, sdk.1rtb.net, reject`，
 > 这些在 Loon 清单里没有对应物，**本仓库未补回**（无实测依据支持逐条还原）。
 
-| 托管 Vendored | `src/PinDuoDuo_remove_ads.js`，sha256 `63af2e44da24da11…` 记入 `manifest.json` |
+| 托管 Vendored | `src/upstream/PinDuoDuo_remove_ads.js`（原件，sha256 `63af2e44…`）<br>`src/chunks/9410-b8806e870a26db7d.js`（sha256 `e8e4f0e8…`） |
 
-**上游 JavaScript 未被修改一个字。** 脚本以逐字节副本收进本仓库，`script-path` 改指本仓库
-raw URL（与 YouTube-Test / YouTube-Dedup 同一做法），避免上游站点消失或被投毒导致静默换代码。
+### 脚本层唯一的改动
 
-**Not a single byte of upstream JavaScript was modified.** The script is vendored
-byte-for-byte and `script-path` now points at this repo, same as the YouTube plugins.
+`src/PinDuoDuo_remove_ads.js` 相对 `src/upstream/` 的原件**只差 1 行**：
+
+```diff
+-const newChunk = "https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js";
++const newChunk = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js";
+```
+
+**为什么必须改**：上游脚本硬编码了那个 chunk 地址，会把拼多多页面里的官方 JS
+（`pfile.pddpic.com`，12669 B）替换成 kelee.one 上的版本（5131 B，少了 `53203` 商品推荐模块
+与 `27519`）。这是**页面运行时再去第三方域名取代码**——比 `script-path` 更隐蔽，
+Loon 层面完全看不见。把 chunk 一并托管后，这条第三方依赖链才真正断开。
+
+按仓库原则 #2（改脚本仅限取参、远程配置依赖与标识符），这属于「远程配置依赖」，
+改动合规。`test/manifest.test.mjs` 的第 7 组会逐行比对并断言差异仅此一处。
+
+**其余全部逐字节未改。** `oldChunk`（匹配用的官方地址）保持原样。
+
+Only one line differs from the pristine upstream copy. Everything else is byte-for-byte.
 
 ---
 
@@ -88,7 +103,7 @@ POST http://[240c:409f::3:0:163]/d5
 
 | 文件 | 说明 |
 |---|---|
-| `test/manifest.test.mjs` | 9 项清单层回归：开关声明==引用、高风险规则确已移除、jq 四场景 |
+| `test/manifest.test.mjs` | 46 项回归：开关声明==引用、高风险规则确已移除、jq 四场景、外部资源收敛 |
 | `test/har-fixture.json` | 从基线 HAR 摘出的最小样本，供 jq 测试用 |
 
 基线 HAR 本身（24 MB）不入库，仅摘取必要片段。
