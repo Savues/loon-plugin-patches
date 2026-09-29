@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.3** · 11 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T12:50`
+**v1.4** · 13 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:20`
 
 | | 中文 | English |
 |---|---|---|
@@ -65,6 +65,8 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 - **QUIC 规则不触发**。`api.pinduoduo.com` 的 ALPN 只协商 h2，服务端根本不提供 h3。
 - **去广告本身是有效的**。真实 `homepage/hub` 响应里 `bottom_tabs` 确有 5 项，
   含 `pdd_live_tab_list.html` 与带推广参数的 `attendance.html` —— 正是插件要删的那些。
+- **真机实测（2026-09-29）**：v1.3 装上后 `all_top_opts` 带图项 1→0、`icon_set` 已删、
+  `bottom_tabs` 5→3，聊天 WebSocket 返回 101、`mark_read` 9 次全部 `ok`。
 
 ---
 
@@ -76,20 +78,41 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 | 开关 | 默认 | 覆盖 | 什么时候关 |
 |---|---|---|---|
-| `api_stub` | 开 | 16 条 `reject-dict` | 想要**完全不改任何响应体**时 |
+| `api_stub` | 开 | 14 条 `reject-dict`（广告/会场类） | 想要**完全不改任何响应体**时 |
 | `chat_stub` | 开 | 4 条聊天/推荐端点 | **聊天刷不出来时**（已实测：关掉即恢复） |
 | `telemetry_stub` | 开 | 8 个埋点/监控/配置域名 | 怀疑被风控、或 App 行为异常时 |
+| `phantom_stub` | 开 | `/api/phantom/gbdbpdv/extra` | 怀疑被风控时**优先关这条** |
+| `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 
 > ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
 > `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
 > 但单独开 `bottom_custom`（见下），底栏仍能裁。
 
-`api_stub` 覆盖的 16 条里有两条值得单独留意：
+### 为什么把后两条拆出来
 
-| 端点 | 说明 |
-|---|---|
-| `/api/phantom/gbdbpdv/extra` | `phantom` 与 WebSocket 推送同模块，怀疑被风控时优先关 |
-| `/api/caterham/v3/query/my_order_group` | **订单列表**，返回 `{}` 会让订单页变空 |
+`phantom_stub` 与 `order_stub` 是从 `api_stub` 里拆出来的独立开关，
+因为它们的性质和「去广告」根本不同：
+
+| 端点 | 性质 | 风险 |
+|---|---|---|
+| `/api/phantom/gbdbpdv/extra` | 风控/配置模块，与消息推送 WebSocket **同模块**（`xg.pinduoduo.com/api/phantom/_stm` 也在那里） | 拦它可能干扰推送；被风控时又该优先放行 |
+| `/api/caterham/v3/query/my_order_group` | **订单列表**，返回 `{}` 会让订单页变空 | 纯功能取舍，与广告无关 |
+
+把它们和「搜索框热词」这类广告项捆在一个开关上，等于逼你二选一：
+要么为了去掉搜索框推荐词而一起关掉订单列表，要么为了保订单而把风控模块也一起拦了。
+
+### 搜索框推荐词在哪
+
+搜索框轮播的「酷态科cp12」「百事可乐」这类词**不来自首页**，而是独立端点：
+
+```
+GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
+→ {"hotqs":[{"q":"酷态科cp12","tag_list":[{"text":"热"}]},{"q":"酷态科"}, ...]}
+```
+
+插件对它有一条 `reject-dict`（归在 `api_stub` 下），返回 `{}` 即清除。
+**若搜索框仍在轮播，检查 `api_stub` 是否被关掉** —— 这条 2026-09-29 实测确认：
+`api_stub` 关闭时该端点 3 次请求全部返回真实数据。
 
 ### [底栏] 自定义底部导航
 

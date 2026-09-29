@@ -64,9 +64,10 @@ Only one line differs from the pristine upstream copy. Everything else is byte-f
 | 6 | 修正 `homepage/hub` 的 jq：`?` → `if type=="array"` | `?` 只保护路径查找、不保护 `map` 迭代，字段为 null 时抛 `Cannot iterate over null` | 推导（真实数据下未触发） |
 | 7 | 补 `#!desc` 说明、`#!date`、尾部注释 | 仓库体例 | — |
 | 8 | `script-path` 改指本仓库托管副本 | 仓库 2026-09-29 新增的脚本托管约定 | — |
-| 9 | 新增 `api_stub`，管住剩余 16 条 `reject-dict` | 上游 20 条 `reject-dict` 全无 `enable`，用户无从关闭 | 推导 |
+| 9 | 新增 `api_stub`，管住 16 条 `reject-dict`（其中 2 条后拆出，见 #12） | 上游 20 条 `reject-dict` 全无 `enable`，用户无从关闭 | 推导 |
 | 10 | 两条 `homepage/hub` 的 `json-del`/`json-jq` → 自研 `src/homepage.response.js` | ① 底栏写死三项 ② jq 空值崩溃 ③ 同一 URL 两条规则谁先谁后是未解疑点 | 实测 + 推导 |
 | 11 | 新增底栏 7 项 `[Argument]`（`bottom_custom` + 6 个 `Bot_*` + `Bot_custom`） | 用户无法在不编辑文件的前提下调整底栏 | 推导 |
+| 12 | 从 `api_stub` 拆出 `phantom_stub` / `order_stub` | 两条性质与广告无关：前者与推送同模块、后者会清空订单列表，捆在一起等于逼用户二选一 | 实测 + 推导 |
 
 ### 关于第 6 条的诚实说明
 

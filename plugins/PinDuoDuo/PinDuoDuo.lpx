@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.3
+#!name=拼多多去广告(修复版) v1.4
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义。【修复】高危拦截全部改为可关闭开关，聊天刷新已实测正常。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,13 +8,15 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 12:50:00
+#!date=2026-09-29 13:20:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
 api_stub = switch,true,false,tag=[高危] 屏蔽接口响应体(reject-dict 共 16 条),desc=关闭后所有 reject-dict 端点均返回真实数据;首页去广告与底栏裁剪同时失效
 chat_stub = switch,true,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=关闭后 new_chat_group / get_list_data 等返回真实数据,聊天可正常刷新
 telemetry_stub = switch,true,false,tag=[高危] 屏蔽埋点/遥测/配置下发域名(8 个),desc=apm(性能监控)/meta(AB实验+配置下发,实测返回28KB)/th+ta(埋点上报);如疑似被风控或异常可关闭
+phantom_stub = switch,true,false,tag=[高危] 屏蔽 phantom 风控模块,desc=与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm);怀疑被风控时优先关掉,关闭后 /api/phantom/gbdbpdv/extra 返回真实数据
+order_stub = switch,true,false,tag=[高危] 屏蔽订单列表,desc=关掉后订单页会显示真实订单;若不想在订单页看到列表可关
 # ===== 底栏自定义 =====
 bottom_custom = switch,true,tag=[底栏] 启用自定义底栏
 Bot_index = switch,true,tag=[底栏] 首页
@@ -56,9 +58,9 @@ DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
 ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/personal\? reject-dict, enable={chat_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/brand-olay\/goods_detail\/bybt_guide\? reject-dict, enable={api_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/engels\/reviews\/require\/append\? reject-dict, enable={api_stub}
- ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/my_order_group\? reject-dict, enable={api_stub}
+ ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/my_order_group\? reject-dict, enable={order_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/likes\? reject-dict, enable={api_stub}
- ^https:\/\/api\.pinduoduo\.com\/api\/phantom\/gbdbpdv\/extra\? reject-dict, enable={api_stub}
+ ^https:\/\/api\.pinduoduo\.com\/api\/phantom\/gbdbpdv\/extra\? reject-dict, enable={phantom_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/manufacturer\/cross\/shortcut\/list\? reject-dict, enable={api_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/dunkirk\/liveactivity\/push\/create\/url\/report\? reject-dict, enable={api_stub}
  ^https:\/\/api\.pinduoduo\.com\/api\/growth\/nagato\/app\/index\/gather\? reject-dict, enable={api_stub}
@@ -108,6 +110,9 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #  8. 脚本内 newChunk 常量改指本仓库（上游脚本硬编码了 kelee.one 的 chunk 地址，
 #     那是页面运行时再去第三方域名取代码；现已一并收进 src/chunks/ 托管）
 #  9. 新增 [Argument] api_stub，统一管住剩余 16 条 reject-dict
+# 11. 从 api_stub 拆出 phantom_stub / order_stub 两条单独控制
+#     （phantom 与推送同模块、my_order_group 会清空订单列表，
+#      这两条不该和「搜索框热词」等广告项捆绑在一起）
 # 10. 新增底栏自定义：[Argument] 7 个开关 + homepage.response.js（自研）
 #     两条 homepage/hub 的 json-del / json-jq 已由脚本取代
 #     顺带解决了「同一 URL 挂两条 [Rewrite] 谁先谁后」这个一直悬着的问题

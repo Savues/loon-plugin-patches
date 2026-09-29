@@ -56,7 +56,7 @@ const argLine = lpx.match(/argument=\[([^\]]+)\]/)
 const viaArg = argLine ? (argLine[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)) : []
 const referenced = [...new Set(viaEnable.concat(viaArg))]
 
-t('声明 10 个开关 + 1 个输入', declared.length === 10 && inputs.length === 1,
+t('声明 12 个开关 + 1 个输入', declared.length === 12 && inputs.length === 1,
   `开关 ${declared.length} 个: ${declared.join(',')} / 输入 ${inputs.join(',')}`)
 t('每个声明项都被引用', declared.every(d => referenced.includes(d)),
   `未被引用: ${declared.filter(d => !referenced.includes(d)).join(',') || '无'}`)
@@ -64,18 +64,20 @@ t('输入项被引用', inputs.every(i => referenced.includes(i)),
   `未被引用: ${inputs.filter(i => !referenced.includes(i)).join(',') || '无'}`)
 t('引用项都已声明', referenced.every(r => declared.includes(r) || inputs.includes(r)),
   `未声明: ${referenced.filter(r => !declared.includes(r) && !inputs.includes(r)).join(',') || '无'}`)
-for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'bottom_custom']) {
+for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'bottom_custom']) {
   t(`${s} 存在`, declared.includes(s))
 }
-t('三个高危开关默认 true（保持原行为）',
-  ['api_stub', 'chat_stub', 'telemetry_stub'].every(s => new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)))
+t('五个高危开关默认 true（保持原行为）',
+  ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub']
+    .every(s => new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)))
 t('Bot_custom 是 input 不是 switch', inputs.includes('Bot_custom'))
 
 // ── 3. 高风险 REJECT 确已移除 ───────────────────────────────
 console.log('\n【3】高风险规则不得生效')
 t('无 QUIC REJECT', !active.some(l => l.includes('QUIC')))
 t('无裸 IP 明文 REJECT', !active.some(l => l.includes('com.xunmeng.pinduoduo')))
-t('xg.pinduoduo.com 不再被 REJECT', !active.some(l => l.includes('xg.pinduoduo.com')))
+t('xg.pinduoduo.com 不再被 REJECT',
+  !section('RULE').some(l => /DOMAIN,\s*xg\.pinduoduo\.com/.test(l) && /REJECT/.test(l)))
 t('xg 的移除有注释说明', lpx.split('\n').some(l => l.startsWith('#') && l.includes('xg.pinduoduo.com')))
 
 // ── 4. 聊天端点仍挂开关 ─────────────────────────────────────
@@ -84,6 +86,12 @@ const chatStubs = active.filter(l => l.includes('enable={chat_stub}'))
 t('4 条端点挂上 chat_stub', chatStubs.length === 4, `实际 ${chatStubs.length} 条`)
 t('含 new_chat_group', chatStubs.some(l => l.includes('new_chat_group')))
 t('含 zaire_biz/chat/resource', chatStubs.some(l => l.includes('zaire_biz')))
+t('phantom 端点挂 phantom_stub',
+  section('REWRITE').some(l => /phantom/.test(l) && l.includes('enable={phantom_stub}')))
+t('my_order_group 挂 order_stub',
+  section('REWRITE').some(l => /my_order_group/.test(l) && l.includes('enable={order_stub}')))
+t('这两条已不在 api_stub 下',
+  !section('REWRITE').some(l => l.includes('enable={api_stub}') && /phantom|my_order_group/.test(l)))
 const telStubs = active.filter(l => l.includes('enable={telemetry_stub}'))
 t('8 个域名挂上 telemetry_stub', telStubs.length === 8, `实际 ${telStubs.length} 个`)
 
