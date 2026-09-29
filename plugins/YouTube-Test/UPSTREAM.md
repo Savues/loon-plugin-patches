@@ -11,19 +11,19 @@ Loon 拉 `script-path` 不带任何校验，域名易主或 CDN 被投毒都会*
 
 ## 文件 · Files
 
-| 文件 | 大小 | 上游 · Upstream |
-|---|---|---|
-| `youtube.response.js` | 132973 | [Maasea/sgmodule](https://github.com/Maasea/sgmodule) |
-| `YouTube_Subtitles_request.js` | 66369 | [DualSubs/YouTube](https://github.com/DualSubs/YouTube) |
-| `YouTube_Subtitles_response.js` | 65371 | [DualSubs/YouTube](https://github.com/DualSubs/YouTube) |
-| `YouTube_Composite_Subtitles_response.js` | 54038 | [DualSubs/Universal](https://github.com/DualSubs/Universal) |
-| `YouTube_Subtitles_Translate_response.js` | 653656 | [DualSubs/Universal](https://github.com/DualSubs/Universal) |
-| `../YouTube-Dedup/src/remove-ads-request.js` | 44157 | [VirgilClyne](https://github.com/VirgilClyne) |
+| 文件 | 上游 · Upstream |
+|---|---|
+| `youtube.response.js` | [Maasea/sgmodule](https://github.com/Maasea/sgmodule) |
+| `YouTube_Subtitles_request.js` | [DualSubs/YouTube](https://github.com/DualSubs/YouTube) |
+| `YouTube_Subtitles_response.js` | [DualSubs/YouTube](https://github.com/DualSubs/YouTube) |
+| `YouTube_Composite_Subtitles_response.js` | [DualSubs/Universal](https://github.com/DualSubs/Universal) |
+| `YouTube_Subtitles_Translate_response.js` | [DualSubs/Universal](https://github.com/DualSubs/Universal) |
+| `../YouTube-Dedup/src/remove-ads-request.js` | [VirgilClyne](https://github.com/VirgilClyne) |
 
-完整 SHA-256 见 [`manifest.json`](manifest.json)。校验：
+大小与 SHA-256 见 [`manifest.json`](manifest.json)。校验：
 
 ```bash
-python3 tools/vendor-check.py
+python3 tools/vendor-check.py --hash
 ```
 
 ---
@@ -38,22 +38,18 @@ python3 tools/vendor-check.py
 
 ## 审计结论 · Audit result
 
-`test/external-audit.mjs` 扫描全部脚本的明文域名与网络原语：
+`test/external-audit.mjs` 扫描全部脚本的明文域名与网络原语，**除字幕翻译脚本外的 5 个脚本零外发**
+（有跨平台 HTTP adapter，但 0 个调用点）。
 
-| 脚本 | 真实外发 |
-|---|---|
-| `youtube.response.js` | **无**（有跨平台 HTTP adapter，但 0 个调用点） |
-| `YouTube_Subtitles_request.js` | **无** |
-| `YouTube_Subtitles_response.js` | **无** |
-| `YouTube_Composite_Subtitles_response.js` | **无** |
-| `YouTube_Subtitles_Translate_response.js` | ⚠️ **6 家翻译服务商** |
-
-翻译服务商集中在 `Gl()`（`Gl(l="Google", …)`，默认 vendor = Google）。
+唯一的真实外发在 `YouTube_Subtitles_Translate_response.js`：6 家翻译服务商集中在 `Gl()`
+（`Gl(l="Google", …)`，默认 vendor = Google），其中
 `translate.googleapis.com/translate_a/single?client=gtx` **不需要 API key**。
 ⚠️ **`Type=Translate` 会把字幕原文发送给它们。**
 
 `eval` / `new Function` / `import()` / `WebSocket` / `sendBeacon` / `XMLHttpRequest` —— 全部 0。
 无远程配置拉取（`Configs` 是内置默认值）。
+
+复核：`node test/external-audit.mjs <脚本目录>`
 
 ---
 
