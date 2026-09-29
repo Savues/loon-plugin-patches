@@ -29,7 +29,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
-| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube 部分整体退场<br>Bilibili + YouTube removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的八个插件
 
@@ -125,8 +125,8 @@ and to #5 (upstream product name kept in the directory and `#!name`).
 
 ## 🔄 自动同步 · Auto Sync
 
-`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**
-Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
+`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube）
+Synced upstream every 6 hours, with the Bilibili + YouTube removal patch re-applied.
 
 [`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)
 
@@ -134,7 +134,14 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 |---|---|
 | 无变化不提交 | No commit when upstream is unchanged |
 | 退场不完整则**报错终止** | **Fails hard** if the removal is incomplete |
+| 产物不是插件（上游返回错误页）则**报错终止** | **Fails hard** if the artifact isn't a valid plugin |
+| 补丁不可重放则**报错终止** | **Fails hard** if the patch isn't idempotent |
+| push 撞车自动 rebase 重试 | Auto rebase-and-retry on push conflict |
 | 可手动触发 | Manual trigger supported |
+
+> ⚠️ GitHub 的定时任务实际执行常延迟 **1–6 小时**，不是 cron 写的那样准点。
+>
+> Scheduled runs on GitHub are commonly delayed by 1–6 hours.
 
 > ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h。
 > 拉不到新版时在订阅地址末尾加随机参数：`?cb=2`
