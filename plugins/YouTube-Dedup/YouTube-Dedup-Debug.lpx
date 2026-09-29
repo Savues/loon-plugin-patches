@@ -20,7 +20,7 @@ debug=switch, true, true, tag=启用调试模式, desc=已默认开启，排查�
 
 [Script]
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=58, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{blockAds},{debug}], tag=清除游戏大本营
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
 
 http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
 

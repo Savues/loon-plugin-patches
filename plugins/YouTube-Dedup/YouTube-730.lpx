@@ -1,0 +1,47 @@
+#!name=YouTube去广告(730原样搬来 A/B) v1.0
+#!desc=把 blockAds(730) 的 YouTube 规则原样搬过来，用于 A/B 对照：一条 http-response 管全部端点、纯前缀匹配无 $ 锚点、timeout=60。若这个变体没有播放器广告，说明问题出在 v5.x 的规则拆分上；若仍有，则说明是上游脚本的 schema 覆盖不到。默认不带本仓库的信息流清理脚本，游戏大本营与信息流广告都不会被清除。
+#!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 搬运: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告
+#!system=iOS, iPadOS, macOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
+#!date=2026-09-29 09:05:00
+
+# ==== A/B 对照专用，不是日常使用的版本 ====
+#
+# 【为什么做这个】
+#   用户反馈：730 的 YouTube 开关开着时，除了游戏大本营没有别的广告；
+#   把 730 的 YouTube 规则退场后，播放器广告就出来了。
+#   而 v5.x 与 730 有三处结构性差异，这版把它们全部还原，用来定位：
+#     1. 730 是**一条** http-response 规则管全部端点；
+#        v5.x 拆成「browse|next -> 自研脚本」+「其余 -> 上游脚本」，
+#        而 Loon 是 first-match-wins，拆开就意味着同一端点上只有一套规则能生效。
+#     2. 730 的正则**没有 $ 锚点**（纯前缀匹配），所以 player/get_drm_license、
+#        player/ad_break 也会命中；v5.x 带了 (\?(.*))?$ 锚点，不会命中。
+#     3. 730 写了 timeout=60；v5.x 没写，用的是 Loon 默认的 10 秒 ——
+#        133 KB 的脚本碰上稍大一点的响应就可能被超时杀掉，等于没改写。
+#     另外 730 **不传 argument**，脚本用的是内部默认值
+#     （blockUpload=true / blockImmersive=true / blockShorts=false / captionLang=off），
+#     v5.x 传 argument 会把 blockUpload/blockImmersive 覆盖成 false。
+#
+# 【这版没有的东西】
+#   · 不带 src/feed-gaming.js —— 所以游戏大本营和信息流广告都不会被清除。
+#     它的用途只有一个：回答「v5.x 的规则拆分是不是问题所在」。
+#   · 保留 config 端点规则（config-onesie.js），它与上面那条不重叠，无副作用。
+
+[Argument]
+youtube_enable = switch, true, false, tag=YouTube-脚本开关, desc=与 730 同名同默认值
+blockUpload = switch, true, true, tag=隐藏上传按钮, desc=沿用上游脚本内部默认值
+blockShorts = switch, false, true, tag=隐藏Shorts按钮, desc=沿用上游脚本内部默认值
+blockImmersive = switch, true, true, tag=隐藏选段按钮, desc=沿用上游脚本内部默认值
+debug = switch, false, true, tag=启用调试模式, desc=排查问题时开启
+
+[Script]
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, timeout=60, tag=YouTube响应体, enable={youtube_enable}
+
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, timeout=30, tag=采集onesie密钥
+
+[MitM]
+hostname=rr*.googlevideo.com, youtubei.googleapis.com

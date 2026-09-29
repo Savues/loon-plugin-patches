@@ -5,7 +5,7 @@
 > Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
 > v5.4 fixes why v5.2 never actually ran.
 
-**v5.8.0** · 3 个变体 · 3 variants
+**v5.8.0** · 3 个变体 + 1 个 A/B 对照版 · 4 variants
 
 ---
 
@@ -25,6 +25,31 @@ Loon 的 `[Script]` 是 **first-match-wins**，谁在前谁赢，后一条永不
 
 补丁器带自检：产物里只要还剩未注释的 YouTube 脚本/复写规则就直接报错退出，
 自动同步的 Action 随之变红，不会把坏产物推上去。
+
+
+---
+
+## A/B 对照版：`YouTube-730.lpx`
+
+用户反馈：**730 的 YouTube 开关开着时，除了游戏大本营没有别的广告**；把 730 的 YouTube 规则
+退场后，播放器广告就出来了。于是把 730 的规则**原样**搬过来做一个对照。
+
+取的是上游未修改的 `blockAds.plugin`，它的 YouTube 规则与我 v5.x 有三处结构性差异：
+
+| | 730 原版 | v5.x |
+|---|---|---|
+| 规则条数 | **一条** `http-response` 管 `browse\|next\|player\|search\|reel_watch_sequence\|guide\|account/get_setting\|get_watch` | 拆成两条：`browse\|next` → 自研脚本；其余 → 上游脚本 |
+| 正则锚点 | **无 `$`**（纯前缀匹配），所以 `player/get_drm_license`、`player/ad_break` 也命中 | 带 `(\?(.*))?$` 锚点，不命中子路径 |
+| timeout | **60** | 未写 → Loon 默认 **10 秒** |
+| argument | 不传 → 用脚本内部默认值（`blockUpload=true` / `blockImmersive=true`） | 传了，会把这两个覆盖成 `false` |
+
+Loon 是 first-match-wins，规则拆成两条就意味着同一端点上只有一套能生效；
+10 秒默认超时对 133 KB 的脚本也偏紧。**这版把三处差异全部还原**，
+用来回答一个问题：**问题出在 v5.x 的规则拆分上，还是出在上游脚本的 schema 覆盖不到？**
+
+> 这版**不带** `feed-gaming.js`，所以游戏大本营和信息流广告都不会被清除。
+> 日常使用仍用 `YouTube-Dedup.lpx`。
+> 顺带：v5.9 已给三个常用变体的上游规则补上 `timeout=60`。
 
 ---
 
@@ -349,6 +374,7 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 | `YouTube-Dedup.lpx` | **推荐** | 仅解密 youtubei |
 | `YouTube-Dedup-Slim.lpx` | 保留 captionLang | 供不装合集的用户 |
 | `YouTube-Dedup-Debug.lpx` | 完整功能 + debug 默认开 | Full + debug on |
+| `YouTube-730.lpx` | **A/B 对照专用**：730 的 YouTube 规则原样搬来 | A/B control only |
 | `src/config-onesie.js` | v5.1 新增，自研 | 从 config 响应采集 UMP onesie 密钥 |
 | `src/feed-gaming.js` | v5.2 新增，自研 | 清除首页「游戏大本营」模块 |
 | `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试 |
