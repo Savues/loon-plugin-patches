@@ -56,9 +56,15 @@ t('MITM 域名与两个来源一致',
 // ── 2. 没有死开关 ───────────────────────────────────────────
 console.log('\n【2】开关接线：声明的必须被引用，引用的必须已声明')
 
-const argRefs = [...lpx.matchAll(/argument=\[([^\]]*)\]/g)]
+// 引用必须从「活规则行」里扫，不能扫全文 —— 本文件末尾的说明注释里
+// 会引用 enable={blockQuic} 当反例，扫全文会把它当成真引用。
+const liveLines = lpx.split('\n')
+  .map(s => s.trim())
+  .filter(s => s && !s.startsWith('#'))
+  .join('\n')
+const argRefs = [...liveLines.matchAll(/argument=\[([^\]]*)\]/g)]
   .flatMap(m => [...m[1].matchAll(/\{(\w+)\}/g)].map(x => x[1]))
-const enableRefs = [...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1])
+const enableRefs = [...liveLines.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1])
 const allRefs = [...new Set([...argRefs, ...enableRefs])]
 
 for (const n of argNames) {
@@ -68,11 +74,39 @@ for (const n of allRefs) {
   t(`引用 ${n} 已声明`, argNames.includes(n), '引用了未声明的参数')
 }
 
-t('blockQuic 挂在 [Rule] 上（真机验过的用法）',
-  rule.some(r => r.includes('enable={blockQuic}')))
 t('3 条 Rewrite 均无条件（enable= 在 [Rewrite] 上无依据，不写假开关）',
   rw.every(r => !r.includes('enable={')),
   '官方手册未记载 Rewrite 支持 enable；上游 4362 条 Rewrite 里零使用')
+
+// ── 2b. enable= 不能挂逻辑规则（v1.0 真机弹的窗） ───────────
+console.log('\n【2b】enable= 不得挂在逻辑规则上（v1.0 缺陷回归）')
+
+// 断言必须只看规则本身，不能扫注释 —— 说明文字里会引用 enable={blockQuic}
+const ruleBody = rule.join('\n')
+
+t('QUIC 规则无条件（enable= 已从逻辑规则上摘掉）',
+  rule.filter(r => /^(AND|OR|NOT)\b/.test(r)).every(r => !r.includes('enable={')),
+  'Loon 会把 "REJECT, enable={x}" 整段当策略名 → Can not find policy → 回落到第一个节点')
+
+t('[Rule] 段内不含 enable={blockQuic}（该开关已删除）',
+  !ruleBody.includes('blockQuic'),
+  '声明了却删了引用 = 死开关；这里也顺带防「删了引用忘删声明」')
+
+// 结构性防线：逻辑规则形如 AND,((...),(...)),POLICY。
+// Loon 把最后那对 )) 之后的**全部**内容当成策略名，
+// 所以策略名里只要再出现一个逗号，就会去找一个不存在的策略 → 回落到第一个节点。
+const policyOf = r => {
+  const i = r.indexOf('))')
+  return i < 0 ? null : r.slice(i + 2).replace(/^,\s*/, '').trim()
+}
+const logicRules = rule.filter(r => /^(AND|OR|NOT)\b/.test(r))
+
+t('没有逻辑规则的策略名里含逗号（即挂了尾部参数）',
+  logicRules.every(r => !policyOf(r)?.includes(',')),
+  '形如 AND,((...),(...)),REJECT,enable={x} 会被整体当成策略名')
+
+t('QUIC 规则是本插件唯一一条逻辑规则，策略名为 REJECT',
+  logicRules.length === 1 && policyOf(logicRules[0]) === 'REJECT')
 
 t('脚本收到的参数个数与脚本行声明的一致',
   (() => {

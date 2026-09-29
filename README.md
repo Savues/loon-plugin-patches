@@ -30,7 +30,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify 部分整体退场<br>Bilibili + YouTube + Spotify removal from the big collection | 自动 Auto |
-| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.0** |
+| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.1** |
 
 ### 托管了脚本的九个插件
 

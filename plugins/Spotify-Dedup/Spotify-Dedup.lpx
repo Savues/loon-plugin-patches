@@ -1,4 +1,4 @@
-#!name=Spotify去广告(合订版) v1.0
+#!name=Spotify去广告(合订版) v1.1
 #!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: 001ProMax | 合并整理: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
@@ -12,10 +12,9 @@
 [Argument]
 tab=switch, false, true, tag=移除底栏创建按钮, desc=隐藏 Spotify 底栏中间的「创建」按钮（改后需重新登录）
 useractivity=switch, true, false, tag=启用Apple设备接力, desc=关闭后禁用「共享播放/接力」入口（改后需重新登录）
-blockQuic=switch, true, false, tag=封锁 Spotify QUIC, desc=拒绝 spotify.com 的 QUIC 连接，强制回落到 TCP+MITM。关闭后 Spotify 走 QUIC，本插件的脚本将完全不被触发。排障时先确认这条是开的。
 
 [Rule]
-AND, ((DOMAIN-SUFFIX, spotify.com), (PROTOCOL, QUIC)), REJECT, enable={blockQuic}
+AND, ((DOMAIN-SUFFIX, spotify.com), (PROTOCOL, QUIC)), REJECT
 
 [Rewrite]
 ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/pendragon\/ reject-dict
@@ -28,7 +27,19 @@ http-response ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/(
 [MitM]
 hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 
-# ==== PLUGIN_VERSION: 1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.1 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.1 修：enable= 不能挂在逻辑规则上，真机弹窗】
+#   v1.0 的 QUIC 规则写成了
+#     AND, ((DOMAIN-SUFFIX, spotify.com), (PROTOCOL, QUIC)), REJECT, enable={blockQuic}
+#   用户真机装上后 Loon 弹窗：
+#     Policy match error. Can not find policy: REJECT, enable={blockQuic},
+#     use the global first node.
+#   即 Loon 不解析逻辑规则尾部的 enable=，而是把
+#   `REJECT, enable={blockQuic}` 整段当成策略名，
+#   找不到这个策略 ⇒ 回落到第一个节点 ⇒ 那条 QUIC 拦截其实没生效。
+#   查证：blockAds 上游 59 条逻辑规则（AND/OR/NOT）零使用 enable=。
+#   本版删掉 blockQuic 开关，QUIC 规则改为无条件 —— 与 kelee 上游一致。
 #
 # 【为什么存在】同一批 Spotify 端点在两个插件里各有一份，会撞车：
 #   · blockAds 合集（fmz200/wool_scripts）—— 3 条 Rewrite + 1 条 Script
@@ -56,11 +67,18 @@ hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 #   唯一的差别是托管位置从 kelee.one 换成本仓库 raw，
 #   理由与 PinDuoDuo / YouTube-Dedup 相同：第三方站点消失会导致已导入的插件加载失败。
 #
-# 【只有 blockQuic 一个开关，且只挂在 [Rule] 上】
-#   3 条 Rewrite 全部无条件生效。理由：
-#   · 三个上游来源（kelee、730）这 3 条都是无条件的，不加开关等于保持原样
+# 【只有 tab / useractivity 两个开关，全部作用于脚本】
+#   3 条 Rewrite 与 1 条逻辑 Rule 全部无条件生效。理由：
+#   · 三个上游来源（kelee、730）这些规则都是无条件的，不加开关等于保持原样
 #   · `enable=` 在 [Rewrite] 上没有依据：官方手册未记载，
 #     blockAds 上游 4362 条 Rewrite 里零使用，本仓库也只有 [Rule] 挂过（真机验过）
+#   · ⚠️ `enable=` 在**逻辑规则**上同样不被解析，而且失败方式很隐蔽：
+#     v1.0 曾在 QUIC 那条 `AND, ((...), (...)), REJECT, enable={blockQuic}` 上挂过，
+#     Loon 把 `REJECT, enable={blockQuic}` 整段当成策略名去找一个叫
+#     「REJECT, enable={blockQuic}」的策略，找不到，于是报
+#     "Can not find policy" 并**回落到第一个节点** —— 那条 QUIC 拦截等于没生效。
+#     查证：blockAds 上游 59 条逻辑规则零使用 enable=。
+#     test/manifest.test.mjs 有一条专门拦这个的断言。
 #   · 写一个不生效的 enable= 比不写更糟 —— 用户会以为开关管用
 #   pendragon / gae2 / artistview 三条想关，只能整条删掉该行，见 README。
 #

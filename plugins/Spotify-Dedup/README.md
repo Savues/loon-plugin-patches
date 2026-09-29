@@ -7,6 +7,8 @@
 
 **一个插件，三份来源合并 · One plugin, three sources merged**
 
+**v1.1** — 修 v1.0 的 `enable=` 挂在逻辑规则上导致 Loon 弹窗的问题
+
 ---
 
 ## 订阅 · Subscribe
@@ -68,25 +70,42 @@ UI 上开关能点，什么用都没有。
 |---|---|---|
 | `tab` | **关** | 打开后隐藏底栏中间的「创建」按钮 |
 | `useractivity` | **开** | 关闭后禁用「共享播放 / Apple 设备接力」入口 |
-| `blockQuic` | **开** | 拒绝 Spotify 的 QUIC 连接，强制回落到 TCP + MITM |
 
 > ⚠️ **`tab` / `useractivity` 改完必须重新登录 Spotify 才生效。**
 > 这两个开关作用于 **bootstrap 响应**，而 bootstrap 只在登录/冷启动时下发。
 > kelee 上游的 `#!desc` 里也是这么写的。
 
-> ⚠️ **`blockQuic` 开着才能排障。** Spotify 走 QUIC 时根本不解密，
-> 脚本一次都不会触发 —— 广告还在、开关没反应，先确认这条是开的。
+> ⚠️ **广告还在、脚本像没跑过？先确认 Spotify 没在走 QUIC。**
+> 本插件有一条无条件规则把 `spotify.com` 的 QUIC 连接 REJECT 掉，
+> 强制回落到 TCP+MITM —— 不这样脚本一次都不会触发。无法用开关关闭
+> （原因见下）。
 
-### 3 条 Rewrite 为什么没有开关
+### 为什么只有两个开关，3 条 Rewrite 和 QUIC 规则都没有
 
-`enable=` 在 `[Rewrite]` 上**没有依据**：官方手册未记载，
-blockAds 上游 4362 条 Rewrite 里零使用，本仓库也只有 `[Rule]` 挂过（真机验过）。
+v1.0 曾给 QUIC 规则挂过开关，真机直接弹窗报错：
 
-写一个不生效的 `enable=` 比不写更糟 —— 你会以为开关管用。
-`blockQuic` 是唯一的例外，它挂在 `[Rule]` 上，用法有仓库内先例。
+```
+Policy match error. Can not find policy:REJECT, enable={blockQuic},
+use the global first node.
+```
 
-想关掉某条 Rewrite，只能把那一行整条删掉。`manifest.test.mjs` 会守住这个状态：
-哪天有人给 `[Rewrite]` 加了 `enable=`，测试会红。
+**`enable=` 不能挂在逻辑规则上。** Loon 不解析逻辑规则尾部的 `enable=`，
+而是把最后那对 `))` 之后的**全部**内容当成策略名 ——
+于是去找一个叫「`REJECT, enable={blockQuic}`」的策略，找不到，
+**回落到第一个节点**。也就是说那条 QUIC 拦截其实压根没生效。
+
+查证：blockAds 上游 59 条逻辑规则（`AND`/`OR`/`NOT`）**零**使用 `enable=`。
+
+同类的坑还有两处，`manifest.test.mjs` 各有一条断言守着：
+
+- **`enable=` 在 `[Rewrite]` 上也没有依据** —— 官方手册未记载，
+  上游 4362 条 Rewrite 里零使用，本仓库只有 `[Rule]` 挂过（`DOMAIN, ...` 那种普通规则，真机验过）
+- **写一个不生效的 `enable=` 比不写更糟** —— 你会以为开关管用
+
+所以现在：3 条 Rewrite、1 条 QUIC 逻辑规则，全部无条件；
+只有 `tab` / `useractivity` 两个开关，作用在脚本的 `$argument` 上（那个是真的）。
+
+想关掉某条 Rewrite 或 QUIC 拦截，只能把那一行整条删掉。
 
 ---
 
@@ -107,7 +126,7 @@ blockAds 上游 4362 条 Rewrite 里零使用，本仓库也只有 `[Rule]` 挂�
 | `Spotify-Dedup.lpx` | 插件清单，规则逐条标注出处 | Manifest, each rule annotated with its source |
 | `src/spotify.response.js` | kelee 线上版逐字节副本 | Byte-for-byte copy of kelee's script |
 | `src/UPSTREAM.md` | 出处、SHA256、三个版本的关系 | Provenance, hash, version relationship |
-| `test/manifest.test.mjs` | 25 条断言 | 25 assertions |
+| `test/manifest.test.mjs` | 26 条断言 | 26 assertions |
 
 ---
 
