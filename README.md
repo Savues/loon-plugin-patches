@@ -29,9 +29,10 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
-| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube 部分整体退场<br>Bilibili + YouTube removal from the big collection | 自动 Auto |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify 部分整体退场<br>Bilibili + YouTube + Spotify removal from the big collection | 自动 Auto |
+| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.0** |
 
-### 托管了脚本的八个插件
+### 托管了脚本的九个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -60,6 +61,13 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 伪造的订阅回包在作者自己的 Cloudflare Worker 里生成，客户端没有逻辑可改。
 托管只把「设备上跑谁家的代码」变成可 diff 的固定文件；**运行时依赖作者域并未消除**，
 README 里用对照表把这一点写在最前面，不含糊过去。
+
+`Spotify-Dedup` —— **纯合订，清单层为主**。同一批 Spotify 端点在 kelee 的插件和
+blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插件把两边能力收成一份
+（730 独有的 `gae2` 老端点拦截 + kelee 独有的 QUIC 封锁），blockAds 那份同步退场。
+托管的是 **kelee 那份脚本而不是 730 指向的** —— 后者在 2026-07-26 重构后改走
+`new Request/Response` 的 fetch 重写，`$argument` 出现 **0 次**，
+即声明了 `tab`/`useractivity` 两个开关却一个都不读。脚本逐字节未改，SHA256 由测试钉死。
 
 `AdGuard-Spoof` —— 第五种情况：**去混淆等价重写**。上游是 1905 B 的单行混淆（字符串表 + 移位自解机），
 本仓库把它还原成 9 行可读脚本，解码表在 `UPSTREAM.md` 里逐项列出。
@@ -125,8 +133,8 @@ and to #5 (upstream product name kept in the directory and `#!name`).
 
 ## 🔄 自动同步 · Auto Sync
 
-`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube）
-Synced upstream every 6 hours, with the Bilibili + YouTube removal patch re-applied.
+`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube + Spotify）
+Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify removal patch re-applied.
 
 [`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)
 

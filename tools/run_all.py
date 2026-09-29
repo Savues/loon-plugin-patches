@@ -25,6 +25,7 @@ TESTS = [
     ("plugins/YouTube-Test/test/shorts-arg.test.mjs", "YouTube-Test shorts 参数"),
     ("plugins/YouTube-Test/test/argument-wiring.test.mjs", "YouTube-Test 开关接线"),
     ("plugins/PinDuoDuo/test/manifest.test.mjs", "PinDuoDuo 清单 + 版本号守卫"),
+    ("plugins/Spotify-Dedup/test/manifest.test.mjs", "Spotify-Dedup 合订清单 + 开关接线"),
     ("patches/test-patch-blockads.py", "blockAds 退场补丁器", "python3"),
 ]
 

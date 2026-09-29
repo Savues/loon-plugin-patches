@@ -1,14 +1,15 @@
-# blockAds 退场补丁 · blockAds Bilibili + YouTube Removal Patch
+# blockAds 退场补丁 · blockAds Bilibili + YouTube + Spotify Removal Patch
 
-> 把合集里的 **B 站** 和 **YouTube** 部分整体退场，其余 700+ App 逐字节不动。
-> Removes the Bilibili and YouTube portions; other 700+ apps stay byte-for-byte intact.
+> 把合集里的 **B 站**、**YouTube**、**Spotify** 三块整体退场，其余 700+ App 逐字节不动。
+> Removes the Bilibili, YouTube and Spotify portions; other 700+ apps stay byte-for-byte intact.
 
 `blockAds.plugin`（[fmz200/wool_scripts](https://github.com/fmz200/wool_scripts)，730+ App）
-内置了 kokoryh 的完整 B 站规则集和一份 YouTube 响应体脚本，与本仓库的
-[Bilibili-Dedup](../plugins/Bilibili-Dedup/README.md) 和
-[YouTube-Dedup](../plugins/YouTube-Dedup/README.md) 功能重叠。
+内置了 kokoryh 的完整 B 站规则集、一份 YouTube 响应体脚本和一份 Spotify Protobuf 脚本，
+与本仓库的 [Bilibili-Dedup](../plugins/Bilibili-Dedup/README.md)、
+[YouTube-Dedup](../plugins/YouTube-Dedup/README.md) 和
+[Spotify-Dedup](../plugins/Spotify-Dedup/README.md) 功能重叠。
 
-本补丁把这两块**整体退场**，其余 700+ App 逐字节不动。
+本补丁把这三块**整体退场**，其余 700+ App 逐字节不动。
 
 ---
 
@@ -44,13 +45,13 @@ python3 patch-blockads.py blockAds.plugin -o out.plugin
 # 只看会改什么，不写文件
 python3 patch-blockads.py --dry-run blockAds.plugin -o /dev/null
 
-# 保留 MITM 域名（仅注释规则，用于仍需解密这两块流量的场景）
+# 保留 MITM 域名（仅注释规则，用于仍需解密这三块流量的场景）
 python3 patch-blockads.py --keep-mitm -o out.plugin
 
 # 校验产物：退场完整性 + 结构合法性
 python3 verify-artifact.py out.plugin
 
-# 回归测试（34 条断言）
+# 回归测试（40 条断言）
 python3 test-patch-blockads.py
 ```
 
@@ -60,33 +61,38 @@ python3 test-patch-blockads.py
 
 当前上游（2026-09-10 版）的实际命中数：
 
-| 段 | B 站 | YouTube | 处理 |
-|---|---|---|---|
-| `[Rewrite]` | 29 | 1 | 注释 |
-| `[Script]` | 8 | 1 | 注释 |
-| `[Rule]` | 5 | 1 | 注释 |
-| `[MITM]` | 9 域名 | 2 域名 | 移除 |
-| **合计** | **51** | **4** | — |
+| 段 | B 站 | YouTube | Spotify | 处理 |
+|---|---|---|---|---|
+| `[Rewrite]` | 29 | 1 | 3 | 注释 |
+| `[Script]` | 8 | 1 | 1 | 注释 |
+| `[Rule]` | 5 | 1 | 0 | 注释 |
+| `[MITM]` | 9 域名 | 2 域名 | 2 域名 | 移除 |
+| **合计** | **51** | **4** | **6** | — |
 
 判定依据：
 
 - **B 站** —— `bilibili.com` / `biliapi.net` / `biliapi.com` / `biligame.com` / `hdslb.com` / `manhuaren`
-- **YouTube** —— `youtube` / `googlevideo` / `youtu.be` / `ytimg`（**刻意用宽匹配**：
-  上游随时会加新端点，逐个列主域名迟早会漏）
+- **YouTube** —— `youtube` / `googlevideo` / `youtu.be` / `ytimg`
+  （**刻意用宽匹配**：上游随时会加新端点，逐个列主域名迟早会漏）
+- **Spotify** —— `spotify`
 
 注释掉的行会打上标记，产物里能直接搜到：
-`# [bilibili-removed]` / `# [youtube-removed]`。
+`# [bilibili-removed]` / `# [youtube-removed]` / `# [spotify-removed]`。
 
 > ⚠️ **易漏点 1**：B 站漫画走的是 `hdslb.com`（CDN）和 `manhuaren.com`（漫画 API），
 > **都不含 `bilibili.com`**。只匹配主域名会漏掉 6 条规则 —— 这是实际踩过的坑。
 >
 > ⚠️ **易漏点 2**：`biligame.com` 少写一个 `li` 就会漏掉
-> `line3-h5-mobile-api.biligame.com` 和 1 条 Rewrite。**改这两个正则时务必跑
-> `test-patch-blockads.py`**，里面有专门针对这两个坑的断言。
+> `line3-h5-mobile-api.biligame.com` 和 1 条 Rewrite。**改这三个正则时务必跑
+> `test-patch-blockads.py`**，里面有专门针对这些坑的断言。
+>
+> ⚠️ **易漏点 3**：`tab` / `useractivity` 这两个参数名很通用，但 730 里它们是
+> **Spotify 专用**的（`[Argument]` 段各只有一条定义，唯一引用就是那条 Spotify 脚本行）。
+> 删它们之前必须确认这个前提仍成立 —— 测试里有一条断言专门守它。
 
 ### 删除失活参数（自动应用）
 
-两块退场后有 5 个开关变成死开关 —— 只被已注释的规则引用：
+三块退场后有 7 个开关变成死开关 —— 只被已注释的规则引用：
 
 | 参数 | 原因 |
 |---|---|
@@ -95,8 +101,10 @@ python3 test-patch-blockads.py
 | `logLevel` | 标签为 `bilibili-日志等级`，仅 B 站脚本使用 |
 | `flightradar24_enable` | 上游 bug：声明了但无任何规则引用 |
 | `youtube_enable` | YouTube，规则已退场 |
+| `tab` | Spotify 底栏创建按钮开关，脚本已退场 |
+| `useractivity` | Spotify 设备接力开关，脚本已退场 |
 
-参数 **74 → 69**。其余 69 个各自控制生效规则，全部在用，不做进一步删减。
+参数 **74 → 67**。其余 67 个各自控制生效规则，全部在用，不做进一步删减。
 
 ---
 
@@ -113,6 +121,11 @@ python3 test-patch-blockads.py
 2. **无 enable 保护的 Rewrite** —— `rr*.googlevideo.com/initplayback` 那条
    `reject-dict` 常无 `enable` 保护，会打断 UMP 与字幕翻译。
 
+**Spotify**：合集里有 3 条 Rewrite + 1 条 Script，与 kelee 的 Spotify 插件
+（`Spotify_remove_ads.lpx`）**逐条撞车**。而且合集那份指向的脚本
+在 2026-07-26 上游重构后已不再读 `$argument`，`tab` / `useractivity` 两个开关
+形同虚设。完整说明见 [Spotify-Dedup](../plugins/Spotify-Dedup/README.md)。
+
 ---
 
 ## 设计原则 · Design principles
@@ -120,10 +133,10 @@ python3 test-patch-blockads.py
 - **声明式** Declarative · **幂等** Idempotent · **最小改动** Minimal · **可验证** Verifiable
 - **幂等**：已打过补丁的产物再跑一次逐字节不变。
   CI 里有一道 `cmp` 断言专门守这条 —— 不幂等会让每 6 小时都产生新 commit。
-- **最小改动**：除补丁条目外逐字节保持原样。当前产物 8485 行 / 410 KB，
-  活规则 4540 → 4537，消失的恰好是 3 条 YouTube 规则。
+- **最小改动**：除补丁条目外逐字节保持原样。当前产物 8483 行 / 410 KB，
+  活规则 4540 → 4533，消失的恰好是 3 条 YouTube + 4 条 Spotify 规则。
 - **可验证**：`verify-artifact.py` 检查两件事 ——
-  **退场完整性**（还有没有漏网的 B 站/YouTube 规则和 MITM 域名）
+  **退场完整性**（还有没有漏网的三块规则和 MITM 域名）
   与**结构合法性**（首行是不是 `#!name=`、五个段在不在、行数够不够）。
 
 > ⚠️ **为什么结构检查不能省**：上游仓库若被删或改名，`curl` 拿回来的是
@@ -148,5 +161,6 @@ python3 patches/test-patch-blockads.py
 
 - **奶思 / fmz200** <https://github.com/fmz200/wool_scripts> — 原作者
 - **kokoryh** <https://github.com/kokoryh> — B 站 protobuf 脚本作者
+- **001ProMax** <https://github.com/001ProMax> — Spotify Protobuf 脚本作者
 
 上游版权与许可全部适用。

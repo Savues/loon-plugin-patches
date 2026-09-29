@@ -17,8 +17,10 @@ BILI = re.compile(
     r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com'
     r'|hdslb\.com|manhuaren)', re.I)
 YT = re.compile(r'(youtube|googlevideo|youtu\.be|ytimg)', re.I)
+SPOTIFY = re.compile(r'spotify', re.I)
 
 RULE_SECTS = ('REWRITE', 'SCRIPT', 'RULE')
+REMOVALS = (('B 站', BILI), ('YouTube', YT), ('Spotify', SPOTIFY))
 
 
 def norm(t):
@@ -49,7 +51,7 @@ def main():
         if m:
             sec = m.group(1).upper()
         if sec in RULE_SECTS and t and not t.startswith('#'):
-            for name, rx in (('B 站', BILI), ('YouTube', YT)):
+            for name, rx in REMOVALS:
                 if rx.search(norm(t)):
                     live.append((name, t))
 
@@ -57,7 +59,7 @@ def main():
     if mitm is None:
         bad.append('找不到 [MITM] 段（段标题必须独占一行，不能粘着 hostname）')
         mitm = ''
-    for name, rx in (('B 站', BILI), ('YouTube', YT)):
+    for name, rx in REMOVALS:
         for h in re.split(r'[,\s]+', mitm):
             if h and rx.search(h):
                 bad.append(f'[MITM] 残留 {name} 域名: {h}')
@@ -83,12 +85,13 @@ def main():
     # ---- 3. 报告 -------------------------------------------------------
     nb = s.count('[bilibili-removed]')
     ny = s.count('[youtube-removed]')
+    ns = s.count('[spotify-removed]')
     if bad:
         for b in bad:
             print('::error::' + b)
         print('::error::退场或结构校验未通过，不要推送这个产物')
         return 1
-    print(f'::notice::通过 —— B 站已注释 {nb} 条、YouTube 已注释 {ny} 条，'
+    print(f'::notice::通过 —— B 站已注释 {nb} 条、YouTube {ny} 条、Spotify {ns} 条，'
           f'MITM 无残留，{len(s.splitlines())} 行 / {len(s.encode())} B')
     return 0
 

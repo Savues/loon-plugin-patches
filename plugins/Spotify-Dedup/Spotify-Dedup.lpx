@@ -1,0 +1,71 @@
+#!name=Spotify去广告(合订版) v1.0
+#!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!author=原作者: 001ProMax | 合并整理: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告
+#!system=iOS, iPadOS, macOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Spotify.png
+#!date=2026-09-29 21:30:00
+
+[Argument]
+tab=switch, false, true, tag=移除底栏创建按钮, desc=隐藏 Spotify 底栏中间的「创建」按钮（改后需重新登录）
+useractivity=switch, true, false, tag=启用Apple设备接力, desc=关闭后禁用「共享播放/接力」入口（改后需重新登录）
+blockQuic=switch, true, false, tag=封锁 Spotify QUIC, desc=拒绝 spotify.com 的 QUIC 连接，强制回落到 TCP+MITM。关闭后 Spotify 走 QUIC，本插件的脚本将完全不被触发。排障时先确认这条是开的。
+
+[Rule]
+AND, ((DOMAIN-SUFFIX, spotify.com), (PROTOCOL, QUIC)), REJECT, enable={blockQuic}
+
+[Rewrite]
+^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/pendragon\/ reject-dict
+^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/artistview\/v1\/artist\/(.*)&platform=iphone header https://spclient.wg.spotify.com/artistview/v1/artist/$1&platform=ipad
+^https:\/\/gae2-spclient\.spotify\.com:443\/ad reject
+
+[Script]
+http-response ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/(?:bootstrap|user-customization-service) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Spotify-Dedup/src/spotify.response.js, requires-body=true, binary-body-mode=true, timeout=10, argument=[{tab},{useractivity}], tag=Protobuf去广告
+
+[MitM]
+hostname=*-spclient.spotify.com, spclient.wg.spotify.com
+
+# ==== PLUGIN_VERSION: 1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【为什么存在】同一批 Spotify 端点在两个插件里各有一份，会撞车：
+#   · blockAds 合集（fmz200/wool_scripts）—— 3 条 Rewrite + 1 条 Script
+#   · kelee 的 Spotify_remove_ads.lpx —— 2 条 Rewrite + 1 条 Script
+#   Loon first-match-wins，谁排在前面谁生效，另一份等于白装。
+#   本插件把两边的能力合并成一份，blockAds 那份已在 patches/patch-blockads.py
+#   里整体退场（4 条规则 + 2 个 MITM 域名 + 2 个失活参数），见 plugins/BlockAds-Patched/。
+#
+# 【合并了什么 · 逐条溯源】
+#   Rewrite pendragon reject-dict        两边逐字节相同
+#   Rewrite artistview iphone→ipad      两边逐字节相同
+#   Rewrite gae2-spclient /ad reject     仅 blockAds 有（老版客户端端点）
+#   Rule    spotify.com + QUIC → REJECT 仅 kelee 有
+#   Script  kelee 托管版（带开关）       见下
+#
+# 【为什么用 kelee 那份脚本，而不是 730 指向的 raw.githubusercontent 版】
+#   两者同源于 001ProMax/Surge 的 Spotify.Crack.Dev.js，但 kelee 托管的是
+#   2026-07-26 那次重构（commit 2e3eb28d）**之前**的分支，自己加了开关支持。
+#   重构后的版本把功能改写成走 new Request/Response 的 fetch 重写，
+#   `$argument` 出现 0 次 —— 即上游那两个开关形同虚设。
+#   kelee 版 $argument 出现 4 次，tab / useractivity 均真正生效。
+#   本仓库托管的是 kelee 版的逐字节副本，见 src/UPSTREAM.md。
+#
+# 【逐字节副本，未改一个字符】脚本逻辑完全等于 kelee 线上那份。
+#   唯一的差别是托管位置从 kelee.one 换成本仓库 raw，
+#   理由与 PinDuoDuo / YouTube-Dedup 相同：第三方站点消失会导致已导入的插件加载失败。
+#
+# 【只有 blockQuic 一个开关，且只挂在 [Rule] 上】
+#   3 条 Rewrite 全部无条件生效。理由：
+#   · 三个上游来源（kelee、730）这 3 条都是无条件的，不加开关等于保持原样
+#   · `enable=` 在 [Rewrite] 上没有依据：官方手册未记载，
+#     blockAds 上游 4362 条 Rewrite 里零使用，本仓库也只有 [Rule] 挂过（真机验过）
+#   · 写一个不生效的 enable= 比不写更糟 —— 用户会以为开关管用
+#   pendragon / gae2 / artistview 三条想关，只能整条删掉该行，见 README。
+#
+# 【#!system 上游是空的，本版补全】
+#   kelee 的 lpx 写的是 `#!system=`，空值。730 与本仓库其余插件都写全
+#   iOS / iPadOS / macOS。空值是否等价于「全平台兼容」无据可依，
+#   保守起见按仓库惯例写全（与 AdGuard-Spoof 漏 iPadOS 查无实据、
+#   只能照仓库内既有惯例抄，同一个道理）。

@@ -58,7 +58,17 @@ BILI = re.compile(
 # 注意 ads.youtube.com 的 REJECT 也在这个范围内，会一并退场 —— YouTube 的广告
 # 由本仓库的 YouTube-Dedup 负责，本插件不再插手。
 YT = re.compile(r'(youtube|googlevideo|youtu\.be|ytimg)', re.I)
+# 判定「属于 Spotify」。能力交给本仓库的 Spotify-Dedup 承担
+# （那一份合了 kelee 的开关版脚本、730 的 gae2 老端点规则与 QUIC 拦截）。
+SPOTIFY = re.compile(r'spotify', re.I)
 SKIP_SECT = {'ARGUMENT', 'GENERAL', 'MITM'}   # MITM 由 strip_mitm 单独处理
+
+# (名字, 注释标记, 域名正则)
+REMOVALS = (
+    ('B 站', 'bilibili-removed', BILI),
+    ('YouTube', 'youtube-removed', YT),
+    ('Spotify', 'spotify-removed', SPOTIFY),
+)
 
 
 def norm(t):
@@ -163,7 +173,7 @@ def main():
     before = s
     print(f'输入: {"本地" if src else "上游"}  {len(before.encode())} B')
 
-    for rx, tag, name in ((BILI, 'bilibili-removed', 'B 站'), (YT, 'youtube-removed', 'YouTube')):
+    for name, tag, rx in REMOVALS:
         s, hits = comment_out_rules(s, rx, tag)
         by = {}
         for sec, t in hits:
@@ -172,16 +182,19 @@ def main():
         print(f'  [{name}] 已注释 {len(hits)} 条: {detail}')
 
     if not a.keep_mitm:
-        s, rm = strip_mitm(s, [('B 站', BILI), ('YouTube', YT)])
-        for name in ('B 站', 'YouTube'):
+        s, rm = strip_mitm(s, [(n, rx) for n, _, rx in REMOVALS])
+        for name, _, _ in REMOVALS:
             got = rm[name]
             print(f'  [{name}] 已移除 MITM 域名: {len(got)} 个' + (f'  {got}' if got else ''))
     else:
         print('  [--keep-mitm] 保留 MITM 域名')
 
     # 删除因退场而失活的参数
+    # ⚠️ tab / useractivity 这两个名字很通用，但 730 里它们是 Spotify 专用的：
+    #    [Argument] 段各只有一条定义，唯一的引用就是那条 Spotify 脚本行
+    #    （argument=[{tab},{useractivity}]）。删之前先确认这个前提仍成立。
     dead = ['bilimanhua_enable', 'sponsorBlock', 'logLevel', 'flightradar24_enable',
-            'youtube_enable']
+            'youtube_enable', 'tab', 'useractivity']
     s, dn = drop_dead_params(s, dead)
     print(f'  已删除失活参数: {dn}/{len(dead)}  {dead[:dn]}')
     print(f'输出: {len(s.encode())} B  ({len(s.splitlines())-len(before.splitlines()):+d} 行)')

@@ -5,7 +5,7 @@ import sys
 import tempfile
 
 # 造一个最小假上游，覆盖 MITM 多行结构、含逗号空洞、参数引用等真实形态
-MITM = "hostname = aaa.com, rr*.googlevideo.com, bbb.com, youtubei.googleapis.com, ccc.com\nhostname = manga.bilibili.com, ddd.com, ee*.hdslb.com\n"
+MITM = "hostname = aaa.com, rr*.googlevideo.com, bbb.com, youtubei.googleapis.com, ccc.com\nhostname = manga.bilibili.com, ddd.com, ee*.hdslb.com, *-spclient.spotify.com\n"
 FAKE = f"""#!name=测试合集
 #!desc=用于测试补丁器的小样本
 #!date=2026-09-29 00:00:00
@@ -17,6 +17,8 @@ bilimanhua_enable = switch,true,false,tag=B站漫画
 sponsorBlock = switch,true,false,tag=空降助手
 logLevel = select,a,b,tag=日志等级
 flightradar24_enable = switch,true,false,tag=上游未引用
+tab = switch, true, tag=Spotify-移除底栏创建按钮
+useractivity = switch, true, tag=Spotify-启用Apple设备接力
 
 [Rule]
 DOMAIN, keep.example.com, REJECT
@@ -28,11 +30,14 @@ DOMAIN-SUFFIX, api.bilibili.com, REJECT
 ^https:\\/\\/rr[\\w-]+\\.googlevideo\\.com\\/initplayback\\? reject-dict
 ^https?://api\\.bilibili\\.com/x reject
 ^https?://i\\d\\.hdslb\\.com\\/fawkes reject-dict
+^https:\\/\\/(?:\\w+-spclient|spclient\\.wg)\\.spotify\\.com(?::443)?\\/pendragon\\/ reject-dict
+^https:\\/\\/gae2-spclient\\.spotify\\.com:443\\/ad reject
 
 [Script]
 http-response ^https://keep\\.example\\.com\\/v1\\/api script-path=https://x/keep.js, requires-body=true, enable={{keep_enable}}
 http-response ^https:\\/\\/youtubei\\.googleapis\\.com\\/youtubei\\/v1\\/player script-path=https://x/yt.js, requires-body=true, enable={{youtube_enable}}
 http-response ^https:\\/\\/api\\.bilibili\\.com\\/x\\/msg script-path=https://x/bili.js, requires-body=true, enable={{bilimanhua_enable}}
+http-response ^https:\\/\\/(?:\\w+-spclient|spclient\\.wg)\\.spotify\\.com(?::443)?\\/(?:bootstrap|user-customization-service) script-path=https://x/sp.js, requires-body=true, argument=[{{tab}},{{useractivity}}]
 
 [MITM]
 {MITM}"""
@@ -58,13 +63,19 @@ if r.returncode != 0:
     print(r.stdout, r.stderr); sys.exit(1)
 s = pathlib.Path(out).read_text(encoding='utf-8')
 
-print('B 站 / YouTube 规则都被注释')
+print('B 站 / YouTube / Spotify 规则都被注释')
 check('# [bilibili-removed] DOMAIN-SUFFIX, api.bilibili.com, REJECT' in s, 'B 站 [Rule] 已注释')
 check('# [bilibili-removed] http-response ^https:\\/\\/api\\.bilibili\\.com' in s, 'B 站 [Script] 已注释')
 check('# [bilibili-removed] ^https?://i\\d\\.hdslb\\.com' in s, 'B 站漫画（只有 hdslb，无 bilibili）已注释')
 check('# [youtube-removed] DOMAIN, ads.youtube.com, REJECT' in s, 'YouTube [Rule] 已注释')
 check('# [youtube-removed] ^https:\\/\\/rr[\\w-]+\\.googlevideo' in s, 'YouTube [Rewrite] 已注释')
 check('# [youtube-removed] http-response ^https:\\/\\/youtubei\\.googleapis' in s, 'YouTube [Script] 已注释')
+check('# [spotify-removed] ^https:\\/\\/(?:\\w+-spclient|spclient\\.wg)\\.spotify\\.com(?::443)?\\/pendragon\\/' in s,
+      'Spotify [Rewrite] pendragon 已注释')
+check('# [spotify-removed] ^https:\\/\\/gae2-spclient\\.spotify\\.com:443\\/ad' in s,
+      'Spotify [Rewrite] gae2 老端点已注释')
+check('# [spotify-removed] http-response ^https:\\/\\/(?:\\w+-spclient|spclient\\.wg)' in s,
+      'Spotify [Script] bootstrap 已注释')
 
 print('不相关的规则逐字节不动')
 for keep in ('DOMAIN, keep.example.com, REJECT',
@@ -76,7 +87,8 @@ for keep in ('DOMAIN, keep.example.com, REJECT',
 print('MITM 段')
 check('\n[MITM]\n' in s, '[MITM] 段标题独占一行（未被粘到 hostname 上）')
 mitm = s.split('\n[MITM]\n', 1)[1]
-for gone in ('rr*.googlevideo.com', 'youtubei.googleapis.com', 'manga.bilibili.com', 'ee*.hdslb.com'):
+for gone in ('rr*.googlevideo.com', 'youtubei.googleapis.com', 'manga.bilibili.com',
+             'ee*.hdslb.com', '*-spclient.spotify.com'):
     check(gone not in mitm, f'{gone} 已移除')
 for kept in ('aaa.com', 'bbb.com', 'ccc.com', 'ddd.com'):
     check(kept in mitm, f'{kept} 保留')
@@ -85,7 +97,8 @@ check(mitm.count('\n') >= 2, 'MITM 的多行结构没被并成一行')
 
 print('死参数')
 arg = s.split('[Argument]', 1)[1].split('\n[', 1)[0]
-for dead in ('youtube_enable', 'bilimanhua_enable', 'sponsorBlock', 'logLevel', 'flightradar24_enable'):
+for dead in ('youtube_enable', 'bilimanhua_enable', 'sponsorBlock', 'logLevel',
+             'flightradar24_enable', 'tab', 'useractivity'):
     check(dead not in arg, f'{dead} 已删除')
 check('keep_enable' in arg, 'keep_enable 保留')
 
