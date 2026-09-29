@@ -13,9 +13,15 @@
     },
     "plugins/PinDuoDuo/src/homepage.response.js": {
       "upstream": null,
+      "origin": "self-authored",
       "bytes": 3468,
-      "sha256": "7fc7ba263550095805cb6fef24574d7533baf34aa4673a0e1249c50f73f71ad5",
-      "origin": "self-authored"
+      "sha256": "7fc7ba263550095805cb6fef24574d7533baf34aa4673a0e1249c50f73f71ad5"
+    },
+    "plugins/PinDuoDuo/src/stub.response.js": {
+      "upstream": null,
+      "origin": "self-authored",
+      "bytes": 3368,
+      "sha256": "899a2de76dde53feef9298108e276e8405c45d46acffe58422aa2ebd5b398dde"
     }
   }
 }

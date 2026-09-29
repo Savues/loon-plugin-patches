@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.4** · 13 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:20`
+**v1.5** · 14 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:50`
 
 | | 中文 | English |
 |---|---|---|
@@ -72,17 +72,18 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 ## 开关 · Switches
 
-11 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
+14 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
 
 ### [高危] 会改写服务端下发内容的拦截
 
 | 开关 | 默认 | 覆盖 | 什么时候关 |
 |---|---|---|---|
-| `api_stub` | 开 | 14 条 `reject-dict`（广告/会场类） | 想要**完全不改任何响应体**时 |
+| `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
 | `chat_stub` | 开 | 4 条聊天/推荐端点 | **聊天刷不出来时**（已实测：关掉即恢复） |
 | `telemetry_stub` | 开 | 8 个埋点/监控/配置域名 | 怀疑被风控、或 App 行为异常时 |
 | `phantom_stub` | 开 | `/api/phantom/gbdbpdv/extra` | 怀疑被风控时**优先关这条** |
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
+| `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` | 搜索框仍轮播「酷态科cp12」这类词时 |
 
 > ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
 > `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
@@ -110,9 +111,11 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 → {"hotqs":[{"q":"酷态科cp12","tag_list":[{"text":"热"}]},{"q":"酷态科"}, ...]}
 ```
 
-插件对它有一条 `reject-dict`（归在 `api_stub` 下），返回 `{}` 即清除。
-**若搜索框仍在轮播，检查 `api_stub` 是否被关掉** —— 这条 2026-09-29 实测确认：
-`api_stub` 关闭时该端点 3 次请求全部返回真实数据。
+由 `search_stub` 控制，返回 `{}` 即清除。`/search` 结果页的 `expansion` 字段同受此开关管辖。
+
+> ⚠️ **v1.3 / v1.4 曾经失效**：那两版把 `enable={api_stub}` 挂在 `[Rewrite]` 规则上，
+> 而 **Loon 手册的 `rewrite.md` 根本没有 `enable=` 这个参数**（`script.md` 才有），
+> 真机实测 21 条规则全部放行。v1.5 已全部改为 `[Script]` 方案。
 
 ### [底栏] 自定义底部导航
 
@@ -209,12 +212,18 @@ node test/homepage.test.mjs    # 31 用例，脚本逻辑
 ## 回归测试 · Regression test
 
 ```bash
-node test/manifest.test.mjs   # 49 用例，清单层
-node test/homepage.test.mjs   # 31 用例，脚本逻辑
+node test/manifest.test.mjs      # 54 用例，清单层
+node test/homepage.test.mjs      # 31 用例，首页脚本
+node test/stub.test.mjs          # 60 用例，拦截开关
+node test/stub-wiring.test.mjs   # 40 用例，清单与脚本接线
 ```
 
 清单层覆盖：开关声明与引用双向一致、三条高风险规则确已移除、
-底栏脚本接线正确、外部资源全部收在仓库内、上游脚本仅差 1 行。
+`[Rewrite]` 上不再有 `enable=`、底栏与拦截脚本接线正确、
+外部资源全部收在仓库内、上游脚本仅差 1 行。
+
+`stub-wiring` 专门校验一件事：**清单里那条 URL 正则能否命中脚本 `RULES` 的全部 21 条路径**。
+写清单用的正则很长，少写一个分支就会让某个端点静默失效 —— 这个用例把两者绑在一起。
 
 ---
 
@@ -276,10 +285,13 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `src/PinDuoDuo_remove_ads.js` | 上游脚本，仅改 1 行 chunk URL | Upstream script, one line changed |
 | `src/upstream/PinDuoDuo_remove_ads.js` | 上游原件，只读 | Pristine upstream, read-only |
 | `src/chunks/9410-*.js` | 页面 chunk 托管副本（上游第三方托管） | Vendored page chunk |
-| `manifest.json` | 脚本 sha256 登记（上游 2 + 自研 1） | Script hashes |
+| `manifest.json` | 脚本 sha256 登记（上游 2 + 自研 2） | Script hashes |
 | `src/homepage.response.js` | 首页去广告 + 底栏自定义（**自研**） | Purpose-built script |
+| `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
 | `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
 | `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
+| `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
+| `test/stub-wiring.test.mjs` | 40 个清单与脚本接线用例 | 40 wiring tests |
 | `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |
 
 校验托管脚本完整性：

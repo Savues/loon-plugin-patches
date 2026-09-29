@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""vendor-check.py —— 校验托管脚本的完整性。
+"""vendor-check.py —— 校验托管脚本的完整性，并在需要时比对上游是否漂移。
 
 为什么需要
 ----------
-托管的意义是「上游没了也能用」，但托管之后上游会继续更新。
-本脚本回答一个问题：**本地这份有没有被人动过？**
-内容比对交给 `git diff` 与 `external-audit.mjs`，本脚本只管指纹。
+托管的意义是「上游没了也能用」。但托管之后**上游会继续更新**，
+于是要能回答两个问题：
+  1. 本地这份有没有被人动过？          → --hash
+  2. 上游有没有出新版本、值不值得跟？   → --diff
 
 用法
 ----
     python3 tools/vendor-check.py --manifest   # 重新生成 manifest.json
-    python3 tools/vendor-check.py --hash       # 校验本地完整性（离线，退出码 1 = 被改过）
+    python3 tools/vendor-check.py --hash       # 只校验本地完整性（离线）
+    python3 tools/vendor-check.py --diff       # 拉上游比大小+sha256
 
-上游有新版本时：跑 external-audit.mjs 审一遍外发域名，确认干净再 --manifest 重生成。
+退出码：0 全部一致 / 1 有漂移或改动 / 2 用法错误
 """
-import argparse, hashlib, json, pathlib, sys
+import argparse, hashlib, json, pathlib, subprocess, sys, tempfile, os
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MANIFEST = ROOT / 'plugins/YouTube-Test/manifest.json'
+UA = 'Loon/765 CFNetwork/1568.0.3 Darwin/23.5.0'
 
 # 相对仓库根的路径 -> 上游地址（出处记录；脚本按 URL 到本仓库取，不直接访问上游）
 SOURCES = {
@@ -33,6 +35,26 @@ SOURCES = {
         'https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js',
     'plugins/YouTube-Dedup/src/remove-ads-request.js':
         'https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js',
+    # PinDuoDuo 的上游原件放 src/upstream/，src/ 下那份改了远程 URL，不参与漂移比对
+    'plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js':
+        'https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js',
+    'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js':
+        'https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js',
+}
+
+# 自研脚本：无上游，不做漂移比对，但登记 sha256 以便查本地完整性
+OWN_SCRIPTS = {
+    'plugins/PinDuoDuo/src/homepage.response.js': 'plugins/PinDuoDuo/manifest.json',
+    'plugins/PinDuoDuo/src/stub.response.js': 'plugins/PinDuoDuo/manifest.json',
+}
+
+# 源文件登记在哪个 manifest.json（显式列出，不按目录推导：
+# YouTube-Dedup 的脚本历史上就登记在 YouTube-Test 的 manifest 里）
+MANIFEST_OF = {
+    **{r: 'plugins/YouTube-Test/manifest.json' for r in SOURCES
+       if r.startswith('plugins/YouTube-')},
+    'plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js': 'plugins/PinDuoDuo/manifest.json',
+    'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js': 'plugins/PinDuoDuo/manifest.json',
 }
 
 
@@ -41,44 +63,85 @@ def sha256(p: pathlib.Path) -> str:
         return hashlib.file_digest(f, 'sha256').hexdigest()
 
 
+def fetch(url):
+    fd, tmp = tempfile.mkstemp(suffix='.js')
+    os.close(fd)
+    try:
+        r = subprocess.run(['curl', '-sL', '--max-time', '90', '-A', UA, '-o', tmp, url],
+                           capture_output=True)
+        if r.returncode != 0 or os.path.getsize(tmp) < 500:
+            return None
+        return pathlib.Path(tmp).read_bytes()
+    finally:
+        os.unlink(tmp)
+
+
 def main():
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument('--hash', action='store_true', help='校验本地完整性')
     g.add_argument('--manifest', action='store_true', help='重新生成 manifest.json')
+    g.add_argument('--diff', action='store_true', help='拉上游比大小+sha256')
     a = ap.parse_args()
 
     if a.manifest:
-        src = {rel: {'upstream': url,
-                     'bytes': (ROOT / rel).stat().st_size,
-                     'sha256': sha256(ROOT / rel)}
-               for rel, url in SOURCES.items()}
-        doc = {'_comment': 'Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. '
-                           'Regenerate with: python3 tools/vendor-check.py --manifest',
-               'sources': src}
-        MANIFEST.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        print('已写入 %s（%d 个文件）' % (MANIFEST.relative_to(ROOT), len(src)))
+        for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values()}):
+            src = {}
+            for rel, url in SOURCES.items():
+                if MANIFEST_OF.get(rel) != mf:
+                    continue
+                p = ROOT / rel
+                src[rel] = {'upstream': url, 'bytes': p.stat().st_size, 'sha256': sha256(p)}
+            for rel, m in OWN_SCRIPTS.items():
+                if m != mf:
+                    continue
+                p = ROOT / rel
+                src[rel] = {'upstream': None, 'origin': 'self-authored',
+                            'bytes': p.stat().st_size, 'sha256': sha256(p)}
+            doc = {'_comment': 'Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. '
+                               'Regenerate with: python3 tools/vendor-check.py --manifest',
+                   'sources': src}
+            (ROOT / mf).write_text(json.dumps(doc, ensure_ascii=False, indent=2) + '\n',
+                                   encoding='utf-8')
+            print('已写入 %s（%d 个文件）' % (mf, len(src)))
         return 0
 
-    if not MANIFEST.exists():
-        print('缺少 manifest.json，先跑 --manifest 生成', file=sys.stderr)
-        return 2
-    want = json.loads(MANIFEST.read_text(encoding='utf-8'))['sources']
-
     bad = 0
-    for rel in SOURCES:
-        p = ROOT / rel
-        name = rel.split('/')[-1]
-        if not p.exists():
-            print('❌ %s: 本地缺失' % name)
+    for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values()}):
+        mp = ROOT / mf
+        if not mp.exists():
+            print('缺少 %s，先跑 --manifest 生成' % mf, file=sys.stderr)
             bad += 1
             continue
-        got, exp = sha256(p), (want.get(rel) or {}).get('sha256')
-        ok = got == exp
-        print('%s %s  %7d B  %s…' % ('✅' if ok else '⚠️ ', name, p.stat().st_size, got[:16]))
-        if not ok:
-            print('    期望 %s… —— 本地与 manifest 不符' % (exp or '?')[:16])
-            bad += 1
+        want = json.loads(mp.read_text(encoding='utf-8'))['sources']
+        for rel in [r for r in SOURCES if MANIFEST_OF.get(r) == mf] \
+                 + [r for r, m in OWN_SCRIPTS.items() if m == mf]:
+            p = ROOT / rel
+            name = rel.split('/')[-1]
+            own = rel in OWN_SCRIPTS
+            if not p.exists():
+                print('❌ %s: 本地缺失' % name)
+                bad += 1
+                continue
+            got, exp = sha256(p), (want.get(rel) or {}).get('sha256')
+            if a.diff and not own:
+                remote = fetch(SOURCES[rel])
+                if remote is None:
+                    print('⚠️  %s 上游拉取失败，跳过' % name)
+                    continue
+                if hashlib.sha256(remote).hexdigest() == got:
+                    print('✅ %s %7d B  与上游一致' % (name, len(remote)))
+                else:
+                    print('🔄 %s 上游 %7d B（本地 %d B）已漂移'
+                          % (name, len(remote), p.stat().st_size))
+                    bad += 1
+                continue
+            ok = got == exp
+            print('%s %s  %7d B  %s…%s' % ('✅' if ok else '⚠️ ', name, p.stat().st_size,
+                                           got[:16], '  (自研)' if own else ''))
+            if not ok:
+                print('    期望 %s… —— 本地与 manifest 不符' % (exp or '?')[:16])
+                bad += 1
     return 1 if bad else 0
 
 

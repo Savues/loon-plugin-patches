@@ -52,11 +52,12 @@ const declared = [...lpx.matchAll(/^([\w.]+)\s*=\s*switch/gm)].map(m => m[1])
 const inputs = [...lpx.matchAll(/^([\w.]+)\s*=\s*input/gm)].map(m => m[1])
 // 开关有两条通路：enable={} 挂规则，或 argument=[{}] 传给脚本
 const viaEnable = [...new Set([...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1]))]
-const argLine = lpx.match(/argument=\[([^\]]+)\]/)
-const viaArg = argLine ? (argLine[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)) : []
+// argument 可能出现在多条 [Script] 规则上（stub / homepage 各一条），要全部收集
+const viaArg = [...lpx.matchAll(/argument=\[([^\]]+)\]/g)]
+  .flatMap(mm => (mm[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)))
 const referenced = [...new Set(viaEnable.concat(viaArg))]
 
-t('声明 12 个开关 + 1 个输入', declared.length === 12 && inputs.length === 1,
+t('声明 13 个开关 + 1 个输入', declared.length === 13 && inputs.length === 1,
   `开关 ${declared.length} 个: ${declared.join(',')} / 输入 ${inputs.join(',')}`)
 t('每个声明项都被引用', declared.every(d => referenced.includes(d)),
   `未被引用: ${declared.filter(d => !referenced.includes(d)).join(',') || '无'}`)
@@ -64,13 +65,16 @@ t('输入项被引用', inputs.every(i => referenced.includes(i)),
   `未被引用: ${inputs.filter(i => !referenced.includes(i)).join(',') || '无'}`)
 t('引用项都已声明', referenced.every(r => declared.includes(r) || inputs.includes(r)),
   `未声明: ${referenced.filter(r => !declared.includes(r) && !inputs.includes(r)).join(',') || '无'}`)
-for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'bottom_custom']) {
+for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'search_stub', 'bottom_custom']) {
   t(`${s} 存在`, declared.includes(s))
 }
-t('五个高危开关默认 true（保持原行为）',
-  ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub']
+t('六个高危开关默认 true（保持原行为）',
+  ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'search_stub']
     .every(s => new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)))
 t('Bot_custom 是 input 不是 switch', inputs.includes('Bot_custom'))
+const rwSec = section('REWRITE')
+t('不再有 [Rewrite] 上的 enable=',
+  !/enable=\{/.test(rwSec.join('\n')), 'enable= 只能用于 [Script]')
 
 // ── 3. 高风险 REJECT 确已移除 ───────────────────────────────
 console.log('\n【3】高风险规则不得生效')
@@ -80,18 +84,13 @@ t('xg.pinduoduo.com 不再被 REJECT',
   !section('RULE').some(l => /DOMAIN,\s*xg\.pinduoduo\.com/.test(l) && /REJECT/.test(l)))
 t('xg 的移除有注释说明', lpx.split('\n').some(l => l.startsWith('#') && l.includes('xg.pinduoduo.com')))
 
-// ── 4. 聊天端点仍挂开关 ─────────────────────────────────────
-console.log('\n【4】聊天/推荐端点')
-const chatStubs = active.filter(l => l.includes('enable={chat_stub}'))
-t('4 条端点挂上 chat_stub', chatStubs.length === 4, `实际 ${chatStubs.length} 条`)
-t('含 new_chat_group', chatStubs.some(l => l.includes('new_chat_group')))
-t('含 zaire_biz/chat/resource', chatStubs.some(l => l.includes('zaire_biz')))
-t('phantom 端点挂 phantom_stub',
-  section('REWRITE').some(l => /phantom/.test(l) && l.includes('enable={phantom_stub}')))
-t('my_order_group 挂 order_stub',
-  section('REWRITE').some(l => /my_order_group/.test(l) && l.includes('enable={order_stub}')))
-t('这两条已不在 api_stub 下',
-  !section('REWRITE').some(l => l.includes('enable={api_stub}') && /phantom|my_order_group/.test(l)))
+// ── 4. 接口拦截已从 [Rewrite] 移到 [Script] ─────────────────
+console.log('\n【4】接口拦截已从 [Rewrite] 移到 [Script]')
+t('[Rewrite] 里不再有 reject-dict', !rwSec.some(l => l.includes('reject-dict')),
+  rwSec.filter(l => l.includes('reject-dict')).map(x => x.slice(0, 50)).join(' | '))
+t('[Rewrite] 里不再有 search 的 expansion 删除', !rwSec.some(l => /json-del.*expansion/.test(l)))
+t('stub 脚本规则已挂上', section('SCRIPT').some(l => /stub\.response\.js/.test(l)))
+t('stub 规则指向本仓库', /Savues\/loon-plugin-patches[^\s]*stub\.response\.js/.test(lpx))
 const telStubs = active.filter(l => l.includes('enable={telemetry_stub}'))
 t('8 个域名挂上 telemetry_stub', telStubs.length === 8, `实际 ${telStubs.length} 个`)
 
@@ -123,8 +122,8 @@ t('pddpic 广告图 CDN 仍被拦截',
   active.some(l => /cdl-p2\.pddpic\.com/.test(l) && l.includes('REJECT')))
 t('MITM 域名未削减', /hostname\s*=\s*api\.pinduoduo\.com,\s*m\.pinduoduo\.net/.test(lpx))
 const rw = section('REWRITE')
-// 原 28 条，其中 2 条 homepage/hub 已移交脚本
-t('26 条 [Rewrite] 保留（2 条已移交脚本）', rw.length === 26, `实际 ${rw.length} 条`)
+// 原 28 条：2 条 homepage/hub + 21 条接口拦截均已移交脚本
+t('[Rewrite] 剩 5 条纯去广告规则', rw.length === 5, `实际 ${rw.length} 条`)
 
 // ── 7. 外部资源收敛（脚本层的第三方依赖）─────────────────────
 console.log('\n【7】外部资源收敛')

@@ -68,6 +68,8 @@ Only one line differs from the pristine upstream copy. Everything else is byte-f
 | 10 | 两条 `homepage/hub` 的 `json-del`/`json-jq` → 自研 `src/homepage.response.js` | ① 底栏写死三项 ② jq 空值崩溃 ③ 同一 URL 两条规则谁先谁后是未解疑点 | 实测 + 推导 |
 | 11 | 新增底栏 7 项 `[Argument]`（`bottom_custom` + 6 个 `Bot_*` + `Bot_custom`） | 用户无法在不编辑文件的前提下调整底栏 | 推导 |
 | 12 | 从 `api_stub` 拆出 `phantom_stub` / `order_stub` | 两条性质与广告无关：前者与推送同模块、后者会清空订单列表，捆在一起等于逼用户二选一 | 实测 + 推导 |
+| 13 | **20 条 `[Rewrite] reject-dict` 全部改为自研 `src/stub.response.js`** | **Loon 手册 `rewrite.md` 没有 `enable=` 参数**（只有 `script.md` 有），v1.3/v1.4 挂上去的 `enable={api_stub}` 真机实测 21 条规则全部放行 | 实测 |
+| 14 | 新增 `search_stub`，搜索框轮播词单独可控 | 搜索框推荐词来自独立端点 `/search_hotquery`，不该与会场类捆绑 | 实测 |
 
 ### 关于第 6 条的诚实说明
 
