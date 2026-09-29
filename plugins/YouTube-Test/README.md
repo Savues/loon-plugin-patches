@@ -1,14 +1,14 @@
-# YouTube-Test · YouTube 规则独立提取版
+# YouTube-Test · YouTube去广告 + 双语字幕
 
-> 从「广告拦截&净化合集」中原样提取的 YouTube 规则，供 A/B 对照测试。
-> YouTube rules extracted verbatim from blockAds, for A/B testing.
+> 去广告与双语字幕合成一个插件，省掉手动摆插件顺序。
+> Ad-block and bilingual subtitles in one plugin.
 
-**v1.0** · 1 参数 / 3 规则 / 2 域名 · 更新 `2026-09-29T09:20`
+**v1.0** · 9 参数 / 11 条规则 / 6 域名 · 更新 `2026-09-29T12:00`
 
 | | 中文 | English |
 |---|---|---|
-| 脚本 | 1 个，**上游原版未改** | 1 script, **upstream, unmodified** |
-| 外部依赖 | `Maasea/sgmodule` 的 `youtube.response.js` | upstream `youtube.response.js` |
+| 脚本 | 5 个，**全部由本仓库托管** | 5 scripts, **all self-hosted** |
+| 外部依赖 | **无** —— 不再依赖 kelee.one | none |
 
 ---
 
@@ -18,59 +18,56 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/YouTube-Test.lpx
 ```
 
+**需开启 MitM over HTTP/2。** 拉不到新版加 `?cb=2` 破 CDN 缓存。
+
 ---
 
-## 提取了什么 · What was extracted
+## 功能 · Features
 
-从 `plugins/BlockAds-Patched/BlockAds.patched.plugin` 里逐条摘出**全部 5 处** YouTube 相关内容，
-**未增、未删、未改写规则本体**：
-
-| 段 | 内容 | Section | Content |
+| 功能 | 状态 | Feature | Status |
 |---|---|---|---|
-| `[Argument]` | `youtube_enable` | `[Argument]` | `youtube_enable` |
-| `[Rule]` | `DOMAIN, ads.youtube.com, REJECT` | `[Rule]` | 同左 |
-| `[Rewrite]` | `rr*.googlevideo.com/initplayback?` → `reject-dict` | `[Rewrite]` | 同左 |
-| `[Script]` | `youtubei/v1/…` 8 个端点 → 上游 `youtube.response.js` | `[Script]` | 同左 |
-| `[Mitm]` | `rr*.googlevideo.com`、`youtubei.googleapis.com` | `[Mitm]` | 同左 |
-
-唯一的人为改动：给 `youtube_enable` 补了一句 `desc=` 说明（原文没有），并加了文件头元数据与尾部注释。
-
-The only deliberate deviation is a `desc=` string added to `youtube_enable`, plus header metadata.
-
-**上游脚本一行未改。** Upstream script untouched.
+| 去广告（首页/搜索/播放页/Shorts） | ✅ | Ad removal | ✅ |
+| 底栏按钮清理（Shorts/上传/选段） | ✅ 3 开关 | Bottom bar cleanup | ✅ 3 switches |
+| 播放页广告拦截 | ✅ | Player page ads | ✅ |
+| `ads.youtube.com` 拦截 | ✅ | Domain block | ✅ |
+| 字幕双语翻译 | ✅ 默认开启 | Bilingual subtitles | ✅ on by default |
+| YouTube Music 歌词翻译 | ✅ | Lyrics translation | ✅ |
+| 播放页广告域名 | ✅ | `ads.youtube.com` | ✅ |
 
 ---
 
-## ⚠️ 只能启用一个 · Enable only one
+## 为什么要合订 · Why one plugin
 
-Loon 的 `[Script]` 是**先匹配先执行**：同一 URL 只能挂一条 `http-response` 规则，后面的永不执行。
+Loon 的 `[Script]` 是**先匹配先执行**：同一 URL 只能挂一条规则，后面的永不执行。
 
-本插件的 `[Script]` 与 **[YouTube-Dedup](../YouTube-Dedup/)**、**BlockAds-Patched**
-命中**完全相同的 8 个端点**（`browse|next|player|search|reel/reel_watch_sequence|guide|account/get_setting|get_watch`）。
+去广告脚本与字幕脚本在 `youtubei` 的 **player / browse / get_watch** 三个端点上完全重叠。
+分开装必须手动决定谁在前面（字幕插件的 README 也写了「需置于去广告插件之下」），
+**顺序错了就是「改了没效果」且零报错**。合订后顺序写死在清单里。
 
-三者同时启用时，只有排在最前的那条会跑，其余**静默失效** —— 表现为「改了没效果」，但没有任何报错。
-
-This plugin's `[Script]` matches exactly the same 8 endpoints as YouTube-Dedup and BlockAds-Patched.
-Loon picks the **first** matching rule only; the rest are silently skipped.
-
-> 2026-09-29 已因此栽过：合集的 YouTube 脚本抢在前面，导致独立插件的去广告规则从未执行过。
-> 排查时请先确认「还有谁也在匹配同一批 URL」，而不是反复调自己的规则顺序。
+代价：MitM 从 2 个域名涨到 6 个（多解密 4 个 YouTube 主域），App 启动会略慢。
 
 ---
 
-## 已知副作用 · Known side effects
+## 外部资源 · External resources
 
-| 项 | 说明 |
-|---|---|
-| `initplayback` 拦截 | **`[Rewrite]` 无 `enable` 保护** —— 关掉 `youtube_enable` 它照样生效。会打断 UMP 与双语字幕翻译插件 |
-| `timeout=60` | 上游原样保留，Loon 上限 10 秒，实测长响应可能超时 |
-| 双语字幕翻译 | 与「YouTube双语翻译」插件共用 UMP 通道，两者同时启用会互相干扰 |
+**清单层不含任何第三方脚本。** 5 个脚本全部是上游原版的逐字节副本，收在
+[`src/`](src/)，SHA-256 记在 [`manifest.json`](manifest.json)。
+
+```bash
+python3 tools/vendor-check.py --hash   # 校验本地未被改动
+python3 tools/vendor-check.py --diff   # 看上游是否更新
+```
+
+⚠️ **但字幕内容会出设备**：`Type=Translate` 时脚本把字幕原文发给翻译服务商
+（默认 Google 免费端点 `client=gtx`，**不需要 API key**）。
+托管解决的是**可用性**，不是数据流向。详见 [UPSTREAM.md](UPSTREAM.md)。
 
 ---
 
 ## 致谢 · Credits
 
-- **奶思 / fmz200** <https://github.com/fmz200/wool_scripts> — 规则原作者
-- **Maasea** <https://github.com/Maasea/sgmodule> — `youtube.response.js` 作者
+- **奶思 / fmz200** <https://github.com/fmz200/wool_scripts> — 去广告规则
+- **Maasea** <https://github.com/Maasea/sgmodule> — 去广告脚本
+- **VirgilClyne** / **DualSubs** <https://github.com/DualSubs> — 字幕翻译
 
 上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
