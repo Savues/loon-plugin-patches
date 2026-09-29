@@ -203,6 +203,22 @@ t('README 记录移除 MITM 的理由', /MITM/.test(readme) && /不需要解密|
 t('README 给出订阅地址', /raw\.githubusercontent\.com\/Savues\/loon-plugin-patches/.test(readme))
 t('README 含 CDN 缓存提示', /cb=2/.test(readme))
 
+// ── 11b. 域名核实证据不得丢失 ──────────────────────────────
+// 移植不能只照搬上游清单。15 条保留域名必须有据可查，
+// 否则「删 ppq」这种判断就成了凭空主张。
+console.log('\n【11b】域名核实证据')
+t('README 设有域名逐条核实一节', /保留的 15 条域名逐条核实/.test(readme))
+t('README 引用 Apple 官方网络要求文档',
+  /support\.apple\.com\/en-us\/101555/.test(readme))
+t('README 引用 DigiCert 官方 KB（ocsp.digicert.cn 本地化 OCSP）',
+  /knowledge\.digicert\.com|Certificate Status IP Addresses/.test(readme))
+t('README 说明 ocsp.digicert.cn 是中国区本地化 OCSP',
+  /digicert\.cn/.test(readme) && /本地化/.test(readme))
+t('README 记录 DigiCert CRL/OCSP 域名有厂商公告佐证', /Cisco/i.test(readme))
+t('README 为 Sectigo 吊销端点给出厂商佐证',
+  /sectigo/i.test(readme) && /Trellix|吊销端点|revocation/i.test(readme))
+t('README 声明保留域名无一是照搬未核实', /没有一条是照搬上游未经核实/.test(readme))
+
 // ── 汇总 ────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(52)}`)
 console.log(`通过 ${pass} · 失败 ${fail}`)

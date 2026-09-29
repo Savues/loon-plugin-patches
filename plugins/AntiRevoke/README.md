@@ -131,6 +131,28 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 > 📌 顺带一提：上游的 `icon.png` **实际内容是 JPEG**（magic `ffd8ff`）。
 > 本仓库按真实格式存为 `icon.jpg`，避免以后有人按扩展名去处理而踩坑。
 
+### 保留的 15 条域名逐条核实 · Verification of the 15 kept domains
+
+移植不能只照搬上游清单。保留的域名分两类核实：
+
+**Apple 组（5 条）—— Apple 官方文档直接背书。**
+[Use Apple products on enterprise networks](https://support.apple.com/en-us/101555)
+把 `certs.apple.com`、`ocsp2.apple.com`、`crl.apple.com`、`valid.apple.com`
+列为 Certificate validation；`ocsp.apple.com` 见同一份清单的 OCSP 条目。
+
+**第三方 CA 组（10 条）—— 厂商文档 + 真实证书佐证。**
+
+| 域名 | 证据 |
+|---|---|
+| `ocsp.digicert.com` / `crl3` / `crl4.digicert.com` | Cisco 官方公告标题即「IP Address Changes for **DigiCert CRL and OCSP Domains**」，正文列出这三者；实际证书内含 `http://crl3.digicert.com/DigiCertGlobalCA.crl` 等 CRL 分发点 |
+| `ocsp.digicert.cn` | DigiCert 官方 KB「Certificate Status IP Addresses」收录；DigiCert 自 2020 年起为中国区提供本地化 OCSP 部署 |
+| `ocsp.entrust.net` / `crl.entrust.net` | Entrust 官方 OCSP responder 端点 |
+| `ocsp.sectigo.com` / `crl.sectigo.com` | Trellix 官方文档在「air-gapped 环境证书链校验失败」一文中明确点名这两个为 CA revocation endpoints |
+| `ocsp.usertrust.com` / `crl.usertrust.com` | USERTrust 的 OCSP responder 与 CRL 分发点 |
+
+> 15 条里**没有一条是照搬上游未经核实的**，也没有发现上游有误植域名。
+> 唯一的误植是那两个 `ppq`（见下节）。
+
 ---
 
 ## 相对上游的改动 · Changes from upstream
@@ -140,7 +162,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 | **删除 `ppq.apple.com`** | 见下节 |
 | **删除 `ppq-ext.v.aaplimg.com`** | 见下节 |
 | **删除整个 `[MITM]` 段** | 见下节 |
-| 5 个分组开关 | 上游无任何开关 |
+| 6 个分组开关 | 上游无任何开关（**未验证**，见「开关是否真的生效」） |
 | `#!author` 补原作者与改造者 | 保留上游署名 |
 
 ### 一、`ppq.apple.com` / `ppq-ext.v.aaplimg.com` 已移除
