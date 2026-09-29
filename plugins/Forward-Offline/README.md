@@ -1,161 +1,64 @@
-# Forward-Proxy · Forward 订阅凭据转发
+# Forward · 订阅凭据转发（存档与实测记录）
 
-> 把 App 的订阅查询请求转给作者的 mock 服务器，响应原样送回。
-> **客户端不做任何加解密** —— 密钥在服务器侧。**v1.1**
+> 上游：[Yu9191 的 Loon 规则](https://t.me/GithubYu9191/174853)，
+> 一行 `[Rewrite]` 即可，本仓库**只做存档与实测结论**，不提供更优实现。
 
-## 安装 · Install
-
-```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forward-Offline/Forward-Proxy.lpx
-```
-
-> ⚠️ 拉不到新版时加随机参数破 CDN 缓存：`?cb=2`
-> ⚠️ **不要与原版 `Forward.lpx` 或 `Forward-Offline` 同时启用**，三者会争同一个请求。
-
-| 文件 | 用途 | Purpose |
-|---|---|---|
-| [Forward-Proxy.lpx](Forward-Proxy.lpx) | 插件清单 | Manifest |
-| [forward-proxy.js](forward-proxy.js) | 转发脚本（2.4 KB，回调式 `$httpClient`） | Proxy script |
-| [test/forward-proxy.test.mjs](test/forward-proxy.test.mjs) | 回归测试 35 例 | Tests |
-| [forward-offline.js](forward-offline.js) | ❌ 已废弃，见文末 | Deprecated |
-| `upstream-Forward.lpx` | 上游清单原件存档 | Pristine upstream |
+**完整出处、实测数据、取舍记录见 [UPSTREAM.md](UPSTREAM.md)。**
 
 ---
 
-## 实测结论：转发什么就够了
+## 最简可用方案
 
-2026-09-29 用 4 份 HAR（40 个样本）实测，mock 服务器的输入要求：
+作者原版，逐字符原样保留在 [upstream-Forward.lpx](upstream-Forward.lpx)：
 
-| 请求内容 | 响应 | 结论 |
-|---|---|---|
-| 无任何头 | 386 B | 降级响应，解不开 |
-| **只带 `X-Auth-Key`** | **450 B** | ✅ 拿到真凭据 |
-| 只带 `Authorization` | 386 B | 无效 |
-| 带全签（`x-signature` + `x-timestamp`） | 450 B | 与只带 auth-key **完全一样** |
-| **编造的 UUID** 作 auth-key | **450 B** | ✅ 连鉴权都没有 |
+```ini
+[Rewrite]
+^https:\/\/fluxapi\.vvebo\.vip\/v1\/(purchase\/iap\/subscription) header https://mock.forward1.workers.dev/forward/v1/$1
 
-⇒ **`X-Auth-Key` 是唯一必需项**，它只是 App 每次本地随机生成的 UUID v4（40 个样本 40 个不同值），
-不是签名、不校验。`x-signature` / `x-timestamp` / `Authorization` 传不传都一样。
-
-这与社区第三个实现（[BOBOLAOSHIV587/Rules](https://github.com/BOBOLAOSHIV587/Rules) 的 Surge 版）一致 ——
-它的 `Forward.js` 也只发 `X-Auth-Key` 和请求体。
-
-## 凭据结构（黑盒实测）
-
-```
-服务器响应 = base64(密文)
-密文 = 128 字节恒定前缀 + 变长载荷（336 / 352 字节，每次都变）
+[MITM]
+hostname = fluxapi.vvebo.vip
 ```
 
-| 观察 | 说明 |
+`header <url>` 是 Loon 的 **URL 类型复写**（不是改 header）——把请求整条转发到作者的 mock 服务器。
+**零脚本、零 `script-path`**，因此没有额外的远程依赖。
+
+不想用插件文件的话，在 Loon 的「重写」界面填同一条规则即可：
+**类型选「URL 改写」**（不是 307/302 —— 那是直接响应类复写，
+由 App 自己去跟随，`X-Auth-Key` 很可能在中途丢掉，而 mock 只认这个头），
+再把 `fluxapi.vvebo.vip` 加进「域名解密」。
+
+---
+
+## ⚠️ 硬约束：只支持 App 1.3.13
+
+作者原话：**「最高只支持 1.3.13，其他版本不支持 mitm」**，
+并给出降级渠道 <https://assppweb.com/zh-CN/>。
+
+App 一升级，此方案即失效。**这比「服务器可能下线」更值得注意。**
+
+---
+
+## 一句话结论
+
+| | 结论 |
 |---|---|
-| 128 字节前缀 40 个样本逐字节相同 | 见 `samples/prefix-128.hex` |
-| 载荷长度在 336 / 352 之间抖动 | 是密文的正常长度抖动，**不是格式差异** |
-| 密文每次都不同 | 随机 IV 加密同一明文 |
-| App 会解密它并检查是否「已订阅」 | —— 这就是本地伪造不可能的原因 |
+| 凭据能否本地伪造 | **不能**。是有密钥的密文，App 解密校验 |
+| 回放是否可行 | **不可行**。40 份凭据无一重复，且与请求一一对应 |
+| mock 唯一必需的输入 | **`X-Auth-Key`**。签名/时间戳/Authorization 全都无用，编造的 UUID 也能过 |
+| 谁维护着 mock | **Yu9191 个人**（Telegram @GithubYu9191），非 Forward 官方 |
 
-> ⚠️ 传输形态受 `accept-encoding` 影响：带 `br` 时实际传输 364 B，
-> 不带时 450 B。**比长度前先确认形态**，否则会得出错误结论
-> （本次排查中曾因此把 450 与 632 当成两种格式，浪费了几轮）。
+---
 
-## 为什么客户端不能自己造
+## 目录
 
-密文用只有服务器掌握的密钥加密。App 拿到随机数解密后是乱码，判定未订阅。
-
-这不是"还没逆向出来"，是**密码学上做不到**——除非从 App 二进制里提取密钥。
-
-回放也不可行：40 份凭据**无一重复**，且与请求一一对应（16 次请求 = 16 个不同组合）。
-
-## ✅ 真机验证（2026-09-29 16:13）
-
-v1.1 装上后的 HAR：
-
-```
-16:13:39.529  fluxapi.vvebo.vip          200  632B  Server=[]
-16:13:39.730  mock.forward1.workers.dev  200  632B
-16:13:43.618  fluxapi.vvebo.vip          200  632B  Server=[]
-16:13:43.630  mock.forward1.workers.dev  200  632B
-```
-
-每一对里：
-
-| 检查项 | 结果 |
+| 文件 | 用途 |
 |---|---|
-| 两次的 `x-auth-key` | **完全相同** |
-| 请求体 | 288 字符，一致 |
-| 密文长度 | 352 字节，一致 |
-| 密文前 16 字节 | `731570b90002b037` 一致 |
-| App 侧响应头 | `Server=[]` —— 被脚本替换，证明请求未出设备 |
-| 其他端点（login / token_usage / system/info） | 全部 200，未受影响 |
+| [upstream-Forward.lpx](upstream-Forward.lpx) | 上游清单原件（逐字节，SHA256 见 `upstream-SHA256SUMS`） |
+| [UPSTREAM.md](UPSTREAM.md) | **出处、实测结论、取舍记录** |
+| [Forward-Proxy.lpx](Forward-Proxy.lpx) | 脚本转发版（真机验证通过，但**非必要**） |
+| [forward-proxy.js](forward-proxy.js) | 同上脚本 |
+| [Forward-Offline.lpx](Forward-Offline.lpx) | ❌ 已废弃：本地伪造，两次均失效 |
+| `test/` | 回归测试 |
 
-⇒ **转发内容与作者原版的 URL 改写完全等价**，链路打通。
-
-## ⚠️ v1.0 失效的根因：$httpClient 不是 Promise
-
-`$httpClient` 在 Loon 里是**回调式** API（`script_api.md` 原文）：
-
-```javascript
-$httpClient.post(params, function (errormsg, response, data) { ... })
-```
-
-v1.0 抄了 Surge 的 Promise 写法：
-
-```javascript
-$httpClient.fetch({...}).then(res => ...)     // ✗ Loon 上 undefined.then → 抛错
-```
-
-`$httpClient.fetch` 在 Loon 上不存在，返回 `undefined`，`.then` 立刻抛 TypeError，
-脚本在注册回调前就挂了 —— **表现为插件完全没生效且无任何错误提示**。
-Promise 风格属于 Surge 的 `$task.fetch`，两者不能互换。
-社区那份 `Forward.js` 用的正是 `$task.fetch`，因为它是 Surge 版插件。
-
-`test/forward-proxy.test.mjs` 的 `【1】` 组专门回归这一点：
-sandbox 模拟真实 Loon（`$httpClient.post` 返回 undefined、无 `then()`），
-把源码退回 Promise 写法会立刻报 3 条失败。
-
-## 方案取舍
-
-| | 作者原版 | 本插件 |
-|---|---|---|
-| 实现 | `[Rewrite] header <url>` | `[Script]` + `$httpClient.post`（回调式） |
-| 行数 | 10 行，零脚本 | 清单 3 行 + 脚本 2.4 KB |
-| 转发内容 | 隐式（Loon 自动带全部头） | 显式可测 |
-| mock 换地址 | 改清单 | 改脚本顶部常量 |
-
-**如果你不打算改 mock 地址，作者原版更简单**（少一跳脚本解释）。
-本插件的价值在于转发内容显式、可测、可单独调整。
-
-## 测试
-
-```bash
-node test/forward-proxy.test.mjs      # 35 例
-node test/manifest.test.mjs           # 46 例
-```
-
-覆盖：**API 形态（回调式，非 Promise）**、转发目标、请求体原样透传、
-头过滤（`accept-encoding` / `content-length` / `host`）、大小写不敏感、
-content-type 缺省兜底、成功透传、四种非 2xx 放行、网络异常放行、
-以及「脚本内无任何加解密调用」。
-
----
-
-## ❌ Forward-Offline（已废弃）
-
-同目录下的 `forward-offline.js` / `Forward-Offline.lpx` 曾试图**在本地伪造凭据**，
-v1.0（386 字节）与 v1.1（632 字节）均已实测**失效**。
-
-根因：变化段是有密钥的密文，填随机数必然被 App 判为未订阅。
-两次失败都是把「外壳结构对齐」误当成「内容正确」——结构逐字节一致，内容完全不同。
-
-保留这两个文件作为失败记录，避免后人重走。**不要使用。**
-
----
-
-## 上游与出处
-
-- 上游清单原件逐字节保留在 `upstream-Forward.lpx`，SHA256 见 `upstream-SHA256SUMS`，**未做任何修改**。
-- 上游未附许可声明。
-- 本插件脚本为独立编写，不含上游任何代码（上游本就没有 JavaScript）。
-- 响应结构由黑盒实测得出，未参考任何反编译代码。
-- 社区实现参考：`BOBOLAOSHIV587/Rules`（`JS/Forward/`），其信息量最大（第三个独立实现）。
-- 官方仓库：`InchStudio/ForwardWidgets`（216 star，`assets.vvebo.vip`），证明密文由官方服务生成。
+> `Forward-Proxy` 与作者原版功能等价，但多一个 `script-path` 依赖
+> （GitHub raw）。**若只求可用，用原版更省事。**
