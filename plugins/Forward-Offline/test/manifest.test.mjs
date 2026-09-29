@@ -99,7 +99,32 @@ ok(/from\(inner, "utf8"\)/.test(js), "Buffer 分支用 utf8 而非 binary（bina
 ok(/getRandomValues/.test(js), "尾部用 crypto.getRandomValues 生成");
 ok(/response:\s*\{/.test(js), "用 $done({response:{...}}) 形态（http-request 专用）");
 
-console.log("\n【8】上游原件存档完整");
+console.log("\n【8】Forward-Proxy 清单");
+{
+  const proxy = fs.readFileSync(path.join(dir, "Forward-Proxy.lpx"), "utf8");
+  ok(/^#!name=Forward-Proxy/m.test(proxy), "#!name=Forward-Proxy");
+  const line = proxy.split("\n").find(l => /^\s*http-request\s/.test(l));
+  ok(!!line, "存在 http-request 规则（排除注释行）");
+  ok(/script-path=.*forward-proxy\.js/.test(line || ""), "script-path 指向 forward-proxy.js");
+  ok(/requires-body\s*=\s*true/.test(line || ""), "requires-body=true（必须拿到请求体）");
+  const mitmP = proxy.slice(proxy.search(/^\[Mitm\]\s*$/im));
+  ok(/hostname\s*=\s*fluxapi\.vvebo\.vip/.test(mitmP), "[Mitm] 声明目标域名");
+  ok(!/mock\.forward1\.workers\.dev/.test(proxy.split("[Mitm]")[0].split("[Script]")[1] || ""),
+     "mock 地址只出现在脚本里，不在清单中（换地址只改脚本）");
+  const pjs = fs.readFileSync(path.join(dir, "forward-proxy.js"), "utf8");
+  ok(/mock\.forward1\.workers\.dev/.test(pjs), "脚本里是 mock 地址");
+  ok(/\$httpClient/.test(pjs), "用 $httpClient 转发");
+  ok(!/Math\.random/.test(pjs), "不本地生成凭据（密钥在服务器侧）");
+}
+
+console.log("\n【9】Forward-Offline 已标记废弃（失败记录）");
+{
+  const off = fs.readFileSync(path.join(dir, "Forward-Offline.lpx"), "utf8");
+  ok(/已废弃|DEPRECATED/.test(off.split("\n")[0]), "清单名里已标废弃");
+  ok(/请改用 Forward-Proxy|Forward-Proxy/.test(off), "指向正确替代方案");
+}
+
+console.log("\n【10】上游原件存档完整");
 ok(fs.existsSync(path.join(dir, "upstream-Forward.lpx")), "保留了上游清单原件");
 const sums = fs.readFileSync(path.join(dir, "upstream-SHA256SUMS"), "utf8");
 ok(/^[0-9a-f]{64}\s+forward\.lpx$/m.test(sums), "原件 SHA256 已记录");

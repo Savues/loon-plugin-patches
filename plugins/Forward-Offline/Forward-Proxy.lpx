@@ -1,0 +1,20 @@
+#!name=Forward-Proxy
+#!desc=Forward 订阅凭据转发：请求原样转给 mock 服务器再送回，客户端不做任何加解密 · Explicit proxy to the mock server, no crypto on device
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-09-29 16:10:00
+#!icon=https://photo.lily.lat/file/AgACAgQAAyEGAASLgSpZAAIQimm99448nBrdfWSbRDwuLsLkBhqGAAIpDWsbPGvwUeZVZnRBnb6YAQADAgADdwADOgQ.png
+#!tag=Forward,Proxy
+
+# 用脚本而非 URL 改写，好处是转发内容显式可测。
+# 实测结论：只有 X-Auth-Key 是必需的，x-signature / x-timestamp /
+# Authorization 传不传都一样（编造的 UUID 也能拿到凭据）。
+#
+# 不要与原版 Forward.lpx 或 Forward-Offline 同时启用 ——
+# 三者都会争 fluxapi.vvebo.vip/v1/purchase/iap/subscription 这一个请求。
+
+[Script]
+http-request ^https:\/\/fluxapi\.vvebo\.vip\/v1\/purchase\/iap\/subscription script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forward-Offline/forward-proxy.js, requires-body=true, timeout=15, tag=Forward Proxy, enable=true
+
+[Mitm]
+hostname = fluxapi.vvebo.vip

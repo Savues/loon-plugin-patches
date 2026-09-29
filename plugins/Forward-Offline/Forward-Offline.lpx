@@ -1,5 +1,5 @@
-#!name=Forward-Offline
-#!desc=Forward 的离线替代：原 mock 服务器失效后仍可用，不依赖任何外部服务 · v1.1 修正响应结构（原 v1.0 长度与 base64 层数均错）· Offline replacement for Forward, no external dependency
+#!name=Forward-Offline (已废弃 · DEPRECATED, 凭据无法本地生成)
+#!desc=【已废弃，勿用】2026-09-29 实测证实：凭据是有密钥的密文，客户端无法伪造，App 收到随机数必然判为未订阅。请改用 Forward-Proxy。原 v1.1 曾为：Forward 的离线替代：原 mock 服务器失效后仍可用，不依赖任何外部服务 · v1.1 修正响应结构（原 v1.0 长度与 base64 层数均错）· Offline replacement for Forward, no external dependency
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-29 15:20:00
