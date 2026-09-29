@@ -30,17 +30,9 @@ python3 tools/vendor-check.py
 
 ## 一处等价合并 · One deduplication
 
-`YouTube-Dedup` 原先引用 kelee.one 的 `YouTube_remove_ads_response.js`，
-与 Maasea 的 `youtube.response.js` **是同一份代码**——逐字节比对结果：
-
-| | 差异 |
-|---|---|
-| 文件大小 | 132973 B vs 133107 B（差 134） |
-| 标识符交集 | 695 / 701 = **99.1%** |
-| `// Build:` 时间戳 | 双方均为 `2026/7/19 16:16:39` |
-| 实际差异 | kelee 多一个 **135 字节的署名注释头**，少一个文件末尾换行 |
-
-**逻辑零差异。** 因此两个插件现在共用 `youtube.response.js` 一个文件。
+`YouTube-Dedup` 原先引用的 kelee `YouTube_remove_ads_response.js` 与 Maasea 的
+`youtube.response.js` **逐字节等价**（仅差 135 字节署名注释头，Build 时间戳相同），
+两个插件现共用 `youtube.response.js` 一个文件。
 
 ---
 

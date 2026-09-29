@@ -1,5 +1,5 @@
 #!name=YouTube去广告+双语字幕 v1.2
-#!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽，装完即用。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、去广告响应体脚本、字幕双通道脚本。去广告规则排在最前：Loon 的 [Script] 先匹配先执行，与独立字幕插件分开装时必须手动摆顺序，合订后顺序已写死。5 个脚本均由本仓库托管（上游逐字节副本），不再依赖 kelee.one。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽，装完即用。5 个脚本由本仓库托管，不依赖第三方 CDN。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne / DualSubs | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,字幕翻译
 #!system=iOS, iPadOS
@@ -60,97 +60,4 @@ http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)s
 [Mitm]
 hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.youtube.com, tv.youtube.com, music.youtube.com
 
-# ==== PLUGIN_VERSION: 1.2 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
-#
-# 【v1.2】参数默认值调成「装完即用」，并修好 v1.1 引入的「只剩中文」
-#   v1.1 补上 argument= 之后参数真的传进去了，但传进去的**值**是错的：
-#   ShowOnly 默认 true ⇒ Jl() 第一步 `if(u===true) return n` 直接返回译文、
-#   把原文整个丢掉 ⇒ 只剩中文。（v1.0 不传参数时反而正常：一个 bug 遮住了另一个。）
-#
-#   默认值现状（与脚本内置默认值逐条对齐，由 argument-wiring.test.mjs 钉死）：
-#     字幕  Type=Translate  AutoCC=开  ShowOnly=关  Position=Reverse(译文在上)
-#     底栏  上传=屏蔽  Shorts=屏蔽  选段=屏蔽   调试=关  总开关=开
-#   ⚠️ 另把 switch 从三值写法 `switch,X,Y` 改成两值 `switch,<默认值>` ——
-#      真机实测三值写法的 `switch,true,false` 与 `switch,false,true` 都解析成 true，
-#      没法用来关掉某个开关。两值写法与 Bilibili-UI 一致。
-#
-#
-# 【v1.1 修复】补上 4 条响应规则的 argument= ——「原文字幕位置」开关失效
-#   上游 YouTube双语翻译 的 4 条 **http-response** 规则写的是空的 `argument=`，
-#   而 Position / ShowOnly 只在**响应**脚本里被读取（Jl() 拼双语那一步）：
-#     function Jl(l,n,u=false,e="Forward",t="\n"){ switch(e){
-#       case"Forward": default: return `${l}${t}${n}`;   // 原文\n译文
-#       case"Reverse": return `${n}${t}${l}` } }          // 译文\n原文
-#   argument 为空 ⇒ $argument 是 null ⇒ 拿不到 Position ⇒ 恒走默认 Forward
-#   ⇒ 无论怎么设置「原文字幕位置」，永远是英文在上。
-#   请求侧的 http-request 规则本来就有完整 argument（所以 Type 生效、双语能出），
-#   响应侧没有（所以 Position 失效）—— 这个功能在原版里就是坏的。
-#   修法：4 条响应规则全部补上 argument=[{Type},{AutoCC},{ShowOnly},{Position}]，
-#   脚本本身一行未动。新增 argument-wiring.test.mjs 钉死这件事。
-#
-#
-# 本插件 = YouTube 去广告（从广告拦截合集原样提取）
-#       + 双语字幕翻译（VirgilClyne / DualSubs，12 条规则保留 10 条）
-# 合订的目的：两者原本在 youtubei 的 player/browse/get_watch 上互抢，而 Loon 的
-# [Script] 先匹配先执行 —— 分开装必须手动摆顺序，合订后顺序写死在本文件里。
-#
-# 【v1.3-lab】5 个 script-path 全部改指本仓库托管的逐字节副本
-#   原先 4 个字幕脚本来自 kelee.one（第三方 CDN）、去广告脚本来自 Maasea/sgmodule 的
-#   remote raw URL。Loon 拉远程脚本不做任何校验，任一上游消失或被投毒，插件直接失效
-#   或静默换代码。现在全部收进 plugins/YouTube-Test/src/，一行未改，
-#   SHA-256 见 manifest.json，用 `python3 tools/vendor-check.py --hash` 可校验。
-#   ⚠️ 副本的「内容」仍会发往翻译服务商（见 UPSTREAM.md 的审计结论），托管解决的是
-#      可用性，不是数据流向。
-#
-# ==== 以下为 v1.2-lab 及更早的排查记录，保留备查 · Earlier investigation log ====
-#
-# 【合并了什么】
-#   去广告 = YouTube-Test v1.1（合集原样提取 + v1.1 补的 argument= 接线）
-#   字幕   = YouTube双语翻译（VirgilClyne），12 条规则保留 10 条
-#
-# 【丢了 2 条规则，为什么】
-#   原字幕插件这 2 条与去广告规则命中**完全相同**的 URL，而 Loon 的 [Script] 先匹配先执行：
-#     http-response youtubei.googleapis.com/youtubei/v1/player     ← 撞去广告的 player
-#     http-response youtubei.googleapis.com/youtubei/v1/get_watch  ← 撞去广告的 get_watch
-#   合并成一份清单后它们必然有一条永远不跑，所以直接删掉，不留一行看着像生效的死规则。
-#   对应的 youtubei 播放器**请求**脚本（http-request）方向独立、不互抢，已保留。
-#
-# 【因此字幕走的是哪条路】
-#   剩下的字幕规则全部走 www/m/tv.youtube.com 与 api/timedtext，与 youtubei 的去广告端点不重叠，
-#   双语字幕与歌词翻译不受影响。原插件 README 写「此插件需要置于 YouTube去广告插件之下」，
-#   说的正是这条 first-match-wins 顺序；合并后顺序由本文件固定，不再依赖用户摆放。
-#
-# 【代价】MitM 从 2 个域名涨到 6 个，多解密 4 个 YouTube 主域，App 启动会变慢。
-#
-# 【2026-09-29 真机排查：字幕 429】
-#   现象：字幕加载不出来。HAR 证据 —— www.youtube.com/api/timedtext 两次都返回
-#   HTTP 429，正文是 Google 的「Sorry... your computer or network may be sending
-#   automated queries」HTML 页，不是字幕数据。同一份 HAR 里 videoplayback、
-#   storyboard、stats 全是 200/204，只有 timedtext 被限流。
-#   已排除清单层：把本清单与「Test v1.1 + 字幕插件」并用做逐 URL 行为对拍
-#   （14 个 URL × request/response 两个方向 = 28 组），**0 处差异**，
-#   命中的 script-path 完全一致。字幕脚本也确实跑了：它把 URL 改写成了
-#   &tlang=zh-Hans，改写内容正确。
-#   ⇒ 结论：429 是 Google 对该出口 IP 的限流，与合并无关。
-#   判别办法：把「字幕-自动显示翻译字幕」(AutoCC) 关掉再试。关掉后脚本不再追加
-#   tlang，App 会直接请求原始字幕轨；若这样能出字幕，即坐实是 tlang 请求被限流。
-#
-# 【v1.2-lab 修正 · 有对照抓包后改判】
-#   上面「出口 IP 限流」的结论**是错的**。用户补了一份对照抓包（Test v1.1 + 字幕插件
-#   分开装），两次实测只差 10 分钟，结果完全相反：
-#
-#     分开装（正常） 200  46 KB  lang=en&name=CC1&subtype=Translate     ← 脚本删了 tlang
-#     合并版（失败） 429  1.4KB  lang=en&name=CC1&tlang=zh-Hans         ← 脚本加了 tlang
-#
-#   同一批脚本、同一份 persistentStore，唯一的差别是 **Type 参数的值**。
-#   脚本里的改写链（YouTube_Subtitles_request.js）：
-#     AutoCC 开 → 追加 tlang
-#     再看 Type：Official/Composite → 保留 tlang（可再补 subtype=Official）
-#                Translate         → 删掉 tlang，改设 subtype=Translate
-#   合并版是新插件，Type 吃默认值，而 select 的默认值是第一项 = "Official"
-#   ⇒ 走了 tlang 那条被 Google 判为异常请求的路。
-#   旧的字幕插件里用户把 Type 选成了 Translate（argument 覆盖默认值），所以正常。
-#
-#   Settings 优先级：{...默认值, ...$argument, ...persistentStore}，后者覆盖前者。
-#   用户的 persistentStore 里没有 Type，所以由 argument 说了算 —— 换插件就换默认值。
-#   修法：把 select 的第一项改成 "Translate"，让默认值与实测可用模式一致。
+# 完整改动记录与排查过程见 ITERATION.md
