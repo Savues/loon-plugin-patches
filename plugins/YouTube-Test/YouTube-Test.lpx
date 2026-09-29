@@ -1,0 +1,42 @@
+#!name=YouTube-Test v1.0
+#!desc=从「广告拦截&净化合集」(fmz200/wool_scripts) 中原样提取的 YouTube 规则，单独成插件用于 A/B 对照测试。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、1 条响应体脚本（上游 Maasea/sgmodule 的 youtube.response.js，未改一行）。⚠️ [Script] 在 Loon 里是先匹配先执行：本插件与 YouTube-Dedup、BlockAds-Patched 命中同一批 URL，三者同时启用只有排最前的那条会跑，请只留一个。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!author=原作者: 奶思/fmz200 (blockAds 合集) · 脚本: Maasea/sgmodule | 提取成独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告,YouTube,测试
+#!system=iOS, iPadOS, macOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
+#!date=2026-09-29 09:20:00
+
+[Argument]
+youtube_enable = switch,true,false,tag=YouTube-脚本开关,desc=关闭后不再改写 youtubei 响应体（Rewrite 的 initplayback 拦截不受此开关控制）
+
+[Rule]
+DOMAIN, ads.youtube.com, REJECT
+
+[Rewrite]
+# > YouTube
+# hostname = rr*.googlevideo.com
+# 播放页广告
+^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict
+
+[Script]
+# > YouTube
+# hostname = youtubei.googleapis.com
+# 响应体
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, timeout=60, tag=YouTube响应体, enable={youtube_enable}
+
+[Mitm]
+hostname = rr*.googlevideo.com, youtubei.googleapis.com
+
+# ==== PLUGIN_VERSION: 1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 规则来源：从 plugins/BlockAds-Patched/BlockAds.patched.plugin 逐条提取，未增删、未改写
+# 提取自 2026-09-29 的产物，对应上游 blockAds.plugin（fmz200/wool_scripts）
+# [Argument] 1 项 · [Rule] 1 条 · [Rewrite] 1 条 · [Script] 1 条 · [Mitm] 2 域名
+#
+# ⚠️ 冲突提示
+# Loon 的 [Script] 是「先匹配先执行」：同一 URL 只能挂一条 http-response 规则，后面的永不执行。
+# 本插件的 [Script] 与 YouTube-Dedup、BlockAds-Patched 命中完全相同的 8 个端点，
+# 三者同时启用时只有排在最前的那条会跑，其余静默失效。测试时请只启用一个。
