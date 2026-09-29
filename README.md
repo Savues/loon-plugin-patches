@@ -23,7 +23,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
-| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 拦截全可关<br>Ad-block · custom bottom bar · all stubs switchable | **v1.5.1** |
+| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.6** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |

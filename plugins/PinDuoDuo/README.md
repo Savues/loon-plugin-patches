@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.5.1** · 14 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:50`
+**v1.6** · 14 项配置 / 22 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T17:45`
 
 | | 中文 | English |
 |---|---|---|
@@ -111,16 +111,24 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 → {"hotqs":[{"q":"酷态科cp12","tag_list":[{"text":"热"}]},{"q":"酷态科"}, ...]}
 ```
 
-但**词有两个来源，必须同一个开关管**：
+但**词有四个来源，必须同一个开关管**：
 
 | 来源 | 位置 | 由谁删 |
 |---|---|---|
 | 首页首次下发 | `homepage/hub` 的 `result.search_bar_hot_query`（含 `hotqs` 20 条 + `items` 20 条） | `homepage.response.js` |
 | 轮询刷新 | `/search_hotquery` 的 `hotqs` | `stub.response.js` |
 | 结果页扩展 | `/search` 的 `expansion` 字段 | `stub.response.js` |
+| 百亿补贴页 | `m.pinduoduo.net/brand_activity_subsidy.html` 内联 `window.rawData` 的 `store.searchStore.queryWords` | `subsidy.response.js` |
 
-三者同归 `search_stub`。v1.5.1 之前首页那份挂在 `api_stub` 下，
+四者同归 `search_stub`。v1.5.1 之前首页那份挂在 `api_stub` 下，
 **关掉 `api_stub` 放行会场接口时，词会从首页侧漏回来** —— 已解耦。
+
+> 百亿补贴页那一行是 v1.6 新增。该页是**服务端渲染的 HTML**，轮播词既不在
+> `homepage/hub` 也不在任何 API 响应里，而是内联在 HTML 的 `window.rawData` 中
+> （实测 10 个词里 5 个是推广：百事可乐 ×3、可口可乐、特价饮料），
+> 所以前面那套 `[Script]` 根本碰不到它，必须对 `brand_activity_subsidy.html`
+> 单独挂一条 `subsidy.response.js`。该脚本只替换目标数组字面量，
+> 不解析也不重新序列化整页（672KB）。
 
 > 只开 `search_stub` 即可去掉搜索词，**不必开 `api_stub`**。
 
@@ -299,6 +307,7 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `manifest.json` | 脚本 sha256 登记（上游 2 + 自研 2） | Script hashes |
 | `src/homepage.response.js` | 首页去广告 + 底栏自定义（**自研**） | Purpose-built script |
 | `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
+| `src/subsidy.response.js` | 百亿补贴页搜索框去推广词（**自研**） | Subsidy page search-box scrubber |
 | `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
 | `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
 | `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
