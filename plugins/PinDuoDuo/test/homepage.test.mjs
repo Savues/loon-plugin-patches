@@ -1,5 +1,6 @@
 // 用真实 HAR 响应驱动 homepage.response.js，验证各开关组合
 import { readFileSync } from 'node:fs'
+import { t, done } from './harness.mjs'
 
 const SCRIPT = new URL('../src/homepage.response.js', import.meta.url)
 const src = readFileSync(SCRIPT, 'utf8')
@@ -19,8 +20,6 @@ function run(argObj, payload) {
   return r
 }
 
-let pass = 0, fail = 0
-const t = (n, c, d = '') => { if (c) { pass++; console.log(`  ✅ ${n}`) } else { fail++; console.log(`  ❌ ${n}${d ? ' — ' + d : ''}`) } }
 const L = (o) => ((o.body || o).result.bottom_tabs || []).map(x => x.link)
 const B = (o) => ((o.body || o).result.buffer_bottom_tabs || []).map(x => x.link)
 
@@ -113,6 +112,4 @@ t('空 result 不崩', 'body' in emptyRes)
 const botOff = run({ bottom_custom: 'false' }, real)
 t('bottom_custom=false 时不动底栏', L(botOff).length === 5)
 
-console.log('\n' + '='.repeat(56))
-console.log(`通过 ${pass} · 失败 ${fail}`)
-process.exit(fail ? 1 : 0)
+done()

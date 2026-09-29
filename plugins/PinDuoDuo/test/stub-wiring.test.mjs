@@ -2,13 +2,11 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { t, done } from './harness.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const lpx = readFileSync(join(HERE, '..', 'PinDuoDuo.lpx'), 'utf8')
 const stub = readFileSync(join(HERE, '..', 'src', 'stub.response.js'), 'utf8')
-
-let pass = 0, fail = 0
-const t = (n, c, d = '') => { if (c) { pass++; console.log(`  ✅ ${n}`) } else { fail++; console.log(`  ❌ ${n}${d ? ' — ' + d : ''}`) } }
 
 // 从清单里取 stub 规则的 URL 正则
 const m = lpx.match(/http-response (\S+) script-path=\S*stub\.response\.js/)
@@ -57,6 +55,4 @@ if (am) {
 }
 t('stub 规则不挂 enable', !/stub\.response\.js.*enable=/.test(lpx))
 
-console.log('\n' + '='.repeat(56))
-console.log(`通过 ${pass} · 失败 ${fail}`)
-process.exit(fail ? 1 : 0)
+done()

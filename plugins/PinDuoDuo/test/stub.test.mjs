@@ -1,10 +1,8 @@
 // stub.response.js 的回归测试：验证各开关组合下的拦截/放行行为
 import { readFileSync } from 'node:fs'
+import { t, done } from './harness.mjs'
 
 const src = readFileSync(new URL('../src/stub.response.js', import.meta.url), 'utf8')
-
-let pass = 0, fail = 0
-const t = (n, c, d = '') => { if (c) { pass++; console.log(`  ✅ ${n}`) } else { fail++; console.log(`  ❌ ${n}${d ? ' — ' + d : ''}`) } }
 
 // 模拟 Loon 运行时
 function run(argObj, url, body) {
@@ -95,6 +93,4 @@ r = run({ api_stub: 'true' }, STUB('/api/caterham/v3/query/likes'), 'REAL')
 t('status = 200', r && r.status === 200, JSON.stringify(r))
 t('body = {}', r && r.body === '{}')
 
-console.log('\n' + '='.repeat(56))
-console.log(`通过 ${pass} · 失败 ${fail}`)
-process.exit(fail ? 1 : 0)
+done()

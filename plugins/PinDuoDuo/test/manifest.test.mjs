@@ -8,16 +8,12 @@ import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { t, done } from './harness.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const lpx = readFileSync(join(HERE, '..', 'PinDuoDuo.lpx'), 'utf8')
 const fixture = JSON.parse(readFileSync(join(HERE, 'har-fixture.json'), 'utf8'))
 
-let pass = 0, fail = 0, skip = 0
-const t = (name, cond, detail = '') => {
-  if (cond) { pass++; console.log(`  ✅ ${name}`) }
-  else { fail++; console.log(`  ❌ ${name}${detail ? '\n       ' + detail : ''}`) }
-}
 const section = (name) => {
   const out = []
   let cur = null
@@ -156,7 +152,5 @@ t('脚本内无第三方脚本域名', !/https?:\/\/(?!pfile\.pddpic\.com|raw\.g
   (script.match(/https?:\/\/[^"'\s]+\.js/g) || []).join(' '))
 
 // ── 汇总 ────────────────────────────────────────────────────
-console.log('\n' + '='.repeat(60))
-console.log(`通过 ${pass} · 失败 ${fail}${skip ? ` · 跳过 ${skip}` : ''}`)
-process.exit(fail ? 1 : 0)
+done()
 
