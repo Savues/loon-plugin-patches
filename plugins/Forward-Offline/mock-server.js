@@ -24,7 +24,7 @@ const PREFIX_HEX =
   "4c18960412bb7aa2886c6d40743a29d76447edbe3d803cb0bee8e798d2165cc0c";
 
 const PREFIX_LEN = 128;
-const RANDOM_LEN = 160;
+const RANDOM_LEN = 224;   // 变化段字节数（实测：带签名的真凭据是 352 = 128 + 224）
 const TARGET_PATH = "/forward/v1/purchase/iap/subscription";
 
 const port = Number(process.argv[2]) || 8787;
@@ -42,7 +42,9 @@ const server = http.createServer((req, res) => {
   Buffer.from(PREFIX_HEX, "hex").copy(full, 0);
   require("crypto").randomFillSync(full, PREFIX_LEN, RANDOM_LEN);
 
-  const body = JSON.stringify(full.toString("base64"));   // 386 字节
+  // 双层 base64，外层裸 base64 不加引号（2026-09-29 用 23 个 HAR 样本实测确定）
+  const inner = JSON.stringify(full.toString("base64"));   // 474 字节，含引号
+  const body = Buffer.from(inner, "utf8").toString("base64");  // 632 字符
   res.writeHead(200, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(body),
@@ -53,5 +55,5 @@ const server = http.createServer((req, res) => {
 server.listen(port, () => {
   console.log(`forward mock server 已启动: http://127.0.0.1:${port}`);
   console.log(`  POST ${TARGET_PATH}`);
-  console.log(`  响应: 128 字节固定前缀 + ${RANDOM_LEN} 字节随机 -> base64 -> 386 字节 JSON 字符串`);
+  console.log(`  响应: 352 字节密文(128固定 + ${RANDOM_LEN}变化) -> base64 -> 474 -> base64 -> 632 字符`);
 });

@@ -31,7 +31,7 @@ const PREFIX_HEX =
   "4c18960412bb7aa2886c6d40743a29d76447edbe3d803cb0bee8e798d2165cc0c";
 
 const PREFIX_LEN = 128;   // 固定前缀字节数
-const RANDOM_LEN = 160;   // 随机尾部字节数
+const RANDOM_LEN = 224;   // 变化段字节数（2026-09-29 实测：有签名时 224，无签名降级时 160）
 
 function randomBytes(n) {
   const out = new Uint8Array(n);
@@ -62,7 +62,24 @@ function buildBody() {
     ? btoa(bin)
     : Buffer.from(full).toString("base64");
 
-  return JSON.stringify(b64);   // 384 字符 + 2 引号 = 386，与线上完全一致
+  // 【关键·2026-09-29 修正】线上凭据是【双层 base64】，且外层【不加引号】。
+  //
+  //   密文 352B(128固定+224变化)
+  //     -> base64            = 472 字符
+  //     -> 加引号成 JSON 字符串 = 474 字节
+  //     -> 再 base64（无引号） = 632 字符  ← 这就是 HTTP 响应体
+  //
+  // 已用 23 个 HAR 样本逐字节验证：重建值与真实响应体完全相同。
+  // 单层只得到 288 字节，App 解不开 —— 这是 v1.0 失效的根因。
+  //
+  // 注意 Node 的 "binary" 是 latin1 语义，对 ASCII 的 base64 文本会算错长度，
+  // 必须用 "utf8"；btoa 则无此问题。
+  const inner = JSON.stringify(b64);              // 474 字节，含引号
+  const b64b = (typeof btoa === "function")
+    ? btoa(inner)
+    : Buffer.from(inner, "utf8").toString("base64");
+
+  return b64b;                                    // 632 字符，裸 base64
 }
 
 try {

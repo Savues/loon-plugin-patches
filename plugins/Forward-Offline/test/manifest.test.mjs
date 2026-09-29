@@ -89,9 +89,13 @@ const inJs = (js.match(/PREFIX_HEX\s*=\s*((?:"[0-9a-f]+"\s*\+?\s*)+)/) || [])[1]
 const hexInJs = inJs ? (inJs.match(/"([0-9a-f]+)"/g) || []).map(s => s.replace(/"/g, "")).join("") : "";
 ok(hexInJs.length === 256, "脚本内嵌前缀 128 字节", `实际 ${hexInJs.length / 2} 字节`);
 ok(hexInJs === prefix, "内嵌前缀 == 线上采样值（逐字节一致）");
-ok(/PREFIX_LEN\s*=\s*128/.test(js), "PREFIX_LEN = 128");
-ok(/RANDOM_LEN\s*=\s*160/.test(js), "RANDOM_LEN = 160");
-ok(/JSON\.stringify\(b64\)/.test(js), "用 JSON.stringify 包装（带引号，与线上同形态）");
+ok(/PREFIX_LEN\s*=\s*128/.test(js), "PREFIX_LEN = 128（23 样本实测恒定）");
+ok(/RANDOM_LEN\s*=\s*224/.test(js), "RANDOM_LEN = 224（v1.0 误写 160，是失效根因）");
+// 双层 base64：外层是【裸 base64】不加引号 —— 632 字符，单层只得到 288
+ok(/const inner = JSON\.stringify\(b64\)/.test(js), "内层用 JSON.stringify 加引号（474 字节）");
+ok(/return b64b;/.test(js), "外层返回裸 base64，不加引号（632 字符）");
+ok(!/return JSON\.stringify\(b64b\)/.test(js), "外层【不】套 JSON.stringify —— v1.0 的错误");
+ok(/from\(inner, "utf8"\)/.test(js), "Buffer 分支用 utf8 而非 binary（binary 是 latin1 语义会算错）");
 ok(/getRandomValues/.test(js), "尾部用 crypto.getRandomValues 生成");
 ok(/response:\s*\{/.test(js), "用 $done({response:{...}}) 形态（http-request 专用）");
 
@@ -99,7 +103,19 @@ console.log("\n【8】上游原件存档完整");
 ok(fs.existsSync(path.join(dir, "upstream-Forward.lpx")), "保留了上游清单原件");
 const sums = fs.readFileSync(path.join(dir, "upstream-SHA256SUMS"), "utf8");
 ok(/^[0-9a-f]{64}\s+forward\.lpx$/m.test(sums), "原件 SHA256 已记录");
-ok(fs.existsSync(path.join(dir, "samples/mock-01.json")), "保留了线上响应采样");
+ok(fs.existsSync(path.join(dir, "samples/mock-01.json")), "保留了早期（无签名降级）响应采样");
+ok(fs.existsSync(path.join(dir, "samples/real-signed-01.b64")), "保留了真实凭据响应体样本（632 字节）");
+{
+  const real = fs.readFileSync(path.join(dir, "samples/real-signed-01.b64"), "latin1");
+  ok(real.length === 632, "真实样本长度 632 字节", `实际 ${real.length}`);
+  const l2 = Buffer.from(real, "base64").toString("utf8");
+  const l3 = Buffer.from(l2.replace(/^"|"$/g, ""), "base64");
+  ok(l3.length === 352, "真实样本解出 352 字节密文", `实际 ${l3.length}`);
+  ok(l3.subarray(0, 128).toString("hex") === prefix, "真实样本的 128 前缀 == prefix-128.hex");
+  const real2 = fs.readFileSync(path.join(dir, "samples/real-signed-02.b64"), "latin1");
+  const l3b = Buffer.from(Buffer.from(real2, "base64").toString("utf8").replace(/^"|"$/g, ""), "base64");
+  ok(!l3.subarray(128).equals(l3b.subarray(128)), "两份真实样本的 224 变化段不同（证明该段确实在变）");
+}
 
 console.log(`\n通过 ${pass} / 失败 ${fail}`);
 process.exit(fail ? 1 : 0);

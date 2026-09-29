@@ -1,5 +1,5 @@
 #!name=Forward-Offline
-#!desc=Forward 的离线替代：原 mock 服务器失效后仍可用，不依赖任何外部服务 · Offline replacement for Forward, no external dependency
+#!desc=Forward 的离线替代：原 mock 服务器失效后仍可用，不依赖任何外部服务 · v1.1 修正响应结构（原 v1.0 长度与 base64 层数均错）· Offline replacement for Forward, no external dependency
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-29 15:20:00

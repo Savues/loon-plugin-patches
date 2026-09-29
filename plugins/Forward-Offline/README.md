@@ -2,14 +2,14 @@
 
 > 原版把订阅查询请求改写到作者的 Cloudflare Worker，由 Worker 返回伪造凭据。
 > 作者一旦下线，插件即刻失效。本插件改用**本地脚本**在请求发出前直接返回同样结构的响应，
-> **不依赖任何外部服务器**。**v1.0**
+> **不依赖任何外部服务器**。**v1.1**
 
 | | 中文 | English |
 |---|---|---|
 | 上游 | `upstream-Forward.lpx`（逐字节原件，SHA256 见 `upstream-SHA256SUMS`） | Pristine upstream copy |
 | 上游是否含 JS | **否**（全文 4 行有效配置，无 `[Script]`、无 `script-path`） | No (4 config lines, zero JavaScript) |
 | 本插件脚本 | `forward-offline.js`，**自研**，不含任何上游代码 | Self-written, no upstream code |
-| 回归测试 | `test/manifest.test.mjs` 38 例 + `test/forward-offline.test.mjs` 14 例 | 52 assertions |
+| 回归测试 | `test/manifest.test.mjs` 46 例 + `test/forward-offline.test.mjs` 21 例 | 67 assertions |
 
 ---
 
@@ -24,7 +24,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forwar
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | [Forward-Offline.lpx](Forward-Offline.lpx) | 插件清单 | Plugin manifest |
-| [forward-offline.js](forward-offline.js) | 伪造响应的脚本（2.9 KB） | Response script |
+| [forward-offline.js](forward-offline.js) | 伪造响应的脚本 | Response script |
 | [mock-server.js](mock-server.js) | 独立 mock 服务端，可在电脑自建 | Standalone mock server |
 | `test/` | 回归测试 52 例 | Regression tests |
 | `samples/` | 线上响应采样 + 提取出的固定前缀 | Captured samples |
@@ -103,44 +103,63 @@ hostname = fluxapi.vvebo.vip
 
 ---
 
-## 响应结构（黑盒实测）· Response structure
+## 响应结构（HAR 实测）· Response structure
 
-2026-09-29 对线上 Worker 采样 6 次、真实服务器采样 3 次，得出：
+2026-09-29 用 4 份 HAR、**23 个带签名样本**实测确定：
 
 ```
-128 字节固定前缀  +  160 字节随机  →  base64  →  JSON 字符串  →  386 字节
+密文 352 字节 = 128 字节恒定前缀 + 224 字节变化段
+  → base64                = 472 字符
+  → JSON.stringify 加引号  = 474 字节
+  → 再 base64（不加引号）  = 632 字符   ← 这就是 HTTP 响应体
 ```
 
 | 观察 | 结论 |
 |---|---|
-| 128 字节前缀在 **Worker 与真实服务器上完全一致** | 同一套生成逻辑，逐字节存于 `samples/prefix-128.hex` |
-| 160 字节尾部**每次请求都变**，256 种字节取值用了 250 种，分布接近均匀 | 上游**只校验结构，不校验内容** ⇒ 本地随机生成即可 |
-| 恒为 386 字节，`Content-Type: application/json; charset=utf-8` | 定长，下游按定长解析也不会错位 |
-| 只有 `POST` 命中该路径才返回；`GET` 返回 404 | — |
+| 128 字节前缀在 **23 个样本中逐字节相同** | 恒定模板，见 `samples/prefix-128.hex` |
+| 224 字节变化段**每次请求都变** | 密文内容，非随机噪声 |
+| 外层是**裸 base64 不带引号** | 尽管 `content-type` 是 `application/json` |
+| 同一签名重复请求真实服务器 3 次 | 恒定 336 字节密文，内容每次都变 |
+
+### 🔴 v1.0 失效的根因
+
+| | v1.0（错） | 实测（对） |
+|---|---|---|
+| 变化段长度 | 160 字节 | **224 字节** |
+| base64 层数 | 单层 | **双层，且外层不加引号** |
+| HTTP 响应体 | 386 字节 | **632 字节** |
+
+128 字节前缀一直是对的，错的是**长度和包装层数**。App 解不开 386 字节，判定未订阅。
+
+> 教训：早期我用**不带签名头**的请求采样，拿到的是 mock 的 288 字节**降级响应**，
+> 据此误判「只校验结构、尾部可随机生成」。真实凭据必须用 App 实际发出的
+> 带 `x-timestamp` / `x-auth-key` / `x-signature` 的请求去采样才有意义。
 
 ### 真实服务器对照
 
 | 请求方式 | 结果 |
 |---|---|
-| `POST https://fluxapi.vvebo.vip/v1/purchase/iap/subscription` | 200，386 字节 |
-| 直连 IP + `Host` 头（**绕过改写**） | **403**，110 字节 |
-| `http://`（明文，绕开改写规则的正则） | 301 跳 https |
-| `GET /health` | `{"status":"ok","version":"1.0.0"}` |
+| `POST https://fluxapi.vvebo.vip/v1/purchase/iap/subscription`（带合法签名，绕过 Loon） | 200，**336 字节密文** |
+| 同一请求走 mock.forward1.workers.dev | 200，**352 字节密文** |
+| 不带签名头 | 200，288 字节降级响应 |
 
-⇒ 真实服务器**确实在校验**。那个 200 是本机 Loon 装了插件后被改写的结果，不是真实凭据。
-真实站根路径是一个「Flux Backend - 刮削数据管理面板」的网页。
+⇒ mock 服务器**不是必需的**：真实服务器自己就会发放凭据（密文 336 字节，比 mock 少 16 字节）。
+两者的 128 字节前缀相同（`731570b9...`），属同族格式。
 
 ### 复现取证
 
 ```bash
 UA='Loon/700'
-# 采样
-for i in 1 2 3 4 5 6; do
-  curl -s -X POST -A "$UA" \
-    'https://mock.forward1.workers.dev/forward/v1/purchase/iap/subscription' -o "mock-$i.json"
-done
-# 绕过改写看真实站（需 --resolve + -k）
-curl -sk --resolve fluxapi.vvebo.vip:443:47.246.23.185 -X POST -A "$UA" \
+# 用 App 真实请求（含三个签名头）打服务器
+curl -s -X POST -A "$UA" \
+  -H "x-timestamp: <ts>" -H "x-auth-key: <uuid>" -H "x-signature: <hex>" \
+  --data-binary @body.txt \
+  'https://mock.forward1.workers.dev/forward/v1/purchase/iap/subscription'
+
+# 绕过 Loon 改写打真实服务器
+curl -sk --resolve fluxapi.vvebo.vip:443:47.246.23.185 -X POST \
+  -H "x-timestamp: <ts>" -H "x-auth-key: <uuid>" -H "x-signature: <hex>" \
+  --data-binary @body.txt \
   'https://fluxapi.vvebo.vip/v1/purchase/iap/subscription'
 ```
 
