@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.2** · 2 开关 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T12:30`
+**v1.3** · 11 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T12:50`
 
 | | 中文 | English |
 |---|---|---|
@@ -70,47 +70,99 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 ## 开关 · Switches
 
-两个都**默认开**（保持上游行为）。在 Loon 插件参数页直接切换，不用改文件。
+11 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
 
-| 开关 | 覆盖 | 什么时候关 |
-|---|---|---|
-| `chat_stub` | 4 条聊天/推荐端点 | **聊天刷不出来时关掉** |
-| `telemetry_stub` | 8 个埋点/监控/配置域名 | 怀疑被风控、或 App 行为异常时关掉 |
+### [高危] 会改写服务端下发内容的拦截
 
-`chat_stub` 覆盖的端点：
+| 开关 | 默认 | 覆盖 | 什么时候关 |
+|---|---|---|---|
+| `api_stub` | 开 | 16 条 `reject-dict` | 想要**完全不改任何响应体**时 |
+| `chat_stub` | 开 | 4 条聊天/推荐端点 | **聊天刷不出来时**（已实测：关掉即恢复） |
+| `telemetry_stub` | 开 | 8 个埋点/监控/配置域名 | 怀疑被风控、或 App 行为异常时 |
 
-| 端点 | 作用 |
+> ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
+> `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
+> 但单独开 `bottom_custom`（见下），底栏仍能裁。
+
+`api_stub` 覆盖的 16 条里有两条值得单独留意：
+
+| 端点 | 说明 |
 |---|---|
-| `/api/caterham/v3/query/new_chat_group` | 会话分组 |
-| `/api/zaire_biz/chat/resource/get_list_data` | 聊天资源 |
-| `/api/caterham/v3/query/personal` | 个人页聚合 |
-| `/api/buffon/nasus/recommend` | 推荐流 |
+| `/api/phantom/gbdbpdv/extra` | `phantom` 与 WebSocket 推送同模块，怀疑被风控时优先关 |
+| `/api/caterham/v3/query/my_order_group` | **订单列表**，返回 `{}` 会让订单页变空 |
+
+### [底栏] 自定义底部导航
+
+| 开关 | 默认 | 对应 tab |
+|---|---|---|
+| `bottom_custom` | 开 | 总开关，关掉则底栏保持服务端原样（5 项） |
+| `Bot_index` | 开 | 首页 |
+| `Bot_chat` | 开 | 聊天 |
+| `Bot_personal` | 开 | 我的 |
+| `Bot_live` | 关 | 多多视频 |
+| `Bot_class` | 关 | 分类 |
+| `Bot_attendance` | 关 | 签到 |
+| `Bot_custom` | 空 | 输入框，逗号分隔，按 link 包含匹配 |
+
+- **顺序跟随服务端下发**，不是开关排列顺序 —— 想要「多多视频」排在聊天前面，重开 App 即可。
+- 一个都不选时**回落**为 首页 / 聊天 / 我的（上游写死的那三项），不会给你一个空底栏。
+- `Bot_custom` 用于接口下发但上面没列出的项，容忍空格与空段。
+
+> 服务端真实下发的 5 项是：首页、多多视频、签到（带推广参数）、聊天、我的；
+> `buffer_bottom_tabs` 侧是 首页、多多视频、分类、聊天、我的。**两个字段分别匹配**，
+> 所以「分类」只在 buffer 侧出现，勾了它不会影响底栏显示。
+
+### 开关是怎么生效的
+
+| 通路 | 用在哪 |
+|---|---|
+| `enable={xxx}` | `[Rule]` 与 `[Rewrite]` 条目 |
+| `argument=[{xxx}]` | 传给 `homepage.response.js` 脚本 |
+
+底栏脚本**不带** `enable`，由脚本内部读 `$argument` 判断——这样关掉 `bottom_custom`
+时脚本仍会运行并原样放行，不会因为规则被禁用而丢掉另一组去广告逻辑。
 
 > 上游的 28 条 `[Rewrite]` **一条 `enable` 都没有**，`[Argument]` 段整个不存在。
-> 换句话说，用户连「关掉某一项」的入口都没有。本版补上了。
+> 换句话说，用户连「关掉某一项」的入口都没有。本版补齐了。
 
 ---
 
-## jq 修正 · The jq fix
+## 自研脚本 · The purpose-built script
 
-上游写法：
+`src/homepage.response.js` 是本仓库自研的，不含任何上游代码。
 
-```jq
-.result.bottom_tabs? |= map(...) | .result.all_top_opts |= map(del(...))
+### 为什么要写它
+
+上游用两条 `[Rewrite]` 处理 `/api/alexa/homepage/hub`（一条 `json-del`、一条 `json-jq`），
+存在三个问题：
+
+1. **底栏写死三项**。jq 里硬编码 `IN("index.html", "chat_list.html", "personal.html")`，
+   用户想留「签到」或「分类」必须改文件。
+2. **jq 有空值崩溃缺陷**。`?` 只保护路径查找、不保护 `map` 迭代，字段为 null 时抛
+   `Cannot iterate over null`，整条复写失败。
+3. **同一 URL 挂两条规则，谁先谁后是未解疑点**。Loon 官方手册没写这个行为。
+   真机验证时观察到底栏确实是 3 项（说明 jq 跑了），但**依据不明确**。
+
+脚本一次解决三者：底栏可选、空值安全、同一 URL 只有一条处理规则。
+
+### 怎么读开关
+
+`[Argument]` 的 9 个值经 `argument=[{...}]` 传入 `$argument`，脚本内部判断。
+所有异常路径都 `$done({})` 放行原响应——脚本出错不会让 App 拿不到首页配置。
+
+### 真实数据验证
+
+`test/homepage.test.mjs` 用 2026-09-29 基线 HAR 的真实响应（gzip+base64 解出 138 KB）
+驱动脚本，31 个用例覆盖：开关全关时零改动、默认三项裁剪、自定义组合、
+顺序保持服务端原序、空选回落默认、备用输入框、异常结构不崩。
+
+```
+node test/manifest.test.mjs    # 49 用例，清单层
+node test/homepage.test.mjs    # 31 用例，脚本逻辑
 ```
 
-`?` 保护的是**路径查找**，不保护 `map` 的迭代。构造 `buffer_bottom_tabs: null` 或字段缺失时，
-真 jq 抛 `Cannot iterate over null`，整条复写失败。
-
-改为先判类型再迭代：
-
-```jq
-.result.bottom_tabs? |= (if type=="array" then map(...) else . end) | ...
-```
-
-**诚实说明**：把 2026-09-29 抓包里的**真实**响应（gzip + base64，184300 B → 138225 B）
-解出来跑一遍，上游写法 **exit = 0、裁剪正常** —— 该版本 PDD 的 `buffer_bottom_tabs` 是 len=5 的真数组。
-所以这是**潜在**缺陷而非当前现症。仍然修，因为它不该依赖服务端字段恰好齐全。
+> 顺带修掉了本仓库 `manifest.test.mjs` 一个老 bug：`$done()` 早退漏了 `return`，
+> 会继续往下执行并被外层 catch 吞掉，把错误响应原样放行。测试当场报出来了。
 
 ---
 
@@ -134,12 +186,12 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 ## 回归测试 · Regression test
 
 ```bash
-node test/manifest.test.mjs
+node test/manifest.test.mjs   # 49 用例，清单层
+node test/homepage.test.mjs   # 31 用例，脚本逻辑
 ```
 
-46 个用例，覆盖开关声明与引用一致、三条高风险规则确已移除、
-jq 在真实抓包数据与四种异常结构下均不崩、去广告功能未被误伤、
-外部资源全部收在仓库内且对上游脚本的改动仅 1 行。
+清单层覆盖：开关声明与引用双向一致、三条高风险规则确已移除、
+底栏脚本接线正确、外部资源全部收在仓库内、上游脚本仅差 1 行。
 
 ---
 
@@ -188,7 +240,7 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | 20 条 reject-dict 未观测 | 这批端点在基线中一次都没出现，属低频/特定页面触发，未能实证其响应 |
 | 未解疑点 | `/api/alexa/homepage/hub` 挂了**两条** `[Rewrite]`（json-del + json-jq），Loon 官方手册未说明同一 URL 多条规则的执行顺序 |
 | 上游 JS 未审 | `PinDuoDuo_remove_ads.js` 保持原样引用，未做改动也未做审计 |
-| 非现症 | jq 缺陷在真实数据下不触发（见上） |
+| 底栏顺序 | 跟随服务端下发顺序，插件不重排 |
 
 ---
 
@@ -201,8 +253,10 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `src/PinDuoDuo_remove_ads.js` | 上游脚本，仅改 1 行 chunk URL | Upstream script, one line changed |
 | `src/upstream/PinDuoDuo_remove_ads.js` | 上游原件，只读 | Pristine upstream, read-only |
 | `src/chunks/9410-*.js` | 页面 chunk 托管副本（上游第三方托管） | Vendored page chunk |
-| `manifest.json` | 托管脚本的 sha256 登记 | Vendored script hashes |
-| `test/manifest.test.mjs` | 35 个清单层回归用例 | 35 manifest-layer tests |
+| `manifest.json` | 脚本 sha256 登记（上游 2 + 自研 1） | Script hashes |
+| `src/homepage.response.js` | 首页去广告 + 底栏自定义（**自研**） | Purpose-built script |
+| `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
+| `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
 | `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |
 
 校验托管脚本完整性：

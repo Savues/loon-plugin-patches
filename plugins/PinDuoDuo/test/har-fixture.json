@@ -1,7 +1,6 @@
 {
- "note": "摘自 2026-09-29 基线 HAR 的 homepage/hub 响应，仅保留 jq 涉及的字段",
+ "note": "摘自 2026-09-29 基线 HAR（未开插件）的 homepage/hub 响应，仅保留脚本涉及的字段",
  "source": "base.har / GET /api/alexa/homepage/hub",
- "gzip": true,
  "result": {
   "icon_set": [
    {
@@ -337,6 +336,186 @@
     }
    }
   ],
+  "search_bar_hot_query": {
+   "ai_config": {
+    "allowed": false
+   },
+   "server_time": 1790653574,
+   "hotqs": [
+    {
+     "q": "酷态科cp12",
+     "tag_list": [
+      {
+       "style": "1",
+       "text": "热",
+       "border_color": "#E02E24",
+       "text_color": "#E02E24",
+       "type": "热"
+      }
+     ],
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5横放支架",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5支架横放",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "菜板",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "酷态科",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "阿帕图qi2.2",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5支架",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "17手机壳",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "qi2.2",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "充宝电",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "切菜板",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "qi2.2无线充",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "薯片",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "态酷科cp12",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "烤肠",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "小香肠",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "苹果充电头",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "磁吸充充宝",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "酷态科10号air",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "纸巾",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    }
+   ],
+   "show_ai_entry": false,
+   "org": 2,
+   "shade": {
+    "is_shade_degrade": false,
+    "query": "ps5横放支架",
+    "q_search": {
+     "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+    },
+    "need_shade_coupon": false,
+    "guo_bu_add": false,
+    "need_shade_618": false
+   },
+   "user_characteristics": 1,
+   "title": "搜索发现",
+   "top_notice": {},
+   "req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f",
+   "banner_pass_through_params": {},
+   "shade_play_interval": 0,
+   "server_time_ms": 1790653574452,
+   "search_coupon_pass_through_params": {},
+   "shade_type": 0,
+   "items": [
+    "酷态科cp12",
+    "ps5横放支架",
+    "ps5支架横放",
+    "菜板",
+    "酷态科",
+    "阿帕图qi2.2",
+    "ps5支架",
+    "17手机壳",
+    "qi2.2",
+    "充宝电",
+    "切菜板",
+    "qi2.2无线充",
+    "薯片",
+    "态酷科cp12",
+    "烤肠",
+    "小香肠",
+    "苹果充电头",
+    "磁吸充充宝",
+    "酷态科10号air",
+    "纸巾"
+   ]
+  },
   "all_top_opts": [
    {
     "tab_id": 1,
@@ -1216,186 +1395,6 @@
     }
    }
   ],
-  "search_bar_hot_query": {
-   "ai_config": {
-    "allowed": false
-   },
-   "server_time": 1790653574,
-   "hotqs": [
-    {
-     "q": "酷态科cp12",
-     "tag_list": [
-      {
-       "style": "1",
-       "text": "热",
-       "border_color": "#E02E24",
-       "text_color": "#E02E24",
-       "type": "热"
-      }
-     ],
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "ps5横放支架",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "ps5支架横放",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "菜板",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "酷态科",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "阿帕图qi2.2",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "ps5支架",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "17手机壳",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "qi2.2",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "充宝电",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "切菜板",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "qi2.2无线充",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "薯片",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "态酷科cp12",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "烤肠",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "小香肠",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "苹果充电头",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "磁吸充充宝",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "酷态科10号air",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    },
-    {
-     "q": "纸巾",
-     "q_search": {
-      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-     }
-    }
-   ],
-   "show_ai_entry": false,
-   "org": 2,
-   "shade": {
-    "is_shade_degrade": false,
-    "query": "ps5横放支架",
-    "q_search": {
-     "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
-    },
-    "need_shade_coupon": false,
-    "guo_bu_add": false,
-    "need_shade_618": false
-   },
-   "user_characteristics": 1,
-   "title": "搜索发现",
-   "top_notice": {},
-   "req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f",
-   "banner_pass_through_params": {},
-   "shade_play_interval": 0,
-   "server_time_ms": 1790653574452,
-   "search_coupon_pass_through_params": {},
-   "shade_type": 0,
-   "items": [
-    "酷态科cp12",
-    "ps5横放支架",
-    "ps5支架横放",
-    "菜板",
-    "酷态科",
-    "阿帕图qi2.2",
-    "ps5支架",
-    "17手机壳",
-    "qi2.2",
-    "充宝电",
-    "切菜板",
-    "qi2.2无线充",
-    "薯片",
-    "态酷科cp12",
-    "烤肠",
-    "小香肠",
-    "苹果充电头",
-    "磁吸充充宝",
-    "酷态科10号air",
-    "纸巾"
-   ]
-  },
   "dy_module": {
    "recommend_fresh_info": {
     "dy_template": {
@@ -2127,6 +2126,58 @@
      }
     }
    }
-  }
+  },
+  "module_order": [
+   {
+    "module_name": "irregular_banner"
+   },
+   {
+    "module_name": "irregular_banner_dy"
+   },
+   {
+    "module_name": "timeline"
+   },
+   {
+    "module_name": "courier_info"
+   },
+   {
+    "module_name": "icon_set"
+   },
+   {
+    "module_name": "new_user_zone"
+   },
+   {
+    "module_name": "new_user_zone_dy"
+   },
+   {
+    "module_name": "new_user_zone_v2"
+   },
+   {
+    "module_name": "ad_module"
+   },
+   {
+    "module_name": "community_goods"
+   },
+   {
+    "module_name": "jiyun_entrance"
+   },
+   {
+    "module_name": "recommend_fresh_info",
+    "show_type": 0
+   },
+   {
+    "module_name": "recommend_fresh_info_lite"
+   },
+   {
+    "module_name": "billion_subsidy_entrance"
+   },
+   {
+    "module_name": "billion_subsidy_entrance_dy",
+    "show_type": 0
+   },
+   {
+    "module_name": "billion_subsidy_entrance_lite"
+   }
+  ]
  }
 }

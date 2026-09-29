@@ -56,6 +56,11 @@ MANIFEST_OF = {
     'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js': 'plugins/PinDuoDuo/manifest.json',
 }
 
+# 自研脚本：无上游，不做漂移比对，但登记 sha256 便于本地完整性检查。
+OWN_SCRIPTS = {
+    'plugins/PinDuoDuo/src/homepage.response.js': 'plugins/PinDuoDuo/manifest.json',
+}
+
 
 def sha256(p):
     h = hashlib.sha256()
@@ -98,6 +103,12 @@ def build_manifest(rel_list):
             'sources': src}
 
 
+def own_entries(rel_list):
+    return {rel: {'upstream': None, 'bytes': (ROOT / rel).stat().st_size,
+                  'sha256': sha256(ROOT / rel), 'origin': 'self-authored'}
+            for rel in rel_list if (ROOT / rel).exists()}
+
+
 def main():
     ap = argparse.ArgumentParser(description='校验 / 比对托管脚本')
     ap.add_argument('--manifest', action='store_true', help='重新生成 manifest.json')
@@ -110,9 +121,13 @@ def main():
     if a.manifest:
         for mf, rels in sorted(groups().items()):
             p = ROOT / mf
-            p.write_text(json.dumps(build_manifest(rels), ensure_ascii=False, indent=2) + '\n',
+            doc = build_manifest(rels)
+            own = [r for r, m in OWN_SCRIPTS.items() if m == mf]
+            if own:
+                doc['sources'].update(own_entries(own))
+            p.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + '\n',
                          encoding='utf-8')
-            print('已写入 %s（%d 个文件）' % (mf, len(rels)))
+            print('已写入 %s（上游 %d + 自研 %d）' % (mf, len(rels), len(own)))
         return 0
 
     bad = 0
@@ -123,6 +138,18 @@ def main():
             bad += 1
             continue
         want = json.loads(mp.read_text(encoding='utf-8')).get('sources', {})
+        for rel, m in OWN_SCRIPTS.items():
+            if m != mf:
+                continue
+            p2 = ROOT / rel
+            if not p2.exists():
+                print('❌ %s: 本地缺失' % rel.split('/')[-1]); bad += 1; continue
+            got2 = sha256(p2)
+            ok2 = (want.get(rel) or {}).get('sha256') == got2
+            print('%s %-38s %7d B  %s…  (自研)'
+                  % ('✅' if ok2 else '❌', rel.split('/')[-1], p2.stat().st_size, got2[:16]))
+            if not ok2:
+                bad += 1
         for rel in rels:
             p = ROOT / rel
             name = rel.split('/')[-1]

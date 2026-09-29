@@ -10,6 +10,12 @@
       "upstream": "https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js",
       "bytes": 5131,
       "sha256": "e8e4f0e81525d314a7bc6af0fa45600b7d49b098f71f53ab36155d9ebd327ba7"
+    },
+    "plugins/PinDuoDuo/src/homepage.response.js": {
+      "upstream": null,
+      "bytes": 3468,
+      "sha256": "7fc7ba263550095805cb6fef24574d7533baf34aa4673a0e1249c50f73f71ad5",
+      "origin": "self-authored"
     }
   }
 }

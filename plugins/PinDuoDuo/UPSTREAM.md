@@ -64,6 +64,9 @@ Only one line differs from the pristine upstream copy. Everything else is byte-f
 | 6 | 修正 `homepage/hub` 的 jq：`?` → `if type=="array"` | `?` 只保护路径查找、不保护 `map` 迭代，字段为 null 时抛 `Cannot iterate over null` | 推导（真实数据下未触发） |
 | 7 | 补 `#!desc` 说明、`#!date`、尾部注释 | 仓库体例 | — |
 | 8 | `script-path` 改指本仓库托管副本 | 仓库 2026-09-29 新增的脚本托管约定 | — |
+| 9 | 新增 `api_stub`，管住剩余 16 条 `reject-dict` | 上游 20 条 `reject-dict` 全无 `enable`，用户无从关闭 | 推导 |
+| 10 | 两条 `homepage/hub` 的 `json-del`/`json-jq` → 自研 `src/homepage.response.js` | ① 底栏写死三项 ② jq 空值崩溃 ③ 同一 URL 两条规则谁先谁后是未解疑点 | 实测 + 推导 |
+| 11 | 新增底栏 7 项 `[Argument]`（`bottom_custom` + 6 个 `Bot_*` + `Bot_custom`） | 用户无法在不编辑文件的前提下调整底栏 | 推导 |
 
 ### 关于第 6 条的诚实说明
 
@@ -102,8 +105,10 @@ POST http://[240c:409f::3:0:163]/d5
 ## 证据文件 · Evidence
 
 | 文件 | 说明 |
+|---|---|---|
 |---|---|
-| `test/manifest.test.mjs` | 46 项回归：开关声明==引用、高风险规则确已移除、jq 四场景、外部资源收敛 |
+| `test/manifest.test.mjs` | 49 项回归：开关双向一致、高风险规则确已移除、脚本接线、外部资源收敛 |
+| `test/homepage.test.mjs` | 31 项：用真实 HAR 响应驱动自研脚本，覆盖开关组合与异常结构 |
 | `test/har-fixture.json` | 从基线 HAR 摘出的最小样本，供 jq 测试用 |
 
 基线 HAR 本身（24 MB）不入库，仅摘取必要片段。
