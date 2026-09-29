@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.71** · 14 项配置 / 22 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T19:20`
+**v1.72** · 14 项配置 / 22 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T20:05`
 
 | | 中文 | English |
 |---|---|---|
@@ -60,8 +60,10 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 - **`meta` 不是纯风控口**。实测 `meta.pinduoduo.com/api/app/v2/experiment` 与
   `/api/one-gateway-client/zone/v1/component/fetch` 合计返回 **37900 B 真实 AB 实验与配置下发数据**。
   切断它有实际功能代价，所以改成了可关的开关而非直接删。
-- **两条裸 IP 规则 0 命中**。真实形态是 `http://[IPv6]/d5` 且**无 query**，
-  而上游的 IPv6 规则要求结尾 `\?`，正则不匹配。写了但打不中。
+- **两条裸 IP 规则写错了正则**。真实形态是 `/v3/d?type=addrs&ttl=1&dn=…&id=1`
+  —— IP 之后是 `/v3` 再 `/d?`，而上游正则要求紧接 `/d(\d)?`，中间多出一段。
+  2026-09-29 两台设备实测该形态流量稳定存在，上游正则一条都命中不了。
+  （v1.1~v1.71 记为「真实形态无 query」是错的，实际带 query。）
 - **QUIC 规则不触发**。`api.pinduoduo.com` 的 ALPN 只协商 h2，服务端根本不提供 h3。
 - **去广告本身是有效的**。真实 `homepage/hub` 响应里 `bottom_tabs` 确有 5 项，
   含 `pdd_live_tab_list.html` 与带推广参数的 `attendance.html` —— 正是插件要删的那些。
@@ -222,12 +224,21 @@ node test/homepage.test.mjs    # 31 用例，脚本逻辑
 |---|---|---|
 | `DOMAIN, xg.pinduoduo.com, REJECT` | **移除** | 实测是 WebSocket 推送通道（101） |
 | `AND,((DOMAIN,api),(PROTOCOL,QUIC)),REJECT` | **移除** | ALPN 只协商 h2，规则不触发 |
-| 2 条裸 IP `/d1` `/d2` REJECT | **注释掉** | 基线 0 命中（真实形态无 query） |
+| 2 条裸 IP `/d`~`/d9` REJECT | **移除**（v1.72） | 正则匹配不上，且职责已由 HTTPDNS拦截器 覆盖 |
 
-裸 IP 那两条默认注释掉了，但**要提醒**：被拦的 `/d5` 本身是在用的会话票据通道 ——
-22 次请求全部 200，响应头 `Server: titan-gslb`、`Session-Ticket: <base64>`、`Session-Valid: 86400`。
-上游 REJECT 了 `titan.pinduoduo.com`，却因 `/d5` 走裸 IP 而漏掉。
-若换设备或换网络后该通道形态改变（例如带上 query），规则会重新命中并切掉它。
+裸 IP 那两条在 v1.72 之前是「注释掉」，v1.72 起**连注释一起删除**。三个理由：
+
+1. **拦不到**。真实形态 `/v3/d?type=addrs&ttl=1&dn=…&id=1` 里，IP 之后是 `/v3` 再 `/d?`，
+   上游正则要求紧接 `/d(\d)?`，中间多一段，对不上。
+2. **职责重复**。`HTTPDNS拦截器`（可莉 + VirgilClyne）已在拦这类请求，
+   其正则含 `(\/v?[0-9]+)?` 可正确命中 `/v3/d`。两台设备实测共 65 条全部由它拦下。
+3. **旧注释在误导人**。原先写着「无 query」「恢复前请先看 README」，
+   照着做会写出一条仍然匹配不了的正则。留着比删掉更糟。
+
+> ⚠️ 另一个曾被记录的点同样有误：`/d5` 的 titan-gslb 会话票据通道
+> （`Server: titan-gslb`、`Session-Ticket`、`Session-Valid: 86400`）确实是真实存在的，
+> 但它走的是 `/v3/d` 而非 `/d5`，原先「上游因 /d5 走裸 IP 而漏掉 titan.pinduoduo.com」
+> 的推理不成立。历史正则见 git `39e6ed5`。
 
 逐条依据与证据文件见 [UPSTREAM.md](UPSTREAM.md)。
 

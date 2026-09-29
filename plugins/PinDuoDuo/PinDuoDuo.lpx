@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.71
+#!name=拼多多去广告(修复版) v1.72
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】屏蔽聊天/埋点/phantom 三项改为默认关闭。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 19:20:00
+#!date=2026-09-29 20:05:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -29,8 +29,6 @@ Bot_attendance = switch,false,tag=[底栏] 签到
 Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包含匹配,逗号分隔;一个都不选时回落首页/聊天/我的
 
 [Rule]
-# [已移除-高风险] AND, ((URL-REGEX, "^http:\/\/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/d(\d)?"), (USER-AGENT, "*com.xunmeng.pinduoduo*")), REJECT
-# [已移除-高风险] AND, ((URL-REGEX, "^http:\/\/\[[0-9a-fA-F:]+\]\/d(\d)?\?"), (USER-AGENT, "*com.xunmeng.pinduoduo*")), REJECT
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
 DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
@@ -83,11 +81,17 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #  4. 移除 1 条 QUIC REJECT（实测 api 的 ALPN 只协商 h2，本就无 h3，该规则不触发）
 #  5. 移除 DOMAIN, xg.pinduoduo.com, REJECT —— 基线抓包实测该域名承载 WebSocket
 #     (xg.pinduoduo.com/ngrtt/zqog 返回 101 Switching Protocols)，是消息推送通道
-#  6. 裸 IP 明文 /d1 /d2 两条 REJECT：经基线抓包验证在本机日常流量中 0 命中
-#     （真实形态是 http://[IPv6]/d5，无 query，而 IPv6 规则要求结尾 \?），
-#     默认注释掉；如需恢复请去掉行首 #
-#     ⚠️ 但 /d5 本身是 titan-gslb 的会话票据通道，若你的流量形态与本仓库基线不同，
-#        恢复前请先看 README「为什么删这三条」一节
+#  6. 移除上游 2 条裸 IP REJECT（IPv4 与 IPv6 各一，路径 /d ~ /d9，仅 pinduoduo App）
+#     这两条在本仓库不再保留，也不建议恢复，三个理由：
+#     ① 拦不到。真实路径是 /v3/d?type=addrs&ttl=1&dn=…&id=1 —— IP 之后是 /v3 再 /d?，
+#        而上游正则要求紧接 /d(\d)? ，中间多出一段，根本对不上。
+#        2026-09-29 两台设备真机抓包实测：该形态流量稳定存在，上游正则一条都命中不了。
+#     ② 职责重复。这类请求已由 HTTPDNS拦截器 统一处理，其正则含 (\/v?[0-9]+)?
+#        可正确命中 /v3/d，实测两台设备共 65 条全部由它拦下。
+#     ③ v1.1~v1.71 的注释是错的：「真实形态无 query」与抓包相反（实际带 query），
+#        且原文那句让读者自行去掉注释行首的引导，会把后来人引向写出一条
+#        仍然匹配不了的正则。故整段规则连同误导性注释一并删除，不再留作可恢复项。
+#     历史正则见 git：39e6ed5（v1.1 首次收录时注释掉的原始两行）
 #  7. script-path 改为本仓库托管的副本（原为 kelee.one 远程 URL）
 #  8. 脚本内 newChunk 常量改指本仓库（上游脚本硬编码了 kelee.one 的 chunk 地址，
 #     那是页面运行时再去第三方域名取代码；现已一并收进 src/chunks/ 托管）

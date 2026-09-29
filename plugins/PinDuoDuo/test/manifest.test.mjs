@@ -99,6 +99,14 @@ t('不再有 [Rewrite] 上的 enable=',
 console.log('\n【3】高风险规则不得生效')
 t('无 QUIC REJECT', !active.some(l => l.includes('QUIC')))
 t('无裸 IP 明文 REJECT', !active.some(l => l.includes('com.xunmeng.pinduoduo')))
+// v1.72：这两条从「注释掉」改为「连注释一起删除」。旧注释写着「如需恢复请去掉行首 #」，
+// 照做会写出仍匹配不了的正则，因此连误导性引导一并禁止回流。
+t('裸 IP 规则连注释也已删除',
+  !lpx.split('\n').some(l => l.includes('com.xunmeng.pinduoduo')),
+  lpx.split('\n').filter(l => l.includes('com.xunmeng.pinduoduo')).map(x => x.slice(0, 40)).join(' | '))
+t('无「恢复请去掉行首 #」类误导性引导',
+  !/如需恢复|恢复前请先看|去掉行首\s*#/.test(lpx),
+  (lpx.match(/.*(?:如需恢复|恢复前请先看|去掉行首).*/) || [''])[0].slice(0, 50))
 t('xg.pinduoduo.com 不再被 REJECT',
   !section('RULE').some(l => /DOMAIN,\s*xg\.pinduoduo\.com/.test(l) && /REJECT/.test(l)))
 t('xg 的移除有注释说明', lpx.split('\n').some(l => l.startsWith('#') && l.includes('xg.pinduoduo.com')))
