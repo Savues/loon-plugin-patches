@@ -11,7 +11,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19-lab8** · 18 参数 / 5 Rule / 13 Rewrite / 7 Script · 5 MITM 域名 · 更新 `2026-09-29T06:45`
+**v7.19-lab9** · 18 参数 / 5 Rule / 13 Rewrite / 7 Script · 5 MITM 域名 · 更新 `2026-09-29T07:10`
 
 | | 中文 | English |
 |---|---|---|
@@ -30,6 +30,7 @@
 
 | 变更 | 说明 |
 |---|---|
+| **清理：中文描述（lab9）** | `#!desc` 从 886 字压到 124 字 —— 原来把 lab1→lab8 的变更日志全塞进了 Loon 插件列表里显示给用户的描述字段，变更历史属于 git log 与本文。另有 4 条开关描述从「为什么从 blockAds 补回来」改成「这开关干什么」（用户不知道 blockAds 是什么），`vipTheme` 压掉一半实现细节。**插件功能零变化** |
 | **恢复：`x/resource/show/skin`（lab8）** | lab6 把它当死端点删了 —— 依据是"6 份抓包 0 次触发 + 同族只见 `tab/bubble` 与 `tab/v2`"。**加入第二台设备（国际版 iPhone `bili-inter`）后推翻了**：该端点在国行 iPad 上确实不请求，但国际版会请求（返回 43B 空 `data`）。**「0 次触发」只在单一客户端下成立，不能作为死端点的证据。** 当前行为影响为零（删的 `common_equip` 键本来就不存在），但规则本身是对的 |
 | **补：`Teenagers/ModeStatus` 的 app 主机（lab7）** | 与 lab3 修的 `DefaultWords` **完全同型**：规则只写了 `grpc.biliapi.net`，而 7 份抓包里 grpc 与 `app.bilibili.com` 各占一半（各 6 次），app 那半从未被 mock |
 | **移：`[Mitm]` 里的 `api.vc.bilibili.com`（lab7）** | lab6 删掉那 3 条 `api.vc.*` 规则后它变成**零覆盖** —— 没有规则作用于它，却仍在解密 TLS。已在 `[Mitm]` 处写下不变量注释：每个列出的域名都必须有规则作用于它 |
@@ -56,6 +57,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-09-29T07:10` | — | **v7.19-lab9** 纯文案：`#!desc` 886 → 124 字（去掉实验历史，只留「是什么/做什么/来源」）；4 条开关描述改写为功能说明；`vipTheme` 描述压缩。功能零变化 |
 | `2026-09-29T06:45` | — | **v7.19-lab8** 恢复 `x/resource/show/skin` 规则（lab6 误判为死端点，国际版在用）；同时修正 lab5 注释里的错误理由 —— grpc 两端点"没被请求过"是假的（国际版正走 `viewunite` 变体），真正的理由是它们响应里没有 vip 字段 |
 | `2026-09-29T06:20` | — | **v7.19-lab7** `Teenagers/ModeStatus` 的 mock 补 `app.bili*`（与 lab3 修的 DefaultWords 同型，实测一半请求漏网）；`[Mitm]` 摘掉零覆盖的 `api.vc.bilibili.com`（lab6 删规则后的遗留），并在该处写下不变量注释 |
 | `2026-09-29T05:50` | — | **v7.19-lab6** 补番剧首页 `/pgc/page/` 的 jq 去广告（此前零覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则。依据：6 份抓包 4803 条响应逐条比对 |

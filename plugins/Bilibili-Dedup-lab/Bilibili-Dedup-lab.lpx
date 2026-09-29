@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.19-lab8
-#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7.19-lab8 变更：恢复 x/resource/show/skin 规则（lab6 误判为死端点——国际版 bili-inter 在用；国行确实不请求）。lab7 变更：Teenagers/ModeStatus 的 mock 补 app.bili*（实测 7 份抓包里 grpc 与 app 各占一半，app 那半从未被 mock）；[Mitm] 摘掉零覆盖的 api.vc.bilibili.com。lab6 变更：新增 /pgc/page/ 番剧首页的 jq 去广告（此前完全无覆盖，实测漏 1 个 banner 广告）；删 7 条给已下线端点写的死规则（6 份抓包 4803 条响应 0 次触发）。lab5 变更：会员伪装规则收窄到「我的」页（移除实测无 vip 字段的 grpc 两端点）；把三个一次性分析脚本移出仓库目录；inline patchMine。lab4 变更：bundle 规则移除 splash 分支（该分支在 Loon 上永不执行，是死配置；行为零变化，splash 一直由 [Rewrite] 的 jq 处理）。lab3 变更：Search/DefaultWords 的 mock 补上 grpc.biliapi.net（抓包实测 19 次请求里 13 次走 grpc，旧规则只覆盖 app.bili*，等于主力路径没生效）；修 vipAllUsers 开关把字符串 "false" 当真。lab2 变更：补上 /x/v2/space/article 专栏页（其 data.item[].author.vip 与「我的」页同 schema，此前顶栏伪装而专栏列表显示真实牌子）。lab2 之前：会员伪装合并为单脚本 vip.js（另修个人主页配色漂移）、4 条 BiliUniverse 规则合并为 1 条。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=小破站去广告(合并版) v7.19-lab9
+#!desc=【测试版·勿与正式版 v7.18 同时启用】与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。改动与验证记录见仓库。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili,测试版
 #!system=iOS, iPadOS
@@ -7,12 +7,12 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-09-29 06:45:00
+#!date=2026-09-29 07:10:00
 
 [Argument]
 # ---- 会员伪装 ----
 localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
-vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）；十年/年度/百年带牌子图；绿鲤鱼无公开图走文字渲染
+vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）
 vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
 vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
 localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
@@ -26,9 +26,9 @@ vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 # ---- kokoryh 参数 ----
 displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
-purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=补回 blockAds 因参数未定义而跳过的电商广告过滤
-optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=blockAds 的同名规则因 enable 参数未定义而完全不生效
-sponsorBlock=switch,true,tag=空降助手,desc=与 blockAds 共存，本插件在二次执行时为幂等
+purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=移除评论区置顶的电商广告
+optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=优化评论区加载速度
+sponsorBlock=switch,true,tag=空降助手,desc=播放视频时自动跳过内插广告
 logLevel=select,"off","error","warn","info","debug",tag=脚本日志等级(kokoryh),desc=与上方 LogLevel(BiliUniverse) 是两个不同参数名
 
 [Rule]
