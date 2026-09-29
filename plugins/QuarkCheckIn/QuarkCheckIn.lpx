@@ -1,0 +1,14 @@
+#!name=夸克网盘签到
+#!desc=每天自动签到领空间，7天一轮最高+100MB/天。自动签到默认关闭（多设备只需一台开），「立即签到」随时可手动触发。不解密任何域名，不用装根证书。
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/QuarkCheckIn
+#!date=2026-09-29
+#!icon=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png
+#!tag=签到
+
+[Argument]
+auto = switch,false,tag=每日自动签到,desc=多设备只需一台打开；关闭后仍可手动点「立即签到」
+
+[Script]
+cron "0 9 * * *" script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/QuarkCheckIn/quark_checkin.js, tag=自动签到, img-url=calendar.badge.clock, timeout=60, enable={auto}
+generic script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/QuarkCheckIn/quark_checkin.js, tag=立即签到, img-url=checkmark.seal.fill, timeout=60

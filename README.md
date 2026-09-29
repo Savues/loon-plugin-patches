@@ -5,12 +5,12 @@
 
 修改范围以**清单层**为主 —— MitM 域名、`[Argument]` 参数、`[Script]` / `[Rewrite]` 规则条目。
 个别插件额外托管了脚本：或只改托管位置与标识符，或在上游解析不了某个端点时**另写一个自研脚本**顶上，
-两者都**不修改上游 JavaScript 的任何一行**。
+或完全自研（无上游代码）。**任何情况下都不修改上游 JavaScript 的任何一行。**
 
 Scope is **manifest-layer first** — MITM hostnames, `[Argument]` params, `[Script]`/`[Rewrite]` rules.
-Three plugins ship scripts: two only relocate or rename upstream code, and one adds scripts of our
-own for endpoints upstream can no longer parse or features it never had.
-**No upstream JavaScript is modified.**
+Some plugins additionally ship scripts: some only relocate or rename upstream code, some add
+scripts of our own for endpoints upstream can no longer parse, and one is written from scratch
+(no upstream code at all). **Upstream JavaScript is never modified.**
 
 ---
 
@@ -24,9 +24,10 @@ own for endpoints upstream can no longer parse or features it never had.
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 高危拦截全可关<br>Ad-block · custom bottom bar · all risky stubs switchable | **v1.3** |
+| [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
-### 托管了脚本的四个插件
+### 托管了脚本的六个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -47,14 +48,21 @@ own for endpoints upstream can no longer parse or features it never had.
 `src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来。
 该脚本不含上游代码，有 16 个回归用例。
 
+`QuarkCheckIn` —— 第四种情况：**完全自研，无任何上游代码**。脚本从真机抓包逆向得到，
+2.3 KB 单文件，17 个回归用例。它也是本仓库唯一**不涉及 [MITM]** 的插件 ——
+只用 `$httpClient` 主动发请求，因此不用装根证书、与其他插件零冲突。
+
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-Four plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+Six plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
-that site disappeared. `YouTube-Dedup` takes a further route — a purpose-built script for
-an endpoint upstream cannot parse (`config`) — covered by 16 tests.
+that site disappeared. `YouTube-Test` and `PinDuoDuo` host the upstream scripts and add
+purpose-built ones for endpoints upstream breaks on. `YouTube-Dedup` takes a further
+route — a script for an endpoint upstream cannot parse (`config`) — covered by 16 tests.
+`QuarkCheckIn` is a further case still: written entirely from scratch off a real packet
+capture, 2.3 KB, 17 tests, and the only plugin here that needs **no `[MITM]`** at all.
 
 ---
 
@@ -104,6 +112,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
+| [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages 托管，可选）· Web UI |
 
 ---
