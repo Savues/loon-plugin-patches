@@ -1,11 +1,11 @@
 # AntiRevoke · Apple 证书吊销检查屏蔽
 
-> 上游 Salem / [apple-cert-block](https://github.com/salem-2007/apple-cert-block)（Apache-2.0）移植版。
+> 上游 Salem 的证书验证屏蔽配置（Apache-2.0）移植版。
 > 17 条域名与上游完全一致 + 分组开关化 + 移除无必要的 `[MITM]`。**v1.1**
 
 | | 中文 | English |
 |---|---|---|
-| 上游 | Salem，[apple-cert-block](https://github.com/salem-2007/apple-cert-block) | Salem, [apple-cert-block](https://github.com/salem-2007/apple-cert-block) |
+| 上游 | Salem，Apache-2.0（出处见 `upstream-AntiRevoke.plugin` 原件） | Salem, Apache-2.0 (provenance in the pristine upstream copy) |
 | 许可 | Apache-2.0（上游 LICENSE 原文保留在本目录说明中） | Apache-2.0 |
 | 改动 | 清单层：7 个分组开关（**未验证**，见下）、移除无必要的 `[MITM]` | Manifest only: 7 group switches (**unverified**, see below), pointless `[MITM]` removed |
 | 脚本 | 无（本插件不含任何 JavaScript） | None (no JavaScript at all) |
@@ -241,8 +241,8 @@ hostname = %APPEND% ocsp.apple.com, ocsp2.apple.com, valid.apple.com
 
 ## 致谢 · Credits
 
-- **原作者**：[Salem](https://github.com/salem-2007/apple-cert-block) —— 全部域名清单与技术思路
-- **许可**：Apache License 2.0（上游仓库 LICENSE）
+- **原作者**：Salem —— 全部域名清单与技术思路（出处见 `upstream-AntiRevoke.plugin` 原件内的 `#!homepage`）
+- **许可**：Apache License 2.0（上游 LICENSE，原件内可见）
 - **改造**：[Savues/loon-plugin-patches](https://github.com/Savues/loon-plugin-patches)
 
 本仓库的贡献仅限于清单层（开关、规则条目、MITM 段），**未修改上游任何业务逻辑**（本插件无脚本）。

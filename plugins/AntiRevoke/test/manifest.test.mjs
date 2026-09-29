@@ -51,7 +51,9 @@ t('不含 %APPEND%（Loon 合并语义，无需显式追加）', !lpx.includes('
 // ── 3. 上游署名与许可 ────────────────────────────────────────
 console.log('\n【3】署名与许可')
 t('保留原作者 Salem', /#!author=.*Salem/.test(lpx))
-t('标注上游仓库地址', /salem-2007\/apple-cert-block/.test(lpx))
+t('保留原作者 Salem（Apache-2.0 要求保留署名）', /#!author=.*Salem/.test(lpx))
+t('清单不暴露上游仓库地址', !/salem-2007|apple-cert-block/.test(lpx))
+t('无 #!openUrl 指向本仓库以外', !/^#!openUrl=https?:\/\/(?!github\.com\/Savues)/m.test(lpx))
 t('标注 Apache-2.0', /Apache-2\.0/.test(lpx))
 t('标注改造者 Savues', /#!author=.*Savues/.test(lpx))
 t('homepage 指向本仓库', /#!homepage=https:\/\/github\.com\/Savues\/loon-plugin-patches/.test(lpx))

@@ -1,8 +1,7 @@
 #!name=Apple 证书吊销检查屏蔽 v1.1
-#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。规则分 7 组、可用参数页开关关闭，但该 enable= 写法未经真机验证，详见 README。【上游 Salem / apple-cert-block，Apache-2.0】
-#!author=原作者: Salem[https://github.com/salem-2007/apple-cert-block] | 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
+#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。规则分 7 组、可用参数页开关关闭，但该 enable= 写法未经真机验证，详见 README。【上游 Salem，Apache-2.0】
+#!author=原作者: Salem（Apache-2.0）| 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!openUrl=https://github.com/salem-2007/apple-cert-block
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRevoke/icon.jpg
 #!tag=证书,MITM,调试
 #!system=iOS, iPadOS, macOS
