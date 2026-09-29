@@ -154,8 +154,79 @@ mock 返回的是「已订阅」版，差别在密文内容。
 
 ---
 
+## 密钥逆向判定：绕开中转站不可行
+
+2026-09-29 对 App 1.3.13（build 2026010309）做过完整静态逆向，结论如下。
+**这不是「还没找到」，是架构决定的死路。**
+
+### 证据
+
+| 检查项 | 结果 |
+|---|---|
+| `EncryptionTool` 的日志 | 只有 `Invalid base64 string:` / `Decryption failed with status:` / `Encrypted string:` —— **只有解密，无加密路径** |
+| 源文件 | `/Users/johnil/Work/git/Flux_Apple/Packages/Client/Sources/Client/Encryption.swift` |
+| 加密原语 | CommonCrypto（`CCCrypt` / `CCHmac` / `CCRandomGenerateBytes`），**对称** |
+| `_SecKeyVerifySignature` | **0 处** |
+| `_SecKeyCreateEncryptedData` | **0 处** |
+| 二进制内密钥常量 | **搜不到**。24 字符 base64 候选仅 2 个，均为误报 |
+| 拉取密钥的端点 | **无**。API 清单里没有 key / init / config 类路径 |
+| 非对称验签 | **无**。全为对称加密 |
+
+### 佐证
+
+官方 widget 加密服务 `widgetencrypt.inchmade.ai` 的实测输出：
+
+```
+FWENC2
+{"v":2,"mkv":"1","alg":"A256GCM","iv":"<12字节>","kb":"<60字节>"}
+```
+
+连续三次加密同一文件，`iv` 与 `kb` **每次都不同** ⇒ **服务端现场生成密钥**。
+
+⇒ 客户端只持有解密器，密钥在服务器。**本地造凭据在密码学上不可行。**
+
+> 排查中曾把 FFmpeg / OpenSSL 里的 `GCM` / `CTR` / `AES-GCM` 字符串误认为业务加密，
+> 实际来自 SRT 音视频加密。已排除。
+
+### 公开信息检索结果：无
+
+| 检索项 | 结果 |
+|---|---|
+| GitHub 代码 `Decryption failed with status:` | 0 条 |
+| GitHub 代码 `FORWARD.TMDB.PROXY.SECRET` | 0 条 |
+| GitHub 仓库 `vvebo` | 29 个，全为 YY 开源的 VVebo，与 Forward 无关 |
+| GitHub `Forward-Simulator` | 316 条，全部无关 |
+| `Yu9191` 的 GitHub 账号 | 不存在 |
+
+**加密逻辑从未开源。** App 闭源、密钥在服务端、社区只流传改写规则。
+
+### 作者归属更正
+
+- `Forward.js`（Surge 版 `$task.fetch` 脚本）由**波波老师V587** 编写（提交 `1ea64e67`，2026-03-20），
+  其头部 `#!author=baby[https://github.com/Yu9191]` 指向 Yu9191（转述来源）
+- **Yu9191 的 Telegram 帖只提供 3 个文件**（`forward.conf` / `forward.sgmodule` / `forward.lpx`），
+  **不含** `Forward.js`
+
 ## 本仓库的取舍记录
 
-- `Forward-Offline`（v1.0 / v1.1）：试图**本地伪造**凭据，两次均已实测失效，仅留作失败记录
-- `Forward-Proxy`：用脚本显式转发，与作者原版**功能等价但多一个 GitHub 依赖**
-- 真机验证通过（2026-09-29 16:13），但不是必要产物
+### 走过的两条弯路（均已删除，仅记于此）
+
+- **本地伪造凭据**（`Forward-Offline` v1.0 / v1.1）：v1.0 猜长度得 386 字节、v1.1 猜 base64
+  层数得 632 字节，**两次均实测失效**。根因是把「外壳结构对齐」误当成「内容正确」——
+  变化段是有密钥的密文，填随机数必然被判未订阅
+- **脚本显式转发**（`Forward-Proxy`）：功能等价且真机验证通过（2026-09-29 16:13，
+  `mock.forward1.workers.dev` 正常命中、632 字节、密文前缀一致），
+  但**比原版多一个 `script-path` 依赖**（GitHub raw），而原版零脚本
+  ⇒ 收益不抵成本，已删除
+
+### 唯一有价值的产出
+
+- 实测确认 mock **只认 `X-Auth-Key`**，签名/时间戳/Authorization 全都无用
+- 实测确认 App 1.3.13 是硬约束
+- 逆向确认**本地造凭据不可行**，省去后续尝试
+
+### 一条通用教训
+
+采样必须复现真实调用方的全部输入。本轮曾用**不带签名头**的简化请求采样，
+拿到的是 mock 的降级响应（386 字节），据此得出的「只校验结构」结论完全错误，
+后续三轮都在修一个建立在错数据上的判断。

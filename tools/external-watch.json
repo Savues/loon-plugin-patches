@@ -1,0 +1,32 @@
+{
+  "comment": "外部资源基线。pin 一次记下 sha256，之后 --check 只报「变了 / 没变」。改基线必须人看过 diff 再跑 --pin。",
+  "resources": [
+    {
+      "id": "reven-lpx",
+      "kind": "plugin-manifest",
+      "url": "https://reven.jsforbaby.workers.dev/reven/reven.lpx",
+      "sha256": "4ed9911cfaa52b4b58c8b2650ace0500402b2870bcfd958b9d23f19653b078aa",
+      "bytes": 1364,
+      "text": true,
+      "note": "插件清单。改这里=改 MITM 域名/参数/规则，影响面最大"
+    },
+    {
+      "id": "reven-script",
+      "kind": "script-path",
+      "url": "https://reven.jsforbaby.workers.dev/reven/loon-redirect.js",
+      "sha256": "425c476e04fc84a0b01b944d9eb718e22be46b7be55a956745148408f1c217eb",
+      "bytes": 4369,
+      "text": true,
+      "note": "唯一带代码的外部文件。转发目标与剥 header 的白名单都在里面"
+    },
+    {
+      "id": "reven-icon",
+      "kind": "icon",
+      "url": "https://raw.githubusercontent.com/fishdown/Icon/refs/heads/master/app/RevenueCat.png",
+      "sha256": "4a6082bd9cf1373f793c91a345edc794a14d49ea6176f16099881ee8e12ecd86",
+      "bytes": 24053,
+      "text": false,
+      "note": "图标。size 不校验（会被上游改），只看 sha256"
+    }
+  ]
+}

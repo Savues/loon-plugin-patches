@@ -1,0 +1,15 @@
+{
+  "_comment": "Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. Regenerate with: python3 tools/vendor-check.py --manifest",
+  "sources": {
+    "plugins/Reven-Mirror/src/loon-redirect.js": {
+      "upstream": "https://reven.jsforbaby.workers.dev/reven/loon-redirect.js",
+      "bytes": 4369,
+      "sha256": "425c476e04fc84a0b01b944d9eb718e22be46b7be55a956745148408f1c217eb"
+    },
+    "plugins/Reven-Mirror/upstream-Reven.lpx": {
+      "upstream": "https://reven.jsforbaby.workers.dev/reven/reven.lpx",
+      "bytes": 1364,
+      "sha256": "4ed9911cfaa52b4b58c8b2650ace0500402b2870bcfd958b9d23f19653b078aa"
+    }
+  }
+}

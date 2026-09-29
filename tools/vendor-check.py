@@ -40,6 +40,11 @@ SOURCES = {
         'https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js',
     'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js':
         'https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js',
+    # Reven-Mirror：清单原件与脚本原件一并托管，脚本本身逐字节未改
+    'plugins/Reven-Mirror/src/loon-redirect.js':
+        'https://reven.jsforbaby.workers.dev/reven/loon-redirect.js',
+    'plugins/Reven-Mirror/upstream-Reven.lpx':
+        'https://reven.jsforbaby.workers.dev/reven/reven.lpx',
 }
 
 # 自研脚本：无上游，不做漂移比对，但登记 sha256 以便查本地完整性
@@ -55,6 +60,8 @@ MANIFEST_OF = {
        if r.startswith('plugins/YouTube-')},
     'plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js': 'plugins/PinDuoDuo/manifest.json',
     'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js': 'plugins/PinDuoDuo/manifest.json',
+    **{r: 'plugins/Reven-Mirror/manifest.json' for r in SOURCES
+       if r.startswith('plugins/Reven-Mirror/')},
 }
 
 

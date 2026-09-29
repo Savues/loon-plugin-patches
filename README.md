@@ -26,10 +26,11 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 拦截全可关<br>Ad-block · custom bottom bar · all stubs switchable | **v1.5.1** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
-| [Forward](plugins/Forward-Offline/) | 上游规则存档 + 实测结论 · 一行 Rewrite<br>Upstream archive + measured findings | **1.3.13** |
+| [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
+| [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 运行时仍依赖上游<br>Subscription-SDK plugin, script hosted | **v1.0** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
-### 托管了脚本的六个插件
+### 托管了脚本的七个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -54,6 +55,11 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 2.3 KB 单文件，17 个回归用例。它也是本仓库唯一**不涉及 [MITM]** 的插件 ——
 只用 `$httpClient` 主动发请求，因此不用装根证书、与其他插件零冲突。
 
+`Reven-Mirror` —— **只托管，不改一个字**。上游脚本 98 行全是 `$httpClient` 透明转发，
+伪造的订阅回包在作者自己的 Cloudflare Worker 里生成，客户端没有逻辑可改。
+托管只把「设备上跑谁家的代码」变成可 diff 的固定文件；**运行时依赖作者域并未消除**，
+README 里用对照表把这一点写在最前面，不含糊过去。
+
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
@@ -63,6 +69,10 @@ fetched its three scripts from the author's site, so the plugin would break outr
 that site disappeared. `YouTube-Test` and `PinDuoDuo` host the upstream scripts and add
 purpose-built ones for endpoints upstream breaks on. `YouTube-Dedup` takes a further
 route — a script for an endpoint upstream cannot parse (`config`) — covered by 16 tests.
+`Reven-Mirror` hosts a script it does not touch at all: the upstream file is a pure
+pass-through and the response forging lives in the author's own Worker, so there was
+nothing to change — only a URL to relocate. The README says so plainly rather than
+implying the author's domain is now gone.
 `QuarkCheckIn` is a further case still: written entirely from scratch off a real packet
 capture, 2.3 KB, 17 tests, and the only plugin here that needs **no `[MITM]`** at all.
 
@@ -116,6 +126,8 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [AntiRevoke/README.md](plugins/AntiRevoke/README.md) | 证书吊销屏蔽插件：ppq 域名查证 + MITM 为何无必要 · Revocation-block plugin: ppq findings & why MITM is pointless |
+| [Reven-Mirror/UPSTREAM.md](plugins/Reven-Mirror/UPSTREAM.md) | 托管脚本的出处、外部资源审计与实测记录 · Provenance, resource audit & measurements |
+| [tools/README.md](tools/README.md#external-watchpy--外部资源巡检--external-resource-watch) | `external-watch.py`：盯 `script-path` 等现取资源是否被静默改动 · Watches remotely-fetched resources for silent changes |
 | [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages 托管，可选）· Web UI |
 
 ---

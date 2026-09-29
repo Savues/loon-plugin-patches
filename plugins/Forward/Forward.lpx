@@ -1,0 +1,18 @@
+#!name=Forward
+#!desc=Forward 解锁 · 上游原版规则逐字沿用，仅补 author/date · 上游 https://t.me/GithubYu9191/174853
+#!author=Yu9191
+#!date=2026-03-20
+#!icon=https://photo.lily.lat/file/AgACAgQAAyEGAASLgSpZAAIQimm99448nBrdfWSbRDwuLsLkBhqGAAIpDWsbPGvwUeZVZnRBnb6YAQADAgADdwADOgQ.png
+#!tag=Forward
+
+# 规则逐字沿用上游，仅补了 author/date 两个头字段。
+# 逐字节原件见 upstream-Forward.lpx（SHA256 见 upstream-SHA256SUMS）。
+# 出处与实测结论见 UPSTREAM.md。
+#
+# ⚠️ 上游明确：最高只支持 App 1.3.13，其他版本不支持 mitm。
+
+[Rewrite]
+^https:\/\/fluxapi\.vvebo\.vip\/v1\/(purchase\/iap\/subscription) header https://mock.forward1.workers.dev/forward/v1/$1
+
+[MITM]
+hostname = fluxapi.vvebo.vip
