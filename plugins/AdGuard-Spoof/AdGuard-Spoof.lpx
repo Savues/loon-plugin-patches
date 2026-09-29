@@ -1,0 +1,20 @@
+#!name=AdGuard 收据校验改写 v1.0
+#!desc=把 iOS 收据校验接口的回包本地伪造成「已购买终身版」，纯本地生成，不请求任何第三方。装上即生效，可在插件页一键关闭。【上游 Passer_by_yun，去混淆重写】
+#!author=原作者: Passer_by_yun | 去混淆与本地化: Savues[https://github.com/Savues/loon-plugin-patches]
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/deezertidal/private/main/icons/adguard.png
+#!tag=会员,MITM
+#!system=iOS
+#!loon_version=3.2.0
+#!date=2026-09-29 19:45:00
+# ==== PLUGIN_VERSION: 1.0 | 脚本纯本地 · 上游 1 条规则保留为 1 条 · 1 个开关 ====
+
+[Argument]
+# ===== 高危：付费校验响应体改写 =====
+spoof = switch,true,tag=[高危] 伪造收据校验回包,desc=拦截 mobile-api.adguard.org 的 ios_validate_receipt，把回包整个换成「已购买终身版且有效」。关闭后本脚本不执行，但 Loon 仍会解密该域名
+
+[Script]
+http-response ^https?:\/\/mobile-api\.adguard\.org\/api\/.+\/ios_validate_receipt requires-body=1,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AdGuard-Spoof/src/receipt.response.js,tag=AdGuard-收据改写,enable={spoof}
+
+[Mitm]
+hostname = mobile-api.adguard.org

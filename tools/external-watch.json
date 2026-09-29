@@ -27,6 +27,33 @@
       "bytes": 24053,
       "text": false,
       "note": "图标。size 不校验（会被上游改），只看 sha256"
+    },
+    {
+      "id": "adguard-lpx",
+      "kind": "plugin-manifest",
+      "url": "https://yfamilys.com/plugin/adguard.plugin",
+      "sha256": "46e8a86eb08148751bd5dbe11288e7974189a8f1fbb39cc3b5a271dc74b43cb3",
+      "bytes": 458,
+      "text": true,
+      "note": "AdGuard-Spoof 的上游清单。⚠ 这台站会按 UA 返回不同内容，巡检可能报漂移；变了先确认是不是上游改了"
+    },
+    {
+      "id": "adguard-script",
+      "kind": "script-path",
+      "url": "https://raw.githubusercontent.com/yqc007/QuantumultX/master/AdGuardProCrack.js",
+      "sha256": "31024c00f025bf836c3edd732b954bd62ac235f74f202c294d9d8bcc6e935490",
+      "bytes": 1905,
+      "text": true,
+      "note": "AdGuard-Spoof 的上游混淆脚本。本仓库的 src/receipt.response.js 是它的等价重写 —— 它一变，等价性测试第 3 组就会红"
+    },
+    {
+      "id": "adguard-icon",
+      "kind": "icon",
+      "url": "https://raw.githubusercontent.com/deezertidal/private/main/icons/adguard.png",
+      "sha256": "0032fc4f67619597f681f2263b598363f82205a22a888e366e06689351cefdf1",
+      "bytes": 8870,
+      "text": false,
+      "note": "图标。size 不校验，只看 sha256"
     }
   ]
 }

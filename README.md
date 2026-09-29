@@ -28,9 +28,10 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
+| [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 有效性未验证<br>Receipt response forged locally · zero external deps · **unverified** | **v1.0** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
-### 托管了脚本的七个插件
+### 托管了脚本的八个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -60,10 +61,19 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 托管只把「设备上跑谁家的代码」变成可 diff 的固定文件；**运行时依赖作者域并未消除**，
 README 里用对照表把这一点写在最前面，不含糊过去。
 
+`AdGuard-Spoof` —— 第五种情况：**去混淆等价重写**。上游是 1905 B 的单行混淆（字符串表 + 移位自解机），
+本仓库把它还原成 9 行可读脚本，解码表在 `UPSTREAM.md` 里逐项列出。
+「等价」不是自称 —— 测试把**上游混淆原件和重写版喂同一批 10 组输入，逐字节比对 `$done` 产物**，
+等价性由上游说了算。顺带修掉一处真实缺陷：上游那次 `JSON.parse` 的结果从未被读取，
+唯一作用是在非 JSON 响应上抛异常导致请求卡死。
+它是本仓库**运行时外部依赖为零**的插件（脚本不含 `$httpClient`/`fetch`/`eval`，测试逐一断言）——
+与 Reven-Mirror 那种「把依赖从 A 挪到 B」不同，这里是真的没有 B。
+⚠️ 但**有效性未经真机验证**：上游脚本日期 2022-12-26，距今三年多。这件事写在 README 最前面。
+
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-Six plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+Eight plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
 that site disappeared. `YouTube-Test` and `PinDuoDuo` host the upstream scripts and add
@@ -75,6 +85,10 @@ nothing to change — only a URL to relocate. The README says so plainly rather 
 implying the author's domain is now gone.
 `QuarkCheckIn` is a further case still: written entirely from scratch off a real packet
 capture, 2.3 KB, 17 tests, and the only plugin here that needs **no `[MITM]`** at all.
+`AdGuard-Spoof` is the one plugin whose script was **deobfuscated and rewritten**: equivalence
+is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
+`$done` byte for byte. It also has **zero runtime external dependencies** — though its
+real-world effectiveness is explicitly unverified.
 
 ---
 
@@ -91,6 +105,16 @@ capture, 2.3 KB, 17 tests, and the only plugin here that needs **no `[MITM]`** a
 | 7 | 结论须有基线抓包支撑，猜不得 | Conclusions need baseline-capture evidence, not guesswork |
 | 8 | 踩坑记录进迭代文档，不留在插件 README | Keep post-mortems in the iteration log, not plugin READMEs |
 | 9 | **每次改动都必须升版本号，步长 +0.01**（1.7 → 1.71），并同步 `#!name`、插件 README、顶层 README 三处 | **Every change bumps the version by +0.01**, kept in sync across `#!name`, the plugin README and this table |
+
+> 原则是用来防「顺手改出乱子」的，不是用来卡人的。**打破原则时，把破在哪、为什么破，写进对应插件的 `UPSTREAM.md`。**
+> 目前两处已知破例：
+> - `AdGuard-Spoof` 破 #2 —— 脚本不只是改取参，而是整体去混淆重写。**破例的前提是等价性被测试钉死**（上游原件与重写版逐字节比对），不是「我觉得意思一样」。
+> - `AdGuard-Spoof` 同时破 #5 —— 目录名与清单 `#!name` 都直接用了上游产品名。理由：它的全部功能就是针对这一个 App，去掉名字反而看不懂，且与插件实际行为不符。
+
+Principles guard against careless changes; they are not a gate. When one is broken,
+say so in that plugin's `UPSTREAM.md`. `AdGuard-Spoof` is a known exception to #2
+(whole-script deobfuscation, admitted only because byte-level equivalence is test-pinned)
+and to #5 (upstream product name kept in the directory and `#!name`).
 
 ---
 
@@ -128,6 +152,7 @@ Synced upstream every 6 hours, with the Bilibili-removal patch re-applied.
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [AntiRevoke/README.md](plugins/AntiRevoke/README.md) | 证书吊销屏蔽插件：ppq 域名查证 + MITM 为何无必要 · Revocation-block plugin: ppq findings & why MITM is pointless |
 | [Reven-Mirror/UPSTREAM.md](plugins/Reven-Mirror/UPSTREAM.md) | 托管脚本的出处、外部资源审计与实测记录 · Provenance, resource audit & measurements |
+| [AdGuard-Spoof/UPSTREAM.md](plugins/AdGuard-Spoof/UPSTREAM.md) | 混淆脚本的去混淆过程、逐句对照与变异测试 · Deobfuscation walkthrough, statement map & mutation tests |
 | [tools/README.md](tools/README.md#external-watchpy--外部资源巡检--external-resource-watch) | `external-watch.py`：盯 `script-path` 等现取资源是否被静默改动 · Watches remotely-fetched resources for silent changes |
 | [`docs/`](https://github.com/Savues/loon-plugin-patches/tree/main/docs) | GeoFix 网页版设置界面（GitHub Pages 托管，可选）· Web UI |
 

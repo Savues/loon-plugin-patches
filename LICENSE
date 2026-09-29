@@ -69,3 +69,17 @@ Forward-Offline
   注意：.lpx 不支持内联 JavaScript，脚本仍需经 script-path 远程加载，
   依赖点已从原作者的服务器换成本仓库，见其 README「能独立运行吗」一节。
 ────────────────────────────────────────────────────────────────────────
+
+AdGuard-Spoof
+  插件为**绕过付费校验的破解脚本**，特此单独声明，请使用者自行判断：
+  - 上游脚本 AdGuardProCrack.js 版权归原作者 Passer_by_yun 所有，
+    二次分发者 yqc007，分发站 yfamilys.com。**上游未声明任何许可条款**。
+  - 本仓库的 src/receipt.response.js 是该混淆脚本的**去混淆等价重写**，
+    不是上游原件。逐字节原件保留在 plugins/AdGuard-Spoof/upstream-AdGuardProCrack.js。
+  - 本仓库的贡献：去混淆、删除一处无用的 JSON.parse、script-path 迁至本仓库、
+    清单层增加一个开关。**未增加任何上游不具备的绕过能力**——
+    等价性由 test/equivalence.test.mjs 的 57 个用例钉死，
+    其中包含把上游原件与重写版喂同一批输入、逐字节比对 $done 产物。
+  - 出处与逐句对照见 plugins/AdGuard-Spoof/UPSTREAM.md。
+  - ⚠️ 该脚本日期为 2022-12-26，**是否仍能生效未经真机验证**。
+────────────────────────────────────────────────────────────────────────

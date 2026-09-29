@@ -1,0 +1,23 @@
+{
+  "_comment": "AdGuard-Spoof 的上游原件登记。逐字节存档在 plugins/AdGuard-Spoof/upstream-*，用于去混淆等价性的对照与漂移检测。",
+  "sources": {
+    "plugins/AdGuard-Spoof/upstream-AdGuardProCrack.js": {
+      "upstream": "https://raw.githubusercontent.com/yqc007/QuantumultX/master/AdGuardProCrack.js",
+      "bytes": 1905,
+      "sha256": "31024c00f025bf836c3edd732b954bd62ac235f74f202c294d9d8bcc6e935490",
+      "note": "上游混淆脚本原件。本仓库的 src/receipt.response.js 是它的等价去混淆重写，不是它本身 —— sha256 不同是预期结果"
+    },
+    "plugins/AdGuard-Spoof/upstream-adguard.plugin": {
+      "upstream": "https://yfamilys.com/plugin/adguard.plugin",
+      "bytes": 458,
+      "sha256": "46e8a86eb08148751bd5dbe11288e7974189a8f1fbb39cc3b5a271dc74b43cb3",
+      "note": "上游清单原件。本仓库的 AdGuard-Spoof.lpx 相对它改了 script-path 并加了开关"
+    }
+  },
+  "icon": {
+    "url": "https://raw.githubusercontent.com/deezertidal/private/main/icons/adguard.png",
+    "bytes": 8870,
+    "sha256": "0032fc4f67619597f681f2263b598363f82205a22a888e366e06689351cefdf1",
+    "note": "清单 #!icon 仍指上游那一张（每次现取）。size 会随上游改，只校验 sha256"
+  }
+}
