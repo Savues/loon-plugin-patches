@@ -67,5 +67,10 @@ for (const d of dropped) {
 }
 ok(dropped.length === 2, '恰好丢弃 2 条')
 
+// ⑥ Type 的默认值必须是 Translate —— 对照抓包证明 Official+AutoCC 走 tlang 会被判 429
+const typeLine = lab.match(/^Type\s*=\s*select,\s*"([^"]+)"/m)
+ok(typeLine?.[1] === 'Translate',
+   `Type 默认值 = Translate（实测只有 subtype=Translate 才返回 200）实际: ${typeLine?.[1]}`)
+
 console.log(fail ? `\n${fail} 例失败` : '\n全部通过')
 process.exit(fail ? 1 : 0)

@@ -17,7 +17,7 @@ blockShorts=switch, false, true, tag=去广告-隐藏Shorts按钮, desc=用于�
 blockImmersive=switch, false, true, tag=去广告-隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
 debug=switch, false, true, tag=去广告-调试模式, desc=排查问题时开启，正常使用建议关闭
 # ===== 字幕翻译（原 YouTube双语翻译）=====
-Type=select, "Official", "Translate", tag=字幕-类型, desc=请选择要使用的字幕，双语字幕将使用您选择类型呈现
+Type=select, "Translate", "Official", tag=字幕-类型, desc=请选择要使用的字幕，双语字幕将使用您选择类型呈现。默认 Translate：实测该模式请求 subtype=Translate 可正常返回字幕，而 Official+AutoCC 走 tlang 参数会被 Google 判为异常请求返回 429
 AutoCC=switch, true, false, tag=字幕-自动显示翻译字幕, desc=开启后总是自动开启显示字幕
 ShowOnly=switch, true, false, tag=字幕-仅显示自动翻译字幕, desc=开启后仅显示自动翻译后的字幕，不显原文字幕
 Position=select, "Forward", "Reverse", tag=字幕-原文字幕位置, desc=原文字幕的显示位置
@@ -92,3 +92,23 @@ hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.yout
 #   ⇒ 结论：429 是 Google 对该出口 IP 的限流，与合并无关。
 #   判别办法：把「字幕-自动显示翻译字幕」(AutoCC) 关掉再试。关掉后脚本不再追加
 #   tlang，App 会直接请求原始字幕轨；若这样能出字幕，即坐实是 tlang 请求被限流。
+#
+# 【v1.2-lab 修正 · 有对照抓包后改判】
+#   上面「出口 IP 限流」的结论**是错的**。用户补了一份对照抓包（Test v1.1 + 字幕插件
+#   分开装），两次实测只差 10 分钟，结果完全相反：
+#
+#     分开装（正常） 200  46 KB  lang=en&name=CC1&subtype=Translate     ← 脚本删了 tlang
+#     合并版（失败） 429  1.4KB  lang=en&name=CC1&tlang=zh-Hans         ← 脚本加了 tlang
+#
+#   同一批脚本、同一份 persistentStore，唯一的差别是 **Type 参数的值**。
+#   脚本里的改写链（YouTube_Subtitles_request.js）：
+#     AutoCC 开 → 追加 tlang
+#     再看 Type：Official/Composite → 保留 tlang（可再补 subtype=Official）
+#                Translate         → 删掉 tlang，改设 subtype=Translate
+#   合并版是新插件，Type 吃默认值，而 select 的默认值是第一项 = "Official"
+#   ⇒ 走了 tlang 那条被 Google 判为异常请求的路。
+#   旧的字幕插件里用户把 Type 选成了 Translate（argument 覆盖默认值），所以正常。
+#
+#   Settings 优先级：{...默认值, ...$argument, ...persistentStore}，后者覆盖前者。
+#   用户的 persistentStore 里没有 Type，所以由 argument 说了算 —— 换插件就换默认值。
+#   修法：把 select 的第一项改成 "Translate"，让默认值与实测可用模式一致。
