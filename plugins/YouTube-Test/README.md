@@ -27,7 +27,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTub
 | 功能 | 状态 | Feature | Status |
 |---|---|---|---|
 | 去广告（首页/搜索/播放页/Shorts） | ✅ | Ad removal | ✅ |
-| 底栏按钮清理（Shorts/上传/选段） | ✅ 3 开关 | Bottom bar cleanup | ✅ 3 switches |
+| 底栏按钮屏蔽（Shorts/上传/选段） | ✅ 默认全开 | Bottom bar cleanup | ✅ 3 switches |
 | 播放页广告拦截 | ✅ | Player page ads | ✅ |
 | `ads.youtube.com` 拦截 | ✅ | Domain block | ✅ |
 | 字幕双语翻译 | ✅ 默认开启 | Bilingual subtitles | ✅ on by default |

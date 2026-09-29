@@ -44,7 +44,42 @@ ok(musicResp.length === 2, `Music 歌词响应规则 2 条（实测 ${musicResp.
 for (const l of musicResp) ok(l.includes('{Position}'), 'Music 歌词规则带 {Position}')
 
 // 5) Position 参数本身必须已声明
-ok(/^Position\s*=\s*select,\s*"Forward",\s*"Reverse"/m.test(lab), 'Position 已声明为 select(Forward,Reverse)')
+ok(/^Position\s*=\s*select,\s*"Reverse"/m.test(lab), 'Position 默认 Reverse（译文在上）')
+
+// 6) 🔴 每个参数的默认值必须与脚本内置默认一致 —— 上一版只查「有声明」，
+//    结果 ShowOnly 默认 true 压过脚本的 !1，原文被整个丢掉（只剩中文）。
+//    这里的做法：直接把脚本源码里的默认值抠出来跟清单比对。
+const js = readFileSync(join(here, '..', 'src', 'YouTube_Subtitles_Translate_response.js'), 'utf8')
+const adJs = readFileSync(join(here, '..', 'src', 'youtube.response.js'), 'utf8')
+
+// 清单里 switch 的默认值（第 2 个字段）
+const defOf = name => {
+  const m = lab.match(new RegExp('^' + name + '\\s*=\\s*switch\\s*,\\s*(\\w+)', 'm'))
+  return m && m[1]
+}
+// 脚本里 !0=true / !1=false
+const scriptDef = (src, re) => (src.match(re) || [, null])[1]
+
+// ShowOnly：脚本默认 !1(false) ⇒ 清单也必须默认 false，否则原文被 Jl() 丢掉
+const adDef = scriptDef(adJs, /blockUpload:(!0|!1)/)
+ok(defOf('ShowOnly') === 'false',
+   `ShowOnly 默认 false = 双语（脚本内置 ${adDef && 'ShowOnly:!1'}）实际 ${defOf('ShowOnly')}`)
+ok(defOf('AutoCC') === 'true', `AutoCC 默认 true（脚本内置 AutoCC:!0）实际 ${defOf('AutoCC')}`)
+
+// 底栏三个按钮默认屏蔽：与脚本内置 !0 一致
+ok(scriptDef(adJs, /blockUpload:(!0|!1)/) === '!0', '脚本内置 blockUpload=!0（屏蔽）')
+ok(defOf('blockUpload') === 'true', `blockUpload 默认屏蔽 实际 ${defOf('blockUpload')}`)
+ok(defOf('blockShorts') === 'true',
+   `blockShorts 默认屏蔽（脚本内置 !1=false，靠清单覆盖成 true）实际 ${defOf('blockShorts')}`)
+ok(defOf('blockImmersive') === 'true', `blockImmersive 默认屏蔽 实际 ${defOf('blockImmersive')}`)
+ok(defOf('debug') === 'false', `debug 默认关闭 实际 ${defOf('debug')}`)
+ok(defOf('youtube_enable') === 'true', `youtube_enable 默认开启 实际 ${defOf('youtube_enable')}`)
+
+// Type / Position：select 的默认值 = 第一项
+ok(/^Type\s*=\s*select,\s*"Translate"/m.test(lab), 'Type 默认 Translate')
+ok(/^Position\s*=\s*select,\s*"Reverse"/m.test(lab), 'Position 默认 Reverse（译文在上）')
+// 脚本对 Type=Translate 的内置 Position 是 Forward，我们要的是 Reverse
+ok(/x=\{Vendor:"Google",ShowOnly:!1,Position:"Forward"/.test(js), '脚本内置 Position=Forward，清单已反转成 Reverse')
 
 console.log(fail ? `\n${fail} 例失败` : '\n全部通过')
 process.exit(fail ? 1 : 0)

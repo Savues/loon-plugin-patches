@@ -1,5 +1,5 @@
-#!name=YouTube去广告+双语字幕 v1.1
-#!desc=去广告、底栏按钮清理、字幕双语翻译、YouTube Music 歌词翻译，一次到位。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、去广告响应体脚本、字幕双通道脚本。去广告规则排在最前：Loon 的 [Script] 先匹配先执行，与独立字幕插件分开装时必须手动摆顺序，合订后顺序已写死。5 个脚本均由本仓库托管（上游逐字节副本），不再依赖 kelee.one。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=YouTube去广告+双语字幕 v1.2
+#!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽，装完即用。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、去广告响应体脚本、字幕双通道脚本。去广告规则排在最前：Loon 的 [Script] 先匹配先执行，与独立字幕插件分开装时必须手动摆顺序，合订后顺序已写死。5 个脚本均由本仓库托管（上游逐字节副本），不再依赖 kelee.one。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne / DualSubs | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,字幕翻译
 #!system=iOS, iPadOS
@@ -7,20 +7,20 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 12:40:00
+#!date=2026-09-29 13:00:00
 
 [Argument]
-# ===== 去广告 =====
-youtube_enable = switch,true,false,tag=去广告-脚本总开关,desc=关闭后不再改写 youtubei 响应体
-blockUpload=switch, false, true, tag=去广告-隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
-blockShorts=switch, false, true, tag=去广告-隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
-blockImmersive=switch, false, true, tag=去广告-隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
-debug=switch, false, true, tag=去广告-调试模式, desc=排查问题时开启，正常使用建议关闭
-# ===== 字幕翻译（原 YouTube双语翻译）=====
-Type=select, "Translate", "Official", tag=字幕-类型, desc=请选择要使用的字幕，双语字幕将使用您选择类型呈现。默认 Translate：实测该模式请求 subtype=Translate 可正常返回字幕，而 Official+AutoCC 走 tlang 参数会被 Google 判为异常请求返回 429
-AutoCC=switch, true, false, tag=字幕-自动显示翻译字幕, desc=开启后总是自动开启显示字幕
-ShowOnly=switch, true, false, tag=字幕-仅显示自动翻译字幕, desc=开启后仅显示自动翻译后的字幕，不显原文字幕
-Position=select, "Forward", "Reverse", tag=字幕-原文字幕位置, desc=原文字幕的显示位置
+# ===== 去广告（默认全开）=====
+youtube_enable = switch,true,tag=去广告-脚本总开关,desc=关闭后不再改写 youtubei 响应体（Rewrite 的 initplayback 拦截不受此开关控制）
+blockUpload = switch,true,tag=去广告-隐藏上传按钮,desc=用于隐藏YouTube底栏的上传按钮
+blockShorts = switch,true,tag=去广告-隐藏Shorts按钮,desc=用于隐藏YouTube底栏的Shorts按钮
+blockImmersive = switch,true,tag=去广告-隐藏选段按钮,desc=用于隐藏YouTube Music底栏的选段按钮
+debug = switch,false,tag=去广告-调试模式,desc=排查问题时开启，正常使用建议关闭
+# ===== 字幕翻译（默认双语 · 译文在上）=====
+Type = select, "Translate", "Official", tag=字幕-类型, desc=选 Translate 走翻译器（实测只有它能正常返回字幕）；选 Official 走合成器
+AutoCC = switch,true,tag=字幕-自动显示翻译字幕,desc=开启后总是自动开启显示字幕
+ShowOnly = switch,false,tag=字幕-仅显示译文,desc=开启后只显示译文、不显示原文。默认关闭=双语字幕
+Position = select, "Reverse", "Forward", tag=字幕-译文位置,desc=译文在上还是原文在上。默认 Reverse=译文在上
 
 [Rule]
 DOMAIN, ads.youtube.com, REJECT
@@ -60,7 +60,20 @@ http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)s
 [Mitm]
 hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.youtube.com, tv.youtube.com, music.youtube.com
 
-# ==== PLUGIN_VERSION: 1.1 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.2 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.2】参数默认值调成「装完即用」，并修好 v1.1 引入的「只剩中文」
+#   v1.1 补上 argument= 之后参数真的传进去了，但传进去的**值**是错的：
+#   ShowOnly 默认 true ⇒ Jl() 第一步 `if(u===true) return n` 直接返回译文、
+#   把原文整个丢掉 ⇒ 只剩中文。（v1.0 不传参数时反而正常：一个 bug 遮住了另一个。）
+#
+#   默认值现状（与脚本内置默认值逐条对齐，由 argument-wiring.test.mjs 钉死）：
+#     字幕  Type=Translate  AutoCC=开  ShowOnly=关  Position=Reverse(译文在上)
+#     底栏  上传=屏蔽  Shorts=屏蔽  选段=屏蔽   调试=关  总开关=开
+#   ⚠️ 另把 switch 从三值写法 `switch,X,Y` 改成两值 `switch,<默认值>` ——
+#      真机实测三值写法的 `switch,true,false` 与 `switch,false,true` 都解析成 true，
+#      没法用来关掉某个开关。两值写法与 Bilibili-UI 一致。
+#
 #
 # 【v1.1 修复】补上 4 条响应规则的 argument= ——「原文字幕位置」开关失效
 #   上游 YouTube双语翻译 的 4 条 **http-response** 规则写的是空的 `argument=`，
