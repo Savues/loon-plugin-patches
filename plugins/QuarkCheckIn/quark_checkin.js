@@ -23,12 +23,12 @@ $httpClient.post({
     node: "DIRECT",
     insecure: false,
     "auto-cookie": false          // 凭证只在 query 里，禁止自动带 Cookie
-}, function (err, resp, data) {
+}, function (err, _resp, data) {
     // 服务端偶尔回 HTML 错误页，JSON.parse 会抛 —— 包住，别让脚本挂到超时
     let j;
     try { j = err ? {} : JSON.parse(data || "{}") || {}; } catch (e) { j = {}; }
-    if (j.code === 0 && !(j.data && j.data.sign_daily_reward)) j.code = 44210;
     const n = j.data && j.data.sign_daily_reward;
+    if (j.code === 0 && !n) j.code = 44210;   // code 0 但没奖励 = 服务端假成功
     // $notification.post 需要 title/subtitle/content 三个参数，少传 content 会显示 null
     $notification.post(
         j.code === 0     ? "✅ 签到成功" :
@@ -37,6 +37,7 @@ $httpClient.post({
                            "⚠️ 异常",
         "夸克签到",
         j.code === 0     ? "获得 " + (n / 1048576) + "MB" :
+        j.code === 44210 ? "今天已经签过了" :
         j.code === 31001 ? "sign 过期了\n更新脚本顶部 KPS/SIGN/VCODE" :
                            String(j.message || err || data || "无返回信息").slice(0, 200)
     );

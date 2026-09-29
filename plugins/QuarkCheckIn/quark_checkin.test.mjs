@@ -121,10 +121,15 @@ check("vcode 用内置常量，不用 Date.now() 重算（sign 锚定签发时�
   assert.ok(!/\/capacity\/growth\/info/.test(url), "不该打 info 接口");
 });
 
-check("凭证全部 URL 编码（kps/sign 含 + / =）", () => {
-  const url = run({ body: "{}" }).request.url;
-  assert.ok(!/[?&]sign=[^&]*[+=/](?![^&]*%3D)/.test(url.split("vcode=")[0] + "vcode="), "有未编码字符");
-  assert.ok(url.indexOf("%3D") > 0, "结尾的 = 未编码");
+check("凭证全部 URL 编码（kps/sign 含 + / =，不编码会被 query 解析截断）", () => {
+  const seg = (name) => {
+    const m = new RegExp("[?&]" + name + "=([^&]*)").exec(run({ body: "{}" }).request.url);
+    return m && m[1];
+  };
+  for (const name of ["kps", "sign"]) {
+    assert.ok(seg(name), "缺 " + name);
+    assert.ok(!/[+/=]/.test(seg(name)), name + " 段含未编码的 + / =");
+  }
 });
 
 check("node 固定 DIRECT，不吃主配置策略", () => {
