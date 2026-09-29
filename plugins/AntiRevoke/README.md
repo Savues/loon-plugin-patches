@@ -7,7 +7,7 @@
 |---|---|---|
 | 上游 | Salem，[apple-cert-block](https://github.com/salem-2007/apple-cert-block) | Salem, [apple-cert-block](https://github.com/salem-2007/apple-cert-block) |
 | 许可 | Apache-2.0（上游 LICENSE 原文保留在本目录说明中） | Apache-2.0 |
-| 改动 | 清单层：5 个分组开关、移除 2 个非吊销域名、移除无必要的 `[MITM]` | Manifest only: 5 group switches, 2 non-revocation domains dropped, pointless `[MITM]` removed |
+| 改动 | 清单层：6 个分组开关（**未验证**，见下）、移除 2 个非吊销域名、移除无必要的 `[MITM]` | Manifest only: 6 group switches (**unverified**, see below), 2 non-revocation domains dropped, pointless `[MITM]` removed |
 | 脚本 | 无（本插件不含任何 JavaScript） | None (no JavaScript at all) |
 | 回归测试 | `test/manifest.test.mjs` | `test/manifest.test.mjs` |
 
@@ -47,6 +47,47 @@ TLS 握手时，除了验证证书链是否可信，系统还会**主动查询�
 
 ---
 
+## ⚠️ 开关是否真的生效 · Does `enable=` actually work here?
+
+**这一节请务必读完再决定是否依赖开关。**
+
+本插件所有规则都写在 `[Rule]` 段，形如：
+
+```ini
+DOMAIN, ocsp.apple.com, REJECT, enable={apple_ocsp}
+```
+
+但 `enable=` 在 Loon 里的支持范围**没有官方文档背书**：
+
+| 段 | 官方文档记载 | 状态 |
+|---|---|---|
+| `[Script]` | `enable={参数}` 有明确示例 | ✅ 确认支持 |
+| `[Rewrite]` | 官方给的是 `${参数名}` 引用，**不是** `enable=` | ❌ **实测失效** |
+| `[Rule]` | **文档中完全没有**提及参数机制 | ⚠️ **未经验证** |
+
+> 本仓库另一个插件 [PinDuoDuo](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/PinDuoDuo)
+> 曾给 20 条 `[Rewrite]` 规则批量挂上 `enable=`。真机实测发现**全部静默失效** ——
+> 开关关不掉，规则照常拦截。该插件已于 v1.5 改用 `[Script]` + `argument=` 绕开。
+
+**`[Rewrite]` 与 `[Rule]` 是不同段落，但「文档未记载 + 同类静默失效」的先例已经存在。**
+因此本版的 6 个开关属于**未在真机验证**的用法。
+
+### 请这样验证（三步，1 分钟）
+
+1. 装上插件后打开 Loon 参数页，确认 6 个开关**确实渲染出来了**
+   （如果连开关都不显示，说明 `[Argument]` 段没被识别）
+2. 把 `apple_ocsp` 关掉
+3. 看 Loon 日志：访问任意 Apple 服务时，**是否还有 `ocsp.apple.com` 被记录为拦截**
+
+- **第 3 步还能看到拦截** → 开关无效（同 PinDuoDuo 的情况）。
+  此时的退路：直接在插件参数页关闭整个插件，或删掉 `AntiRevoke.lpx` 里的对应规则行。
+- **看不到拦截** → 开关有效，正常使用。
+
+> 本插件**不含任何脚本**，所以没有 `[Script]` 那条已被验证的退路。
+> 这是「纯规则类插件无法可靠做开关」的结构性限制，不是本版的疏忽。
+
+---
+
 ## 订阅 · Subscribe
 
 ```
@@ -70,7 +111,9 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 
 ## 开关 · Switches
 
-5 个开关，全部默认开启，**可在 Loon 插件参数页直接改**（不用改文件）：
+> ⚠️ 下列 6 个开关的 `enable=` 写法**未在真机验证**，请先看上一节。
+
+6 个开关，默认全部开启，**设计上**可在 Loon 插件参数页直接改（不用改文件）：
 
 
 | 开关 | 覆盖域名 | 作用 |

@@ -163,6 +163,25 @@ for (const [sw, list] of Object.entries(expect)) {
     `全开 ${doms.length} / 该组 ${groupOf(sw).length} 条`)
 }
 
+// ── 9b. 开关有效性必须被如实标注 ────────────────────────────
+// 背景：官方文档只在 [Script] 段记载 enable=；[Rewrite] 段给的是 ${参数名}；
+// [Rule] 段完全未提及参数机制。而本仓库 PinDuoDuo v1.3~v1.4 已实测证明
+// [Rewrite] 上的 enable= 会「静默失效」（开关关不掉、规则照常拦截），
+// v1.5 已改用 [Script] + argument= 绕开。
+// [Rule] 属于同类未验证用法。本插件无脚本，没有 [Script] 那条已验证的退路，
+// 因此必须确保 README 与 #!desc 都如实声明「未验证」，不得让读者误以为已生效。
+console.log('\n【9b】开关有效性如实标注')
+t('README 设有「开关是否真的生效」专节', /Does `enable=` actually work/.test(readme))
+t('README 列出 [Script]/[Rewrite]/[Rule] 三段的支持差异',
+  /\[Script\]/.test(readme) && /\[Rewrite\]/.test(readme) && /\[Rule\]/.test(readme))
+t('README 点明 [Rewrite] 上 enable= 已实测失效', /实测失效|静默失效/.test(readme))
+t('README 点明 [Rule] 未经验证', /未经验证|未在真机验证/.test(readme))
+t('README 引用 PinDuoDuo 的先例', /PinDuoDuo/.test(readme))
+t('README 给出真机验证步骤', /真机|日志/.test(readme))
+t('README 给出开关失效时的退路', /退路/.test(readme))
+t('#!desc 不再宣称开关必然可用', /未经真机验证|未验证/.test(
+  (lpx.match(/^#!desc=(.+)$/m) || [])[1] || ''))
+
 // ── 10. 版本号一致性 ────────────────────────────────────────
 console.log('\n【10】版本号')
 const nameM = lpx.match(/^#!name=(.+)$/m)
