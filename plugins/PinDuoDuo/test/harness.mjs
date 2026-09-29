@@ -1,5 +1,5 @@
 // 共享测试框架：断言计数与汇总。各测试文件只 import 这三个，不再各抄一份。
-export const S = { pass: 0, fail: 0 }
+const S = { pass: 0, fail: 0 }
 
 export const t = (name, cond, detail = '') => {
   if (cond) { S.pass++; console.log(`  ✅ ${name}`) }

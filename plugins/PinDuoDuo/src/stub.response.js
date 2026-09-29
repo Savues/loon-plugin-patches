@@ -75,9 +75,7 @@ try {
   if (!body) { $done({}); return; }
   let j;
   try { j = JSON.parse(body); } catch (e) { $done({}); return; }
-  for (const k of (arg || [])) {
-    if (Object.prototype.hasOwnProperty.call(j, k)) delete j[k];
-  }
+  for (const k of arg) delete j[k];
   $done({ body: JSON.stringify(j) });
 } catch (e) {
   // 兜底：任何异常都放行，绝不因脚本出错阻断请求

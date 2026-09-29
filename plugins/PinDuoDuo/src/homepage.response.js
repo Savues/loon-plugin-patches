@@ -43,16 +43,6 @@ function keepTabs(tabs, sigs) {
     && sigs.some((s) => t.link.includes(s)));
 }
 
-function del(obj, path) {
-  const keys = path.split('.');
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    if (!cur || typeof cur !== 'object') return;
-    cur = cur[keys[i]];
-  }
-  if (cur && typeof cur === 'object') delete cur[keys[keys.length - 1]];
-}
-
 try {
   const body = $response.body;
   if (!body) { $done({}); return; }
@@ -64,9 +54,10 @@ try {
   if (!r || typeof r !== 'object') { $done({ body: JSON.stringify(j) }); return; }
 
   // 1) 去广告字段（仅在总开关开着时才删）
+  //    r 已在上方确认是非 null 对象，dy_module 是二级路径，需先确认它存在
   if (on(A.api_stub)) {
-    del(r, 'icon_set');
-    del(r, 'dy_module.irregular_banner_dy');
+    delete r.icon_set;
+    if (r.dy_module && typeof r.dy_module === 'object') delete r.dy_module.irregular_banner_dy;
   }
 
   // 1b) 搜索框轮播词：归 search_stub 管，不归 api_stub
@@ -74,7 +65,7 @@ try {
   //     与 /search_hotquery 是同一批词的两个来源（首页下发 + 轮询刷新），
   //     两者必须由同一个开关控制，否则关掉 api_stub 时词会从这里漏回来。
   if (on(A.search_stub)) {
-    del(r, 'search_bar_hot_query');
+    delete r.search_bar_hot_query;
   }
 
   // 2) 底栏自定义：开关关掉则两个字段都不碰，保持服务端下发
