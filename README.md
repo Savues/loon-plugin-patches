@@ -28,7 +28,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
-| [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 有效性未验证<br>Receipt response forged locally · zero external deps · **unverified** | **v1.0** |
+| [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的八个插件
@@ -68,7 +68,10 @@ README 里用对照表把这一点写在最前面，不含糊过去。
 唯一作用是在非 JSON 响应上抛异常导致请求卡死。
 它是本仓库**运行时外部依赖为零**的插件（脚本不含 `$httpClient`/`fetch`/`eval`，测试逐一断言）——
 与 Reven-Mirror 那种「把依赖从 A 挪到 B」不同，这里是真的没有 B。
-⚠️ 但**有效性未经真机验证**：上游脚本日期 2022-12-26，距今三年多。这件事写在 README 最前面。
+⚠️ `status.html` 那个端点**没拦**，仍在报 `status: FREE`。收据端点的注入已由真机抓包证实生效，
+但 App 最终采信哪个端点未证实 —— 手上只有一份 `status: FREE` 样本，
+**靠猜字段伪造付费回包比不伪造更危险**（可能直接让 App 崩），所以不拦。
+另：实测只需装上跑一次即可，之后可关开关，插件不卸载就一直是会员。
 
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。

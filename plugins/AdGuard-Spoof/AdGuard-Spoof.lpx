@@ -1,13 +1,13 @@
-#!name=AdGuard 收据校验改写 v1.0
-#!desc=把 iOS 收据校验接口的回包本地伪造成「已购买终身版」，纯本地生成，不请求任何第三方。装上即生效，可在插件页一键关闭。【上游 Passer_by_yun，去混淆重写】
+#!name=AdGuard 收据校验改写 v1.01
+#!desc=把 iOS/iPadOS 收据校验接口的回包本地伪造成「已购买终身版」，纯本地生成，不请求任何第三方。装上即生效，可在插件页一键关闭。【上游 Passer_by_yun，去混淆重写】
 #!author=原作者: Passer_by_yun | 去混淆与本地化: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/deezertidal/private/main/icons/adguard.png
 #!tag=会员,MITM
-#!system=iOS
+#!system=iOS, iPadOS
 #!loon_version=3.2.0
-#!date=2026-09-29 19:45:00
-# ==== PLUGIN_VERSION: 1.0 | 脚本纯本地 · 上游 1 条规则保留为 1 条 · 1 个开关 ====
+#!date=2026-09-29 20:10:00
+# ==== PLUGIN_VERSION: 1.01 | v1.01 修：#!system 漏了 iPadOS，装上被 Loon 判为不支持的操作系统 ====
 
 [Argument]
 # ===== 高危：付费校验响应体改写 =====

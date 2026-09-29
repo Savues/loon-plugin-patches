@@ -143,18 +143,64 @@ var _0x3ee633 = [
 | 去混淆后产物等价 | 7 组合法输入逐字节比对 | 7/7 完全相同 | 实测 |
 | 去混淆后不再抛异常 | 同上 3 组非 JSON 输入 | 3/3 正常产出回包 | 实测 |
 | 脚本无外发 | 全文搜索 6 类 API | 0 命中 | 实测 |
-| **是否还能真的解锁** | — | **未验证** —— 无真机 AdGuard、无抓包 | — |
+| **端点是否还活着** | 用户真机抓包（iPad · iPadOS 18.7.3 · AdGuard 4.5.23） | **活着** —— `/api/2.0/ios_validate_receipt/ADG_EXT` 仍返回 200 | 实测 |
+| **注入是否生效** | 同上，比对两段回包 | `{"products":[]}` → 伪造回包，`modifiedResponse: false→true` | 实测 |
+| **上游正则是否还抓得到** | 把抓包 URL 喂清单里的正则 | 命中。上游 2022 年的正则**一字未改** | 实测 |
+| **是否只需用一次** | 用户实测 | 是。首次校验后客户端本地缓存，之后可关开关 | 实测 |
+| **App 最终信了哪个端点** | 同上 | **未知** —— 另一端点 `status.html` 仍在报 `status: FREE`，未被本插件拦截 | 未决 |
+| **伪造体是否被 App 接受** | — | 用户确认解锁成功（会员态保持） | 实测 |
+
+### 抓包里另有一个未覆盖的端点
+
+```
+POST https://mobile-api.adguard.org/api/1.0/status.html
+```
+
+它在插件开/关两段里回包**逐字节相同**：
+
+```json
+{"status":"FREE","lifetime":false,"licenseKey":null,"licenseKeyStatus":null,
+ "licenseType":null,"licenseDevicesCount":0,"licenseMaxDevicesCount":0,
+ "countryCode":"US","expirationDate":4885063308758,"subscription":null}
+```
+
+请求体（两段仅参数顺序不同，`key` 相同，服务端未因插件而改变行为）：
+
+```
+device_name=iPad&key=KPQ8695OH49KFCWC9EMX95OH49KFF50S
+&app_name=adguard_ios&app_id=C4327202-DDF0-4385-8A92-E63B61E61BE2&app_version=4.5.23
+```
+
+**本版不拦它。** 手上只有 `status: FREE` 一份样本，付费用户的真实回包形状未知——
+靠猜字段伪造回包比不伪造更危险（可能直接让 App 崩）。要拦需先补一份付费账号抓包。
 
 ---
 
 ## 风险 · Risk
 
-1. **🔴 有效性未验证**：上游脚本日期 2022-12-26、目标版本 4.4.5，距今三年多。
-   端点路径、响应结构、客户端判定逻辑都可能已变。**本仓库只能保证与上游等价，不能保证上游还有效。**
+1. **`status.html` 未覆盖**：收据端点已伪造，但 `status.html` 仍在报 `status: FREE`。
+   若 App 用它交叉验证，解锁不完整。当前**注入成功已证实，App 采信哪个端点未证实**。
 2. **MITM 不可关**：Loon 不支持 `[Mitm]` 段的 `enable=`，关开关后 `mobile-api.adguard.org` 仍被解密。
 3. **无完整性锁定（上游版）**：`script-path` 拉的是纯文本，别人仓库里放什么装什么。
    本仓库的镜像版把它变成可 diff 的固定文件，`tools/external-watch.py --check --diff` 能报警。
 4. **许可未声明**：上游未声明许可条款。**使用前请自行确认。**
+
+---
+
+## v1.01 修的 bug ·真机
+
+**症状**：iPad 上导入提示「插件不可用 / 不支持的操作系统」，插件不加载。
+
+**根因**：`#!system=iOS` 漏了 `iPadOS`。Loon 拿该字段与设备系统比对，缺 iPadOS 即判不兼容。
+本仓库其余 9 个插件都写了 `iPadOS`，**只有本插件漏了** —— 典型的「凭印象抄头部」。
+
+修法一行。测试加了跨插件对照断言：
+
+```
+仓库内所有声明 iOS 的插件都同时声明了 iPadOS（对照 10 个）
+```
+
+**孤立即异常** —— 这条断言让本插件不再是仓库里唯一的例外。已验证退回 `#!system=iOS` 会红。
 
 ---
 

@@ -186,5 +186,28 @@ console.log("\n【8】开关接线");
   ok(!/enable=/.test(mitm), "[Mitm] 段没有也不该有 enable=（Loon 不支持，关开关不会关解密）");
 }
 
+console.log("\n【9】🔴 #!system 必须含 iPadOS —— v1.01 修的真机 bug");
+{
+  // 症状：在 iPad 上导入，Loon 提示「插件不可用 / 不支持的操作系统」。
+  // 根因：v1.0 写了 `#!system=iOS`，而本仓库其余 9 个插件都写了 iPadOS。
+  // Loon 会拿这个字段跟设备系统比对，缺 iPadOS 就直接判为不兼容 —— 插件根本不会加载。
+  const lpx = read(path.join(dir, "AdGuard-Spoof.lpx"));
+  const m = lpx.match(/^#!system=(.*)$/m);
+  ok(!!m, "有 #!system 行");
+  const systems = (m?.[1] || "").split(",").map(s => s.trim()).filter(Boolean);
+  ok(systems.includes("iOS"), "含 iOS");
+  ok(systems.includes("iPadOS"), "含 iPadOS（v1.0 就是漏了这个）", JSON.stringify(systems));
+  // 整个仓库只有本插件曾漏过 —— 拿同仓库的插件做对照，防止再次孤立
+  const repo = path.join(dir, "..", "..", "plugins");
+  const others = fs.readdirSync(repo)
+    .flatMap(d => fs.readdirSync(path.join(repo, d)).filter(f => f.endsWith(".lpx")).map(f => path.join(repo, d, f)))
+    .map(f => ({ f, sys: (read(f).match(/^#!system=(.*)$/m)?.[1] || "").split(",").map(s => s.trim()) }))
+    .filter(x => x.sys.length && x.sys.includes("iOS"));
+  const alsoPad = others.filter(x => x.sys.includes("iPadOS"));
+  ok(others.length === alsoPad.length,
+     `仓库内所有声明 iOS 的插件都同时声明了 iPadOS（对照 ${others.length} 个）`,
+     JSON.stringify(others.filter(x => !x.sys.includes("iPadOS")).map(x => x.f)));
+}
+
 console.log(`\n通过 ${pass} / 失败 ${fail}`);
 process.exit(fail ? 1 : 0);
