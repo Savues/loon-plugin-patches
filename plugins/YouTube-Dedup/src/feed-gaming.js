@@ -94,6 +94,14 @@
   function hasPanel(start, end) {
     return opt.blockGaming && hasAny(hitPanel, start, end, 10);   // 两个串长度 >= 10
   }
+  /** 这一段里有没有视频 id（'/vi/'）——用来区分「纯广告项」和「带广告的正常推荐」 */
+  function hasVideo(b, start, end) {
+    for (var i = start; i + 3 < end; i++) {
+      if (b[i] === 47 && b[i+1] === 118 && b[i+2] === 105 && b[i+3] === 47) return true;
+    }
+    return false;
+  }
+
   function hasAd(start, end) {
     if (!opt.blockAds || end - start < 64) return false;          // 别删掉裸字符串
     return hasAny(hitAd, start, end, 6) || hasAny(hitAd, start, end, 30);
@@ -154,8 +162,18 @@
       // hasHit 是对已排序命中位置做二分查找，等于白拿。
       // 少了这一句，同一批字节会在每层单例嵌套里被重新 parse 一遍，
       // 2.9 MB 的首页响应要 11 秒。
-      if (!hasPanel(f.ps, f.pe) && !hasAd(f.ps, f.pe)) continue;
+      var ad = hasAd(f.ps, f.pe);
+      if (!hasPanel(f.ps, f.pe) && !ad) continue;
       if (counts[f.no] > 1) {
+        cuts[ncuts++] = f.fs; cuts[ncuts++] = f.fe;
+        changed = true;
+        continue;
+      }
+      // 单例字段：只有「有广告标识、且一个视频都没有」才删。
+      // next（信息流续页）里的广告 pod 就是这种形态 —— 顶层字段 15/37/42，
+      // 各含 pagead/aclk/赞助，但 /vi/ 为 0；而正常推荐（字段 14）带真实视频 ID，
+      // 哪怕也带着广告点击 URL 也不动。
+      if (ad && !hasVideo(b, f.ps, f.pe)) {
         cuts[ncuts++] = f.fs; cuts[ncuts++] = f.fe;
         changed = true;
         continue;
@@ -251,7 +269,7 @@
   // 目的：让「代码到底更新没更新」不用再靠猜 —— 连着四轮「改了还是不行」，
   // 每轮都分不清是代码不对、规则没跑、还是新脚本根本没送达。
   // 装上新版后下拉刷新首页看到这条，就说明跑的就是这一版；没看到就是没换上。
-  var VER = '5.7';
+  var VER = '5.8';
   if (result === 'done') {
     try {
       if ($persistentStore.read('YouTubeDedupFeedCleanerVer') !== VER) {

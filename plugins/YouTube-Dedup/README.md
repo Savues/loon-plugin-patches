@@ -5,7 +5,7 @@
 > Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
 > v5.4 fixes why v5.2 never actually ran.
 
-**v5.7.0** · 3 个变体 · 3 variants
+**v5.8.0** · 3 个变体 · 3 variants
 
 ---
 
@@ -25,6 +25,40 @@ Loon 的 `[Script]` 是 **first-match-wins**，谁在前谁赢，后一条永不
 
 补丁器带自检：产物里只要还剩未注释的 YouTube 脚本/复写规则就直接报错退出，
 自动同步的 Action 随之变红，不会把坏产物推上去。
+
+---
+
+## v5.8.0：补上 `next` 里的单例广告 pod
+
+`next`（信息流续页）的广告一直漏网：它们**不是重复列表项，而是顶层单例字段**
+（字段号 15/37/42，每个 40~68 KB）。v5.7 只删重复元素，够不着。
+
+判据：**有广告标识、且一个 `/vi/` 视频 ID 都没有 → 整条删**。实测（har9 #290）：
+
+| 字段 | 内容 | 视频 ID | 处置 |
+|---|---|---|---|
+| 14 | `aclk`×2 | 1 | **保留**（正常推荐，虽也带广告点击 URL） |
+| 15 | `pagead`×8 `aclk`×7 | 0 | 删（44556 B） |
+| 37 / 42 | 只有 `aclick`（无 `pagead`） | 0 | 不在判据内，暂不删 |
+
+「没有视频就不可能是正常推荐」这条不变式很硬，专门用来不误伤「既带广告又带视频」的混合项。
+回归测试加了 3 例。
+
+### 播放器广告与侧边推荐广告：代码路径是通的，但验证不了
+
+广告装在 `/youtubei/v1/player` 的 `adPlacements` / `adSlots` /
+`playbackTracking.pageadViewthroughconversion`，上游的 `Ni()` 正是清这三个的，
+而 `player` 端点**仍然走上游脚本**。
+
+**但最近三次看视频的抓包里，`/youtubei/v1/player` 一次都没出现**——连请求 URL 文本都搜不到，
+而同在 `/youtubei/v1/player/` 下的 `ad_break`（4 次）和 `get_drm_license`（3 次）都在。
+说明 App 在用播放器子系统，是**抓包侧没记到**。更早的两次抓包里有 `player`，
+但那是插件开着录的，广告早已被清掉，没有参考价值。
+
+**没有带广告的 `player` 样本，就不动这块代码。**
+
+顺带查清：`/youtubei/v1/player/ad_break` 的响应是 **42 字节 `image/gif`**，
+是打点信标不是广告本体，拦它只会断掉打点，广告照播。
 
 ---
 

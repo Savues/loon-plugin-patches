@@ -239,5 +239,26 @@ console.log('feed-gaming.js');
     r.out ? '下发了 ' + r.out.length + ' 字节' : '');
 }
 
+{
+  // next（信息流续页）里的广告 pod 是**单例**顶层字段，不是重复列表项：
+  // 顶层字段 15 含 pagead/aclk 但 /vi/ 为 0 → 删；
+  // 顶层字段 14 也带 aclk，但有真实视频 ID → 必须留着。
+  const e3 = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n = n >> 7; } o.push(n); return Buffer.from(o); };
+  const l3 = (no, p) => Buffer.concat([e3(no << 3 | 2), e3(p.length), p]);
+  const t3 = (s) => l3(1, Buffer.from(s, 'utf8'));
+  const adPod = l3(15, Buffer.concat([t3('https://www.googleadservices.com/pagead/aclk?sa=L'), t3('theme|a3941584')]));
+  const realRec = l3(14, Buffer.concat([t3('/vi/h-QZhYu3eBYabc'), t3('https://www.googleadservices.com/pagead/aclk?sa=L')]));
+  const cont = l3(777, t3('continuation-token-here'));
+  const feed3 = Buffer.concat([realRec, adPod, cont]);
+
+  const r3 = run(feed3, { blockGaming: true, blockAds: true });
+  check('单例广告 pod：有 pagead 且无视频 → 删', r3.out !== null && count(r3.out, 'pagead') === 1,
+    r3.out ? `剩 pagead x${count(r3.out, 'pagead')}` : '未改动');
+  check('单例广告 pod：带真实视频的那项必须留下',
+    r3.out !== null && count(r3.out, '/vi/h-QZhYu3eBYabc') === 1, r3.out ? String(count(r3.out, '/vi/h-QZhYu3eBYabc')) : '');
+  check('单例广告 pod：续页 token 不受影响',
+    r3.out !== null && count(r3.out, 'continuation-token-here') === 1);
+}
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 if (failures.length) { for (const f of failures) console.log('  ! ' + f); process.exit(1); }
