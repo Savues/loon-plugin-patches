@@ -5,7 +5,7 @@
 > Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
 > v5.4 fixes why v5.2 never actually ran.
 
-**v5.8.0** · 3 个变体 + 1 个 A/B 对照版 · 4 variants
+**v6.0.0** · 3 个变体 · 3 variants
 
 ---
 
@@ -29,7 +29,47 @@ Loon 的 `[Script]` 是 **first-match-wins**，谁在前谁赢，后一条永不
 
 ---
 
-## A/B 对照版：`YouTube-730.lpx`
+## v6.0.0：恢复 v5.2.0 规则集 + 合并 730 的 YouTube 规则
+
+用户反馈：**730 的 YouTube 开关开着时，除了游戏大本营没有别的广告**；730 退场后播放器广告就回来了。
+
+先查了「当时那个版本」：上游 `Maasea/sgmodule` 的 `youtube.response.js` 自 **2026-07-19**
+（`65075cdb38 #100 fix ad judgment`）之后就没再改过，本机也没有更早的副本——
+**脚本没换过版本，差别全在「怎么调」**。于是把清单恢复成 v5.2.0 的规则集，
+并把 730 的 YouTube 规则逐条并进来：
+
+| | 730 原版 | v5.x（合并前） |
+|---|---|---|
+| 正则 | 纯前缀匹配、**无 `$` 锚点** | 带 `(\?(.*))?$` 锚点 |
+| → 结果 | `player/get_drm_license`、`player/ad_break` **也命中** | 不命中子路径 |
+| timeout | **60** | 未写 → Loon 默认 **10 秒** |
+| 开关 | `enable={youtube_enable}` | 无 |
+| initplayback | `[Rewrite] ... reject-dict` | 无 |
+| MitM | 含 `rr*.googlevideo.com` | 只有 `youtubei.googleapis.com` |
+
+保留 v5.2.0 的四条规则，**只把「清除游戏大本营」从第二条提到第一条**——
+v5.2.0 里它在第二条，而 Loon 是 first-match-wins，放第二条等于它**从来没有执行过**
+（v5.2/v5.3 期间连续反馈「游戏大本营还是删不掉」的根因）。
+放在第一位不影响 `player` / `search` / `guide` / `get_setting` / `get_watch`，那些仍由上游脚本处理。
+
+> 10 秒默认超时这条值得单独说：133 KB 的脚本要拉取 + 解析 + 改写，
+> 超时就等于没生效，而症状恰恰是「广告还在」。
+
+### 规则命中自检
+
+| 端点 | 命中 | 动作 |
+|---|---|---|
+| `browse` `next` | 清除游戏大本营 | 自研脚本 |
+| `player` 及其子路径 `get_drm_license` / `ad_break` | YouTube去广告 | 上游脚本 |
+| `search` `guide` `get_watch` | YouTube去广告 | 上游脚本 |
+| `config` | 采集onesie密钥 | 自研脚本 |
+| `log_event` | 请求日志事件 | 上游请求脚本 |
+| `rr*.googlevideo.com/initplayback` | 拦截initplayback | `reject-dict` |
+| `att/get` `notification_registration/*` `mdx/handoff` | 不拦 | —— |
+
+---
+
+## 历史：A/B 对照版 `YouTube-730.lpx`（已并入 v6.0.0 后删除）
 
 用户反馈：**730 的 YouTube 开关开着时，除了游戏大本营没有别的广告**；把 730 的 YouTube 规则
 退场后，播放器广告就出来了。于是把 730 的规则**原样**搬过来做一个对照。
@@ -374,7 +414,6 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 | `YouTube-Dedup.lpx` | **推荐** | 仅解密 youtubei |
 | `YouTube-Dedup-Slim.lpx` | 保留 captionLang | 供不装合集的用户 |
 | `YouTube-Dedup-Debug.lpx` | 完整功能 + debug 默认开 | Full + debug on |
-| `YouTube-730.lpx` | **A/B 对照专用**：730 的 YouTube 规则原样搬来 | A/B control only |
 | `src/config-onesie.js` | v5.1 新增，自研 | 从 config 响应采集 UMP onesie 密钥 |
 | `src/feed-gaming.js` | v5.2 新增，自研 | 清除首页「游戏大本营」模块 |
 | `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试 |

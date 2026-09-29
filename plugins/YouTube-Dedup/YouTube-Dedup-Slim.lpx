@@ -1,5 +1,5 @@
-#!name=YouTube去广告(精简版) v5.8.0
-#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.8.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮、清除「游戏大本营」与信息流广告。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.8 补上 next（信息流续页）里的单例广告 pod —— 它不是重复列表项，但「有广告标识且一个视频都没有」这一条足以精确识别。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(精简版) v6.0.0
+#!desc=把清单恢复到 v5.2.0 的规则集，并合并 blockAds(730) 的 YouTube 规则：上游去广告改用 730 的正则（纯前缀匹配、无 $ 锚点，player 的子路径也命中）、timeout 从默认 10 秒提到 60 秒、加 youtube_enable 开关、补回 initplayback 拦截与 rr*.googlevideo.com 解密。另含本仓库的游戏大本营与信息流广告过滤。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,63 +7,58 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 08:40:00
+#!date=2026-09-29 09:20:00
 
-[Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
 blockShorts=switch, false, true, tag=隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
 blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
 blockGaming=switch, true, true, tag=清除游戏大本营, desc=移除首页/信息流里的「YouTube 游戏大本营」模块（YouTube Playables 小程序面板）
-blockAds=switch, true, true, tag=过滤信息流广告, desc=删除首页信息流里的赞助内容（pagead 判据），与「清除游戏大本营」互不影响
-captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻译语言, desc=精简版不支持字幕翻译，请改用完整版
-debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
+blockAds=switch, true, true, tag=过滤信息流广告, desc=删除首页信息流里的赞助内容（pagead 判据）
+youtube_enable=switch, true, false, tag=YouTube-脚本开关, desc=沿用 730 的开关名与默认值，关掉后上游脚本不执行
+debug=switch, false, true, tag=启用调试模式, desc=排查问题时开启，正常使用建议关闭
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=58, requires-body=true, binary-body-mode=true, argument=[{blockGaming},{blockAds},{debug}], tag=清除游戏大本营
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=YouTube去广告
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=58, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockGaming},{blockAds},{debug}], tag=清除游戏大本营
 
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=YouTube去广告, enable={youtube_enable}
 
-http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug},{blockGaming}], tag=请求日志事件
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, timeout=30, tag=采集onesie密钥
+
+http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=请求日志事件
+
+http-request ^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict, tag=拦截initplayback
 
 [MitM]
-hostname=youtubei.googleapis.com
+hostname=rr*.googlevideo.com, youtubei.googleapis.com
 #
+# ==== PLUGIN_VERSION: 6.0.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
+# 【v6.0.0：恢复 v5.2.0 规则集 + 合并 730 的 YouTube 规则】
+#   用户反馈：730 的 YouTube 开关开着时，除了游戏大本营没有别的广告；
+#   730 退场后播放器广告就回来了。查上游 Maasea/sgmodule 的提交历史，
+#   youtube.response.js 自 2026-07-19（65075cdb38 #100 fix ad judgment）之后没再改过，
+#   本机也没有更早的副本 —— **脚本没换过版本，差别全在「怎么调」**。
 #
+#   合并进来的 730 规则（逐条对照上游未修改的 blockAds.plugin）：
+#     1. 正则改成 730 的写法：纯前缀匹配、去掉 $ 锚点与 (\?(.*))?
+#        => youtubei/v1/player/ 下的子路径（get_drm_license、ad_break）也会命中脚本
+#     2. timeout=60。v5.x 一直没写，走的是 Loon 默认的 **10 秒** ——
+#        133 KB 的脚本在 10 秒内拉取 + 解析 + 改写不完就等于没生效。
+#     3. 加 youtube_enable 开关，名字与默认值都与 730 一致
+#     4. [Rewrite] rr*.googlevideo.com/initplayback? reject-dict 补回
+#     5. [MitM] 补回 rr*.googlevideo.com
 #
+#   保留 v5.2.0 的四条规则，只调整了一条的位置：
+#     「清除游戏大本营」从第二条提到第一条。
+#     v5.2.0 里它在第二条，而 Loon 的 [Script] 是 first-match-wins ——
+#     放第二条等于它从来没有执行过。v5.2/v5.3 期间用户连续反馈
+#     「游戏大本营还是删不掉」，根因就是这里。
+#     放在第一位不影响 player/search/guide/get_setting/get_watch，
+#     那些端点仍然由上游脚本处理。
 #
-# ==== PLUGIN_VERSION: 5.8.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
-#
-# 【v5.8.0：补上 next 里的单例广告 pod】
-#   2026-09-29 08:07 / 08:15 两份抓包里，next（信息流续页）的广告一直是漏网的：
-#   那些广告不是「重复列表项」，而是**顶层单例字段**（字段号 15/37/42），
-#   每个 40~68 KB，里面塞 1~5 条广告素材。v5.7 只删重复元素，够不着。
-#
-#   判据：顶层字段里有广告标识、并且**一个 /vi/ 视频 ID 都没有** → 整条删。
-#   实测（har9 #290，368347 B）：
-#     字段 14  aclk×2   视频ID=1  -> 保留（正常推荐，虽然也带广告点击 URL）
-#     字段 15  pagead×8 aclk×7 视频ID=0  -> 删（44556 B）
-#     字段 37/42 只有 aclick（无 pagead）-> 不在判据内，暂不删
-#   「没有视频就不可能是正常推荐」这条不变式很硬，加它是为了不误伤
-#   「既带广告又带视频」的那种混合项。
-#
-#   回归测试加了 3 例（单例广告 pod 要删 / 带视频的那项要留 / 续页 token 不受影响）。
-#
-# 【还没解决的：播放器广告与侧边推荐广告】
-#   理论路径是通的：广告装在 youtubei/v1/player 的 adPlacements / adSlots /
-#   playbackTracking.pageadViewthroughconversion 里，上游的 Ni() 正是清这三个的，
-#   而 player 端点仍然走上游脚本。
-#
-#   但**验证不了**：最近三次「看视频」的抓包（08:07、08:15）里，
-#   /youtubei/v1/player 一次都没出现 —— 连请求 URL 文本都搜不到，
-#   而同在 /youtubei/v1/player/ 下的 ad_break 和 get_drm_license 都在，
-#   说明 App 确实在用播放器子系统，是抓包侧没记到。
-#   另两次（更早的）抓包里 player 是有的，但那是插件开着录的，广告早已被清掉。
-#   没有带广告的 player 样本，就不动这块代码。
-#
-#   顺带查清：/youtubei/v1/player/ad_break 的响应是 42 字节 image/gif，
-#   是打点信标不是广告本体，拦它没用。
+# 【已知未解决：next 续页里 aclick-only 的广告 pod】
+#   har9 #290 的顶层字段 37/42 只有 aclick（没有 pagead），不在判据内，暂不删。
+#   加 doubleclick 标记是误伤风险的主要来源，宁可漏删。
 #
 # 【怎么确认脚本在跑】
 #   首次成功清理后弹一次「游戏大本营 · 已生效 脚本 v5.8」；之后不再重复弹。
