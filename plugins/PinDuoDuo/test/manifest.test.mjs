@@ -64,9 +64,15 @@ t('引用项都已声明', referenced.every(r => declared.includes(r) || inputs.
 for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'search_stub', 'bottom_custom']) {
   t(`${s} 存在`, declared.includes(s))
 }
-t('六个高危开关默认 true（保持原行为）',
-  ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'search_stub']
-    .every(s => new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)))
+// v1.7 起，屏蔽聊天/埋点/phantom 三项改为默认关闭
+const DEFAULT_ON = ['api_stub', 'order_stub', 'search_stub']
+const DEFAULT_OFF = ['chat_stub', 'telemetry_stub', 'phantom_stub']
+t('三项默认 false（v1.7 起）',
+  DEFAULT_OFF.every(s => new RegExp(s + '\\s*=\\s*switch,\\s*false').test(lpx)),
+  DEFAULT_OFF.filter(s => !new RegExp(s + '\\s*=\\s*switch,\\s*false').test(lpx)).join(',') || '无')
+t('其余高危开关默认 true（保持原行为）',
+  DEFAULT_ON.every(s => new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)),
+  DEFAULT_ON.filter(s => !new RegExp(s + '\\s*=\\s*switch,\\s*true').test(lpx)).join(',') || '无')
 t('Bot_custom 是 input 不是 switch', inputs.includes('Bot_custom'))
 const rwSec = section('REWRITE')
 t('不再有 [Rewrite] 上的 enable=',

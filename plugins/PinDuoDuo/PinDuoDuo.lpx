@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.6
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】高危拦截全部改为可关闭开关，聊天刷新已实测正常。
+#!name=拼多多去广告(修复版) v1.7
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】屏蔽聊天/埋点/phantom 三项改为默认关闭。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,14 +8,14 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 17:45:00
+#!date=2026-09-29 18:20:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
 api_stub = switch,true,false,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
-chat_stub = switch,true,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=关闭后 new_chat_group / get_list_data 等返回真实数据,聊天可正常刷新
-telemetry_stub = switch,true,false,tag=[高危] 屏蔽埋点/遥测/配置下发域名(8 个),desc=apm(性能监控)/meta(AB实验+配置下发,实测返回28KB)/th+ta(埋点上报);如疑似被风控或异常可关闭
-phantom_stub = switch,true,false,tag=[高危] 屏蔽 phantom 风控模块,desc=与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm);怀疑被风控时优先关掉,关闭后 /api/phantom/gbdbpdv/extra 返回真实数据
+chat_stub = switch,false,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
+telemetry_stub = switch,false,false,tag=[高危] 屏蔽埋点/遥测/配置下发域名(8 个),desc=默认关闭；打开后拦 apm(性能监控)/meta(AB实验+配置下发,实测返回28KB)/th+ta(埋点上报)
+phantom_stub = switch,false,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
 order_stub = switch,true,false,tag=[高危] 屏蔽订单列表,desc=关掉后订单页会显示真实订单;若不想在订单页看到列表可关
 search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
 # ===== 底栏自定义 =====

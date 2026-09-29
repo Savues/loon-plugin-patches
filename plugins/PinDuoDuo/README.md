@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.6** · 14 项配置 / 22 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T17:45`
+**v1.7** · 14 项配置 / 22 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T18:20`
 
 | | 中文 | English |
 |---|---|---|
@@ -79,11 +79,16 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | 开关 | 默认 | 覆盖 | 什么时候关 |
 |---|---|---|---|
 | `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
-| `chat_stub` | 开 | 4 条聊天/推荐端点 | **聊天刷不出来时**（已实测：关掉即恢复） |
-| `telemetry_stub` | 开 | 8 个埋点/监控/配置域名 | 怀疑被风控、或 App 行为异常时 |
-| `phantom_stub` | 开 | `/api/phantom/gbdbpdv/extra` | 怀疑被风控时**优先关这条** |
+| `chat_stub` | **关** | 4 条聊天/推荐端点 | 平时不用管；开着可能导致**聊天刷不出来**（已实测：关掉即恢复） |
+| `telemetry_stub` | **关** | 8 个埋点/监控/配置域名 | 平时不用管；怀疑被风控、或 App 行为异常时再开 |
+| `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
-| `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` | 搜索框仍轮播「酷态科cp12」这类词时 |
+| `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
+
+> **v1.7 变更**：`chat_stub` / `telemetry_stub` / `phantom_stub` 三项默认改为**关闭**。
+> 这三项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。
+> ⚠️ Loon 会**记住**你改过的开关值 —— 已经装过 v1.6 的人升级后，这三项仍是你上次的状态，
+> 要改得自己去参数页拨一下。
 
 > ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
 > `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
