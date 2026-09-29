@@ -1,0 +1,29 @@
+#!name=Forward-Offline
+#!desc=Forward 的离线替代：原 mock 服务器失效后仍可用，不依赖任何外部服务 · Offline replacement for Forward, no external dependency
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-09-29 15:20:00
+#!icon=https://photo.lily.lat/file/AgACAgQAAyEGAASLgSpZAAIQimm99448nBrdfWSbRDwuLsLkBhqGAAIpDWsbPGvwUeZVZnRBnb6YAQADAgADdwADOgQ.png
+#!tag=Forward,Offline
+
+# 用 http-request 而非 http-response：请求在离开设备之前就被假响应拦下，
+# 真实服务器 fluxapi.vvebo.vip 是否存活、是否 403、网络是否可达，全都不影响结果。
+# 原版是「把请求改写到作者的 Cloudflare Worker」，Worker 一挂插件就废。
+#
+# 仍需 [MITM]：要看到 https 请求就必须先解密。
+#
+# 不要与原版 Forward.lpx 同时启用 —— 两条规则会争同一个请求。
+
+[Script]
+http-request ^https:\/\/fluxapi\.vvebo\.vip\/v1\/purchase\/iap\/subscription script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forward-Offline/forward-offline.js, requires-body=true, tag=Forward Offline, timeout=10, enable=true
+
+[Rewrite]
+# 本插件不需要 [Rewrite] 规则：拦截由上面的 [Script] 完成。
+# 原版 Forward 用的是 URL 改写（header <url>）把请求转发到作者的 mock 服务器，
+# 那个地址已不再收录 —— 见 README「为什么不能沿用原版做法」。
+#
+# 注意不要在这里补一条 reject 兜底：它会和 [Script] 抢同一个请求，
+# 表现为连接被直接断开而不是返回伪造响应。
+
+[Mitm]
+hostname = fluxapi.vvebo.vip

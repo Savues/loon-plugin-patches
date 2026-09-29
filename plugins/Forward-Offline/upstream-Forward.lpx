@@ -1,0 +1,10 @@
+#!name=Forward
+#!desc=Crack
+#!icon=https://photo.lily.lat/file/AgACAgQAAyEGAASLgSpZAAIQimm99448nBrdfWSbRDwuLsLkBhqGAAIpDWsbPGvwUeZVZnRBnb6YAQADAgADdwADOgQ.png
+#!tag=Forward
+
+[Rewrite]
+^https:\/\/fluxapi\.vvebo\.vip\/v1\/(purchase\/iap\/subscription) header https://mock.forward1.workers.dev/forward/v1/$1
+
+[Mitm]
+hostname = fluxapi.vvebo.vip

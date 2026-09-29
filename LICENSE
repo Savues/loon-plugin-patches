@@ -58,3 +58,14 @@ YouTube-Test
   出处见 plugins/YouTube-Test/UPSTREAM.md；外发审计见其 test/external-audit.mjs
   —— 结论是除字幕翻译脚本会调用 6 家翻译服务商外，其余脚本无任何对外请求。
 ────────────────────────────────────────────────────────────────────────
+
+Forward-Offline
+  托管 1 个自研脚本 forward-offline.js，不含上游任何 JavaScript
+  （上游 Forward.lpx 本身不含 JS，仅 4 行清单配置）。
+  上游清单原件逐字节保留在 plugins/Forward-Offline/upstream-Forward.lpx，未做修改。
+  本仓库的贡献：用本地 http-request 脚本替代「改写到作者 Cloudflare Worker」的做法，
+  响应结构由黑盒实测得出（128 字节固定前缀 + 160 字节随机 -> base64 -> 386 字节），
+  未参考任何反编译代码。回归测试 52 例。
+  注意：.lpx 不支持内联 JavaScript，脚本仍需经 script-path 远程加载，
+  依赖点已从原作者的服务器换成本仓库，见其 README「能独立运行吗」一节。
+────────────────────────────────────────────────────────────────────────
