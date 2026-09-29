@@ -1,25 +1,55 @@
-# Bilibili-Dedup · 小破站去广告(合并版)
+# Bilibili-Dedup · 哔哩哔哩去广告(合并版)
 
-> B 站去广告 + 漫画净化 + 本地会员伪装，与 blockAds 合集去重后独立运行。
-> Bilibili ad-block, comics cleanup and local-VIP spoofing, de-duplicated from blockAds.
+> B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
+> Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.18** · 14 参数 / 5 Rule / 18 Rewrite / 10 Script · 更新 `2026-09-28T21:05`
+**v7.19** · 18 参数 / 5 Rule / 13 Rewrite / 7 Script / 5 MITM 域名 · 更新 `2026-09-29`
 
 | | 中文 | English |
 |---|---|---|
-| 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor` | same |
-| 脚本 | 5 个全部由本仓库托管（含 3 个上游镜像 + 6 个引擎包 5.6 MB） | all self-hosted, incl. 6 engine bundles |
+| 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor`、`x/v2/space/article` | same |
+| 脚本 | 会员伪装 1 个自撰 + 3 个上游镜像 + 6 个引擎包 5.6 MB | 1 in-house + 3 mirrored + 6 engine bundles |
 | 外部依赖 | 仅剩 `bsbsb.top`（广告时间库，无法镜像），见[第七章](#七空降助手机制--sponsorblock-mechanism) | only `bsbsb.top` remains |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
+| 客户端 | 已在 **国行 iPad（`bili-hd2`）与 国际版 iPhone（`bili-inter`）** 两台设备上实测：后者走 `viewunite` 变体端点、chronos 走 `inter` 兜底包，两者响应均无广告泄漏 | tested on two client builds |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
-> 本文只描述**当前状态**。Why things are the way they are → 迭代记录。
+> 本文描述**当前状态**；第六、七章共 269 行是**上游脚本的机制档案**（镜像 provenance + 空降助手逆向），
+> 不属于本插件说明，只是恰好放在这里 —— 要压缩文档先搬它们，别动前面的内容。
+> 踩坑过程 → [迭代记录](../../BILIBILI-ITERATION.md)。
+
+### v7.19 相对 v7.18 的变更
+
+| 变更 | 说明 |
+|---|---|
+| **清理：中文描述** | `#!desc` 从 886 字压到 124 字 —— 原来把整个开发过程的变更日志都塞进了 Loon 插件列表里显示给用户的描述字段，变更历史属于 git log 与本文。另有 4 条开关描述从「为什么从 blockAds 补回来」改成「这开关干什么」（用户不知道 blockAds 是什么），`vipTheme` 压掉一半实现细节。**插件功能零变化** |
+| **恢复：`x/resource/show/skin`** | 上一轮把它当死端点删了 —— 依据是"6 份抓包 0 次触发 + 同族只见 `tab/bubble` 与 `tab/v2`"。**加入第二台设备（国际版 iPhone `bili-inter`）后推翻了**：该端点在国行 iPad 上确实不请求，但国际版会请求（返回 43B 空 `data`）。**「0 次触发」只在单一客户端下成立，不能作为死端点的证据。** 当前行为影响为零（删的 `common_equip` 键本来就不存在），但规则本身是对的 |
+| **补：`Teenagers/ModeStatus` 的 app 主机** | 与 `DefaultWords` 那次修复 **完全同型**：规则只写了 `grpc.biliapi.net`，而 7 份抓包里 grpc 与 `app.bilibili.com` 各占一半（各 6 次），app 那半从未被 mock |
+| **移：`[Mitm]` 里的 `api.vc.bilibili.com`** | 删掉那 3 条 `api.vc.*` 规则后它变成**零覆盖** —— 没有规则作用于它，却仍在解密 TLS。已在 `[Mitm]` 处写下不变量注释：每个列出的域名都必须有规则作用于它 |
+| **补：番剧首页 `/pgc/page/`** | 此前**零覆盖**：bundle 规则只匹配 `/pgc/page/bangumi` 与 `/pgc/page/cinema/tab`，而 App 实际请求的是裸路径 `pgc/page/?access_key=…`（6 份抓包 24 次，44KB–309KB）。实测该响应 `module_id=1638` 的 banner 模块带 1 个非 `play` 广告。改用 jq 复刻 bundle 的 4 条清理规则 —— bundle 自身也处理不了裸路径（内部 `switch(gC.pathname)` 同样只认那两条） |
+| **删：7 条给已下线端点写的规则** | `get_shopping_info`、`view.v1.View/TFInfo`、`viewunite.v1.View/ViewEndPage`、`pgc/page/channel`、`x/resource/show/skin`、3 条 `api.vc.*`（search_svr / topic_svr / dynamic_svr）。判定依据不是「这次没走到」，而是**同族兄弟端点也一次都没出现过**（如 `x/resource/show/*` 只出现 `tab/bubble` 与 `tab/v2`）。`feed/index/story`（短视频流）保留 —— 那只是没进过那个 tab |
+| **收窄：会员伪装只管「我的」页** | 规则原先还挂 `viewunite.v1.View/View` 与 `Reply/MainList`。前者 5 份抓包 0 次被请求；后者命中 10 次/份，但 22 个样本的响应里**一个 vip 字段都没有** ⇒ 每开一个评论列表白跑一次 `requires-body` + JSON.parse（最大 59KB）。两支都移除 |
+| **移：三个一次性分析脚本** | `pass4/pass4b/pass6.mjs` 写死本机 `/var/minis/attachments` 路径，clone 下来必然跑不了。移到仓库目录外保留，其结论已固化进 `vip.test.mjs`（30 例） |
+| **移：bundle 规则的 splash 分支** | 抓包 + 离线复现证明：同一端点上 `[Rewrite]` 与 `[Script]` 同时命中时，**Loon 只执行 Rewrite**。bundle 的 splash 分支要 `delete account/event_list/preload/show`，而抓包里这些键全都还在（是 jq 置空的）⇒ 该分支从未执行。splash 一直由 jq 规则处理；`brand/list` 上 bundle 本来就零改动。**行为零变化** |
+| **补：`Search/DefaultWords` 的 grpc 路径** | 旧 mock 只覆盖 `app.bili*`，而实测 19 次请求里 **13 次走 `grpc.biliapi.net`** ⇒ 搜索框滚动推荐词在主力路径上从未被处理。mock 载荷本身是 gzip 帧，与该主机 `grpc-encoding: gzip` 一致 |
+| **修：开关的真值判断** | `!!A.vipAllUsers` / `if (A.vipFakeVerify)` 遇到 Loon 传下来的字符串 `"false"` 会当真 —— 关着的「全员大会员」会变成**给所有用户的主页挂伪装牌子**。抽出 `on()` 统一判断，两处都改 |
+| **补：`/x/v2/space/article`** | 专栏页响应里 `data.item[].author.vip` 用的是**「我的」页** schema，此前顶栏显示伪装、专栏列表显示真实牌子或没有牌子。抓包实证后补上，与顶栏共用 UID 门禁；`/x/v2/space/archive` 无 vip，不需要管 |
+| 会员伪装合并为 `vip.js` | 原 `vip-theme.js` + `vip-space.js` 合并（226 行 → 120 行），同一张主题表、同一批牌子图、同一套默认值 |
+| 修：个人主页配色漂移 | 旧版空间页的 `bg`/`fg` 硬编码绿鲤鱼配色，选「大会员/年度/百年」时**个人主页是绿底、我的页是粉底**。现已统一为主题配色 |
+| 修：两页 `nickname_color` 不一致 | 空间页取用户手填背景色、我的页取主题色；现统一为主题色 |
+| 修：会员伪装规则从未命中 | v7.18 第一条 `[Script]` 漏了 `https://` 前缀，真实 URL 永远不匹配。补上前缀后规则开始命中，但随后查明那两端点的响应里根本没有 vip 字段（22 个样本），已收窄回「我的」页 |
+| 4 条 BiliUniverse 规则并 1 条 | 开屏 / 网页端推荐 / 番剧页 / 直播房间 → 1 条 alternation，正则逐条比对等价（见 `lpx-verify.mjs`） |
+| `[Rewrite]` / `[Rule]` / `[Mitm]` | **零改动**，逐条字节比对一致 |
+| 删 7 张无引用牌子图 | `upstream/vip-assets/` 11 张 → 4 张，省 117 KB |
+| 未动 | 3 个彩蛋参数（`vipAllUsers` / `vipTargetMid` / `vipFakeVerify`）全部保留 |
+
+验证：`node vip.test.mjs` 30 例全过（Node vm 模拟 Loon 运行时）；`node lpx-verify.mjs` 25 个 URL 端点逐条比对通过。
 
 ### 更新记录 · Changelog
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
-| `2026-09-29T01:15` | `—` | 搜索框滚动推荐词改用 `[Rewrite]` mock 返回空 gRPC 帧（`app.bili*` 域名）；此前三轮 `[Script]` 方案均未生效，已作废 |
+| `2026-09-29` | `—` | **v7.19**（本次为长期实验室迭代的合版）：会员伪装合并为单脚本 `vip.js`（226 → 139 行）；补上 `/x/v2/space/article` 专栏页与番剧首页 `/pgc/page/` 的去广告；`Search/DefaultWords` 与 `Teenagers/ModeStatus` 各补上一半未覆盖的主机；修空间页配色漂移、开关把字符串 `"false"` 当真、`[Script]` 漏 `https://` 前缀；删 7 条死规则与 7 张无引用牌子图。**全部经 12 份真机抓包 / 两台设备（国行 iPad + 国际版 iPhone）验证，累计 0 异常 0 误改** |
 | `2026-09-28T23:50` | `—` | **v7.18** 去广告改为强制生效：Loon 的 switch 参数无法可靠传入 bundle（DEBUG 日志显示 Settings=false 仍走「不去除」），删除全部 18 个开关，改为不声明即走 `default` 分支去除 |
 | `2026-09-28T23:20` | `—` | **v7.17** 修复 BiliUniverse 开关默认值反了：参数语义是「是否保留」，原写成 `true` 导致开屏/热搜/动态/番剧/评论广告全部不去除；同时补齐 18 个未声明参数 |
 | `2026-09-28T21:50` | `—` | `vip`（普通大会员）主题改用官方灰版 `gray-vip.png`——该档位权限与非会员相同，灰底如实反映 |
@@ -75,7 +105,7 @@ The other 700+ apps are byte-for-byte untouched; Actions re-syncs every 6 hours.
 
 ### 去广告 · Ad removal
 推荐流 / 动态 / 搜索 / 番剧 / 直播 / 评论 / 播放页 / 开屏 / 短视频流 / 视频内插广告
-Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video ads.
+Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, playback, splash, shorts, in-video ads.
 
 ### 本地会员伪装 · Local VIP
 
@@ -93,20 +123,17 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 
 | | 账号页 / 我的页 | 个人资料页 |
 |---|---|---|
-| 端点 | `myinfo`、`account/mine` | `x/v2/space`(+`archive/cursor`) |
+| 端点 | `myinfo`、`account/mine` | `x/v2/space`(+`archive/cursor`、`article`) |
 | 类型 | `type` / `status` | `vipType` / `vipStatus` |
 | 到期 | `due_date` | `vipDueDate` |
 | 非会员时 | `vip.status == 0` | **整个 `vip` 字段不存在** |
 
 > ⚠️ 空间页有**两份 `vip`**，主页顶栏读的是 `data.card.vip` 而非 `data.vip`。
 > 抓包实证：只写 `data.vip` 时顶栏仍显示灰色。**两处现在都会写入**，
-> 且 `label` 对象逐字段一致，因此两页显示效果相同。
+> 且 `label` 对象逐字段一致。
 >
 > The profile page has **two** `vip` objects; the header reads `data.card.vip`.
 > Writing only `data.vip` leaves the header grey. Both are now written.
-
-### 漫画净化 · Comics
-`manga.bilibili.com` 的推荐流、热门搜索、促销弹窗等 · 开关 `mangaAD`
 
 ### 其他 · Misc
 关闭弹幕 P2P（`[Rule]` 段 5 条，**无开关** · no switch）。
@@ -126,6 +153,8 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
+| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。⚠️ 头像角标改不动（App 本地渲染，不读 `icon`） |
+| `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
 
 ### 规则设计约定
 
@@ -198,20 +227,25 @@ Feed, dynamic, search, PGC, live, comments, playback, splash, shorts, in-video a
 
 ## 六、上游脚本镜像 · Upstream Script Mirror
 
-`[Script]` 段引用的 5 个脚本**全部由本仓库托管**，不依赖任何上游仓库的可用性。
-All 5 scripts referenced by `[Script]` are served from this repository.
+`[Script]` 段引用的脚本全部由本仓库托管，不依赖任何上游仓库的可用性。
+不依赖任何上游仓库的可用性。
 
 ```
 plugins/Bilibili-Dedup/
 ├── Bilibili-Dedup.lpx
 ├── icon.png               17 KB  插件图标（256×256）
-├── vip-theme.js          2.6 KB  会员主题
-├── vip-space.js          3.2 KB  个人资料页会员
-└── upstream/                    上游脚本镜像
+├── vip.js                  7.2 KB  会员伪装：我的页 + 个人主页（含专栏列表）
+├── vip.test.mjs             14 KB  回归测试，29 例（Node vm 模拟 Loon 运行时）
+├── lpx-verify.mjs          9.8 KB  清单校验：与 baseline-v7.18.lpx 逐条比对 Rewrite/Rule/Mitm/Script
+└── baseline-v7.18.lpx      12 KB  上一版清单快照，只供上面的校验器做对照，不是可加载的插件
+
+plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
     ├── protobuf.request.js     62 KB
     ├── protobuf.response.js    95 KB  ⚠️ 已改 URL，见下
     ├── adblock.bundle.js      842 KB
+    ├── adblock-hotsearch.js   817 B
     ├── chronos/                5.6 MB  空降助手引擎包 ×6
+    ├── vip-assets/             52 KB  4 张牌子图（另有 7 张无引用已删）
     └── MANIFEST.json
 ```
 
@@ -221,9 +255,9 @@ plugins/Bilibili-Dedup/
 |---|---|---|
 | `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化、空降助手 |
 | `upstream/protobuf.response.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.response.js` | protobuf 响应处理 |
-| `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数） |
+| `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数）。**现只用于番剧页 / 网页端推荐 / 直播房间 3 个端点**；splash 由 `[Rewrite]` 的 jq 负责 |
 | `icon.png` | BiliUniverse `src/assets/icon_rounded.png` | 插件图标；**原图 1024×1024 缩放至 256×256**（67 KB → 17 KB） |
-| `vip-theme.js` / `vip-space.js` | 本仓库自撰 · written in-house | 会员伪装 |
+| `vip.js` | 本仓库自撰 · written in-house | 会员伪装（我的页 + 个人主页） |
 
 三个上游**脚本**中，`protobuf.request.js` 与 `adblock.bundle.js` **逐字节原样镜像**，
 `protobuf.response.js` **仅改动 1 处 URL**（下方说明）。版本固定在 BiliUniverse `v0.6.24`，
@@ -464,7 +498,7 @@ Automatically seeks past in-video ads ~2s in, offering a 5-second "撤销空降"
 
 上游脚本镜像至 [`upstream/`](upstream/)，图标缩放后存于插件根目录。
 除 `protobuf.response.js` 中 1 处 chronos URL 外**未修改任何逻辑**；
-清单中另有两个本仓库自撰脚本（`vip-theme.js` / `vip-space.js`）。
+清单中另有一个本仓库自撰脚本（`vip.js`）。
 Upstream scripts are mirrored **byte-for-byte** — no logic modified, only manifest
 entries and parameter declarations reorganized. Two in-house scripts added.
 
