@@ -1,0 +1,90 @@
+#!name=小破站去广告(合并版) v7.18
+#!desc=[插件版本 v7.18 / 构建 2026-09-28T21:05] 与 blockAds 合集去重，B 站功能由本插件独立承担。默认全开去广告。v7 起全部脚本与图标改由本仓库托管，不再依赖上游仓库可用性。确认是否为本版：看标题栏 v7.18。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
+#!date=2026-09-28 23:59:00
+# ==== PLUGIN_VERSION: 7.15.0 | 修复 MITM/Rule 矛盾 + ap[ip] 收窄 ====
+
+[Argument]
+# ---- BiliUniverse 开关（默认全开去广告）----
+# ---- BiliUniverse 开关 ----
+# ⚠️ 语义注意：这些参数是「是否**保留**」，true=保留不去除，false=去除。
+# 全部默认 false（=全部去除）。改前仅声明 Splash 且写成 true，等于默认不去除，
+# 导致开屏/热搜/动态/番剧/播放页/评论广告全部失效。以下为补全的 19 项。
+localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
+vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）；十年/年度/百年带牌子图；绿鲤鱼无公开图走文字渲染
+vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
+vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
+localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
+myMid = input,"",tag=我的UID,desc=个人主页伪装只作用于该 UID；留空则不生效。「我的」页伪装不受此项影响
+vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有用户的个人主页都按上面的设置显示（含真会员）。仅影响个人主页，「我的」页不变
+vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的个人主页按上面的设置显示。可与「我的UID」叠加；同时开「全员」时全员优先
+vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「bilibili UP主认证：xxx」文字。⚠️头像角标改不动（App 本地渲染，不读 icon）
+vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」
+vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
+vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+# ---- kokoryh 参数 ----
+displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
+purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=补回 blockAds 因参数未定义而跳过的电商广告过滤
+optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=blockAds 的同名规则因 enable 参数未定义而完全不生效
+sponsorBlock=switch,true,tag=空降助手,desc=与 blockAds 共存，本插件在二次执行时为幂等
+logLevel=select,"off","error","warn","info","debug",tag=脚本日志等级(kokoryh),desc=与上方 LogLevel(BiliUniverse) 是两个不同参数名
+
+[Rule]
+DOMAIN,api.biliapi.com,REJECT
+DOMAIN,app.biliapi.com,REJECT
+DOMAIN,api.biliapi.net,REJECT
+DOMAIN,app.biliapi.net,REJECT
+AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYWORD,tracker), (DOMAIN-KEYWORD,p2p)))),REJECT
+
+[Rewrite]
+# ==== D2. 本地大会员伪装（端点与 Enhanced 重叠，详见 README）====
+# ==== D. 自 blockAds 迁入的 JSON 改写（v7 补全）====
+# 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
+^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\? reject-dict
+^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
+^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
+^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
+^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
+^https?:\/\/app\.bili(bili\.com|api\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAAAAfiwgA1J26agL/AwAAAAAAAAAAAA==" mock-data-is-base64=true
+^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ mock-response-body data-type=text data="AAAAAAA=" mock-data-is-base64=true
+^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)|view\.v1\.View\/TFInfo|viewunite\.v1\.View\/ViewEndPage)$ response-header-add grpc-status 0
+^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
+^https:\/\/api\.bilibili\.com\/pgc\/view\/v2\/app\/season\? response-body-json-jq 'del(.data.payment)'
+^https:\/\/api\.bilibili\.com\/pgc\/page\/channel\? response-body-json-jq '.data.modules |= map(select(.type != "TIP") | if .type == "BANNER" then .module_data.items |= map(select(.url | startswith("https://www.bilibili.com/blackboard/era/") | not)) else . end)'
+^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
+^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
+^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
+^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
+# ==== 以下 3 条为 BiliUniverse 独占端点(api.vc.bilibili.com)，blockAds 完全未覆盖 ====
+^https?:\/\/api\.vc\.bilibili\.com\/search_svr\/v\d+\/Search\/recommend_words - reject-dict
+^https?:\/\/api\.vc\.bilibili\.com\/topic_svr\/v1\/topic_svr - reject-dict
+^https?:\/\/api\.vc\.bilibili\.com\/dynamic_svr\/v1\/dynamic_svr\/mix_uplist - reject-dict
+
+[Script]
+# ==== 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）====
+http-response ^(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-space.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip-theme.js, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], enable={localVIP}, tag=会员伪装
+# ==== A. kokoryh protobuf（完整参数，补回 blockAds 降级项）====
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
+# ==== B. BiliUniverse bundle（仅 blockAds 未覆盖的端点，完整 19 项参数）====
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/splash\/(brand\/list|event\/list2|list|show) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=开屏去广告
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock-hotsearch.js, requires-body=1, timeout=10, tag=去除搜索推荐
+http-response ^https?:\/\/api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=网页端推荐
+http-response ^https?:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=番剧页
+http-response ^https?:\/\/api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js, requires-body=1, argument=[{LogLevel}], tag=直播房间
+
+# ==== C. 漫画去广告脚本（自 blockAds 迁入）====
+
+[Mitm]
+hostname=api.vc.bilibili.com, line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com
+h2 = true
