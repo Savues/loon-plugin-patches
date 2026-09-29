@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.72
+#!name=拼多多去广告(修复版) v1.73
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】屏蔽聊天/埋点/phantom 三项改为默认关闭。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 20:05:00
+#!date=2026-09-29 20:20:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -33,7 +33,6 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
 DOMAIN, cdl-1.pddpic.com, REJECT
-DOMAIN, titan.pinduoduo.com, REJECT
 DOMAIN, cdl-p2.pddpic.com, REJECT
 DOMAIN, cd-1.pddpic.com, REJECT
 DOMAIN, apm.pinduoduo.com, REJECT, enable={telemetry_stub}

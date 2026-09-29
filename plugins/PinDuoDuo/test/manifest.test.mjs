@@ -42,6 +42,14 @@ const ver = (nameM && (nameM[1].match(/ (v[\d.]+)$/) || [])[1]) || null
 const rdVer = (readme.match(/\*\*(v[\d.]+)\*\*/) || [])[1] || null
 t('版本号与 README 一致', ver && rdVer && ver === rdVer, `#!name=${ver} README=${rdVer}`)
 
+// README 头部写着「N 条生效规则」，这个数字容易被改动带偏（v1.72/v1.73 连续两次对不上），
+// 改成从清单实时数出来对账。
+const activeCount = ['RULE', 'REWRITE', 'SCRIPT']
+  .reduce((n, s) => n + section(s).length, 0)
+const rdCount = (readme.match(/\/\s*(\d+)\s*条生效规则/) || [])[1]
+t('README 生效规则数与清单一致', rdCount && Number(rdCount) === activeCount,
+  `README=${rdCount} 实际=${activeCount}（RULE ${section('RULE').length} + REWRITE ${section('REWRITE').length} + SCRIPT ${section('SCRIPT').length}）`)
+
 // 仓库原则 #9：每次改动必须 +0.01。对着上一个 commit 的 lpx 校验。
 // 拿不到历史（非 git 环境 / 浅克隆）就跳过，不让这条守卫本身变成故障源。
 const LPX_REL = 'plugins/PinDuoDuo/PinDuoDuo.lpx'
@@ -98,6 +106,21 @@ t('不再有 [Rewrite] 上的 enable=',
 // ── 3. 高风险 REJECT 确已移除 ───────────────────────────────
 console.log('\n【3】高风险规则不得生效')
 t('无 QUIC REJECT', !active.some(l => l.includes('QUIC')))
+// 通用守卫：同一段里出现两条完全相同的活动规则就是脏数据。
+// v1.1 首次收录时 DOMAIN, titan.pinduoduo.com 就写了两遍，潜伏到 v1.73 才被发现。
+t('无重复的活动规则', (() => {
+  for (const sec of ['RULE', 'REWRITE', 'SCRIPT']) {
+    const seen = new Set()
+    for (const l of section(sec)) {
+      if (seen.has(l)) return false
+      seen.add(l)
+    }
+  }
+  return true
+})(), ['RULE', 'REWRITE', 'SCRIPT'].flatMap((s) => {
+  const c = section(s), seen = new Set()
+  return c.filter((l) => (seen.has(l) ? true : (seen.add(l), false)))
+}).join(' | ') || '有重复')
 t('无裸 IP 明文 REJECT', !active.some(l => l.includes('com.xunmeng.pinduoduo')))
 // v1.72：这两条从「注释掉」改为「连注释一起删除」。旧注释写着「如需恢复请去掉行首 #」，
 // 照做会写出仍匹配不了的正则，因此连误导性引导一并禁止回流。
