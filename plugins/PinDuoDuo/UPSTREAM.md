@@ -9,7 +9,7 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 
 | 项 | 值 |
 |---|---|
-| 名称 Name | 拼多多去广告 |
+| 名称 Name | 拼多多去广告（修复版）v1.2 |
 | 分发 Distributor | `https://kelee.one/Tool/Loon/Lpx/PinDuoDuo_remove_ads.lpx` |
 | 规则原作者 Rule author | walala（怎么肥事） |
 | 规则原始形态 Original form | Quantumult X snippet，`https://github.com/ZenmoFeiShi/Qx` → `Pinduoduo.snippet` |

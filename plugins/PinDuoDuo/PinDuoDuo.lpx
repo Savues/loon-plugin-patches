@@ -1,4 +1,4 @@
-#!name=拼多多去广告 (修复版)
+#!name=拼多多去广告(修复版) v1.2
 #!desc=移除开屏广告、底栏多多视频、会场入口，精简首页和个人中心。【修复】聊天接口改为可开关、修正 jq 空值崩溃、移除高风险 REJECT。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]

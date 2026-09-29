@@ -38,6 +38,14 @@ for (const s of ['ARGUMENT', 'RULE', 'REWRITE', 'SCRIPT', 'MITM']) {
 }
 t('上游署名保留', /#!author=.*ZenmoFeiShi/.test(lpx) && /可莉/.test(lpx))
 
+// 名称里的版本号必须与 README 一致，否则 Loon 里分不清新旧
+const nameM = lpx.match(/^#!name=(.+)$/m)
+t('#!name 带版本号', !!nameM && / v\d+\.\d+/.test(nameM[1]), nameM ? nameM[1] : '(无 #!name)')
+const readme = readFileSync(join(HERE, '..', 'README.md'), 'utf8')
+const ver = (nameM && (nameM[1].match(/ (v\d+\.\d+)$/) || [])[1]) || null
+const rdVer = (readme.match(/\*\*(v\d+\.\d+)\*\*/) || [])[1] || null
+t('版本号与 README 一致', ver && rdVer && ver === rdVer, `#!name=${ver} README=${rdVer}`)
+
 // ── 2. 开关声明 == 引用 ─────────────────────────────────────
 console.log('\n【2】Argument 开关')
 const declared = [...lpx.matchAll(/^(\w+)\s*=\s*switch/gm)].map(m => m[1])
