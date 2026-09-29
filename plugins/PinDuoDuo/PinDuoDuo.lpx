@@ -1,0 +1,96 @@
+#!name=拼多多去广告 (修复版)
+#!desc=移除开屏广告、底栏多多视频、会场入口，精简首页和个人中心。【修复】聊天接口改为可开关、修正 jq 空值崩溃、移除高风险 REJECT。
+#!openUrl=https://apps.apple.com/app/id1044283059
+#!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
+#!tag=去广告
+#!system=
+#!system_version=
+#!loon_version=3.5.0(969)
+#!homepage=https://hub.kelee.one
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
+#!date=2026-09-29 11:55:00
+
+[Argument]
+chat_stub = switch,true,false,tag=屏蔽聊天/推荐接口(关掉可恢复聊天刷新),desc=关闭后不再屏蔽 caterham/zaire_biz 聊天接口与 nasus 推荐
+telemetry_stub = switch,true,false,tag=屏蔽埋点/遥测/配置下发域名,desc=apm(性能监控)/meta(AB实验+配置下发,实测返回28KB)/th+ta(埋点上报);如疑似被风控或异常可关闭
+
+[Rule]
+# [已移除-高风险] AND, ((URL-REGEX, "^http:\/\/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/d(\d)?"), (USER-AGENT, "*com.xunmeng.pinduoduo*")), REJECT
+# [已移除-高风险] AND, ((URL-REGEX, "^http:\/\/\[[0-9a-fA-F:]+\]\/d(\d)?\?"), (USER-AGENT, "*com.xunmeng.pinduoduo*")), REJECT
+# [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
+DOMAIN, titan.pinduoduo.com, REJECT
+# [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
+DOMAIN, cdl-1.pddpic.com, REJECT
+DOMAIN, titan.pinduoduo.com, REJECT
+DOMAIN, cdl-p2.pddpic.com, REJECT
+DOMAIN, cd-1.pddpic.com, REJECT
+DOMAIN, apm.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, th-b.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, ta.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, th.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, th-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, ta-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, meta.pinduoduo.com, REJECT, enable={telemetry_stub}
+DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+
+[Rewrite]
+^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/unrated_order_for_unreceived_tab\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/query_order_list_tabs_element\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/aquarius\/hungary\/global\/homepage\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/order_express_group\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/search_hotquery\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/zaire_biz\/chat\/resource\/get_list_data\? reject-dict, enable={chat_stub}
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/new_chat_group\? reject-dict, enable={chat_stub}
+^https:\/\/api\.pinduoduo\.com\/api\/alexa\/goods\/back_up\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/personal\? reject-dict, enable={chat_stub}
+^https:\/\/api\.pinduoduo\.com\/api\/brand-olay\/goods_detail\/bybt_guide\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/engels\/reviews\/require\/append\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/my_order_group\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/likes\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/phantom\/gbdbpdv\/extra\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/manufacturer\/cross\/shortcut\/list\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/dunkirk\/liveactivity\/push\/create\/url\/report\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/growth\/nagato\/app\/index\/gather\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/engels\/wait\/receive\/review\? reject-dict
+^https:\/\/api\.pinduoduo\.com\/api\/buffon\/nasus\/recommend\? reject-dict, enable={chat_stub}
+
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v2\/query\/goods_detail_with_tags\? reject-dict
+
+^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? response-body-json-del result.dy_module.irregular_banner_dy result.icon_set result.search_bar_hot_query result.dy_module.irregular_banner_dy
+
+^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? response-body-json-jq '(.result.bottom_tabs? |= (if type=="array" then map(select(.link | IN("index.html","chat_list.html","personal.html"))) else . end)) | (.result.buffer_bottom_tabs? |= (if type=="array" then map(select(.link | IN("index.html","chat_list.html","personal.html"))) else . end)) | (.result.all_top_opts |= (if type=="array" then map(del(.selected_image, .image, .height, .width)) else . end))'
+
+^https:\/\/api\.pinduoduo\.com\/search\? response-body-json-del expansion
+
+^https:\/\/api\.pinduoduo\.com\/api\/philo\/personal\/hub\? response-body-json-del monthly_card_entrance personal_center_style_v2_vo icon_set.icons icon_set.top_personal_icons personal_banner
+
+^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? response-body-json-del bottom_section_list ui.bottom_section ui.live_section.float_info
+
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/order_detail_group\? response-body-json-del data.goods_list
+
+^https:\/\/api\.pinduoduo\.com\/order\/ response-body-json-del marketing_banner_vo shipping.banner_above_recommend
+
+^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/order_list_v4\? response-body-json-jq '.orders |= map(.order_buttons |= map(del(.order_growth_tip)))'
+
+[Script]
+http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js, requires-body=true, tag=移除扫码取件页面商品推荐及弹窗
+
+[MitM]
+hostname=api.pinduoduo.com, m.pinduoduo.net
+
+# ─────────────────────────────────────────────
+# 修复说明（改动仅限清单层，未改动上游任何 JavaScript 逻辑）
+#  1. 新增 [Argument] 开关：chat_stub / telemetry_stub
+#  2. 4 条聊天与推荐端点改挂 enable={chat_stub}，可在插件参数页直接关闭以恢复聊天刷新
+#  3. 修正 /api/alexa/homepage/hub 的 jq 表达式：原写法在字段为 null 时抛
+#     "Cannot iterate over null"，导致整条复写失败；改为先判 type 再 map
+#  4. 移除 1 条 QUIC REJECT（实测 api 的 ALPN 只协商 h2，本就无 h3，该规则不触发）
+#  5. 移除 DOMAIN, xg.pinduoduo.com, REJECT —— 基线抓包实测该域名承载 WebSocket
+#     (xg.pinduoduo.com/ngrtt/zqog 返回 101 Switching Protocols)，是消息推送通道
+#  6. 裸 IP 明文 /d1 /d2 两条 REJECT：经基线抓包验证在本机日常流量中 0 命中
+#     （真实形态是 http://[IPv6]/d5，无 query，而 IPv6 规则要求结尾 \?），
+#     默认注释掉；如需恢复请去掉行首 #
+#     ⚠️ 但 /d5 本身是 titan-gslb 的会话票据通道，若你的流量形态与本仓库基线不同，
+#        恢复前请先看 README「为什么删这三条」一节
+# 上游脚本与署名：ZenmoFeiShi / 可莉
+# ─────────────────────────────────────────────
