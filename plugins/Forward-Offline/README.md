@@ -66,11 +66,58 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forwar
 
 回放也不可行：40 份凭据**无一重复**，且与请求一一对应（16 次请求 = 16 个不同组合）。
 
+## ✅ 真机验证（2026-09-29 16:13）
+
+v1.1 装上后的 HAR：
+
+```
+16:13:39.529  fluxapi.vvebo.vip          200  632B  Server=[]
+16:13:39.730  mock.forward1.workers.dev  200  632B
+16:13:43.618  fluxapi.vvebo.vip          200  632B  Server=[]
+16:13:43.630  mock.forward1.workers.dev  200  632B
+```
+
+每一对里：
+
+| 检查项 | 结果 |
+|---|---|
+| 两次的 `x-auth-key` | **完全相同** |
+| 请求体 | 288 字符，一致 |
+| 密文长度 | 352 字节，一致 |
+| 密文前 16 字节 | `731570b90002b037` 一致 |
+| App 侧响应头 | `Server=[]` —— 被脚本替换，证明请求未出设备 |
+| 其他端点（login / token_usage / system/info） | 全部 200，未受影响 |
+
+⇒ **转发内容与作者原版的 URL 改写完全等价**，链路打通。
+
+## ⚠️ v1.0 失效的根因：$httpClient 不是 Promise
+
+`$httpClient` 在 Loon 里是**回调式** API（`script_api.md` 原文）：
+
+```javascript
+$httpClient.post(params, function (errormsg, response, data) { ... })
+```
+
+v1.0 抄了 Surge 的 Promise 写法：
+
+```javascript
+$httpClient.fetch({...}).then(res => ...)     // ✗ Loon 上 undefined.then → 抛错
+```
+
+`$httpClient.fetch` 在 Loon 上不存在，返回 `undefined`，`.then` 立刻抛 TypeError，
+脚本在注册回调前就挂了 —— **表现为插件完全没生效且无任何错误提示**。
+Promise 风格属于 Surge 的 `$task.fetch`，两者不能互换。
+社区那份 `Forward.js` 用的正是 `$task.fetch`，因为它是 Surge 版插件。
+
+`test/forward-proxy.test.mjs` 的 `【1】` 组专门回归这一点：
+sandbox 模拟真实 Loon（`$httpClient.post` 返回 undefined、无 `then()`），
+把源码退回 Promise 写法会立刻报 3 条失败。
+
 ## 方案取舍
 
 | | 作者原版 | 本插件 |
 |---|---|---|
-| 实现 | `[Rewrite] header <url>` | `[Script]` + `$httpClient.fetch` |
+| 实现 | `[Rewrite] header <url>` | `[Script]` + `$httpClient.post`（回调式） |
 | 行数 | 10 行，零脚本 | 清单 3 行 + 脚本 2.4 KB |
 | 转发内容 | 隐式（Loon 自动带全部头） | 显式可测 |
 | mock 换地址 | 改清单 | 改脚本顶部常量 |
