@@ -1,4 +1,4 @@
-#!name=YouTube去广告+双语字幕 v1.2
+#!name=YouTube去广告+双语字幕 v1.21
 #!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽，装完即用。5 个脚本由本仓库托管，不依赖第三方 CDN。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne / DualSubs | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,字幕翻译
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 13:00:00
+#!date=2026-09-29 13:40:00
 
 [Argument]
 # ===== 去广告（默认全开）=====
@@ -60,4 +60,5 @@ http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)s
 [Mitm]
 hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.youtube.com, tv.youtube.com, music.youtube.com
 
+# ==== PLUGIN_VERSION: 1.21 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 # 完整改动记录与排查过程见 ITERATION.md
