@@ -7,7 +7,7 @@
   Choler       https://github.com/Choler
   DivineEngine https://github.com/DivineEngine
   app2smile    https://github.com/app2smile
-  Salem        https://github.com/salem-2007/apple-cert-block   (Apache-2.0)
+  Salem        (Apache-2.0)
 
 对这些插件，本仓库的贡献仅限于 .lpx 清单文件中 MitM 域名、参数声明与规则条目的裁剪，
 未修改上游 JavaScript 逻辑的任何部分。
