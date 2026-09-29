@@ -1,4 +1,4 @@
-#!name=YouTube-Test v1.1
+#!name=YouTube-Test v1.2
 #!desc=从「广告拦截&净化合集」(fmz200/wool_scripts) 中原样提取的 YouTube 规则，单独成插件用于 A/B 对照测试。含 1 条 DOMAIN 拦截、1 条播放页 Rewrite、1 条响应体脚本（上游 Maasea/sgmodule 的 youtube.response.js，未改一行）。⚠️ [Script] 在 Loon 里是先匹配先执行：本插件与 YouTube-Dedup、BlockAds-Patched 命中同一批 URL，三者同时启用只有排最前的那条会跑，请只留一个。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: 奶思/fmz200 (blockAds 合集) · 脚本: Maasea/sgmodule | 提取成独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,测试
@@ -29,12 +29,18 @@ DOMAIN, ads.youtube.com, REJECT
 # > YouTube
 # hostname = youtubei.googleapis.com
 # 响应体
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug}], timeout=60, tag=YouTube响应体, enable={youtube_enable}
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Test/src/youtube.response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug}], timeout=60, tag=YouTube响应体, enable={youtube_enable}
 
 [Mitm]
 hostname = rr*.googlevideo.com, youtubei.googleapis.com
 
-# ==== PLUGIN_VERSION: 1.1 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.2 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.2】script-path 改为本仓库托管的逐字节副本（原为 Maasea/sgmodule 的远程 raw URL）。
+#   动机：Loon 拉远程脚本不做任何校验，上游仓库改名/删库/CDN 被投毒都会静默换代码。
+#   副本与上游 SHA-256 一致，出处见 plugins/YouTube-Test/UPSTREAM.md，
+#   用 tools/vendor-check.py --hash 可随时校验本地是否被动过。
+#   规则本身未变，v1.1 修好的 argument= 接线保持不变。
 #
 # 规则来源：从 plugins/BlockAds-Patched/BlockAds.patched.plugin 逐条提取，未增删、未改写
 # 提取自 2026-09-29 的产物，对应上游 blockAds.plugin（fmz200/wool_scripts）
