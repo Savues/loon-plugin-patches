@@ -64,7 +64,7 @@ console.log('\n【4】Argument 开关')
 const declared = [...lpx.matchAll(/^([\w.]+)\s*=\s*switch/gm)].map(m => m[1])
 const viaEnable = [...new Set([...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1]))]
 
-t('声明 6 个开关', declared.length === 6, `实际 ${declared.length} 个: ${declared.join(', ')}`)
+t('声明 7 个开关', declared.length === 7, `实际 ${declared.length} 个: ${declared.join(', ')}`)
 
 // 反向：每个声明的开关都要被引用（防死开关）
 const unused = declared.filter(d => !viaEnable.includes(d))
@@ -105,28 +105,26 @@ t('无重复域名', dup.length === 0, dup.join(', '))
 
 // ── 7. 与上游域名集合逐条比对 ────────────────────────────────
 // 保留的 15 条（理由见 README「相对上游的改动」）
+// 上游全部 17 条域名，一条不少、一条不多。逐条理由见 README。
 const upstreamDomains = [
   'ocsp.apple.com', 'ocsp2.apple.com',
   'valid.apple.com',
+  'ppq.apple.com', 'ppq-ext.v.aaplimg.com',
   'crl.apple.com', 'certs.apple.com',
   'ocsp.digicert.com', 'ocsp.digicert.cn', 'crl3.digicert.com', 'crl4.digicert.com',
   'ocsp.entrust.net', 'crl.entrust.net',
   'ocsp.sectigo.com', 'crl.sectigo.com', 'ocsp.usertrust.com', 'crl.usertrust.com',
 ]
-// 有意移除：非证书吊销端点，而是 Apple 的企业/侧载 App 验证服务，
-// 屏蔽它会导致「Unable to Verify App」，与本插件目的无关。
-const upstreamRemoved = ['ppq.apple.com', 'ppq-ext.v.aaplimg.com']
 
 console.log('\n【7】与上游比对')
-// 先确认上游文件里确实是这 17 条，别让常量悄悄漂移
+// 清单必须与上游原件的域名集合完全相同（双向，不经中间常量）
 const upDoms = [...up.matchAll(/^DOMAIN,\s*([\w.-]+),\s*REJECT/gm)].map(m => m[1])
 t('上游原件确有 17 条规则', upDoms.length === 17, `实际 ${upDoms.length} 条`)
 t('上游原件域名集合与预期一致',
-  JSON.stringify([...upDoms].sort()) === JSON.stringify([...upstreamDomains, ...upstreamRemoved].sort()),
+  JSON.stringify([...upDoms].sort()) === JSON.stringify([...upstreamDomains].sort()),
   `上游: ${upDoms.join(', ')}`)
-
-t('本版域名集合与预期完全一致',
-  JSON.stringify([...doms].sort()) === JSON.stringify([...upstreamDomains].sort()),
+t('本版 17 条域名与上游逐一相同，无删无增',
+  JSON.stringify([...doms].sort()) === JSON.stringify([...upDoms].sort()),
   `本版: ${doms.join(', ')}`)
 
 // 逐组核对：域名必须挂在正确的开关下（同时保证无一落入「无开关」的黑洞）
@@ -137,6 +135,7 @@ const expect = {
   apple_ocsp: ['ocsp.apple.com', 'ocsp2.apple.com'],
   apple_valid: ['valid.apple.com'],
   apple_crl: ['crl.apple.com', 'certs.apple.com'],
+  app_verify: ['ppq.apple.com', 'ppq-ext.v.aaplimg.com'],
   digicert: ['ocsp.digicert.com', 'ocsp.digicert.cn', 'crl3.digicert.com', 'crl4.digicert.com'],
   entrust: ['ocsp.entrust.net', 'crl.entrust.net'],
   sectigo: ['ocsp.sectigo.com', 'crl.sectigo.com', 'ocsp.usertrust.com', 'crl.usertrust.com'],

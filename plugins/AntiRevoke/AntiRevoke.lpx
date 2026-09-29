@@ -1,5 +1,5 @@
-#!name=Apple 证书吊销检查屏蔽 v1.0
-#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。规则分 6 组、可用参数页开关关闭，但该 enable= 写法未经真机验证，详见 README。【上游 Salem / apple-cert-block，Apache-2.0】
+#!name=Apple 证书吊销检查屏蔽 v1.1
+#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。规则分 7 组、可用参数页开关关闭，但该 enable= 写法未经真机验证，详见 README。【上游 Salem / apple-cert-block，Apache-2.0】
 #!author=原作者: Salem[https://github.com/salem-2007/apple-cert-block] | 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!openUrl=https://github.com/salem-2007/apple-cert-block
@@ -7,14 +7,16 @@
 #!tag=证书,MITM,调试
 #!system=iOS, iPadOS, macOS
 #!loon_version=3.2.0
-#!date=2026-09-29 13:30:00
-# ==== PLUGIN_VERSION: 1.0.0 | 上游 Apache-2.0 · 逐组可关 | 规则条数与上游一致 ====
+#!date=2026-09-29 14:20:00
+# ==== PLUGIN_VERSION: 1.1.0 | 上游 Apache-2.0 · 17 条域名与上游完全一致 · 7 组可关 ====
 
 [Argument]
 # ===== Apple 自身 =====
 apple_ocsp = switch,true,tag=[Apple] 屏蔽 Apple OCSP,desc=ocsp.apple.com / ocsp2.apple.com。Apple 证书在线吊销状态查询
 apple_valid = switch,true,tag=[Apple] 屏蔽 Apple 证书验证服务器,desc=valid.apple.com。Apple 的证书有效性判定接口
 apple_crl = switch,true,tag=[Apple] 屏蔽 Apple CRL 分发点,desc=crl.apple.com / certs.apple.com。Apple 证书吊销列表下载
+# ===== App 验证服务（非吊销端点，见 README 风险提示）=====
+app_verify = switch,true,tag=[高危] 屏蔽 App 验证服务(PPQ),desc=ppq.apple.com / ppq-ext.v.aaplimg.com。这是侧载 App 的安装/首启验证接口，屏蔽后 App 可能报"Unable to Verify App"装不上。若侧载 App 出现验证失败，请优先关闭此项
 # ===== 第三方 CA =====
 digicert = switch,true,tag=[CA] 屏蔽 DigiCert,desc=DigiCert 的 OCSP（.com/.cn）与 CRL（crl3/crl4）
 entrust = switch,true,tag=[CA] 屏蔽 Entrust,desc=Entrust 的 OCSP 与 CRL
@@ -29,6 +31,9 @@ DOMAIN, valid.apple.com, REJECT, enable={apple_valid}
 # ===== Apple CRL =====
 DOMAIN, crl.apple.com, REJECT, enable={apple_crl}
 DOMAIN, certs.apple.com, REJECT, enable={apple_crl}
+# ===== App 验证服务（PPQ）=====
+DOMAIN, ppq.apple.com, REJECT, enable={app_verify}
+DOMAIN, ppq-ext.v.aaplimg.com, REJECT, enable={app_verify}
 # ===== DigiCert =====
 DOMAIN, ocsp.digicert.com, REJECT, enable={digicert}
 DOMAIN, ocsp.digicert.cn, REJECT, enable={digicert}

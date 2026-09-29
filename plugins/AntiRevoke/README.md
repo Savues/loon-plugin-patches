@@ -1,13 +1,13 @@
 # AntiRevoke · Apple 证书吊销检查屏蔽
 
 > 上游 Salem / [apple-cert-block](https://github.com/salem-2007/apple-cert-block)（Apache-2.0）移植版。
-> 分组开关化 + 移除两处有害内容。**v1.0**
+> 17 条域名与上游完全一致 + 分组开关化 + 移除无必要的 `[MITM]`。**v1.1**
 
 | | 中文 | English |
 |---|---|---|
 | 上游 | Salem，[apple-cert-block](https://github.com/salem-2007/apple-cert-block) | Salem, [apple-cert-block](https://github.com/salem-2007/apple-cert-block) |
 | 许可 | Apache-2.0（上游 LICENSE 原文保留在本目录说明中） | Apache-2.0 |
-| 改动 | 清单层：6 个分组开关（**未验证**，见下）、移除 2 个非吊销域名、移除无必要的 `[MITM]` | Manifest only: 6 group switches (**unverified**, see below), 2 non-revocation domains dropped, pointless `[MITM]` removed |
+| 改动 | 清单层：7 个分组开关（**未验证**，见下）、移除无必要的 `[MITM]` | Manifest only: 7 group switches (**unverified**, see below), pointless `[MITM]` removed |
 | 脚本 | 无（本插件不含任何 JavaScript） | None (no JavaScript at all) |
 | 回归测试 | `test/manifest.test.mjs` | `test/manifest.test.mjs` |
 
@@ -70,11 +70,11 @@ DOMAIN, ocsp.apple.com, REJECT, enable={apple_ocsp}
 > 开关关不掉，规则照常拦截。该插件已于 v1.5 改用 `[Script]` + `argument=` 绕开。
 
 **`[Rewrite]` 与 `[Rule]` 是不同段落，但「文档未记载 + 同类静默失效」的先例已经存在。**
-因此本版的 6 个开关属于**未在真机验证**的用法。
+因此本版的 7 个开关属于**未在真机验证**的用法。
 
 ### 请这样验证（三步，1 分钟）
 
-1. 装上插件后打开 Loon 参数页，确认 6 个开关**确实渲染出来了**
+1. 装上插件后打开 Loon 参数页，确认 7 个开关**确实渲染出来了**
    （如果连开关都不显示，说明 `[Argument]` 段没被识别）
 2. 把 `apple_ocsp` 关掉
 3. 看 Loon 日志：访问任意 Apple 服务时，**是否还有 `ocsp.apple.com` 被记录为拦截**
@@ -100,10 +100,10 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 
 | 文件 | 用途 | Purpose |
 |---|---|---|
-| [AntiRevoke.lpx](AntiRevoke.lpx) | 插件清单（15 条规则 / 6 个开关） | Plugin manifest |
+| [AntiRevoke.lpx](AntiRevoke.lpx) | 插件清单（17 条规则 / 7 个开关） | Plugin manifest |
 | [upstream-AntiRevoke.plugin](upstream-AntiRevoke.plugin) | 上游原件，逐字节留存以便对照 | Pristine upstream copy |
 | [icon.jpg](icon.jpg) | 图标 | Icon |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单层回归测试，46 个用例 | Manifest regression tests |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单层回归测试 | Manifest regression tests |
 
 跑测试：`node test/manifest.test.mjs`
 
@@ -111,9 +111,9 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 
 ## 开关 · Switches
 
-> ⚠️ 下列 6 个开关的 `enable=` 写法**未在真机验证**，请先看上一节。
+> ⚠️ 下列 7 个开关的 `enable=` 写法**未在真机验证**，请先看上一节。
 
-6 个开关，默认全部开启，**设计上**可在 Loon 插件参数页直接改（不用改文件）：
+7 个开关，默认全部开启，**设计上**可在 Loon 插件参数页直接改（不用改文件）：
 
 
 | 开关 | 覆盖域名 | 作用 |
@@ -121,6 +121,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 | `apple_ocsp` | `ocsp.apple.com`、`ocsp2.apple.com` | Apple 证书在线状态查询 |
 | `apple_valid` | `valid.apple.com` | Apple 证书有效性判定接口 |
 | `apple_crl` | `crl.apple.com`、`certs.apple.com` | Apple 证书吊销列表 |
+| ⚠️ `app_verify` | `ppq.apple.com`、`ppq-ext.v.aaplimg.com` | **不是吊销端点** —— 侧载 App 验证服务，侧载用户建议关闭 |
 | `digicert` | `ocsp.digicert.com`、`ocsp.digicert.cn`、`crl3.digicert.com`、`crl4.digicert.com` | DigiCert |
 | `entrust` | `ocsp.entrust.net`、`crl.entrust.net` | Entrust |
 | `sectigo` | `ocsp.sectigo.com`、`crl.sectigo.com`、`ocsp.usertrust.com`、`crl.usertrust.com` | Sectigo / USERTrust |
@@ -131,11 +132,11 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 > 📌 顺带一提：上游的 `icon.png` **实际内容是 JPEG**（magic `ffd8ff`）。
 > 本仓库按真实格式存为 `icon.jpg`，避免以后有人按扩展名去处理而踩坑。
 
-### 保留的 15 条域名逐条核实 · Verification of the 15 kept domains
+### 17 条域名逐条核实 · Verification of all 17 domains
 
-移植不能只照搬上游清单。保留的域名分两类核实：
+移植不能只照搬上游清单。17 条域名分三类核实：
 
-**Apple 组（5 条）—— Apple 官方文档直接背书。**
+**Apple 证书组（5 条）—— Apple 官方文档直接背书。**
 [Use Apple products on enterprise networks](https://support.apple.com/en-us/101555)
 把 `certs.apple.com`、`ocsp2.apple.com`、`crl.apple.com`、`valid.apple.com`
 列为 Certificate validation；`ocsp.apple.com` 见同一份清单的 OCSP 条目。
@@ -150,8 +151,18 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 | `ocsp.sectigo.com` / `crl.sectigo.com` | Trellix 官方文档在「air-gapped 环境证书链校验失败」一文中明确点名这两个为 CA revocation endpoints |
 | `ocsp.usertrust.com` / `crl.usertrust.com` | USERTrust 的 OCSP responder 与 CRL 分发点 |
 
-> 15 条里**没有一条是照搬上游未经核实的**，也没有发现上游有误植域名。
-> 唯一的误植是那两个 `ppq`（见下节）。
+**App 验证组（2 条）—— 不是吊销端点，但按要求仍然保留。**
+
+| 域名 | 证据 |
+|---|---|
+| `ppq.apple.com` | Apple 官方文档列为 **Enterprise App validation service** |
+| `ppq-ext.v.aaplimg.com` | Apple 的 CDN 重定向目标（社区论坛记录：访问 ppq.apple.com 会被重定向至此） |
+
+> ⚠️ 这两条**不是证书吊销检查端点**，与前 15 条性质不同。
+> 按要求保留，但请先读下节的风险提示。
+
+> 17 条里**没有一条是凭猜测添加的**：15 条有厂商/官方文档背书，
+> 2 条有 Apple 官方文档定性（虽与本插件目的不同）。上游无域名误植。
 
 ---
 
@@ -159,41 +170,37 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRe
 
 | 改动 | 依据 |
 |---|---|
-| **删除 `ppq.apple.com`** | 见下节 |
-| **删除 `ppq-ext.v.aaplimg.com`** | 见下节 |
+| **17 条域名与上游完全一致，无增无删** | 见下节 |
 | **删除整个 `[MITM]` 段** | 见下节 |
-| 6 个分组开关 | 上游无任何开关（**未验证**，见「开关是否真的生效」） |
+| 7 个分组开关 | 上游无任何开关（**未验证**，见「开关是否真的生效」） |
 | `#!author` 补原作者与改造者 | 保留上游署名 |
 
-### 一、`ppq.apple.com` / `ppq-ext.v.aaplimg.com` 已移除
+### 一、`ppq.apple.com` / `ppq-ext.v.aaplimg.com` 已保留（但请读风险提示）
 
-上游 README 把这两个域名和 `ocsp.apple.com` 并列称为「Apple 的验证接口」，放进了同一组规则。
-**但它们不是证书吊销检查端点，而是侧载 App 的验证服务。**
+**17 条域名与上游逐条相同，一条不少、一条不多。**
 
-Apple 官方文档把 `ppq.apple.com` 列为 **Enterprise App validation service**（企业 App 验证服务）。
-2021-06-06 之后加入 Apple Developer Program 的团队，其开发签名与 Ad Hoc 签名的 App
-**首次启动时必须完成一次 PPQ 检查**；连不上 PPQ，App 可能直接启动失败。
+但这两个域名与其余 15 条**性质不同**，必须单独说明：
 
-屏蔽它的后果不是「更抗吊销」，而是：
+> ⚠️ **`ppq.apple.com` 不是证书吊销检查端点，是侧载 App 的验证服务。**
+> Apple 官方文档把它列为 **Enterprise App validation service**。
+> 2021-06-06 之后加入 Apple Developer Program 的团队，其开发签名与
+> Ad Hoc 签名的 App **首次启动时必须完成一次 PPQ 检查**；
+> 连不上 PPQ，App 可能直接启动失败。
+
+屏蔽它的后果不是「更抗吊销」，而可能是：
 
 > 装 App 时报 **「Unable to Verify App」** /「需要网络连接才能验证此 App」，
-> 侧载的 App 根本装不上、启动不了。
+> 侧载的 App 装不上、启动不了。
+
+**如果你的设备需要侧载 App，请优先在参数页关掉 `app_verify` 这一项。**
+它被单独拆成一个开关正是为此 —— 其余 15 条（真吊销端点）不受影响。
 
 社区里的 anti-revoke 配置大多**刻意不屏蔽 PPQ**，
-常见做法是安装/验证 App 时临时放行，装好后再屏蔽。
-把 PPQ 和 OCSP 一起 REJECT 掉的配置，会让用户卡在「无法验证 App」。
-
-iDevice Central 对一份主流 anti-revoke DNS 配置做过拆解，明确把
-「该配置没有屏蔽 ppq.apple.com」单列为一个章节，结论是
-**这未必是疏漏，反而降低了配置破坏 App 初始验证流程的概率**。
-同一份分析还指出：盲目屏蔽「所有 Apple 验证服务器」，
-反而会阻止 App 完成首次验证 —— 这正是本仓库移除 PPQ 的依据。
-
-> ⚠️ 反面证据也一并记下：也有社区报告称 PPQ 在较新的 iOS 上
-> 参与证书/App 黑名单的程度比老配置假设的更大。
-> **这是轶事证据，不能与 Apple 官方文档等同。**
-> 如果你的用途确实需要屏蔽 PPQ，自行在 Loon 里加一条规则即可 ——
-> 这也正是本版把它从「一锅端 17 条」拆成可分组开关的原因之一。
+iDevice Central 对一份主流配置做拆解时，专门用一节讲
+「它没屏蔽 ppq.apple.com 这未必是疏漏，反而降低了破坏 App 初始验证的概率」。
+也有社区报告称 PPQ 在较新的 iOS 上参与黑名单的程度比老配置假设的更大 ——
+**这是轶事证据，不能与 Apple 官方文档等同。**
+两种说法都列在这里，取决于你的用途需要哪一边。
 
 参考：
 - [Apple — Use Apple products on enterprise networks（`certs` / `ocsp2` / `crl` / `valid.apple.com` 均列为 Certificate validation）](https://support.apple.com/en-us/101555)
