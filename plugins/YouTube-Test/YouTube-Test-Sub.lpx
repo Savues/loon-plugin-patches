@@ -1,0 +1,81 @@
+#!name=YouTube-Test 字幕整合版 v1.2-lab
+#!desc=【实验版·勿与正式版同时启用】YouTube-Test v1.1 去广告 + YouTube双语翻译(VirgilClyne) 合并。去广告、底栏按钮清理、字幕双语翻译、YouTube Music 歌词翻译。去广告与字幕原本在 youtubei 的 player/browse/get_watch 上互抢，本插件把去广告规则排在前面保住去广告，字幕走自己的 timedtext 与 www.youtube.com 通道。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告,YouTube,字幕翻译,测试
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
+#!date=2026-09-29 09:50:00
+
+[Argument]
+# ===== 去广告 =====
+youtube_enable = switch,true,false,tag=去广告-脚本总开关,desc=关闭后不再改写 youtubei 响应体
+blockUpload=switch, false, true, tag=去广告-隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
+blockShorts=switch, false, true, tag=去广告-隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
+blockImmersive=switch, false, true, tag=去广告-隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
+debug=switch, false, true, tag=去广告-调试模式, desc=排查问题时开启，正常使用建议关闭
+# ===== 字幕翻译（原 YouTube双语翻译）=====
+Type=select, "Official", "Translate", tag=字幕-类型, desc=请选择要使用的字幕，双语字幕将使用您选择类型呈现
+AutoCC=switch, true, false, tag=字幕-自动显示翻译字幕, desc=开启后总是自动开启显示字幕
+ShowOnly=switch, true, false, tag=字幕-仅显示自动翻译字幕, desc=开启后仅显示自动翻译后的字幕，不显原文字幕
+Position=select, "Forward", "Reverse", tag=字幕-原文字幕位置, desc=原文字幕的显示位置
+
+[Rule]
+DOMAIN, ads.youtube.com, REJECT
+
+[Rewrite]
+# > YouTube
+# 播放页广告
+^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict
+
+[Script]
+# ===== 去广告 =====
+# 排在最前：与字幕插件在 player/browse/get_watch 上互抢，先匹配先执行，位置决定谁生效
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug}], timeout=60, tag=去广告-响应体, enable={youtube_enable}
+
+# ===== 字幕翻译（原样保留，未改一行脚本）=====
+# 字幕走 www.youtube.com 的 JSON 通道与 api/timedtext，不与去广告抢端点
+http-request ^https?:\/\/(www|m|tv)\.youtube\.com\/youtubei\/v1\/player\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js, requires-body=true, tag=字幕-JSON播放器请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-response ^https?:\/\/(www|m|tv)\.youtube\.com\/youtubei\/v1\/player\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_response.js, requires-body=true, tag=字幕-JSON播放器响应, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-request ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/player\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js, requires-body=true, binary-body-mode=true, tag=字幕-Proto播放器请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=(Official|External) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Composite_Subtitles_response.js, requires-body=true, argument=, tag=字幕-合成定时文本
+
+http-response ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*)subtype=Translate script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=, tag=字幕-翻译定时文本
+
+http-request ^https?:\/\/(www|m)\.youtube\.com\/api\/timedtext\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js, requires-body=false, tag=字幕-定时文本请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-request ^https?:\/\/music\.youtube\.com\/youtubei\/v1\/browse\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js, requires-body=true, tag=字幕-Music浏览请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-request ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_request.js, requires-body=true, binary-body-mode=true, tag=字幕-Proto Music浏览请求, argument=[{Type},{AutoCC},{ShowOnly},{Position}]
+
+http-response ^https?:\/\/music\.youtube\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js, requires-body=true, argument=, tag=字幕-Music翻译歌词
+
+http-response ^https?:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/browse\?(.*)subtype=Translate script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_Subtitles_Translate/YouTube_Subtitles_Translate_response.js, requires-body=true, binary-body-mode=true, argument=, tag=字幕-Proto Music翻译歌词
+
+[Mitm]
+hostname = rr*.googlevideo.com, youtubei.googleapis.com, www.youtube.com, m.youtube.com, tv.youtube.com, music.youtube.com
+
+# ==== PLUGIN_VERSION: 1.2-lab | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【合并了什么】
+#   去广告 = YouTube-Test v1.1（合集原样提取 + v1.1 补的 argument= 接线）
+#   字幕   = YouTube双语翻译（VirgilClyne），12 条规则保留 10 条
+#
+# 【丢了 2 条规则，为什么】
+#   原字幕插件这 2 条与去广告规则命中**完全相同**的 URL，而 Loon 的 [Script] 先匹配先执行：
+#     http-response youtubei.googleapis.com/youtubei/v1/player     ← 撞去广告的 player
+#     http-response youtubei.googleapis.com/youtubei/v1/get_watch  ← 撞去广告的 get_watch
+#   合并成一份清单后它们必然有一条永远不跑，所以直接删掉，不留一行看着像生效的死规则。
+#   对应的 youtubei 播放器**请求**脚本（http-request）方向独立、不互抢，已保留。
+#
+# 【因此字幕走的是哪条路】
+#   剩下的字幕规则全部走 www/m/tv.youtube.com 与 api/timedtext，与 youtubei 的去广告端点不重叠，
+#   双语字幕与歌词翻译不受影响。原插件 README 写「此插件需要置于 YouTube去广告插件之下」，
+#   说的正是这条 first-match-wins 顺序；合并后顺序由本文件固定，不再依赖用户摆放。
+#
+# 【代价】MitM 从 2 个域名涨到 6 个，多解密 4 个 YouTube 主域，App 启动会变慢。
