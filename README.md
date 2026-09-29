@@ -26,7 +26,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 拦截全可关<br>Ad-block · custom bottom bar · all stubs switchable | **v1.5.1** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
-| [Forward-Proxy](plugins/Forward-Offline/) | 订阅凭据显式转发 · 客户端零加解密<br>Explicit credential proxy · no client-side crypto | **v1.0** |
+| [Forward-Proxy](plugins/Forward-Offline/) | 订阅凭据显式转发 · 客户端零加解密<br>Explicit credential proxy · no client-side crypto | **v1.1** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的六个插件

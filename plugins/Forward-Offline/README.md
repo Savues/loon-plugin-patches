@@ -1,7 +1,7 @@
 # Forward-Proxy · Forward 订阅凭据转发
 
 > 把 App 的订阅查询请求转给作者的 mock 服务器，响应原样送回。
-> **客户端不做任何加解密** —— 密钥在服务器侧。**v1.0**
+> **客户端不做任何加解密** —— 密钥在服务器侧。**v1.1**
 
 ## 安装 · Install
 
@@ -15,8 +15,8 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forwar
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | [Forward-Proxy.lpx](Forward-Proxy.lpx) | 插件清单 | Manifest |
-| [forward-proxy.js](forward-proxy.js) | 转发脚本（2.4 KB） | Proxy script |
-| [test/forward-proxy.test.mjs](test/forward-proxy.test.mjs) | 回归测试 30 例 | Tests |
+| [forward-proxy.js](forward-proxy.js) | 转发脚本（2.4 KB，回调式 `$httpClient`） | Proxy script |
+| [test/forward-proxy.test.mjs](test/forward-proxy.test.mjs) | 回归测试 35 例 | Tests |
 | [forward-offline.js](forward-offline.js) | ❌ 已废弃，见文末 | Deprecated |
 | `upstream-Forward.lpx` | 上游清单原件存档 | Pristine upstream |
 
@@ -81,12 +81,13 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Forwar
 ## 测试
 
 ```bash
-node test/forward-proxy.test.mjs      # 30 例
+node test/forward-proxy.test.mjs      # 35 例
 node test/manifest.test.mjs           # 46 例
 ```
 
-覆盖：转发目标、请求体原样透传、头过滤（`accept-encoding` / `content-length` / `host`）、
-大小写不敏感、content-type 缺省兜底、成功透传、非 2xx 放行、网络异常放行、
+覆盖：**API 形态（回调式，非 Promise）**、转发目标、请求体原样透传、
+头过滤（`accept-encoding` / `content-length` / `host`）、大小写不敏感、
+content-type 缺省兜底、成功透传、四种非 2xx 放行、网络异常放行、
 以及「脚本内无任何加解密调用」。
 
 ---

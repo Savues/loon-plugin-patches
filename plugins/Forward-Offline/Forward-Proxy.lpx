@@ -1,5 +1,5 @@
 #!name=Forward-Proxy
-#!desc=Forward 订阅凭据转发：请求原样转给 mock 服务器再送回，客户端不做任何加解密 · Explicit proxy to the mock server, no crypto on device
+#!desc=Forward 订阅凭据转发：请求原样转给 mock 服务器再送回，客户端不做任何加解密 · v1.1 修正 v1.0 的 $httpClient 调用形态（回调式，v1.0 误用 Promise 导致完全失效）· Explicit proxy, no client-side crypto
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!date=2026-09-29 16:10:00
