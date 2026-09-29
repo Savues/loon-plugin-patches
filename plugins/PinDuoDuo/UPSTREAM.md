@@ -69,6 +69,7 @@ Only one line differs from the pristine upstream copy. Everything else is byte-f
 | 11 | 新增底栏 7 项 `[Argument]`（`bottom_custom` + 6 个 `Bot_*` + `Bot_custom`） | 用户无法在不编辑文件的前提下调整底栏 | 推导 |
 | 12 | 从 `api_stub` 拆出 `phantom_stub` / `order_stub` | 两条性质与广告无关：前者与推送同模块、后者会清空订单列表，捆在一起等于逼用户二选一 | 实测 + 推导 |
 | 13 | **20 条 `[Rewrite] reject-dict` 全部改为自研 `src/stub.response.js`** | **Loon 手册 `rewrite.md` 没有 `enable=` 参数**（只有 `script.md` 有），v1.3/v1.4 挂上去的 `enable={api_stub}` 真机实测 21 条规则全部放行 | 实测 |
+| 15 | `search_bar_hot_query` 从 `api_stub` 挪到 `search_stub` | 搜索词有两个来源（首页下发 + `/search_hotquery` 轮询），关掉 `api_stub` 时会从首页侧漏回来 | 实测 |
 | 14 | 新增 `search_stub`，搜索框轮播词单独可控 | 搜索框推荐词来自独立端点 `/search_hotquery`，不该与会场类捆绑 | 实测 |
 
 ### 关于第 6 条的诚实说明

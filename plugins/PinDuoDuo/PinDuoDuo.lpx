@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.5
+#!name=拼多多去广告(修复版) v1.5.1
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义。【修复】高危拦截全部改为可关闭开关，聊天刷新已实测正常。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 13:50:00
+#!date=2026-09-29 14:15:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -68,7 +68,7 @@ DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
 [Script]
 http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element)|api\/aquarius\/hungary\/global\/homepage|api\/caterham\/(v2\/query\/goods_detail_with_tags|v3\/query\/(order_express_group|likes|my_order_group|new_chat_group|personal))|api\/alexa\/goods\/back_up|api\/brand-olay\/goods_detail\/bybt_guide|api\/engels\/(reviews\/require\/append|wait\/receive\/review)|api\/buffon\/nasus\/recommend|api\/phantom\/gbdbpdv\/extra|api\/manufacturer\/cross\/shortcut\/list|api\/dunkirk\/liveactivity\/push\/create\/url\/report|api\/growth\/nagato\/app\/index\/gather|api\/zaire_biz\/chat\/resource\/get_list_data)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/stub.response.js, requires-body=true, argument=[{api_stub},{chat_stub},{search_stub},{phantom_stub},{order_stub}], timeout=5, tag=接口拦截与搜索词屏蔽
 http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js, requires-body=true, tag=移除扫码取件页面商品推荐及弹窗
-http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/homepage.response.js, requires-body=true, argument=[{api_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/homepage.response.js, requires-body=true, argument=[{api_stub},{search_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
 
 [MitM]
 hostname=api.pinduoduo.com, m.pinduoduo.net

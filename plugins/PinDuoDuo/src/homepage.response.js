@@ -66,8 +66,15 @@ try {
   // 1) 去广告字段（仅在总开关开着时才删）
   if (on(A.api_stub)) {
     del(r, 'icon_set');
-    del(r, 'search_bar_hot_query');
     del(r, 'dy_module.irregular_banner_dy');
+  }
+
+  // 1b) 搜索框轮播词：归 search_stub 管，不归 api_stub
+  //     实测该字段是 dict，含 hotqs(20 条) 与 items(20 条)，
+  //     与 /search_hotquery 是同一批词的两个来源（首页下发 + 轮询刷新），
+  //     两者必须由同一个开关控制，否则关掉 api_stub 时词会从这里漏回来。
+  if (on(A.search_stub)) {
+    del(r, 'search_bar_hot_query');
   }
 
   // 2) 底栏自定义：开关关掉则两个字段都不碰，保持服务端下发

@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.5** · 14 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:50`
+**v1.5.1** · 14 项配置 / 28 复写 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T13:50`
 
 | | 中文 | English |
 |---|---|---|
@@ -111,7 +111,18 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 → {"hotqs":[{"q":"酷态科cp12","tag_list":[{"text":"热"}]},{"q":"酷态科"}, ...]}
 ```
 
-由 `search_stub` 控制，返回 `{}` 即清除。`/search` 结果页的 `expansion` 字段同受此开关管辖。
+但**词有两个来源，必须同一个开关管**：
+
+| 来源 | 位置 | 由谁删 |
+|---|---|---|
+| 首页首次下发 | `homepage/hub` 的 `result.search_bar_hot_query`（含 `hotqs` 20 条 + `items` 20 条） | `homepage.response.js` |
+| 轮询刷新 | `/search_hotquery` 的 `hotqs` | `stub.response.js` |
+| 结果页扩展 | `/search` 的 `expansion` 字段 | `stub.response.js` |
+
+三者同归 `search_stub`。v1.5.1 之前首页那份挂在 `api_stub` 下，
+**关掉 `api_stub` 放行会场接口时，词会从首页侧漏回来** —— 已解耦。
+
+> 只开 `search_stub` 即可去掉搜索词，**不必开 `api_stub`**。
 
 > ⚠️ **v1.3 / v1.4 曾经失效**：那两版把 `enable={api_stub}` 挂在 `[Rewrite]` 规则上，
 > 而 **Loon 手册的 `rewrite.md` 根本没有 `enable=` 这个参数**（`script.md` 才有），
@@ -213,7 +224,7 @@ node test/homepage.test.mjs    # 31 用例，脚本逻辑
 
 ```bash
 node test/manifest.test.mjs      # 54 用例，清单层
-node test/homepage.test.mjs      # 31 用例，首页脚本
+node test/homepage.test.mjs      # 37 用例，首页脚本
 node test/stub.test.mjs          # 60 用例，拦截开关
 node test/stub-wiring.test.mjs   # 40 用例，清单与脚本接线
 ```

@@ -40,10 +40,10 @@ t('上游署名保留', /#!author=.*ZenmoFeiShi/.test(lpx) && /可莉/.test(lpx)
 
 // 名称里的版本号必须与 README 一致，否则 Loon 里分不清新旧
 const nameM = lpx.match(/^#!name=(.+)$/m)
-t('#!name 带版本号', !!nameM && / v\d+\.\d+/.test(nameM[1]), nameM ? nameM[1] : '(无 #!name)')
+t('#!name 带版本号', !!nameM && / v\d+\.\d+(\.\d+)?$/.test(nameM[1]), nameM ? nameM[1] : '(无 #!name)')
 const readme = readFileSync(join(HERE, '..', 'README.md'), 'utf8')
-const ver = (nameM && (nameM[1].match(/ (v\d+\.\d+)$/) || [])[1]) || null
-const rdVer = (readme.match(/\*\*(v\d+\.\d+)\*\*/) || [])[1] || null
+const ver = (nameM && (nameM[1].match(/ (v[\d.]+)$/) || [])[1]) || null
+const rdVer = (readme.match(/\*\*(v[\d.]+)\*\*/) || [])[1] || null
 t('版本号与 README 一致', ver && rdVer && ver === rdVer, `#!name=${ver} README=${rdVer}`)
 
 // ── 2. 开关声明 == 引用 ─────────────────────────────────────
@@ -107,9 +107,9 @@ const argM = lpx.match(/homepage\.response\.js[^\n]*argument=\[([^\]]+)\]/)
 t('脚本带 argument 列表', !!argM, argM ? '' : '未找到 argument=')
 if (argM) {
   const passed = (argM[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1))
-  const want = ['api_stub', 'bottom_custom', 'Bot_index', 'Bot_chat', 'Bot_personal',
+  const want = ['api_stub', 'search_stub', 'bottom_custom', 'Bot_index', 'Bot_chat', 'Bot_personal',
                 'Bot_live', 'Bot_class', 'Bot_attendance', 'Bot_custom']
-  t('argument 传入 9 项', passed.length === 9, `实际 ${passed.length}`)
+  t('argument 传入 10 项', passed.length === 10, `实际 ${passed.length}`)
   t('argument 项与开关名匹配', passed.slice().sort().join(',') === want.slice().sort().join(','))
 }
 t('脚本不挂 enable（靠内部判开关）', !/homepage\.response\.js.*enable=/.test(lpx))

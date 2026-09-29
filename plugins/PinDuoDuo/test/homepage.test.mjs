@@ -76,11 +76,30 @@ t('容忍空格与空段', L(o).length === 1 && L(o)[0] === 'index.html', L(o).j
 console.log('\n【7】api_stub 控制去广告字段')
 o = run({ api_stub: 'true' }, real)
 t('icon_set 已删', !('icon_set' in (o.body || o).result))
-t('search_bar_hot_query 已删', !('search_bar_hot_query' in (o.body || o).result))
 t('irregular_banner_dy 已删', !(r => { const d = r.dy_module; return d && 'irregular_banner_dy' in d })((o.body || o).result))
 t('all_top_opts 图字段已清', (o.body || o).result.all_top_opts.every(x => !('image' in x)))
 t('all_top_opts 数量不变', (o.body || o).result.all_top_opts.length === real.result.all_top_opts.length)
 t('其他键未误删', 'bottom_tabs' in (o.body || o).result && 'module_order' in (o.body || o).result)
+
+console.log('\n【7b】搜索词归 search_stub 管，与 api_stub 解耦')
+// 场景：关掉 api_stub（放行会场接口），但保持搜索去广告
+o = run({ api_stub: 'false', search_stub: 'true' }, real)
+t('api_stub 关 + search_stub 开 → 搜索词已删',
+  !('search_bar_hot_query' in (o.body || o).result))
+t('api_stub 关 → icon_set 保留', 'icon_set' in (o.body || o).result)
+t('api_stub 关 → all_top_opts 图字段保留',
+  (o.body || o).result.all_top_opts.filter(x => 'image' in x).length === imgCount({ body: real }))
+
+// 反向：只开 api_stub，搜索词应保留
+o = run({ api_stub: 'true', search_stub: 'false' }, real)
+t('api_stub 开 + search_stub 关 → 搜索词保留',
+  'search_bar_hot_query' in (o.body || o).result)
+t('api_stub 开 → icon_set 已删', !('icon_set' in (o.body || o).result))
+
+// 只开 search_stub
+o = run({ search_stub: 'true' }, real)
+t('只开 search_stub → 搜索词已删', !('search_bar_hot_query' in (o.body || o).result))
+t('只开 search_stub → icon_set 保留', 'icon_set' in (o.body || o).result)
 
 console.log('\n【8】异常输入不崩')
 const noRes = run({ api_stub: 'true' }, { foo: 1 })
