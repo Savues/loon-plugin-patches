@@ -42,6 +42,23 @@ const ver = (nameM && (nameM[1].match(/ (v[\d.]+)$/) || [])[1]) || null
 const rdVer = (readme.match(/\*\*(v[\d.]+)\*\*/) || [])[1] || null
 t('版本号与 README 一致', ver && rdVer && ver === rdVer, `#!name=${ver} README=${rdVer}`)
 
+// 仓库原则 #9：每次改动必须 +0.01。对着上一个 commit 的 lpx 校验。
+// 拿不到历史（非 git 环境 / 浅克隆）就跳过，不让这条守卫本身变成故障源。
+const LPX_REL = 'plugins/PinDuoDuo/PinDuoDuo.lpx'
+const prevLpx = (() => {
+  try { return execFileSync('git', ['show', `HEAD~1:${LPX_REL}`], { cwd: join(HERE, '..', '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) }
+  catch { return null }
+})()
+if (prevLpx) {
+  const pv = ((prevLpx.match(/^#!name=.* (v[\d.]+)$/m) || [])[1]) || null
+  const num = (v) => v && Number(v.slice(1))
+  // 浮点：1.7 + 0.01 = 1.709999...，用 ×100 取整再比
+  const step = pv && ver ? Math.round((num(ver) - num(pv)) * 100) / 100 : null
+  t('版本号较上次 +0.01（原则 #9）', step === 0.01, `上次 ${pv} → 本次 ${ver}（步长 ${step}）`)
+} else {
+  console.log('  ⚠️  取不到 HEAD~1，跳过版本步长校验')
+}
+
 // ── 2. 开关声明 == 引用 ─────────────────────────────────────
 console.log('\n【2】Argument 开关')
 const declared = [...lpx.matchAll(/^([\w.]+)\s*=\s*switch/gm)].map(m => m[1])

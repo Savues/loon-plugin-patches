@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.7
+#!name=拼多多去广告(修复版) v1.71
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】屏蔽聊天/埋点/phantom 三项改为默认关闭。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 18:20:00
+#!date=2026-09-29 19:20:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
