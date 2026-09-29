@@ -3,7 +3,7 @@
 > 托管版 Reven：脚本收进本仓库，作者改不动你设备上跑的代码。
 > Mirrored Reven: the script is hosted here, so the author can no longer swap the code your device runs.
 
-**v1.0** · 2026-09-29
+**v1.1** · 2026-09-29
 
 ```ini
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/Reven-Mirror.lpx
@@ -56,10 +56,28 @@ Mirroring hardens *what code your device runs*, not *who the traffic goes to*.
 > Adapty 需要卸载重装 App 才生效。
 > lifetime 解锁失败时优先试 `lifetime_sub`。
 
-### 🔴 没有开关 · No Off Switch
+### 开关 · Switches（v1.1 新增）
 
-`[Argument]` 里**没有 `switch`**，规则上也没有 `enable={}`。
-装上即无条件劫持上表 7 个域的**全部路径**，只能整体停用该插件。
+上游**一个开关都没有**——`[Argument]` 里只有两个参数，`[Script]` 规则上也没有 `enable={}`，
+装上就是无条件劫持 7 个域名的**全部路径**。v1.1 把那条大规则按 SDK 拆成 4 条，各挂一个开关：
+
+| 开关 | 默认 | 管哪些域名 |
+|---|---|---|
+| `[RevenueCat]` | **开** | `api.revenuecat.com` · `api.rc-backup.com` · `rc.visionarytech.ltd` · `revenue.cuto.app` |
+| `[Superwall]` | **开** | `subscriptions-api.superwall.com` |
+| `[Linearity]` | **开** | `proxy.linearity.io` |
+| `[Adapty]` | **开** | `api.adapty.io`（需卸载重装 App 才生效） |
+
+全部默认开启，装上行为与上游一致；要停就单独关掉对应 SDK。
+
+> **两个做不到的事，如实说明：**
+> 1. **关掉开关不会关掉解密**。Loon 的 `[Mitm]` 段不支持 `enable={}`，
+>    7 个域名仍然会被解密，只是不再转发了。要连解密一起停，得改清单里的域名。
+> 2. **没有「总开关」**。Loon 官方 `script.md` 只记载了 `enable=true` 和单变量形式，
+>    `&&` 组合无据可依，所以不编。要全停就关 4 次。
+
+上游的四条域名一条没动，拆分的等价性由测试第 3/5 组覆盖（并集 == 上游那一条、无重叠、
+且脚本内部那份域名正则不比清单窄）。
 
 ---
 
@@ -67,13 +85,16 @@ Mirroring hardens *what code your device runs*, not *who the traffic goes to*.
 
 | 文件 | 用途 | Purpose |
 |---|---|---|
-| `Reven-Mirror.lpx` | 插件清单，订阅这个 | Plugin manifest — subscribe to this |
+| `Reven-Mirror.lpx` | 插件清单，订阅这个（v1.1 加了 4 个开关） | Plugin manifest — subscribe to this |
 | `src/loon-redirect.js` | 托管的上游脚本，**逐字节未改** | Vendored script, byte-for-byte |
 | `upstream-Reven.lpx` | 上游清单原件存档 | Pristine upstream manifest |
 | `manifest.json` | 托管文件的 sha256 | Hashes of vendored files |
 | `UPSTREAM.md` | 出处、外部资源审计、实测记录 | Provenance, resource audit, measurements |
 
-改动只有一处：`[Script]` 里的 `script-path` 指向本仓库。MITM 域名、参数、匹配范围全部原样。
+v1.0 改动只有一处：`[Script]` 里的 `script-path` 指向本仓库。
+v1.1 在此之上把 `[Script]` 那条规则按 SDK 拆成 4 条并各挂一个 `enable={}` ——
+`[Mitm]` 域名、两个参数、URL 匹配范围、`requires-body` **全部原样**，
+托管脚本 `src/loon-redirect.js` **一行未改**。
 
 ---
 

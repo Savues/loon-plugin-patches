@@ -1,11 +1,12 @@
 /*
- * manifest.test.mjs — Reven-Mirror.lpx 的托管正确性校验
+ * manifest.test.mjs — Reven-Mirror.lpx 的托管正确性 + 开关接线校验
  * 运行：node test/manifest.test.mjs
  *
- * 本插件只做了一件事：把 script-path 指向本仓库。所以测试的核心命题只有一个 ——
- *   「除了那个 URL，别的什么都没动；而且【脚本本身】确实一行没改。」
- * 顺带把「镜像没有消除作者域依赖」这个事实钉成断言：将来谁想悄悄改掉转发目标，
- * 这条测试会先红。
+ * v1.1 把上游那一条大规则拆成 4 条（每条一个 switch），所以本文件的核心命题变成两条：
+ *   1. 拆分后 4 条规则的域名并集 == 上游那一条，没多没少没重叠；
+ *   2. 拆分只是「加了 enable=」，URL 范围 / 参数 / requires-body / script-path 一个都没变。
+ * 另有一条容易被忽略的连带风险：脚本内部自己还有一份域名正则，
+ * 若它比清单窄，清单放行的请求会被脚本放行透传 —— 一并钉住。
  */
 import fs from "fs";
 import path from "path";
@@ -30,130 +31,159 @@ const ok = (c, name, extra = "") => {
   else { fail++; console.log("  ✗", name, extra); }
 };
 
-// 上游基线（2026-09-29 实测，见 UPSTREAM.md）
 const UPSTREAM_JS_SHA = "425c476e04fc84a0b01b944d9eb718e22be46b7be55a956745148408f1c217eb";
 const UPSTREAM_LPX_SHA = "4ed9911cfaa52b4b58c8b2650ace0500402b2870bcfd958b9d23f19653b078aa";
 const SELF_RAW = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js";
 const AUTHOR = "reven.jsforbaby.workers.dev";
+const HOSTS = ["api.revenuecat.com", "api.rc-backup.com", "rc.visionarytech.ltd",
+               "revenue.cuto.app", "proxy.linearity.io",
+               "subscriptions-api.superwall.com", "api.adapty.io"];
+
+// 取段正文（到下一个 [ 开头行为止）
+const sec = (txt, name) => {
+  const i = txt.search(new RegExp(`^\\[${name}\\]\\s*$`, "im"));
+  if (i < 0) return "";
+  const rest = txt.slice(i).split("\n").slice(1);
+  const end = rest.findIndex(l => /^\s*\[/.test(l));
+  return (end < 0 ? rest : rest.slice(0, end)).join("\n");
+};
+// 活的规则行（排除注释）
+const rulesOf = txt => txt.split("\n").filter(l => /^\s*http-request\s/.test(l));
+// 从一条规则里取出其正则所覆盖的域名
+// 注意：不要为了"避免部分匹配"而在末尾加 `|` —— 模式本身以 `\/` 结尾，
+// 拼成 `…\/|` 后它会匹配空串，于是每个域名对每条规则都算命中（4×7=28），
+// 而「没有域名被两条规则同时覆盖」那类断言恰恰依赖这个集合，会静默变成空断言。
+const hostsOf = rule => {
+  const pat = rule.trim().split(/\s+/)[1];
+  let re = null;
+  try { re = new RegExp(pat); } catch (e) { return null; }
+  return HOSTS.filter(h => re.test(`https://${h}/x`));
+};
 
 console.log("【1】清单头部（元信息保持上游原样）");
 ok(/^#!name=Reven$/m.test(lpx), "#!name=Reven");
 ok(/^#!desc=.+/m.test(lpx), "#!desc 有描述");
 ok(/^#!tag=/m.test(lpx), "#!tag 有标签");
-ok(new RegExp(`^#!icon=https://raw\\.githubusercontent\\.com/fishdown/Icon/refs/heads/master/app/RevenueCat\\.png$`, "m").test(lpx),
+ok(/^#!date=2026-09-29/m.test(lpx), "#!date 已更新（v1.1 加了开关）");
+ok(/^#!icon=https:\/\/raw\.githubusercontent\.com\/fishdown\/Icon\/refs\/heads\/master\/app\/RevenueCat\.png$/m.test(lpx),
    "#!icon 仍是上游那一张（托管只管代码，不管图标）");
 
 console.log("\n【2】段结构");
-ok(/^\[Argument\]\s*$/m.test(lpx), "有 [Argument] 段");
-ok(/^\[Script\]\s*$/m.test(lpx), "有 [Script] 段");
-ok(/^\[Mitm\]\s*$/m.test(lpx), "有 [Mitm] 段（注意大小写）");
-
-console.log("\n【3】[Script] 规则与 URL 匹配范围（必须与上游一致）");
-const line = lpx.split("\n").find(l => /^\s*http-request\s/.test(l) && /script-path=/.test(l));
-ok(!!line, "存在 http-request 规则（排除注释行）");
-const upLine = upLpx.split("\n").find(l => /^\s*http-request\s/.test(l) && /script-path=/.test(l));
-ok(!!upLine, "上游原件里也有同一条规则");
-ok((line || "").split(/\s+/)[1] === (upLine || "").split(/\s+/)[1],
-   "URL 正则与上游逐字符相同（匹配范围没动）");
-
-// 按 Loon 的实际做法校验：把清单里的原始正则原样编译，去匹配真实端点 URL
-const pat = (line || "").trim().split(/\s+/)[1] || "";
-let re = null;
-try { re = new RegExp(pat); } catch (e) { /* 交给下面断言报 */ }
-ok(!!re, "URL 正则可编译", pat);
-const HOSTS = ["api.revenuecat.com", "api.rc-backup.com", "rc.visionarytech.ltd",
-               "revenue.cuto.app", "proxy.linearity.io",
-               "subscriptions-api.superwall.com", "api.adapty.io"];
-for (const h of HOSTS) {
-  ok(re ? re.test(`https://${h}/v1/foo`) : false, `匹配 ${h}`);
+for (const s of ["Argument", "Script", "Mitm"]) {
+  ok(new RegExp(`^\\[${s}\\]\\s*$`, "m").test(lpx), `有 [${s}] 段`);
 }
-ok(re ? !re.test("https://api.revenuecat.com.evil.example/v1/foo") : false, "不误伤相似域名");
-ok(re ? !re.test("https://evil.example/v1/foo") : false, "不误伤其他域名");
-ok(re ? !re.test("http://api.revenuecat.com/v1/foo") : false, "不匹配 http://（与上游行为一致）");
-ok(/requires-body\s*=\s*true/.test(line || ""), "requires-body=true（与上游一致）");
-ok(/argument=\[\{Bypass\},\{Strategy\}\]/.test(line || ""), "argument=[{Bypass},{Strategy}]");
-ok(!/enable\s*=/.test(line || ""), "仍然没有 enable=（上游本来就没有开关，托管不新增也不承诺）");
 
-console.log("\n【4】script-path 指向本仓库");
-const sp = (line || "").match(/script-path=([^,]+)/);
-ok(!!sp, "script-path 可解析");
-ok(sp?.[1] === SELF_RAW, "指向本仓库 main 分支的托管副本", `实际 ${sp?.[1]}`);
-ok(!new RegExp(AUTHOR.replace(/\./g, "\\.")).test(lpx), "镜像清单里零作者域残留");
-// 仓库内路径以 manifest.json 登记的键为准（别拿 URL 切路径，切出来的 "main" 是分支名不是目录）
-const vendoredKey = Object.keys(manifest.sources).find(k => k.endsWith("src/loon-redirect.js"));
-ok(!!vendoredKey, "manifest.json 登记了托管脚本的仓库内路径");
-ok(vendoredKey === "plugins/Reven-Mirror/src/loon-redirect.js", "登记路径符合约定", vendoredKey);
-ok(sp?.[1]?.endsWith("/" + vendoredKey), "script-path 的结尾就是那个路径", `实际 ${sp?.[1]}`);
-ok(fs.existsSync(path.join(repo, vendoredKey)), "script-path 指向的文件在本仓库里确实存在");
+console.log("\n【3】v1.1 拆规则：并集 == 上游那一条，且互不重叠");
+const rules = rulesOf(lpx), upRules = rulesOf(upLpx);
+ok(upRules.length === 1, "上游是 1 条规则", `实际 ${upRules.length}`);
+ok(rules.length === 4, "镜像拆成 4 条（每 SDK 一条）", `实际 ${rules.length}`);
+ok(rules.every(r => /enable=\{[a-z]+\}/.test(r)), "4 条规则都带 enable={...}");
+const covered = rules.flatMap(hostsOf);
+ok(covered.length === HOSTS.length, "覆盖域名总数 == 7（没重复没遗漏）", `实际 ${covered.length}：${covered}`);
+ok(new Set(covered).size === HOSTS.length, "没有域名被两条规则同时覆盖（避免同一个请求被处理两次）");
+ok(HOSTS.every(h => covered.includes(h)), "7 个域名一个不少");
+ok(hostsOf(upRules[0])?.length === HOSTS.length, "上游那一条本来就覆盖全部 7 个");
 
-console.log("\n【5】与上游清单逐行比对：只允许差 script-path 那一行");
+console.log("\n【4】拆分只加了 enable=，别的没动");
 {
-  const A = lpx.split("\n"), B = upLpx.split("\n");
-  ok(A.length === B.length, "行数相同", `${B.length} → ${A.length}`);
-  const diffIdx = A.map((v, i) => (v === B[i] ? -1 : i)).filter(i => i >= 0);
-  ok(diffIdx.length === 1, "有且只有 1 行不同", `实际 ${diffIdx.length} 行：${diffIdx.join(",")}`);
-  const i = diffIdx[0];
-  if (i >= 0) {
-    // 两个 URL 都从各自的清单里取，不另写常量 —— 常量写错就测不出来了
-    const upUrl = (upLine || "").match(/script-path=([^,]+)/)?.[1];
-    const selfUrl = (line || "").match(/script-path=([^,]+)/)?.[1];
-    ok(!!upUrl && !!selfUrl && upUrl !== selfUrl, "两个 script-path URL 可解析且不同");
-    // 把上游行里的 URL 换成我们的，应当逐字符等于镜像行
-    ok(upUrl && A[i] === B[i].split(upUrl).join(selfUrl),
-       "那一行的差异【仅限】script-path 的 URL（双向替换可复原）");
+  const upUrl = (upRules[0].match(/script-path=([^,]+)/) || [])[1];
+  const selfUrl = (rules[0].match(/script-path=([^,]+)/) || [])[1];
+  ok(!!upUrl && !!selfUrl, "两侧 script-path 都能解析");
+  ok(rules.every(r => (r.match(/script-path=([^,]+)/) || [])[1] === selfUrl),
+     "4 条规则指向同一个托管脚本");
+  ok(rules.every(r => /requires-body\s*=\s*true/.test(r)), "4 条都是 requires-body=true");
+  ok(rules.every(r => /argument=\[\{Bypass\},\{Strategy\}\]/.test(r)), "4 条都带完整 argument");
+  ok(rules.every(r => /tag=Reven-[A-Za-z]+/.test(r)), "每条有自己的 tag（Loon 里能分辨关的是谁）");
+  ok(!rules.some(r => /timeout=/.test(r)), "没引入 timeout（上游没有，不擅自加）");
+}
+
+console.log("\n【5】URL 匹配范围的行为等价（把上游那条的用例拿来跑新规则）");
+{
+  const upRe = new RegExp(upRules[0].trim().split(/\s+/)[1]);
+  const cases = [
+    ["https://api.revenuecat.com/v1/foo", true],
+    ["https://subscriptions-api.superwall.com/v1/foo", true],
+    ["https://api.adapty.io/v2/x", true],
+    ["https://proxy.linearity.io/x", true],
+    ["https://api.revenuecat.com.evil.example/v1/foo", false],
+    ["https://evil.example/v1/foo", false],
+    ["http://api.revenuecat.com/v1/foo", false],
+  ];
+  for (const [url, want] of cases) {
+    const got = rules.some(r => new RegExp(r.trim().split(/\s+/)[1]).test(url));
+    ok(got === want && upRe.test(url) === want, `4 条合并后与上游行为一致：${url}`, `得到 ${got}，期望 ${want}`);
   }
 }
 
-console.log("\n【6】[Argument] 与 [Mitm] 逐字保留（托管不改行为）");
+console.log("\n【6】脚本内部的域名正则不能比清单窄");
+// 拆分规则后，若脚本自己那份正则漏了某个域，清单放行 → 脚本不匹配 → $done({}) 静默透传
+const jsAlt = (js.match(/const regex = \/\^https:\\\/\\\/\(([^)]+)\)/) || [])[1];
+ok(!!jsAlt, "脚本里的 regex 常量可解析");
+const jsHosts = jsAlt ? jsAlt.split("|").map(s => s.replace(/\\\./g, ".")) : [];
+ok(jsHosts.length === HOSTS.length, "脚本覆盖域名数 == 7", `实际 ${jsHosts.length}`);
+ok(HOSTS.every(h => jsHosts.includes(h)), "脚本覆盖的 7 个域 == 清单的 7 个域");
+ok(rules.flatMap(hostsOf).every(h => jsHosts.includes(h)),
+   "清单放行的每一个域脚本都认（否则会被静默透传，解锁看起来『时好时坏』）");
+
+console.log("\n【7】开关接线");
 {
-  const sec = (txt, name) => {
-    const i = txt.search(new RegExp(`^\\[${name}\\]\\s*$`, "im"));
-    if (i < 0) return "";
-    const rest = txt.slice(i).split("\n").slice(1);
-    const end = rest.findIndex(l => /^\s*\[/.test(l));
-    return (end < 0 ? rest : rest.slice(0, end)).join("\n").trim();
-  };
-  ok(sec(lpx, "Argument") === sec(upLpx, "Argument"), "[Argument] 逐字相同");
-  ok(sec(lpx, "Mitm") === sec(upLpx, "Mitm"), "[Mitm] 逐字相同");
   const arg = sec(lpx, "Argument");
-  ok(/Bypass\s*=\s*input,\s*"-"/.test(arg), "Bypass 默认 -（全部解锁）");
-  ok(/Strategy\s*=\s*select,\s*"auto"/.test(arg), "Strategy 默认 auto");
-  ok(!/switch/.test(arg), "[Argument] 里没有 switch —— 装了就没法只关一部分（记录事实）");
-  const mitm = sec(lpx, "Mitm");
-  const listed = (mitm.match(/hostname\s*=\s*(.+)/)?.[1] || "").split(",").map(s => s.trim());
-  ok(listed.length === HOSTS.length, `hostname 仍是 ${HOSTS.length} 个`, `实际 ${listed.length}`);
-  ok(HOSTS.every(h => listed.includes(h)), "7 个域名一个不少、没多");
+  const declared = [...arg.matchAll(/^(\w+)\s*=\s*switch,\s*(\w+)/gm)].map(m => [m[1], m[2]]);
+  ok(declared.length === 4, "[Argument] 声明了 4 个 switch", `实际 ${declared.length}`);
+  ok(declared.every(([, d]) => d === "true"), "4 个开关默认全开（true）", JSON.stringify(declared));
+  ok(declared.map(([n]) => n).join(",") === "revenuecat,superwall,linearity,adapty",
+     "开关名与 SDK 一一对应", declared.map(([n]) => n).join(","));
+  const used = rules.map(r => (r.match(/enable=\{(\w+)\}/) || [])[1]);
+  ok(used.every(n => declared.some(([d]) => d === n)), "每条规则的 enable 都指向已声明的开关",
+     JSON.stringify(used));
+  ok(new Set(used).size === 4, "没有两个规则共用一个开关（否则关一个连带关两个）");
+  ok(declared.every(([d]) => used.includes(d)), "没有声明了却没人用的孤儿开关");
+  // 上游那两个参数必须逐字保留
+  const upArg = sec(upLpx, "Argument");
+  for (const key of ["Bypass", "Strategy"]) {
+    const a = upArg.split("\n").find(l => l.startsWith(key + " = "));
+    const b = arg.split("\n").find(l => l.startsWith(key + " = "));
+    ok(!!a && a === b, `${key} 逐字未改`);
+  }
+  ok(!/enable=.*&&|enable=.*\|\|/.test(lpx),
+     "没用 && / || 组合条件（Loon 官方 script.md 只记载 enable=true 与单变量，组合无据可依）");
 }
 
-console.log("\n【7】托管脚本：逐字节等于上游");
-ok(sha256(path.join(dir, "src/loon-redirect.js")) === UPSTREAM_JS_SHA,
-   "src/loon-redirect.js sha256 == 上游基线（2026-09-29）");
-ok(sha256(path.join(dir, "upstream-Reven.lpx")) === UPSTREAM_LPX_SHA,
-   "upstream-Reven.lpx sha256 == 上游基线");
-ok(manifest.sources["plugins/Reven-Mirror/src/loon-redirect.js"].sha256 === UPSTREAM_JS_SHA,
-   "manifest.json 里登记的哈希一致");
-ok(manifest.sources["plugins/Reven-Mirror/src/loon-redirect.js"].bytes === 4369, "登记大小 4369 B");
+console.log("\n【8】[Mitm] 与上游逐字相同（Loon 无法用开关关 MITM，如实记录）");
+ok(sec(lpx, "Mitm") === sec(upLpx, "Mitm"), "[Mitm] 逐字相同");
+const listed = (sec(lpx, "Mitm").match(/hostname\s*=\s*(.+)/)?.[1] || "").split(",").map(s => s.trim());
+ok(listed.length === HOSTS.length && HOSTS.every(h => listed.includes(h)),
+   "7 个域名一个不少、没多", `实际 ${listed.length}`);
 
-console.log("\n【8】🔴 镜像【没有】消除作者域依赖 —— 钉成断言");
-ok(new RegExp(AUTHOR.replace(/\./g, "\\.")).test(js),
-   "脚本仍把请求转发到作者的 Worker（这是事实，不是缺陷）");
+console.log("\n【9】script-path 指向本仓库，清单里零作者域残留");
+ok(!new RegExp(AUTHOR.replace(/\./g, "\\.")).test(lpx), "镜像清单里不含作者域");
+{
+  const selfUrl = (rules[0].match(/script-path=([^,]+)/) || [])[1];
+  ok(selfUrl === SELF_RAW, "指向本仓库 main 分支的托管副本", `实际 ${selfUrl}`);
+  const vendoredKey = Object.keys(manifest.sources).find(k => k.endsWith("src/loon-redirect.js"));
+  ok(vendoredKey && selfUrl.endsWith("/" + vendoredKey), "URL 结尾就是 manifest 登记的仓库内路径");
+  ok(fs.existsSync(path.join(repo, vendoredKey)), "该文件在本仓库里确实存在");
+}
+
+console.log("\n【10】托管脚本：逐字节等于上游（本次一行未改）");
+ok(sha256(path.join(dir, "src/loon-redirect.js")) === UPSTREAM_JS_SHA, "脚本 sha256 == 上游基线");
+ok(sha256(path.join(dir, "upstream-Reven.lpx")) === UPSTREAM_LPX_SHA, "上游清单原件 sha256 == 基线");
+ok(manifest.sources["plugins/Reven-Mirror/src/loon-redirect.js"].sha256 === UPSTREAM_JS_SHA,
+   "manifest.json 登记一致");
+
+console.log("\n【11】🔴 镜像【没有】消除作者域依赖 —— 钉成断言");
+ok(new RegExp(AUTHOR.replace(/\./g, "\\.")).test(js), "脚本仍把请求转发到作者的 Worker");
 ok(/headers:\s*\$request\.headers/.test(js), "原始请求头（含 Authorization）仍被转发");
 ok(/const targetUrl = `https:\/\/reven\.jsforbaby\.workers\.dev\/reven\/\$\{host\}\/\$\{rest\}/.test(js),
-   "转发目标是把 host/path 原样拼到作者域下");
-ok(!/\$done\(\{\s*response:\s*\{\s*status:\s*200/.test(js),
-   "脚本不在本地伪造回包（本地没有解锁逻辑，客户端确实无可改之处）");
-ok(!/strategy=|bypass=/.test(lpx.replace(/argument=\[\{Bypass\},\{Strategy\}\]/, "")),
-   "Bypass/Strategy 只作为查询参数发给 Worker");
+   "转发目标把 host/path 原样拼到作者域下");
+ok(!/\$done\(\{\s*response:\s*\{\s*status:\s*200/.test(js), "脚本不在本地伪造回包");
 
-console.log("\n【9】外部资源基线已登记（tools/external-watch.json）");
+console.log("\n【12】外部资源基线已登记（tools/external-watch.json）");
 {
   const by = Object.fromEntries(watch.resources.map(r => [r.id, r]));
-  ok(!!by["reven-lpx"], "登记了插件清单");
-  ok(!!by["reven-script"], "登记了脚本");
   ok(by["reven-lpx"]?.sha256 === UPSTREAM_LPX_SHA, "清单基线哈希与本仓库原件一致");
   ok(by["reven-script"]?.sha256 === UPSTREAM_JS_SHA, "脚本基线哈希与本仓库托管副本一致");
-  ok(by["reven-script"]?.kind === "script-path", "脚本被标为 script-path（代码类资源）");
-  ok(!!by["reven-icon"], "图标也登记了（它同样是每次现取）");
+  ok(!!by["reven-icon"], "图标也登记了（同样是每次现取）");
 }
 
 console.log(`\n通过 ${pass} / 失败 ${fail}`);

@@ -2,13 +2,21 @@
 #!desc=支持一键解锁 RevenueCat、Superwall 和 Adapty (Adapty 需卸载重装 App 才生效)。如果遇到解锁后报错或闪退的 App (比如 Filebar)，可以直接在插件设置里填名字跳过它！(默认填 '-' 代表全部 App 正常解锁)
 #!tag=通杀脚本
 #!icon=https://raw.githubusercontent.com/fishdown/Icon/refs/heads/master/app/RevenueCat.png
+#!date=2026-09-29 17:20:00
 
 [Argument]
 Bypass = input, "-", tag=跳过指定App(绕过解锁), desc=遇到修改响应会报错的 App (如 Filebar) 可在此填入其 UA 关键词。多个用逗号隔开，填 - 表示全部解锁。
 Strategy = select, "auto", "lifetime_sub", "year", "month", "all", tag=注入策略, desc=auto 官方规范; lifetime_sub 兼容老 App 把 lifetime 塞 subscriptions+2099; year/month 跳过 lifetime; all 注入所有 PID。lifetime 解锁失败时优先换 lifetime_sub。
+revenuecat = switch,true,tag=[RevenueCat] 解锁 RevenueCat 类 App,desc=4 个域名 · api.revenuecat.com / api.rc-backup.com / rc.visionarytech.ltd / revenue.cuto.app
+superwall = switch,true,tag=[Superwall] 解锁 Superwall 类 App,desc=1 个域名 · subscriptions-api.superwall.com
+linearity = switch,true,tag=[Linearity] 解锁 Linearity 类 App,desc=1 个域名 · proxy.linearity.io
+adapty = switch,true,tag=[Adapty] 解锁 Adapty 类 App,desc=1 个域名 · api.adapty.io。⚠️ 需卸载重装 App 才生效
 
 [Script]
-http-request ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com|rc\.visionarytech\.ltd|revenue\.cuto\.app|proxy\.linearity\.io|subscriptions-api\.superwall\.com|api\.adapty\.io)\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js, requires-body=true, tag=Reven转发, argument=[{Bypass},{Strategy}]
+http-request ^https:\/\/(api\.revenuecat\.com|api\.rc-backup\.com|rc\.visionarytech\.ltd|revenue\.cuto\.app)\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js, requires-body=true, tag=Reven-RevenueCat, enable={revenuecat}, argument=[{Bypass},{Strategy}]
+http-request ^https:\/\/(subscriptions-api\.superwall\.com)\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js, requires-body=true, tag=Reven-Superwall, enable={superwall}, argument=[{Bypass},{Strategy}]
+http-request ^https:\/\/(proxy\.linearity\.io)\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js, requires-body=true, tag=Reven-Linearity, enable={linearity}, argument=[{Bypass},{Strategy}]
+http-request ^https:\/\/(api\.adapty\.io)\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Reven-Mirror/src/loon-redirect.js, requires-body=true, tag=Reven-Adapty, enable={adapty}, argument=[{Bypass},{Strategy}]
 
 [Mitm]
 hostname = api.revenuecat.com, api.rc-backup.com, rc.visionarytech.ltd, revenue.cuto.app, proxy.linearity.io, subscriptions-api.superwall.com, api.adapty.io
