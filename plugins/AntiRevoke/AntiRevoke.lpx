@@ -1,0 +1,44 @@
+#!name=Apple 证书吊销检查屏蔽 v1.0
+#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。默认全开，可在参数页逐组关闭。【上游 Salem / apple-cert-block，Apache-2.0】
+#!author=原作者: Salem[https://github.com/salem-2007/apple-cert-block] | 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!openUrl=https://github.com/salem-2007/apple-cert-block
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRevoke/icon.jpg
+#!tag=证书,MITM,调试
+#!system=iOS, iPadOS, macOS
+#!loon_version=3.2.0
+#!date=2026-09-29 13:30:00
+# ==== PLUGIN_VERSION: 1.0.0 | 上游 Apache-2.0 · 逐组可关 | 规则条数与上游一致 ====
+
+[Argument]
+# ===== Apple 自身 =====
+apple_ocsp = switch,true,tag=[Apple] 屏蔽 Apple OCSP,desc=ocsp.apple.com / ocsp2.apple.com。Apple 证书在线吊销状态查询
+apple_valid = switch,true,tag=[Apple] 屏蔽 Apple 证书验证服务器,desc=valid.apple.com。Apple 的证书有效性判定接口
+apple_crl = switch,true,tag=[Apple] 屏蔽 Apple CRL 分发点,desc=crl.apple.com / certs.apple.com。Apple 证书吊销列表下载
+# ===== 第三方 CA =====
+digicert = switch,true,tag=[CA] 屏蔽 DigiCert,desc=DigiCert 的 OCSP（.com/.cn）与 CRL（crl3/crl4）
+entrust = switch,true,tag=[CA] 屏蔽 Entrust,desc=Entrust 的 OCSP 与 CRL
+sectigo = switch,true,tag=[CA] 屏蔽 Sectigo / USERTrust,desc=Sectigo 与 USERTrust 的 OCSP 与 CRL
+
+[Rule]
+# ===== Apple OCSP =====
+DOMAIN, ocsp.apple.com, REJECT, enable={apple_ocsp}
+DOMAIN, ocsp2.apple.com, REJECT, enable={apple_ocsp}
+# ===== Apple 证书验证服务器 =====
+DOMAIN, valid.apple.com, REJECT, enable={apple_valid}
+# ===== Apple CRL =====
+DOMAIN, crl.apple.com, REJECT, enable={apple_crl}
+DOMAIN, certs.apple.com, REJECT, enable={apple_crl}
+# ===== DigiCert =====
+DOMAIN, ocsp.digicert.com, REJECT, enable={digicert}
+DOMAIN, ocsp.digicert.cn, REJECT, enable={digicert}
+DOMAIN, crl3.digicert.com, REJECT, enable={digicert}
+DOMAIN, crl4.digicert.com, REJECT, enable={digicert}
+# ===== Entrust =====
+DOMAIN, ocsp.entrust.net, REJECT, enable={entrust}
+DOMAIN, crl.entrust.net, REJECT, enable={entrust}
+# ===== Sectigo / USERTrust =====
+DOMAIN, ocsp.sectigo.com, REJECT, enable={sectigo}
+DOMAIN, crl.sectigo.com, REJECT, enable={sectigo}
+DOMAIN, ocsp.usertrust.com, REJECT, enable={sectigo}
+DOMAIN, crl.usertrust.com, REJECT, enable={sectigo}
