@@ -21,8 +21,8 @@ own for endpoints upstream can no longer parse or features it never had.
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
-| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃 · 清游戏大本营<br>Dedupe against blockAds · config fix · Gaming Hub removal | **v6.0** |
-| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube 部分整体退场<br>Bilibili + YouTube removal from the big collection | 自动 Auto |
+| [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站部分整体退场<br>Bilibili removal from the big collection | 自动 Auto |
 
 ### 托管了脚本的三个插件
 
@@ -37,17 +37,17 @@ own for endpoints upstream can no longer parse or features it never had.
 
 `YouTube-Dedup` —— 第三条路：**上游解析不了某个端点、或压根没有某项功能时，另写自研脚本顶上**。
 上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），
-`src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来；
-上游也没有「清除游戏大本营」这个功能，`src/feed-gaming.js` 按「结构 + 内容」把首页那个
-61 KB 的 mini-app 面板从 feed 里摘掉。两份脚本都不含上游代码，各有 16 / 22 个回归用例。
+`src/config-onesie.js` 只用公开可观测的 protobuf 字段编号把 UMP onesie 密钥取出来。
+该脚本不含上游代码，有 16 个回归用例。
+
+> v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
+> 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
 Three plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
-that site disappeared. `YouTube-Dedup` takes two further routes — a purpose-built script for
-an endpoint upstream cannot parse (`config`), and one for a feature upstream never had
-(removing the Gaming Hub module from the home feed). Equivalence is covered by 28, 16 and 22
-tests respectively.
+that site disappeared. `YouTube-Dedup` takes a further route — a purpose-built script for
+an endpoint upstream cannot parse (`config`) — covered by 16 tests.
 
 ---
 

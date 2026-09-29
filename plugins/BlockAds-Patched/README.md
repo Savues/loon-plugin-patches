@@ -1,7 +1,7 @@
 # BlockAds-Patched · 广告拦截&净化合集（退场版）
 
-> blockAds.plugin 打上 B 站 + YouTube 退场补丁后的可订阅版本。
-> blockAds.plugin with the Bilibili- and YouTube-removal patches applied.
+> blockAds.plugin 打上 B 站退场补丁后的可订阅版本。
+> blockAds.plugin with the Bilibili-removal patch applied.
 
 **自动同步** — GitHub Actions 每 6 小时同步上游并重施补丁
 **Auto-synced** every 6 hours, patch re-applied automatically
@@ -10,7 +10,7 @@
 
 ## 参数精简 · Parameter pruning
 
-B 站与 YouTube 退场后，5 个开关变成**死开关**（只被已注释的规则引用）：
+B 站退场后，4 个开关变成**死开关**（只被已注释的 B 站规则引用）：
 
 | 参数 | 状态 | 说明 |
 |---|---|---|
@@ -18,7 +18,6 @@ B 站与 YouTube 退场后，5 个开关变成**死开关**（只被已注释的
 | `sponsorBlock` | 🗑 删除 | B 站空降助手 —— 规则已退场 |
 | `logLevel` | 🗑 删除 | 标签写着 bilibili-日志等级，仅 B 站脚本用 |
 | `flightradar24_enable` | 🗑 删除 | **上游自身的 bug**：声明了但任何规则都没引用 |
-| `youtube_enable` | 🗑 删除 | YouTube 脚本开关 —— 规则已退场 |
 
 **74 → 70 个参数。** 其余 70 个各自控制 350 条生效规则，均在用 —— 不做进一步删减。
 
@@ -57,27 +56,6 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/BlockA
 （`purifyComment` / `displayUpList` / `optimizeRequest` 未声明，脚本内置默认值被 `undefined` 覆盖）。
 
 退场后 B 站能力由 Bilibili-Dedup 单独承担，也避免了与 [Bilibili-UI](../Bilibili-UI/) 抢端点。
-
-### YouTube 部分 · Why YouTube is removed too
-
-合集里这条 `http-response` 与 [YouTube-Dedup](../YouTube-Dedup/) 命中**同一批 URL**，
-而 Loon 的 `[Script]` 是 **first-match-wins**（官方 script_v2：
-「始终按照原配置顺序选择第一条最终条件为 true 的规则」），后一条永不执行。
-
-2026-09-29 实测：合集排在前面 → YouTube-Dedup 的「清除游戏大本营」规则
-**一次都没执行过**，用户连着五轮看到游戏大本营删不掉；
-而合集自己那份脚本与上游同源，去广告照常工作，所以「其他功能都正常」，极具迷惑性。
-
-| 退场项 | 说明 |
-|---|---|
-| `[SCRIPT]` `youtube.response.js` | 与 YouTube-Dedup 抢同一批 URL |
-| `[REWRITE]` `rr*.googlevideo.com/initplayback? reject-dict` | **无 `enable` 保护**，会打断 UMP 与字幕翻译 |
-| `[Argument]` `youtube_enable` | 随之失活 |
-
-**保留**：`[Rule] DOMAIN, ads.youtube.com, REJECT` —— 纯域名拦截，不碰脚本，无冲突。
-
-补丁器打完会自检：产物里只要还剩任何未注释的 YouTube 脚本/复写规则，就直接报错退出，
-自动同步的 Action 随之变红，不会把坏产物推上去。
 
 ---
 

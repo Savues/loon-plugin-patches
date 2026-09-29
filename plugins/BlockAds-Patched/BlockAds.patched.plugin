@@ -97,6 +97,7 @@ xnmiuhig_enable = switch,true,false,tag=小米商城-脚本开关
 xntuisis_enable = switch,true,false,tag=小兔充充-脚本开关
 yzku_enable = switch,true,false,tag=优酷-脚本开关
 yzxiapp_enable = switch,true,false,tag=悠洗APP-脚本开关
+youtube_enable = switch,true,false,tag=YouTube-脚本开关
 vhuhgsjn_enable = switch,true,false,tag=掌上公交-脚本开关
 vihu_enable = switch,true,false,tag=知乎-脚本开关
 vsgogojihhks_enable = switch,true,false,tag=中国国际航空-脚本开关
@@ -7536,7 +7537,7 @@ http:\/\/.+\.gamersky.com/.+/lists/getListElements response-body-json-jq '.listE
 # > YouTube
 # hostname = rr*.googlevideo.com, youtubei.googleapis.com
 # 播放页广告
-# [youtube-removed] ^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict
+^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict
 
 
 # >>>>>>>>>>>>>>> ✅ Z ✅ <<<<<<<<<<<<<<
@@ -8430,7 +8431,7 @@ http-response ^https?:\/\/api\.ulife\.group\/market\/homeIconDetail\/list\/v7 sc
 # > YouTube
 # hostname = rr*.googlevideo.com, youtubei.googleapis.com
 # 响应体
-# [youtube-removed] http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, timeout=60, tag=YouTube响应体, enable={youtube_enable}
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://raw.githubusercontent.com/Maasea/sgmodule/refs/heads/master/Script/Youtube/youtube.response.js, requires-body=true, binary-body-mode=true, timeout=60, tag=YouTube响应体, enable={youtube_enable}
 
 
 # >>>>>>>>>>>>>>> ✅ Z ✅ <<<<<<<<<<<<<<

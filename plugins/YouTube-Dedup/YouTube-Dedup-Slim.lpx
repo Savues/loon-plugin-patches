@@ -1,5 +1,5 @@
-#!name=YouTube去广告(精简版) v6.0.0
-#!desc=把清单恢复到 v5.2.0 的规则集，并合并 blockAds(730) 的 YouTube 规则：上游去广告改用 730 的正则（纯前缀匹配、无 $ 锚点，player 的子路径也命中）、timeout 从默认 10 秒提到 60 秒、加 youtube_enable 开关、补回 initplayback 拦截与 rr*.googlevideo.com 解密。另含本仓库的游戏大本营与信息流广告过滤。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=YouTube去广告(精简版) v5.1.0
+#!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.1.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,59 +7,59 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/YouTube.png
-#!date=2026-09-29 09:20:00
+#!date=2026-09-29 09:00:41
 
+[Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
 blockShorts=switch, false, true, tag=隐藏Shorts按钮, desc=用于隐藏YouTube底栏的Shorts按钮
 blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏YouTube Music底栏的选段按钮
-blockGaming=switch, true, true, tag=清除游戏大本营, desc=移除首页/信息流里的「YouTube 游戏大本营」模块（YouTube Playables 小程序面板）
-blockAds=switch, true, true, tag=过滤信息流广告, desc=删除首页信息流里的赞助内容（pagead 判据）
-youtube_enable=switch, true, false, tag=YouTube-脚本开关, desc=沿用 730 的开关名与默认值，关掉后上游脚本不执行
-debug=switch, false, true, tag=启用调试模式, desc=排查问题时开启，正常使用建议关闭
+captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻译语言, desc=精简版不支持字幕翻译，请改用完整版
+debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
 
 [Script]
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next)(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/feed-gaming.js?v=58, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockGaming},{blockAds},{debug}], tag=清除游戏大本营
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch)(\?(.*))?$ script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=YouTube去广告
 
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch) script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=YouTube去广告, enable={youtube_enable}
+http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, tag=采集onesie密钥
 
-http-response ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/config(\?(.*))?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/src/config-onesie.js, requires-body=true, binary-body-mode=true, timeout=30, tag=采集onesie密钥
-
-http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, timeout=60, argument=[{blockUpload},{blockShorts},{blockImmersive},{debug},{blockGaming}], tag=请求日志事件
-
-http-request ^https:\/\/rr[\w-]+\.googlevideo\.com\/initplayback\? reject-dict, tag=拦截initplayback
+http-request ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event script-path=https://kelee.one/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, argument=[{blockUpload},{blockShorts},{blockImmersive},{captionLang},{debug}], tag=请求日志事件
 
 [MitM]
-hostname=rr*.googlevideo.com, youtubei.googleapis.com
+hostname=youtubei.googleapis.com
+
+# ==== PLUGIN_VERSION: 5.1.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
 #
-# ==== PLUGIN_VERSION: 6.0.0 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# 【v5.1.0 依据：2026-09-29 用户真机抓包】
+#   Loon HAR，YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58。
 #
-# 【v6.0.0：恢复 v5.2.0 规则集 + 合并 730 的 YouTube 规则】
-#   用户反馈：730 的 YouTube 开关开着时，除了游戏大本营没有别的广告；
-#   730 退场后播放器广告就回来了。查上游 Maasea/sgmodule 的提交历史，
-#   youtube.response.js 自 2026-07-19（65075cdb38 #100 fix ad judgment）之后没再改过，
-#   本机也没有更早的副本 —— **脚本没换过版本，差别全在「怎么调」**。
+# 【改动 1】config 端点不再交给上游脚本，改用本仓库自带的 src/config-onesie.js
+#   上游把 youtube.response.config.GlobalConfigGroup 的 field 6 (coldConfigGroup)
+#   当成「空 schema 消息」解析，而它的 internalBinaryRead 直接 return、一个字节都不消费。
+#   YouTube 现在必定下发 coldConfigGroup（实测 42 KB），reader 立刻错位，随后把一个
+#   298 字节的嵌套 protobuf 当成 field 4 的 string 解码 →
+#   TypeError: The encoded data was not valid for encoding utf-8
+#   后果：config 处理器永远跑不到，UMP onesie 的 clientKey/encryptKey 永远采集不到，
+#   于是同插件的 *_request.js 每次 log_event 都要删掉 x-youtube-hot-hash-data 头。
+#   新脚本只沿固定路径取密钥、不改响应体，行为与上游 ri() 等价（有回归测试钉死）。
 #
-#   合并进来的 730 规则（逐条对照上游未修改的 blockAds.plugin）：
-#     1. 正则改成 730 的写法：纯前缀匹配、去掉 $ 锚点与 (\?(.*))?
-#        => youtubei/v1/player/ 下的子路径（get_drm_license、ad_break）也会命中脚本
-#     2. timeout=60。v5.x 一直没写，走的是 Loon 默认的 **10 秒** ——
-#        133 KB 的脚本在 10 秒内拉取 + 解析 + 改写不完就等于没生效。
-#     3. 加 youtube_enable 开关，名字与默认值都与 730 一致
-#     4. [Rewrite] rr*.googlevideo.com/initplayback? reject-dict 补回
-#     5. [MitM] 补回 rr*.googlevideo.com
+# 【改动 2】http-response 正则里删掉 log_event
+#   抓包里 youtubei/v1/log_event 的响应是 content-type: image/gif、42 字节 GIF89a。
+#   上游把 log_event 和 config 映射到同一个 Config 消息类型，遇到 GIF 首字节 0x47
+#   （= tag field 8 / wire 7）必然抛 Error: illegal tag: field no 8 wire type 7。
+#   而 onesie 密钥只存在于 config 响应里，log_event 响应从来给不出它 —— 纯负担。
+#   http-request 的 log_event 规则保留：它只读请求头，实测能正常改写 17 个头。
 #
-#   保留 v5.2.0 的四条规则，只调整了一条的位置：
-#     「清除游戏大本营」从第二条提到第一条。
-#     v5.2.0 里它在第二条，而 Loon 的 [Script] 是 first-match-wins ——
-#     放第二条等于它从来没有执行过。v5.2/v5.3 期间用户连续反馈
-#     「游戏大本营还是删不掉」，根因就是这里。
-#     放在第一位不影响 player/search/guide/get_setting/get_watch，
-#     那些端点仍然由上游脚本处理。
+# 【不要放宽正则】脚本内部用 url.includes(path) 做端点匹配，抓包里新出现的
+#   att/get、mdx/handoff、notification_registration/* 一个都不在它的表里，
+#   放进去只会不停弹「脚本需要更新」。
+#   尤其 notification_registration/get_settings 的 URL 含子串 get_setting，
+#   会被误判成 youtube.response.setting.Setting 并改写响应体 —— 正则里的
+#   account\/get_setting 正是挡住它的锚点。
 #
-# 【已知未解决：next 续页里 aclick-only 的广告 pod】
-#   har9 #290 的顶层字段 37/42 只有 aclick（没有 pagead），不在判据内，暂不删。
-#   加 doubleclick 标记是误伤风险的主要来源，宁可漏删。
+# 【不要把 youtubei/v1/generate_204 圈进来】那是 HEAD 连通性探测，拦了会误判断网。
 #
-# 【怎么确认脚本在跑】
-#   首次成功清理后弹一次「游戏大本营 · 已生效 脚本 v5.8」；之后不再重复弹。
-#   打开「启用调试模式」则每次都报：done / clean / nomatch / off。
+# 【没做的两件事及原因】
+#   · www.google.com/ads/on-device/{clicks,conversions} 是每次启动都发的广告归因
+#     埋点（api_version=3&oda_eid=0.0.0）。想拦必须把 www.google.com 加进 MitM，
+#     代价远大于收益，故不内置，README 给了可选的手动写法。
+#   · 字幕翻译依赖 googlevideo 的 initplayback，本版不解密 googlevideo，
+#     字幕请交给「YouTube双语翻译」插件。

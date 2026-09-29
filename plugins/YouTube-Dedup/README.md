@@ -1,335 +1,15 @@
 # YouTube-Dedup · 哔哩哔哩同源去重版
 
-> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 修 config 解析崩溃，v5.2 清除首页「游戏大本营」，
-> v5.4 修好了让 v5.2 一直没生效的那个 bug：Loon 的 Script 是 first-match-wins。
-> Dedupe against blockAds; v5.1 fixes a config parse crash, v5.2 drops the Gaming Hub module,
-> v5.4 fixes why v5.2 never actually ran.
+> 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修复 config 端点解析崩溃。
+> Removes duplicated rewrites against blockAds; v5.1 fixes a config-endpoint parse crash found in a real capture.
 
-**v6.0.0** · 3 个变体 · 3 variants
-
----
-
-## ⚠️ 如果「游戏大本营」怎么都删不掉
-
-**多半是 `blockAds` 合集的 YouTube 规则排在了本插件前面。**
-
-合集里有一条同源的 `http-response`，命中 `browse|next|player|...` —— 和本插件完全同一批 URL。
-Loon 的 `[Script]` 是 **first-match-wins**，谁在前谁赢，后一条永不执行。
-合集赢的时候：游戏大本营删不掉，但去广告照常工作（合集自己在做），所以「其他功能都正常」，
-极具迷惑性 —— 2026-09-29 就这么排查了五轮。
-
-**已经并进仓库了。** 从 v5.6 起，[BlockAds-Patched](../BlockAds-Patched/)
-会把合集里的 YouTube 部分一并退场（脚本规则 + `initplayback` 拦截 + 死开关 `youtube_enable`），
-由 GitHub Actions 每 6 小时自动同步重施。改用那个订阅地址即可，
-**不用再手动去合集里关开关**。
-
-补丁器带自检：产物里只要还剩未注释的 YouTube 脚本/复写规则就直接报错退出，
-自动同步的 Action 随之变红，不会把坏产物推上去。
-
-
----
-
-## v6.0.0：恢复 v5.2.0 规则集 + 合并 730 的 YouTube 规则
-
-用户反馈：**730 的 YouTube 开关开着时，除了游戏大本营没有别的广告**；730 退场后播放器广告就回来了。
-
-先查了「当时那个版本」：上游 `Maasea/sgmodule` 的 `youtube.response.js` 自 **2026-07-19**
-（`65075cdb38 #100 fix ad judgment`）之后就没再改过，本机也没有更早的副本——
-**脚本没换过版本，差别全在「怎么调」**。于是把清单恢复成 v5.2.0 的规则集，
-并把 730 的 YouTube 规则逐条并进来：
-
-| | 730 原版 | v5.x（合并前） |
-|---|---|---|
-| 正则 | 纯前缀匹配、**无 `$` 锚点** | 带 `(\?(.*))?$` 锚点 |
-| → 结果 | `player/get_drm_license`、`player/ad_break` **也命中** | 不命中子路径 |
-| timeout | **60** | 未写 → Loon 默认 **10 秒** |
-| 开关 | `enable={youtube_enable}` | 无 |
-| initplayback | `[Rewrite] ... reject-dict` | 无 |
-| MitM | 含 `rr*.googlevideo.com` | 只有 `youtubei.googleapis.com` |
-
-保留 v5.2.0 的四条规则，**只把「清除游戏大本营」从第二条提到第一条**——
-v5.2.0 里它在第二条，而 Loon 是 first-match-wins，放第二条等于它**从来没有执行过**
-（v5.2/v5.3 期间连续反馈「游戏大本营还是删不掉」的根因）。
-放在第一位不影响 `player` / `search` / `guide` / `get_setting` / `get_watch`，那些仍由上游脚本处理。
-
-> 10 秒默认超时这条值得单独说：133 KB 的脚本要拉取 + 解析 + 改写，
-> 超时就等于没生效，而症状恰恰是「广告还在」。
-
-### 规则命中自检
-
-| 端点 | 命中 | 动作 |
-|---|---|---|
-| `browse` `next` | 清除游戏大本营 | 自研脚本 |
-| `player` 及其子路径 `get_drm_license` / `ad_break` | YouTube去广告 | 上游脚本 |
-| `search` `guide` `get_watch` | YouTube去广告 | 上游脚本 |
-| `config` | 采集onesie密钥 | 自研脚本 |
-| `log_event` | 请求日志事件 | 上游请求脚本 |
-| `rr*.googlevideo.com/initplayback` | 拦截initplayback | `reject-dict` |
-| `att/get` `notification_registration/*` `mdx/handoff` | 不拦 | —— |
-
----
-
-## 历史：A/B 对照版 `YouTube-730.lpx`（已并入 v6.0.0 后删除）
-
-用户反馈：**730 的 YouTube 开关开着时，除了游戏大本营没有别的广告**；把 730 的 YouTube 规则
-退场后，播放器广告就出来了。于是把 730 的规则**原样**搬过来做一个对照。
-
-取的是上游未修改的 `blockAds.plugin`，它的 YouTube 规则与我 v5.x 有三处结构性差异：
-
-| | 730 原版 | v5.x |
-|---|---|---|
-| 规则条数 | **一条** `http-response` 管 `browse\|next\|player\|search\|reel_watch_sequence\|guide\|account/get_setting\|get_watch` | 拆成两条：`browse\|next` → 自研脚本；其余 → 上游脚本 |
-| 正则锚点 | **无 `$`**（纯前缀匹配），所以 `player/get_drm_license`、`player/ad_break` 也命中 | 带 `(\?(.*))?$` 锚点，不命中子路径 |
-| timeout | **60** | 未写 → Loon 默认 **10 秒** |
-| argument | 不传 → 用脚本内部默认值（`blockUpload=true` / `blockImmersive=true`） | 传了，会把这两个覆盖成 `false` |
-
-Loon 是 first-match-wins，规则拆成两条就意味着同一端点上只有一套能生效；
-10 秒默认超时对 133 KB 的脚本也偏紧。**这版把三处差异全部还原**，
-用来回答一个问题：**问题出在 v5.x 的规则拆分上，还是出在上游脚本的 schema 覆盖不到？**
-
-> 这版**不带** `feed-gaming.js`，所以游戏大本营和信息流广告都不会被清除。
-> 日常使用仍用 `YouTube-Dedup.lpx`。
-> 顺带：v5.9 已给三个常用变体的上游规则补上 `timeout=60`。
-
----
-
-## v5.8.0：补上 `next` 里的单例广告 pod
-
-`next`（信息流续页）的广告一直漏网：它们**不是重复列表项，而是顶层单例字段**
-（字段号 15/37/42，每个 40~68 KB）。v5.7 只删重复元素，够不着。
-
-判据：**有广告标识、且一个 `/vi/` 视频 ID 都没有 → 整条删**。实测（har9 #290）：
-
-| 字段 | 内容 | 视频 ID | 处置 |
-|---|---|---|---|
-| 14 | `aclk`×2 | 1 | **保留**（正常推荐，虽也带广告点击 URL） |
-| 15 | `pagead`×8 `aclk`×7 | 0 | 删（44556 B） |
-| 37 / 42 | 只有 `aclick`（无 `pagead`） | 0 | 不在判据内，暂不删 |
-
-「没有视频就不可能是正常推荐」这条不变式很硬，专门用来不误伤「既带广告又带视频」的混合项。
-回归测试加了 3 例。
-
-### 播放器广告与侧边推荐广告：代码路径是通的，但验证不了
-
-广告装在 `/youtubei/v1/player` 的 `adPlacements` / `adSlots` /
-`playbackTracking.pageadViewthroughconversion`，上游的 `Ni()` 正是清这三个的，
-而 `player` 端点**仍然走上游脚本**。
-
-**但最近三次看视频的抓包里，`/youtubei/v1/player` 一次都没出现**——连请求 URL 文本都搜不到，
-而同在 `/youtubei/v1/player/` 下的 `ad_break`（4 次）和 `get_drm_license`（3 次）都在。
-说明 App 在用播放器子系统，是**抓包侧没记到**。更早的两次抓包里有 `player`，
-但那是插件开着录的，广告早已被清掉，没有参考价值。
-
-**没有带广告的 `player` 样本，就不动这块代码。**
-
-顺带查清：`/youtubei/v1/player/ad_break` 的响应是 **42 字节 `image/gif`**，
-是打点信标不是广告本体，拦它只会断掉打点，广告照播。
-
----
-
-## v5.7.0：合集退场后广告反弹，补上广告判据
-
-2026-09-29 07:31 的抓包证实：合集 YouTube 规则退场后**首页广告暴涨**。
-那些广告是**整段的 feed section**（140~180 KB，含 `pagead` 与「赞助」标签，每段 3 条广告素材），
-而 `browse/next` 当时只由「清游戏大本营」的脚本处理，它不删广告 —— 全部漏网。
-
-自研脚本现在同时清两样，两类判据**共用开头那一遍扫描**（`hitPanel` / `hitAd` 两个有序数组），
-所以加广告判据几乎不花时间：
-
-| 判据 | 内容 | 开关 |
-|---|---|---|
-| 游戏大本营 | `mini_app_panel` / `FEmini_apps_saved` | `blockGaming`（默认开） |
-| 信息流广告 | `pagead`（与上游 `ni()` 同一个）/ EML 名 `inline_injection_entrypoint_layout` | `blockAds`（默认开） |
-
-**判据精度（实测）**：广告段 `赞助`×3、`/vi/` 0~1 个（那是广告素材自己的 ID）；
-正常段 `赞助`×0、`/vi/` 15 个。`pagead` 在前六份抓包里一次都没出现过。
-
-七份抓包共 68 条 `browse/next` 全部重跑：`pagead`+`赞助` 出现次数 **73 → 25**，
-上游脚本能解析全部 68 条输出。回归测试 31 例。
-
-### 删掉了一版规则：Shorts 过滤
-
-中途试过把上游的 Shorts 过滤（EML 名匹配 `/shorts(?!_pivot_item)/`）也补进来。
-**实测它把正常视频卡也删了** —— 从 EML 名字节往回反查 64 字节太松，会撞上普通卡片里
-恰好列出的模板名。已经整条删掉。宁可少删，不可误伤。
-
-### 还没覆盖：`next`（信息流续页）里的广告
-
-那里的广告不是「重复列表项」，而是**单例**顶层字段（每条 `next` 响应 2 个，字段号 14/15，
-里面各塞 3~5 条广告素材）。现有判据只删重复元素，够不着。
-这 5 条 `next` 响应里 39 处判据未被清除。要做需要单独处理单例容器，
-风险是误删同一容器里的正常内容，不在本次范围。
-
----
-
-## v5.5.0：脚本自己跑不完，等于规则没生效
-
-连续几轮「改了还是不行」，最后一层原因在脚本本身。
-
-v5.2~v5.4 的 `feed-gaming.js` 是「每进入一层嵌套，就用 `contains()` 把这段字节全量扫一遍」。
-一次首页响应有约 8 层单例嵌套、每层都是 MB 量级，同一批字节在每层被重扫 4 遍。
-**在用户真机那份 2919476 B 的首页响应上实测：跑满 60 秒仍未结束** —— 远超 Loon 的
-10 秒脚本超时，脚本被杀掉，响应原样放行，模块自然还在。
-
-现在改成三件事：
-
-1. 开头做**一遍**扫描，把判据串的命中位置记成有序数组 —— 整条响应只扫一遍
-2. 遍历时「这段里一处判据都没有」就整棵子树跳过，不再 parse
-3. 重建用 `subarray` + `set`（memcpy），不再 `out.push(b[i])` 逐字节推
-
-同一份 2919476 B 响应：**>60 s（超时）→ 11 s**。
-
-> 那 11 s 是在一个被限速的沙盒里测的 —— 那边跑一个 2.4 M 次的空循环要 7.3 s，
-> 比真机慢两到三个数量级。真机上就是一次线性扫描的量级。
-
-三份抓包共 33 条 `browse/next` 全部重跑：8 条改写、25 条逐字节未动；
-改写后 `mini_app_panel` / `FEmini_apps_saved` 归零；`/vi/` 计数全部不变
-（52→52、49→49、55→55、270→270、519→519 …）；上游脚本能解析全部 33 条输出。回归测试 29 例。
-
-### 会员试用弹窗：不是回归，这次没做
-
-`premium_upsell` 只出现在 `youtubei/v1/get_watch`（每条 2~3 处），**不在信息流里**。
-它在第二、三份抓包里就有（9 处 / 6 处），这次是 17 处 —— 是 A/B 实验投放变多，
-**不是 v5.4 改动引起的回归**；上游去广告脚本从来也不处理会员推销。
-
-试过用同一个判据方案删它：标识能扫到，但它不在任何「重复列表项」里，按现有删除规则够不着。
-要做需要单独定位推销弹窗的渲染器，超出本次范围。
-
-## v5.4.0：为什么 v5.2 一直没生效
-
-用户反馈「游戏大本营还是没有去处」。查下来不是代码不对，是**规则根本没被调用**。
-
-**Loon 的 `[Script]` 是 first-match-wins**：同一个 URL 只执行第一条完整命中的 `http-response` 规则，
-后面的不再执行，也不会把前一条的输出喂给后一条。官方新版 Script 文档
-（<https://loon0x00.github.io/docs/Script/script_v2>）写得很明确：
-
-> Response Script … 始终按照原配置顺序选择**第一条最终条件为 true 的规则**
-> Request 和 Response 分别最多选择一条
-
-**链式执行只存在于 `[Rewrite]`**（3.2.3 起专门加的特性），脚本从来没有这个特性。
-搜索引擎上「Loon 多条脚本按顺序依次执行」的说法，是把 Rewrite 的语义错套到了 Script 上。
-
-v5.2 把「清除游戏大本营」排在去广告规则**后面**，两条正则都匹配 `browse|next` → 后一条从未执行。
-本版把它提到**最前**，并从上游规则里移除 `browse|next`。
-
-### 一个附带的好处：这一版不再依赖「到底是哪种语义」
-
-新版 Script 文档写死了第一条命中，但**旧语法页面对此没有明文**（只对 `network-changed` 写过
-「有多个这种类型的脚本，只会调用配置文件中的第一个」）。而 v5.4 的三条 `http-response` 规则
-按 URL 完全互斥：
-
-| 端点 | 规则 | 脚本 |
-|---|---|---|
-| `browse` `next` | 1 | `feed-gaming.js`（自研） |
-| `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch` | 2 | 上游 `youtube.response.js` |
-| `config` | 3 | `config-onesie.js`（自研） |
-
-用三份真机抓包共 16 条真实 URL 逐条核对：**重叠 0**。
-所以无论 Loon 走「第一条命中」还是「全部执行」，v5.4 的结果完全一样 ——
-不再把正确性押在一条只有新版文档写死的语义上。
-
-### 代价（如实说明）
-
-`browse/next` 不再走上游脚本，于是丢掉了上游在信息流上的 **Shorts 过滤**
-（`Fi()` 里的 `/shorts(?!_pivot_item)/`）。`player` / `search` / `guide` /
-`account/get_setting` / `get_watch` / `reel_watch_sequence` 仍然走上游脚本，去广告不受影响。
-
-上游另外两条信息流判据（未知字段含 `pagead`、EML 名为 `inline_injection_entrypoint_layout`）
-在三份真机抓包共 25 条 `browse/next` 里一次都没出现过，上游自己也一次都没改过信息流响应 ——
-丢不丢没有实际区别。
-
-### 还没做完：把 Shorts 过滤补回来自研脚本
-
-已经写出来并**验证正确**（三份抓包 25 条：游戏面板清零、`/vi/` 计数全部不变、
-上游脚本能解析全部输出），但 1.2 MB 以上的响应要 5~40 秒，**远超 Loon 的 10 秒脚本超时**，
-所以没有发出来。慢的原因是「每层嵌套都把这批字节重新扫一遍」，而信息流有约 8 层单例嵌套。
-方向已经明确：开头做一遍扫描把判据命中位置建成有序索引，之后每次判定走二分查找。
-
-## v5.3.0：给「清除游戏大本营」加诊断
-
-**为什么要加**：2026-09-29 04:13 的第三份抓包里，游戏大本营仍然存在。逐条核对后确认 ——
-**那份抓包是在 v5.2 推送后第 2 分钟导出的**（v5.2 commit 时间 `04:11:10`，抓包覆盖 `04:13:28`–`04:14:49`），
-设备上跑的还是没有这条规则的旧插件；再加上 `raw.githubusercontent` 的 CDN 缓存最长 24 小时。
-把那份抓包的 13 条 browse 响应逐条喂给当前脚本离线重跑：4 条改写、9 条逐字节不动，
-视频条目数完全一致，上游脚本能解析全部输出 —— **代码本身没问题，是版本没换上**。
-
-但「规则没跑」和「规则跑了却没删掉」在外面看一模一样，只能靠猜。所以加了诊断：
-
-| 开关 `debug` 打开后下拉刷新首页 | 含义 |
-|---|---|
-| `游戏大本营 · done` | 规则在跑，删掉了 N 项 / M 字节 |
-| `游戏大本营 · clean` | 规则在跑，这条响应里本来就没有 |
-| `游戏大本营 · nomatch` | 看到标识但没能整项删除 → 结构变了，需要重新定位 |
-| `游戏大本营 · off` | `blockGaming` 被关掉了 |
-| **完全没有通知** | **规则没被执行** → 插件是旧版本，或同一 URL 上有更靠前的规则抢先 |
-
----
-
-## v5.2.0：清除首页「游戏大本营」
-
-依据：2026-09-29 第二份真机 Loon 抓包（253 条，03:13:14–03:14:25，含 `player` 响应）。
-回归测试 `node test/feed-gaming.test.mjs`（29 例全过）。
-
-首页（`browseId=FEwhat_to_watch`）会插一个 **61342 字节**的「YouTube 游戏大本营」模块。
-它不是视频，而是 YouTube 的 **mini app（EML 渲染）面板**；另有一个 `browseId=FEmini_app_destination`
-的游戏货架页，里面是 60 张游戏卡。
-
-新脚本 `src/feed-gaming.js` 挂在 `browse|next` 上，**不认任何 protobuf schema**，只认「结构 + 内容」：
-
-1. 自上而下遍历；「同一父消息里出现 ≥2 次的字段号」的元素 = 列表里的一项
-   （feed 卡片 / 货架格子 / section）
-2. 该元素内容里出现 marker → 整项删掉
-3. 删空后父消息若也不剩内容，一并收敛
-
-| 响应 | 大小 | 删掉 | 保留 |
-|---|---|---|---|
-| `browse` 首页（HAR2 #240） | 399608 B | 游戏面板 61372 B | 52 个视频条目**一个不少** |
-| `browse` 首页续页（#33） | 224289 B | 61342 B | 49 个视频条目 |
-| `browse` 游戏货架页（#15） | 587223 B | 570257 B | —（整页都是游戏） |
-| 其余 21 条 browse/next/get_watch/player/reel/guide | — | **0** | 逐字节未动 |
-
-第三份抓包（HAR3，13 条 browse）重跑同样通过：4 条改写、9 条逐字节不动，
-`/vi/` 计数全部保持（55→55、49→49、96→96、270→270、519→519 …）。
-
-### 清除之后**故意保留**的那一项
-
-HAR3 里，清除后仍会剩下一个元素，它的模板清单长这样：
-
-```
-chip_bar_collection_with_controller.eml-fe
-mini_app_game_info.eml-fe
-mini_app_splash_screen.eml-fe
-%mini_game_card.eml-fe|998e208b2b3ddc1
-*more_drawer_button.eml-fe|f8bc3d9f67dab8ec
-7channel_action_buttons_phone.eml-js-fe
-```
-
-**它是一个普通视频卡**，只是这张卡的模板清单里恰好列了游戏相关模板。
-拿 `mini_game_card` 当 marker 就会把它删掉 —— 那等于从首页拿掉一个正常视频。
-这条已写成回归测试（`误伤防护：只带游戏模板名的普通视频卡必须保留`）。
-
-### marker 选型（做过精度评估，结论是只用最保守的两个）
-
-| 候选 | 命中 | 连带误删 |
-|---|---|---|
-| `mini_app_panel` / `FEmini_apps_saved` | 每次恰好 1 个元素，就是面板本身 | **无** |
-| `mini_game_card` | 多命中 | `error_message` 占位卡；极端情况连带 `channel_action_buttons`（**订阅按钮**） |
-| `FEmini_app_destination` / `FEmini_app` | 多命中 | `more_drawer_button`（**更多按钮**） |
-| `playables_` | 命中 get_watch 等无关响应 | 误伤面太大 |
-| `游戏大本营`（本地化文案） | — | **绝不使用**：正常视频标题里可能出现 |
-
-### 开关
-
-`[Argument] blockGaming`，**默认开**。关掉后脚本对任何响应都是逐字节原样放行（有测试钉死）。
-
-> 该规则写在去广告规则**之后**。Loon 会按书写顺序依次执行匹配的规则（后一条拿到前一条的输出），
-> 所以顺序颠倒也能工作；但这样排，万一 Loon 只跑第一条，受影响的也只是游戏模块，去广告不会失效。
+**v5.1.0** · 3 个变体 · 3 variants
 
 ---
 
 ## v5.1.0 改了什么
 
-依据：2026-09-29 第一份真机 Loon 抓包（YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58）。
+依据：2026-09-29 用户真机 Loon 抓包（YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58）。
 复现材料在 `test/fixtures/`，回归测试 `node test/config-onesie.test.mjs`（16 例全过）。
 
 | # | 现象（抓包证据） | 原因 | 处理 |
@@ -393,16 +73,14 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 ## 改动对照 · What changed
 
-| | 原版 v5.0.0 | 本插件 v5.4.0 |
+| | 原版 v5.0.0 | 本插件 v5.1.0 |
 |---|---|---|
 | `[MitM]` | `*.googlevideo.com` + `youtubei.googleapis.com` | 仅 `youtubei.googleapis.com` |
 | `captionLang` | 6 个选项 | **移除**（依赖被拦截的 initplayback） |
 | `googlevideo` 规则 | 有 | **移除**（仅 Debug 变体保留） |
 | config 端点 | 交给上游脚本 → **解析崩溃** | 本仓库 `src/config-onesie.js` → 正常采集密钥 |
 | http-response 覆盖端点 | 含 `log_event`（实为 GIF，必崩） | 已移除 |
-| 覆盖端点 | 含 `log_event` / `config` | `browse` `next`（自研）+ `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch`（上游）+ `config`（自研） |
-| 信息流 Shorts 过滤 | 由上游脚本负责 | **暂无**（见「代价」） |
-| 游戏大本营 | 无处理 | **`blockGaming` 开关，默认开** |
+| 覆盖端点 | 含 `log_event` / `config` | `browse` `next` `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch` + `config`（自研脚本） |
 | 去广告 / 画中画 / 后台播放 | ✅ | ✅ **完整保留** |
 
 ---
@@ -411,25 +89,39 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 | 文件 | 用途 | Purpose |
 |---|---|---|
-| `YouTube-Dedup.lpx` | **推荐** | 仅解密 youtubei |
+| `YouTube-Dedup.lpx` | **推荐** | 仅解密 youtubei。⚠️ 与 `BlockAds-Patched` 的 YouTube 规则命中同一批 URL，Loon 是 first-match-wins，**同一时间只启用一个** |
 | `YouTube-Dedup-Slim.lpx` | 保留 captionLang | 供不装合集的用户 |
 | `YouTube-Dedup-Debug.lpx` | 完整功能 + debug 默认开 | Full + debug on |
 | `src/config-onesie.js` | v5.1 新增，自研 | 从 config 响应采集 UMP onesie 密钥 |
-| `src/feed-gaming.js` | v5.2 新增，自研 | 清除首页「游戏大本营」模块 |
-| `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试 |
-| `test/feed-gaming.test.mjs` | v5.2 新增 | 22 例回归测试 |
+| `test/config-onesie.test.mjs` | v5.1 新增 | 16 例回归测试，跑 `node test/config-onesie.test.mjs` |
 | `test/fixtures/config-response.bin` | 抓包响应体 | 80364 B，已确认不含任何令牌 |
 | `test/fixtures/log_event-response.bin` | 抓包响应体 | 42 B GIF89a |
-| `test/fixtures/feed-with-gaming.bin` | 抓包响应体 | 81588 B，3 个真实 feed section（1 个游戏面板 + 2 个普通视频） |
+
+---
+
+## ⚠️ 和 BlockAds-Patched 只能二选一
+
+`BlockAds-Patched` 里**保留了 730 的 YouTube 规则**（`youtube.response.js` + `youtube_enable` 开关 +
+`initplayback` 拦截 + `rr*.googlevideo.com`），它命中的 URL 与本插件**完全重叠**：
+`browse` `next` `player` `search` `reel_watch_sequence` `guide` `account/get_setting` `get_watch`。
+
+而 Loon 的 `[Script]` 是 **first-match-wins** —— 同一个 URL 只执行第一条完整命中的规则。
+**两个插件同时开，只有排在前面的那个会跑。**
+
+| 你想要 | 用哪个 |
+|---|---|
+| 播放器广告清干净（2026-09-29 验证过这套没有广告） | **BlockAds-Patched**（730 的 YouTube 规则） |
+| 游戏大本营 + 信息流广告 + Shorts 过滤 | **本插件**，同时把 730 的「YouTube-脚本开关」关掉 |
 
 ---
 
 ## 安装 · Install
 
 1. 导入对应 `.lpx`
-2. 确认 **MitM over HTTP/2** 与 **QUIC 回退保护** 已开启
-3. 字幕交由 YouTube 双语翻译插件处理（不使用 googlevideo）
-4. 重启 Loon
+2. **若同时装了 `BlockAds-Patched`，按上表二选一**
+3. 确认 **MitM over HTTP/2** 与 **QUIC 回退保护** 已开启
+4. 字幕交由 YouTube 双语翻译插件处理
+5. 重启 Loon
 
 > 脚本托管在 `raw.githubusercontent.com`，CDN 缓存约 24h。拉不到时在 URL 后加 `?cb=2`。
 
@@ -440,11 +132,8 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 - YouTube **PO Token** 机制：player 接口对未完成 BotGuard 挑战的客户端返回
   `400 FAILED_PRECONDITION`，属服务端要求，**脚本层无解**
 - 完整约 60 个标签页类的配置走 App 内原生功能，脚本只能提供常用项
-- 「游戏大本营」只在 `browse` / `next` 上拦。若 YouTube 把它塞进别的端点（例如 `guide` 侧边栏），
-  当前规则不会命中 —— 判据是内容标识，届时脚本会自动跟上，无需改清单
-- **Debug 变体**的 `initplayback` 规则依赖 v5.1 修复后采集到的 onesie 密钥；
-  密钥命中时会把 UMP 请求重定向到 `https://init-stream.maasea.workers.dev/`（第三方）。
-  推荐版不含该规则，不涉及
+- 本次抓包是**冷启动**，没有 `player` 响应，因此**播放页广告未被本次验证覆盖**；
+  覆盖到的只有 `browse` / `config` / `guide` / `account/get_setting` 四类
 
 ---
 
@@ -456,7 +145,5 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
 
-`src/config-onesie.js` 与 `src/feed-gaming.js` 均为本仓库自研：前者只按公开可观测的 protobuf 字段编号
-取密钥，后者只按「结构 + 内容」删列表项，都不含上游代码，许可同本仓库 LICENSE。
-
-`test/fixtures/*.bin` 是抓包响应体，已逐字节确认不含 `ya29` / `Bearer` / `AIza` / visitor-id。
+`src/config-onesie.js` 为本仓库自研，参照的是 YouTube inner tube 协议公开可观测的字段编号，
+不含上游代码，许可同本仓库 LICENSE。
