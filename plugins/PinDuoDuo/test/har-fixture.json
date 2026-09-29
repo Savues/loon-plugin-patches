@@ -1,0 +1,2132 @@
+{
+ "note": "摘自 2026-09-29 基线 HAR 的 homepage/hub 响应，仅保留 jq 涉及的字段",
+ "source": "base.har / GET /api/alexa/homepage/hub",
+ "gzip": true,
+ "result": {
+  "icon_set": [
+   {
+    "id": 473,
+    "title": "限时秒杀",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2026-08-18/bfa64b2f-2f2b-4d91-b4aa-49b9f2947424.gif",
+    "second_image": "https://commimg.pddpic.com/oms_img_ng/2026-05-21/b52dc2cc-a0f4-426e-b6a3-53209408708c.png",
+    "link": "https://mobile.yangkeduo.com/spike.html?__rp_name=spike_v3&_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_pdd_nc=d4291d&refer_spike_source=110&encrypt_spike_source=jfNi0dG7MXa6PTf35EJaag%3D%3D&refer_icon_material_id=2293902&refer_badge_material_id=2413116&home_material_activity_type=7",
+    "style": 3,
+    "style_image": "https://commimg.pddpic.com/oms_img_ng/2026-05-17/651c8898-e469-4626-9515-095b84a73e2f.png",
+    "style_attribute": {
+     "show_coupon_type": 0,
+     "width": 40,
+     "height": 16,
+     "padding_top": 6,
+     "padding_left": 31
+    },
+    "badge_id": 23,
+    "mode": 1,
+    "log_sn": 99956,
+    "group": 1,
+    "deleted": false,
+    "track_info": {
+     "badge_material_id": "2413116",
+     "home_material_activity_type": "7",
+     "icon_material_id": "2293902",
+     "display_layout": "1",
+     "icon_group": "1",
+     "icon_id": "473",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 257,
+    "title": "充值中心",
+    "image": "http://t00img.yangkeduo.com/goods/2020-01-14/0fab520471880b5728fb7150d77f5390.png",
+    "link": "deposit.html?source=deposit",
+    "style": 0,
+    "style_attribute": {
+     "show_coupon_type": 0,
+     "width": 43,
+     "height": 16,
+     "padding_top": 5,
+     "padding_left": 31
+    },
+    "mode": 1,
+    "log_sn": 99293,
+    "group": 11,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "11",
+     "icon_id": "257",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 489,
+    "title": "现金大转盘",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2024-11-15/82623b4e-852a-4221-b222-447873a36ef1.png",
+    "link": "https://mobile.yangkeduo.com/spi_main.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_ex_sid=app_icon",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 4579326,
+    "group": 110,
+    "deleted": false,
+    "track_info": {
+     "charizard_pv_id": "1790653574503",
+     "display_layout": "1",
+     "icon_group": "110",
+     "icon_id": "489",
+     "badge_image_gif": "0",
+     "page_el_sn": "4579326",
+     "charizard_groups": "110,4,10,150,149",
+     "charizard_icons": "489,265,486,463,464"
+    }
+   },
+   {
+    "id": 316,
+    "title": "多多果园",
+    "image": "http://t00img.yangkeduo.com/goods/2020-06-03/0e1bb4cf55c78a88b2f0d917c503a334.png",
+    "link": "https://mobile.yangkeduo.com/cartoon_fruiter.html?_pdd_fs=1&_pdd_tc=676666&_pdd_sbs=1&fun_id=app_home",
+    "style": 0,
+    "style_image": "",
+    "badge_id": 4,
+    "mode": 1,
+    "log_sn": 15079,
+    "group": 61,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "61",
+     "icon_id": "316",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 256,
+    "title": "9块9特卖",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2026-09-17/16f45554-c4cc-40eb-a0b8-9519388143d0.png",
+    "second_image": "https://commimg.pddpic.com/oms_img_ng/2025-12-22/b2135525-caaf-4168-aef5-4234ee1f0194.png",
+    "link": "sjs_special_nine.html?scene_group=5&refer_special_nine_source=1&refer_icon_material_id=2311857&home_material_activity_type=11",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 99952,
+    "group": 7,
+    "deleted": false,
+    "track_info": {
+     "home_material_activity_type": "11",
+     "icon_material_id": "2311857",
+     "display_layout": "1",
+     "icon_group": "7",
+     "icon_id": "256",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 472,
+    "title": "潮流好价",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-08-01/4ebf26ec-db08-44f0-a655-d9e2107034bd.png",
+    "second_image": "https://commimg.pddpic.com/oms_img_ng/2023-08-01/792d4ce7-567b-4028-a736-d34d36b9c970.png",
+    "link": "http://mobile.yangkeduo.com/sjs_fashion_hot_selling.html?_pdd_fs=1&_pdd_tc=f4f4f4&biz_source_type=home_icon",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 8233150,
+    "group": 153,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "153",
+     "icon_id": "472",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 471,
+    "title": "补贴多人团",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-07-25/831e9bd9-8149-4acd-bc4b-f84783ba0843.png",
+    "link": "https://mobile.yangkeduo.com/pincard_ask.html?__rp_name=brand_amazing_price_group_channel&_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1",
+    "style": 0,
+    "style_image": "",
+    "badge_id": 2,
+    "mode": 1,
+    "log_sn": 7567298,
+    "group": 139,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "139",
+     "icon_id": "471",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 534,
+    "title": "奢品馆",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2026-08-05/dbe3dfe0-86ac-4601-95c0-3e39f092804b.png",
+    "link": "/pincard_ask.html?__rp_name=brand_luxury_pavilion&_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&brand_luxury_from=10icon",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 10376547,
+    "group": 168,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "168",
+     "icon_id": "534",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 525,
+    "title": "超级满减",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2025-11-16/2ef9426b-b2d0-4a7e-af57-102c37409553.png",
+    "link": "https://mobile.yangkeduo.com/attendance.html?type=1&id=203466&_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 7939420,
+    "group": 111,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "111",
+     "icon_id": "525",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 265,
+    "title": "天天领现金",
+    "image": "http://t00img.yangkeduo.com/goods/2020-01-14/268178927edd263209650e1c189f5662.png",
+    "link": "https://mobile.yangkeduo.com/mhu_lucky.html?_ex_sid=index&_ex_campaign=red_packet&_pdd_fs=1&_pdd_tc=ffffff",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 98484,
+    "group": 4,
+    "deleted": false,
+    "track_info": {
+     "charizard_pv_id": "1790653574503",
+     "display_layout": "1",
+     "icon_group": "4",
+     "icon_id": "265",
+     "badge_image_gif": "0",
+     "page_el_sn": "99003",
+     "charizard_groups": "110,4,10,150,149",
+     "charizard_icons": "489,265,486,463,464"
+    }
+   },
+   {
+    "id": 486,
+    "title": "免费领礼物",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2024-08-25/faa2d454-e2c8-4091-a348-03f3c85958cf.png",
+    "link": "https://mobile.yangkeduo.com/pearl_main.html?_pdd_fs=1&_ex_sid=app_icon_1",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 99003,
+    "group": 10,
+    "deleted": false,
+    "track_info": {
+     "charizard_pv_id": "1790653574503",
+     "display_layout": "1",
+     "icon_group": "10",
+     "icon_id": "486",
+     "badge_image_gif": "0",
+     "page_el_sn": "99003",
+     "charizard_groups": "110,4,10,150,149",
+     "charizard_icons": "489,265,486,463,464"
+    }
+   },
+   {
+    "id": 463,
+    "title": "现金大富翁",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-05-09/31665e22-8847-4c38-8b1f-7f4494afd571.png",
+    "link": "https://mobile.yangkeduo.com/monopoly_main.html?_pdd_fs=1&_ex_sid=app_icon&_pdd_tc=ffffff",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 7911424,
+    "group": 150,
+    "deleted": false,
+    "track_info": {
+     "charizard_pv_id": "1790653574503",
+     "display_layout": "1",
+     "icon_group": "150",
+     "icon_id": "463",
+     "badge_image_gif": "0",
+     "page_el_sn": "99003",
+     "charizard_groups": "110,4,10,150,149",
+     "charizard_icons": "489,265,486,463,464"
+    }
+   },
+   {
+    "id": 464,
+    "title": "推金币",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-05-09/7aee5aca-3e82-4bf6-b06e-5b2896f3f4fe.png",
+    "link": "https://mobile.yangkeduo.com/mth_coin.html?_pdd_fs=1&_ex_sid=app_icon&_pdd_tc=ffffff",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 7911425,
+    "group": 149,
+    "deleted": false,
+    "track_info": {
+     "charizard_pv_id": "1790653574503",
+     "display_layout": "1",
+     "icon_group": "149",
+     "icon_id": "464",
+     "badge_image_gif": "0",
+     "page_el_sn": "99003",
+     "charizard_groups": "110,4,10,150,149",
+     "charizard_icons": "489,265,486,463,464"
+    }
+   },
+   {
+    "id": 267,
+    "title": "省钱月卡",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2025-12-21/1b2149a1-3841-4b2a-a29e-319eb49f144e.png",
+    "link": "https://mobile.yangkeduo.com/hub_monthly_card.html?_pdd_fs=1&_pdd_nc=ffffff&_pdd_tc=ffffff&cid=main_icon",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 397243,
+    "group": 72,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "72",
+     "icon_id": "267",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 533,
+    "title": "超级晚8",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2026-04-26/fb8489a0-e8cc-4e5b-bbd9-4ee08f4a05d1.png",
+    "link": "https://mobile.yangkeduo.com/chl_night_eight_discount.html?_pdd_fs=1&_pdd_nc=0f1069&_pdd_tc=ffffff&_pdd_sbs=1",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 10292878,
+    "group": 165,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "165",
+     "icon_id": "533",
+     "badge_image_gif": "0"
+    }
+   },
+   {
+    "id": 530,
+    "title": "资质规则",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2026-04-01/47b279f6-cba4-4169-8fb8-8baa18a3616c.png",
+    "link": "commercial_pre_orders.html?_t_module_name=psnl_qualification_rules",
+    "style": 0,
+    "style_image": "",
+    "mode": 1,
+    "log_sn": 10300163,
+    "group": 166,
+    "deleted": false,
+    "track_info": {
+     "display_layout": "1",
+     "icon_group": "166",
+     "icon_id": "530",
+     "badge_image_gif": "0"
+    }
+   }
+  ],
+  "all_top_opts": [
+   {
+    "tab_id": 1,
+    "opt_name": "推荐",
+    "id": 0,
+    "url": "index.html"
+   },
+   {
+    "tab_id": 10,
+    "opt_name": "最快明天达",
+    "p_rec": {
+     "content_id": 2309364,
+     "page_el_sn": "10147034"
+    },
+    "url": "chl_recommend_landing.html?from=on_time_delivery&biz_type=home_tab&_pdd_fs=1&_pdd_nc=00000000&_pdd_tc=00000000&_pdd_sbs=0",
+    "image": "https://commimg.pddpic.com/oms_img_ng/2025-12-15/80bf0383-7bea-4cc8-8c41-309df196dcbe.png",
+    "selected_image": "https://commimg.pddpic.com/oms_img_ng/2025-12-15/c7fd497d-5ea8-47b2-ab88-1c7681e02522.png",
+    "width": 285,
+    "height": 69,
+    "indicator_color": "#25B513",
+    "end_time": 2464099200000
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "食品",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "FOggw_D7Gadu-wNitAbghA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "x12GND6KVkiWMR1RuIdO7A==",
+     "tab_id": 1,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 0,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "水果",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "4bHTIOgXDF1d2Fhk5S4N0w==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "U0dHgZ3kJ2E423sf+Nt53w==",
+     "tab_id": 13,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 1,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 13
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "百货",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "KwPvKoCfwWsWCsKRK0rteg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "8D0xJf4MCz/C0vtxwnMo9g==",
+     "tab_id": 15,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 2,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 15
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "手机",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "sadXN4RBTaNTKX2gQgBuYw==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "TbiQaE1XDR1oKbWFIjkxhg==",
+     "tab_id": 1543,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 3,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1543
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "男装",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "LVc-HaZqj1NLEU9KY0lz9A==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "CrcA9LiAU78uqQZLWEvQQg==",
+     "tab_id": 743,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 4,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 743
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "女装",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "dMW-TR8CDcC3qQqXtffENA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "ZSh7FMAEaMOHO3Ts8DeidA==",
+     "tab_id": 14,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 5,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 14
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "电脑",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "sZbusPh_Dw7yk8PB6Tntsg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "Lm6Eaf7WmPVQl5xzk/9gWw==",
+     "tab_id": 2478,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 6,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 2478
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "鞋包",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "CTUMI_pbhab7w2KhIrjbpw==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "pyBsy/P5rxPc9cHpHZ0B8w==",
+     "tab_id": 1281,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 7,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1281
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "医药",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "q5BAgSGkTHMzMknLOEajAg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "X5FY/uMPxHmuVIpoEtxWiQ==",
+     "tab_id": 3279,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 8,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 3279
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "玩乐",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "l80zPh9hZwjJijPhCLMvCA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "CMAHsCPlN+bSMYt761k/Jg==",
+     "tab_id": 24288,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 9,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 24288
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "运动",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "OmQ4E4vKg0hV_gZ3wmZNMA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "zMZl19917MV2Z3gxwxx3kg==",
+     "tab_id": 1451,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 10,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1451
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "饰品",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "QaPEB2ZkPVVFZFrbP7v_Zg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "GhKQcuZNYPLlDtJdt6wwFQ==",
+     "tab_id": 24149,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 11,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 24149
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "母婴",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "WY6dGLEKu2zELlQBXo5ugg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "b5iAnYCRSvIpgWdNfCUToQ==",
+     "tab_id": 4,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 12,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 4
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "电器",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "Kydpmm8sfzUF5GSvKpLsog==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "Ox6IS48tAaqRFuhDhzOQPw==",
+     "tab_id": 18,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 13,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 18
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "车品",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "SaNPUVXeCgB6mgpmi96PxA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "jqeZVhYSfPlk2+0u/quVGg==",
+     "tab_id": 2048,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 14,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 2048
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "美妆",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "AAK83rpD7YL0IDRS41D7ag==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "XVo3YOwGN832UMKi46hm/w==",
+     "tab_id": 16,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 15,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 16
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "内衣",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "N48so2WFh8vTY88sx-1bRA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "f1Ch+XBEU1JXUel8R7CBBA==",
+     "tab_id": 1282,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 16,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1282
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "家具",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "ksVr-K7BzbiKCoiZWAhAWg==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "eBq0+sWpURcC5ni0XCQ0xg==",
+     "tab_id": 2974,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 17,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 2974
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "家装",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "JC3Uktf_-PGYakqCT-qM5A==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "7YH36QHkETdZnOGDk1u97w==",
+     "tab_id": 1917,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 18,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 1917
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "家纺",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "zKtCHU7_rF0-6LFKwXgLZQ==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "yn5GLw3EBtgzjnqFNyBBKQ==",
+     "tab_id": 818,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 19,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 818
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "海淘",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "hRcFCpIDgtvVZHEXj0Rk3A==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "IBhTRlIIV9jTqzxp3rHLYA==",
+     "tab_id": 12,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 20,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 12
+   },
+   {
+    "tab_id": 2,
+    "opt_name": "特殊食品",
+    "p_rec": {
+     "set": "shb1",
+     "list_id": "opt_tab_f90395b7451e4ae48947ed04972655a4",
+     "org": "arec",
+     "g": "arec_data",
+     "scene_id": 3010001,
+     "bk": "-1",
+     "join_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "g3": "arec",
+     "m": "arec_data",
+     "sub_stage": 0,
+     "ept_arec": "wYaKwHtdmbxQCayTOJnEsA==",
+     "search_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "app_name": "index_opt_arec",
+     "ept_arec_i": "VAbYPiY7eF+OGkpOclXkHg==",
+     "tab_id": 27212,
+     "t": "default",
+     "stage": 2,
+     "llt": "1751024987",
+     "idx": 21,
+     "request_id": "BK-hzeC_sGMq6itd-DAHMhMhEfoqJcfxZQXhO94X6q6xCPf3x1iumCe6ZRFHbcfJ",
+     "pentos": 1,
+     "ts": "1790653574360"
+    },
+    "id": 27212
+   }
+  ],
+  "bottom_tabs": [
+   {
+    "id": 26,
+    "title": "首页",
+    "group": 0,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/49fcc435c899b8550f972e2b9ca465c5.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/8b29001a-a05a-42d0-a818-bdfd20eec93b.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "image_refresh": "https://promotion.pddpic.com/promo/index/acbbafaa-29c2-4e8d-a194-6d013a24d170.png",
+    "image_selected_refresh": "https://promotion.pddpic.com/promo/baiyibutie/c1dfd81a-f09e-48b8-9854-828c53a4a323.png.slim.png",
+    "switch_mode": 0,
+    "link": "index.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99873",
+     "badge_el_sn": "2163187",
+     "size_type": 0,
+     "english_title": "Home"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 207,
+    "title": "多多视频",
+    "group": 14,
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-08-21/4c49ed2d-e3ec-4006-8f30-3c2ff76ec526.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2023-08-21/6f521f37-2399-4c53-bc52-fafd12a0b5d0.png",
+    "switch_mode": 0,
+    "link": "pdd_live_tab_list.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "3660460",
+     "badge_el_sn": "3660493",
+     "size_type": 0,
+     "english_title": "Videos"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "title": "黄金周特惠",
+    "group": 11,
+    "image": "https://promotion.pddpic.com/oms-img-promotion/2026-09-23/878cb929-acc6-4d03-bb6e-41f4ae00b28b.png",
+    "image_selected": "https://promotion.pddpic.com/oms-img-promotion/2026-09-23/db240408-c29d-4abe-8dc9-ef15c3fe36ec.png",
+    "image_selected_live": "https://promotion.pddpic.com/oms-img-promotion/2026-09-23/e13ec925-5a84-41f8-b2ae-e4e1671ded32.png",
+    "switch_mode": 0,
+    "link": "attendance.html?type=1&id=205475&_pdd_fs=1&_pdd_tc=000000&_pdd_sbs=0&promotion_source_name=promotionTab3&dc_home_tab=1&refer_content_id=2240161",
+    "style": 0,
+    "dot_keys": [
+     "dot_big_sale"
+    ],
+    "ext": {
+     "page_el_sn": "4222413",
+     "size_type": 1
+    },
+    "start_time": 1790524800000,
+    "end_time": 1791388799000,
+    "track_info": {
+     "size_type": "1",
+     "content_id": "2240161"
+    },
+    "style_attribute": {
+     "title_color_selected": "#E02E24"
+    }
+   },
+   {
+    "id": 29,
+    "title": "聊天",
+    "group": 3,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/b0a82ece48ddca06781805bf9e1a7d8a.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/c5551336-9718-4311-beda-5276b1657c07.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "switch_mode": 0,
+    "link": "chat_list.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99868",
+     "badge_el_sn": "2163188",
+     "size_type": 0,
+     "english_title": "Chat"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 30,
+    "title": "个人中心",
+    "group": 4,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/9702d0f5ef29810af3203d04a1dc95bc.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/e4b93471-8239-4f58-8d56-0dc0b9595362.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "switch_mode": 0,
+    "link": "personal.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99870",
+     "badge_el_sn": "2163298",
+     "size_type": 0,
+     "english_title": "You"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   }
+  ],
+  "buffer_bottom_tabs": [
+   {
+    "id": 26,
+    "title": "首页",
+    "group": 0,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/49fcc435c899b8550f972e2b9ca465c5.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/8b29001a-a05a-42d0-a818-bdfd20eec93b.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "image_refresh": "https://promotion.pddpic.com/promo/index/acbbafaa-29c2-4e8d-a194-6d013a24d170.png",
+    "image_selected_refresh": "https://promotion.pddpic.com/promo/baiyibutie/c1dfd81a-f09e-48b8-9854-828c53a4a323.png.slim.png",
+    "switch_mode": 0,
+    "link": "index.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99873",
+     "badge_el_sn": "2163187",
+     "size_type": 0,
+     "english_title": "Home"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 207,
+    "title": "多多视频",
+    "group": 14,
+    "image": "https://commimg.pddpic.com/oms_img_ng/2023-08-21/4c49ed2d-e3ec-4006-8f30-3c2ff76ec526.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2023-08-21/6f521f37-2399-4c53-bc52-fafd12a0b5d0.png",
+    "switch_mode": 0,
+    "link": "pdd_live_tab_list.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "3660460",
+     "badge_el_sn": "3660493",
+     "size_type": 0,
+     "english_title": "Videos"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 31,
+    "title": "分类",
+    "group": 5,
+    "image": "http://t00img.yangkeduo.com/goods/images/2019-01-14/a98088bb3e764a4b3861bcd70634f922.png",
+    "image_selected": "http://t00img.yangkeduo.com/goods/images/2019-01-14/4ae82f0e204b7742c1790b85c6413f6c.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "switch_mode": 0,
+    "link": "classification.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99869",
+     "size_type": 0,
+     "english_title": "Categories"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 29,
+    "title": "聊天",
+    "group": 3,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/b0a82ece48ddca06781805bf9e1a7d8a.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/c5551336-9718-4311-beda-5276b1657c07.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "switch_mode": 0,
+    "link": "chat_list.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99868",
+     "badge_el_sn": "2163188",
+     "size_type": 0,
+     "english_title": "Chat"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   },
+   {
+    "id": 30,
+    "title": "个人中心",
+    "group": 4,
+    "image": "http://t00img.yangkeduo.com/goods/images/2018-12-17/9702d0f5ef29810af3203d04a1dc95bc.png",
+    "image_selected": "https://commimg.pddpic.com/oms_img_ng/2025-12-17/e4b93471-8239-4f58-8d56-0dc0b9595362.png",
+    "gif_image": "",
+    "gif_image_selected": "",
+    "switch_mode": 0,
+    "link": "personal.html",
+    "style": 0,
+    "ext": {
+     "page_el_sn": "99870",
+     "badge_el_sn": "2163298",
+     "size_type": 0,
+     "english_title": "You"
+    },
+    "track_info": {
+     "size_type": "0"
+    }
+   }
+  ],
+  "search_bar_hot_query": {
+   "ai_config": {
+    "allowed": false
+   },
+   "server_time": 1790653574,
+   "hotqs": [
+    {
+     "q": "酷态科cp12",
+     "tag_list": [
+      {
+       "style": "1",
+       "text": "热",
+       "border_color": "#E02E24",
+       "text_color": "#E02E24",
+       "type": "热"
+      }
+     ],
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5横放支架",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5支架横放",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "菜板",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "酷态科",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "阿帕图qi2.2",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "ps5支架",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "17手机壳",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "qi2.2",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "充宝电",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "切菜板",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "qi2.2无线充",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "薯片",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "态酷科cp12",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "烤肠",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "小香肠",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "苹果充电头",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "磁吸充充宝",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "酷态科10号air",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    },
+    {
+     "q": "纸巾",
+     "q_search": {
+      "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+     }
+    }
+   ],
+   "show_ai_entry": false,
+   "org": 2,
+   "shade": {
+    "is_shade_degrade": false,
+    "query": "ps5横放支架",
+    "q_search": {
+     "pes_req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f"
+    },
+    "need_shade_coupon": false,
+    "guo_bu_add": false,
+    "need_shade_618": false
+   },
+   "user_characteristics": 1,
+   "title": "搜索发现",
+   "top_notice": {},
+   "req_id": "94ccad9f-b375-4b96-9525-36a224ebba3f",
+   "banner_pass_through_params": {},
+   "shade_play_interval": 0,
+   "server_time_ms": 1790653574452,
+   "search_coupon_pass_through_params": {},
+   "shade_type": 0,
+   "items": [
+    "酷态科cp12",
+    "ps5横放支架",
+    "ps5支架横放",
+    "菜板",
+    "酷态科",
+    "阿帕图qi2.2",
+    "ps5支架",
+    "17手机壳",
+    "qi2.2",
+    "充宝电",
+    "切菜板",
+    "qi2.2无线充",
+    "薯片",
+    "态酷科cp12",
+    "烤肠",
+    "小香肠",
+    "苹果充电头",
+    "磁吸充充宝",
+    "酷态科10号air",
+    "纸巾"
+   ]
+  },
+  "dy_module": {
+   "recommend_fresh_info": {
+    "dy_template": {
+     "file_url": "",
+     "module_info": {},
+     "module_sn": "pdd.home.recommend_fresh_info_top_card_module",
+     "template_info": {},
+     "file_info": {
+      "support_height_resize": true,
+      "lego_version": "v8",
+      "template_content": "m200000031B A H C H N D N t J t CO M CO CP N CP CQ A CQ G/00.0.1646.86.029bc437a7b7d5b31a01407bbe63d601chome-lego-slot-cm2.home-lego-slot-cm2.pdd.home.recommend_fresh_info_top_card_new.template_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pbghlYXNlLW91dAtlYXNlLWluLW91dARmdW5jCXN0YXJ0VGltZQhkdXJhdGlvbg5hbmltYXRpb25WYWx1ZQZlYXNpbmcFdG90YWwGdXBkYXRlBWNvdW50BGxvb3ALYW5pbWF0aW9uSWQIY29tcGxldGUJbG9vcENvdW50BGZyb20CdG8FYmVnaW41ZWFzZeWxnuaAp+eahOWAvOS4jeiDveS4unVuZGVmaW5lZCzmjqjojZDlgLzkuLpsaW5lYXICaWQADWFuaW1hdGlvbkxpc3QKc3RhcnRJbmRleANyZWYFc3R5bGUEdGltZQhtYXhJbmRleBJhbmltYXRpb25EaXJlY3Rpb24TcmV2ZXJ0QW5pbWF0aW9uTGlzdBdhbmltYXRpb25JdGVyYXRpb25Db3VudAlwYXVzZVRpbWUJdGltZVN0YXJ0X+WKqOeUu+eahHN0eWxl6YWN572u5a2Y5Zyo5YmN5ZCO5LiN5LiA6Ie055qE5oOF5Ya1LOivt+S/neivgeavj+S4gOadoXN0eWxl55qEa2V56YO95b+F6aG75LiA6Ie0AmlwBXN0YXJ0Am9wB3Zpc2libGUEbGlzdApyZXZlcnRMaXN0CWFlRG9tTGlzdBRsYXllcnNBbmltYXRpb25Db3VudBBhbmltYXRpb25Eb21MaXN0EWFuaW1hdGlvbkR1cmF0aW9uBnJldmVydAFfCGRhcmtNb2RlCXpvb21MZXZlbA5saWdodEFuaW1hdGlvblpodHRwczovL3Byb21vdGlvbi5wZGRwaWMuY29tL3Byb21vL2JhaXlpL2I5NDRkMTAwLTI1ZjYtNDczMy1hNWMwLWJkOGI5MGFhYzVmNy5wbmcuc2xpbS5wbmcHbGFuZ1RhZwlceyhcZCspXH0BZxFhbmltYXRpb25QcmljZVJlZhBhbmltYXRpb25JbmZvUmVmJGFiX2hvbWVfc3VwcG9ydF9tdWx0aV9sYW5ndWFnZV8wODA1MAVmYWxzZQR0cnVlCnN0YXRfdHJhY2scYWJfYmlsbGlvbl9zdWJzaWR5X2FuaW1hdGlvbgExEWNsaWVudF9leHRyYV9pbmZvF2R5bmFtaWNfdmlld190b3BfbWFyZ2luBWV2ZW50BnNjcm9sbARkYXRhA2V4dAdsaXN0X2lkCGxpbmtfdXJsCnRyYWNrX2luZm8KZ29vZHNfbGlzdA1zcGVjaWFsX3N0eWxlDHNwZWNpYWxfdGltZQhiZ19pbWFnZRVyb3VuZF9jb3JuZXJfZ29vZHNfYmcIaXNfY2FjaGUScmVwbGFjZV9nb29kc19saXN0C2Rpc2xpa2VfZXh0C3N3ZWVwX2xpZ2h0H3Rlc3Qgc2hvd2luZyBnb29kcyBsaXN0IGxlbmd0aDoTdGVzdCByZXBsYWNlIGluZGV4Ogtpc19mYWxsYmFjawlnb29kc2xpc3QMZ29vZHNsaXN0X2JnBGljb24FdGl0bGUKZW1wdHkgZGF0YQlpbWFnZV91cmwLZXJyb3IgZ29vZHMeYWJfaG9tZV9sZWdvX3JlcG9ydF9kYXRhXzY4MzAwEnJlcG9ydCBlcnJvciBkYXRhIAttb2R1bGVfbmFtZRtiaWxsaW9uX3N1YnNpZHlfZW50cmFuY2VfZHkUcmVjb21tZW5kX2ZyZXNoX2luZm8Wc3Vic2lkeUluZGV4IG5vdCBmb3VuZARub25lBGRvd24CdXAIZ29vZHNfaWQIZXh0X2RhdGEHYmVuZWZpdAliZ19oZWlnaHQIYmdfd2lkdGgYYmVuZWZpdF9jYXJvdXNlbF9zZWNvbmRzDnNwX2hlYWRlcl9pY29uA3VybAZoZWlnaHQFd2lkdGgKaGlkZV9zcGxpdAxjdXN0b21fc3BsaXQKc3BpdF9pbWFnZV1odHRwczovL2Z1bmltZy5wZGRwaWMuY29tL3JlY29uZS8yMDIwLTA5LTEwL2VhNTZiNDdmLTJlYzItNGM5NS05ZThiLTg3ZDljY2MxY2ZjMC5wbmcuc2xpbS5wbmcIc3Bfc3BsaXQLc3Bfc3VidGl0bGURc3Bfc3VidGl0bGVfY29sb3IKc3BfcDFfaWNvbgpzcF9wMl9pY29uDGhlYWRlcl9zdHlsZRJoZWFkZXJfaWNvbl9ib3JkZXIPdGl0bGVfbG9vcF9pY29uBm5vcm1hbApsb29wX3RpbWVzH2ljb25IZWFkZXIgYmFja3VwX3N0YXRpY19pbWcgPSARYmFja3VwX3N0YXRpY19pbWcKaGlkZV90aXRsZQluZXdfc3R5bGULdGl0bGVfY29sb3IJc3ViX3RpdGxlD3N1Yl90aXRsZV9jb2xvcghzdWJfaWNvbgl0aXBfdGl0bGUM5a6Y5pa56KGl6LS0DmltYWdlX21hc2tfdXJsFGNsaW5ldENhblNob3dCZW5lZml0CmJlbmVmaXRfYmcTY2Fyb3VzZWxfdHJhY2tfaW5mbwdkaXNsaWtlBWdvb2RzEWJlbmVmaXRfdHh0X2NvbG9yA2dpZghsaXZlX3VybAlwbGF5X2xpdmUiYWJfaG9tZV9iaWxsaW9uX2Rpc2xpa2VfZ29vZHNfNzkyMANpZHgKcGFnZV9lbF9zbgc3MDQ4NjQzEGRpc2xpa2VfZ29vZHNfaWQLZGlzbGlrZV9pZHgFcF9yZWMHNjA5OTU1MwxkaXNsaWtlX3R5cGUHYXBpX3VybBUvYXBpL2NhdGVyaGFtL2Rpc2xpa2UGbWV0aG9kBFBPU1QEYm9keQhhcHBfbmFtZQlnb29kc19yZWMLcHJpY2Vfc3R5bGULcHJpY2Vfd29yZHMFcHJpY2URcHJpY2VfcHJlZml4X2ljb24CwqUBLhljbGllbnRTaG93UHJpY2VQcmVmaXhJY29uCXVuZGVmaW5lZAhmb250U2l6ZQlmb250UmVhZHkbYWJfaG9tZV9zaHJpbmtfbWFyZ2luc183ODMwATANcmVmX2dvb2RzX2ltZw1yZWZfZ29vZHNfZ2lmImFiX2hvbWVfbGVnb19pZ25vcmVfZGF5X2xpbWl0XzgwNDAZbGFzdF9nb29kc19saXZlX3BsYXlfdGltZR9sYXN0X2dvb2RzX2xpdmVfcGxheV90aW1lX2NvdW50F2JhaWJ1X2VudHJ5IGRpY3RWYWx1ZTogBm1vZHVsZQRob21lA2tleRdiYWlidV9sZWdvX2JhbmVyX3JlY29yZAV2YWx1ZSJhYl9ob21lX2xlZ29faWdub3JlX2RheV9saW1pdF83OTAwDGJhaWJ1X2VudHJ5IBNzaG93Q291bnRzIGlzIGVtcHR5",
+      "card_height_add_zoom_1": 4,
+      "card_height_add_zoom_2": 8,
+      "card_height": 106,
+      "auto_insert_separator": false
+     },
+     "page_info": {},
+     "template_sn": "pdd.home.recommend_fresh_info_top_card_new",
+     "module_associated_info": {},
+     "config_info": {},
+     "version": "",
+     "template_associated_info": {}
+    },
+    "data": {
+     "data": {
+      "module_sn": "pdd.home.recommend_fresh_info_top_card_module",
+      "icon": "https://promotion.pddpic.com/vgt/dl/efe9e5.png",
+      "spit_image": "https://funimg.pddpic.com/recone/2020-09-10/ea56b47f-2ec2-4c95-9e8b-87d9ccc1cfc0.png",
+      "title": "多多买菜",
+      "sub_title": "明天达",
+      "jump_text": "查看更多",
+      "jump_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&icon_goods_list=988070920095,1004554867546,1008347045998,993328289287,1008589021562,1007966840780&icon_sku_list=1971414400970,1971736547858,1971224418474,1969503233067,1971682887872,1969503476010&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_0",
+      "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&icon_goods_list=988070920095,1004554867546,1008347045998,993328289287,1008589021562,1007966840780&icon_sku_list=1971414400970,1971736547858,1971224418474,1969503233067,1971682887872,1969503476010&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_0",
+      "template_sn": "pdd.home.recommend_fresh_info_top_card_new",
+      "is_location_access_windows": false,
+      "location_timeout": 5000,
+      "location_accuracy": 150,
+      "is_show_mc": true,
+      "is_show_fresh_module": true,
+      "track_info": {
+       "page_el_sn": "3566875",
+       "_x_cid": "ddmc_app_home",
+       "in_new_style_grey": "false",
+       "new_style_show_type": "0",
+       "is_caring_mode": "false",
+       "is_deliver_home_gif": "false",
+       "icon_bottom_style": "tomorrow_arrival_with_lightning",
+       "icon_gif_style": "free_fee_delivery_home_gif"
+      },
+      "jump_track_info": {
+       "page_el_sn": "3566875"
+      },
+      "goods_list": [
+       {
+        "image_url": "https://img.pddpic.com/image-process-result/aid-sr/crsl_image_enlarge/5a9dabf0-abcc-11f1-94ea-0a580a4ef888.jpg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=988070920095,1004554867546,1008347045998,993328289287,1008589021562,1007966840780&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_988070920095&sku_list=1971414400970,1971736547858,1971224418474,1969503233067,1971682887872,1969503476010&image_ids=-6616363069081550990,2844135726912710150,-6876342315356592471,-7377688173264592987,-2330792452639905567,-8514081435959594947",
+        "price": 799,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 988070920095,
+         "item_idx": 0,
+         "store_id": 9097593154975,
+         "sku_id": 1971414400970,
+         "pfresh": "{\"pfid\":\"e1d4dc26:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/image-process-result/aid-sr/crsl_image_enlarge/e023dd4a-abcb-11f1-ae89-0a580a4dd02b.jpg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=1004554867546,988070920095,1008347045998,993328289287,1008589021562,1007966840780&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_1004554867546&sku_list=1971736547858,1971414400970,1971224418474,1969503233067,1971682887872,1969503476010&image_ids=2844135726912710150,-6616363069081550990,-6876342315356592471,-7377688173264592987,-2330792452639905567,-8514081435959594947",
+        "price": 499,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 1004554867546,
+         "item_idx": 1,
+         "store_id": 9097593154975,
+         "sku_id": 1971736547858,
+         "pfresh": "{\"pfid\":\"02149d02:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/mc-supplier-goods-image/2026-04-10/3450f06a-ec23-4a73-9e71-4403a59e0d45.jpeg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=1008347045998,988070920095,1004554867546,993328289287,1008589021562,1007966840780&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_1008347045998&sku_list=1971224418474,1971414400970,1971736547858,1969503233067,1971682887872,1969503476010&image_ids=-6876342315356592471,-6616363069081550990,2844135726912710150,-7377688173264592987,-2330792452639905567,-8514081435959594947",
+        "price": 499,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 1008347045998,
+         "item_idx": 2,
+         "store_id": 9097593154975,
+         "sku_id": 1971224418474,
+         "pfresh": "{\"pfid\":\"240f0bc9:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/image-process-result/aid-sr/crsl_image_enlarge/2d50d8ea-9cfc-11f1-831c-0a580a49d0de.jpg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=993328289287,988070920095,1004554867546,1008347045998,1008589021562,1007966840780&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_993328289287&sku_list=1969503233067,1971414400970,1971736547858,1971224418474,1971682887872,1969503476010&image_ids=-7377688173264592987,-6616363069081550990,2844135726912710150,-6876342315356592471,-2330792452639905567,-8514081435959594947",
+        "price": 399,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 993328289287,
+         "item_idx": 3,
+         "store_id": 9097593154975,
+         "sku_id": 1969503233067,
+         "pfresh": "{\"pfid\":\"27768de0:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/image-process-result/aid-sr/crsl_image_enlarge/16c80656-b927-11f1-b2fd-0a580a4cec77.jpg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=1008589021562,988070920095,1004554867546,1008347045998,993328289287,1007966840780&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_1008589021562&sku_list=1971682887872,1971414400970,1971736547858,1971224418474,1969503233067,1969503476010&image_ids=-2330792452639905567,-6616363069081550990,2844135726912710150,-6876342315356592471,-7377688173264592987,-8514081435959594947",
+        "price": 1999,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 1008589021562,
+         "item_idx": 4,
+         "store_id": 9097593154975,
+         "sku_id": 1971682887872,
+         "pfresh": "{\"pfid\":\"6b7e62fb:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/image-process-result/aid-sr/crsl_image_enlarge/1f844298-b218-11f1-9280-0a580a4f5506.jpg",
+        "link_url": "vgt_mall_list.html?_p_page=vgt_mall_list&_s_source=app_home&_x_cid=ddmc_app_home&_pdd_fs=1&_pdd_tc=ffffff&_pdd_nc=ffffff&goods_list=1007966840780,988070920095,1004554867546,1008347045998,993328289287,1008589021562&_x_app_banner_list_id=5bee2a3bd44f351d64e4755a8c154be6_1007966840780&sku_list=1969503476010,1971414400970,1971736547858,1971224418474,1969503233067,1971682887872&image_ids=-8514081435959594947,-6616363069081550990,2844135726912710150,-6876342315356592471,-7377688173264592987,-2330792452639905567",
+        "price": 299,
+        "track_info": {
+         "page_el_sn": "3564456",
+         "goods_id": 1007966840780,
+         "item_idx": 5,
+         "store_id": 9097593154975,
+         "sku_id": 1969503476010,
+         "pfresh": "{\"pfid\":\"d19b3b80:a1dccbb6:app_banner:1790653574571\"}",
+         "_x_cid": "ddmc_app_home",
+         "in_new_style_grey": "false",
+         "new_style_show_type": "0",
+         "icon_bottom_style": "tomorrow_arrival_with_lightning"
+        }
+       }
+      ],
+      "ext": {
+       "sub_icon": {
+        "width": 65,
+        "url": "https://promotion.pddpic.com/vgt/dl/c7aaec.png",
+        "height": 13
+       }
+      }
+     }
+    }
+   },
+   "billion_subsidy_entrance_dy": {
+    "dy_template": {
+     "file_url": "",
+     "module_info": {},
+     "module_sn": "pdd.home.billion_subsidy_entry_module",
+     "template_info": {},
+     "file_info": {
+      "support_height_resize": true,
+      "lego_version": "v8",
+      "template_content": "m200000031B A H C H N D N t J t CC M CC CD N CD CE A CE G/o0.0.1646.86.029bc437a7b7d5b31a01407bbe63d601chome-lego-slot-cm2.home-lego-slot-cm2.pdd.home.billion_subsidy_entry.template_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pbghlYXNlLW91dAtlYXNlLWluLW91dARmdW5jCXN0YXJ0VGltZQhkdXJhdGlvbg5hbmltYXRpb25WYWx1ZQZlYXNpbmcFdG90YWwGdXBkYXRlBWNvdW50BGxvb3ALYW5pbWF0aW9uSWQIY29tcGxldGUJbG9vcENvdW50BGZyb20CdG8FYmVnaW41ZWFzZeWxnuaAp+eahOWAvOS4jeiDveS4unVuZGVmaW5lZCzmjqjojZDlgLzkuLpsaW5lYXICaWQADWFuaW1hdGlvbkxpc3QKc3RhcnRJbmRleANyZWYFc3R5bGUEdGltZQhtYXhJbmRleBJhbmltYXRpb25EaXJlY3Rpb24TcmV2ZXJ0QW5pbWF0aW9uTGlzdBdhbmltYXRpb25JdGVyYXRpb25Db3VudAlwYXVzZVRpbWUJdGltZVN0YXJ0X+WKqOeUu+eahHN0eWxl6YWN572u5a2Y5Zyo5YmN5ZCO5LiN5LiA6Ie055qE5oOF5Ya1LOivt+S/neivgeavj+S4gOadoXN0eWxl55qEa2V56YO95b+F6aG75LiA6Ie0AmlwBXN0YXJ0Am9wB3Zpc2libGUEbGlzdApyZXZlcnRMaXN0CWFlRG9tTGlzdBRsYXllcnNBbmltYXRpb25Db3VudBBhbmltYXRpb25Eb21MaXN0EWFuaW1hdGlvbkR1cmF0aW9uBnJldmVydAFfCGRhcmtNb2RlCXpvb21MZXZlbA5saWdodEFuaW1hdGlvblpodHRwczovL3Byb21vdGlvbi5wZGRwaWMuY29tL3Byb21vL2JhaXlpL2I5NDRkMTAwLTI1ZjYtNDczMy1hNWMwLWJkOGI5MGFhYzVmNy5wbmcuc2xpbS5wbmcHbGFuZ1RhZwlceyhcZCspXH0BZxFhbmltYXRpb25QcmljZVJlZhBhbmltYXRpb25JbmZvUmVmJGFiX2hvbWVfc3VwcG9ydF9tdWx0aV9sYW5ndWFnZV8wODA1MAVmYWxzZQR0cnVlCnN0YXRfdHJhY2scYWJfYmlsbGlvbl9zdWJzaWR5X2FuaW1hdGlvbgExEWNsaWVudF9leHRyYV9pbmZvF2R5bmFtaWNfdmlld190b3BfbWFyZ2luBWV2ZW50BnNjcm9sbARkYXRhA2V4dAdsaXN0X2lkCGxpbmtfdXJsCnRyYWNrX2luZm8KZ29vZHNfbGlzdA1zcGVjaWFsX3N0eWxlDHNwZWNpYWxfdGltZQhiZ19pbWFnZRVyb3VuZF9jb3JuZXJfZ29vZHNfYmcIaXNfY2FjaGUScmVwbGFjZV9nb29kc19saXN0C2Rpc2xpa2VfZXh0C3N3ZWVwX2xpZ2h0H3Rlc3Qgc2hvd2luZyBnb29kcyBsaXN0IGxlbmd0aDoTdGVzdCByZXBsYWNlIGluZGV4Ogtpc19mYWxsYmFjawlnb29kc2xpc3QMZ29vZHNsaXN0X2JnBGljb24FdGl0bGUKZW1wdHkgZGF0YQlpbWFnZV91cmwLZXJyb3IgZ29vZHMeYWJfaG9tZV9sZWdvX3JlcG9ydF9kYXRhXzY4MzAwEnJlcG9ydCBlcnJvciBkYXRhIAttb2R1bGVfbmFtZRtiaWxsaW9uX3N1YnNpZHlfZW50cmFuY2VfZHkUcmVjb21tZW5kX2ZyZXNoX2luZm8Wc3Vic2lkeUluZGV4IG5vdCBmb3VuZARub25lBGRvd24CdXAIZ29vZHNfaWQIZXh0X2RhdGEHYmVuZWZpdAliZ19oZWlnaHQIYmdfd2lkdGgYYmVuZWZpdF9jYXJvdXNlbF9zZWNvbmRzDnNwX2hlYWRlcl9pY29uA3VybAZoZWlnaHQFd2lkdGgKaGlkZV9zcGxpdAxjdXN0b21fc3BsaXQKc3BpdF9pbWFnZV1odHRwczovL2Z1bmltZy5wZGRwaWMuY29tL3JlY29uZS8yMDIwLTA5LTEwL2VhNTZiNDdmLTJlYzItNGM5NS05ZThiLTg3ZDljY2MxY2ZjMC5wbmcuc2xpbS5wbmcIc3Bfc3BsaXQLc3Bfc3VidGl0bGURc3Bfc3VidGl0bGVfY29sb3IKc3BfcDFfaWNvbgpzcF9wMl9pY29uDGhlYWRlcl9zdHlsZRJoZWFkZXJfaWNvbl9ib3JkZXIPdGl0bGVfbG9vcF9pY29uBm5vcm1hbApsb29wX3RpbWVzH2ljb25IZWFkZXIgYmFja3VwX3N0YXRpY19pbWcgPSARYmFja3VwX3N0YXRpY19pbWcKaGlkZV90aXRsZQluZXdfc3R5bGULdGl0bGVfY29sb3IJc3ViX3RpdGxlD3N1Yl90aXRsZV9jb2xvcghzdWJfaWNvbgl0aXBfdGl0bGUM5a6Y5pa56KGl6LS0DmltYWdlX21hc2tfdXJsFGNsaW5ldENhblNob3dCZW5lZml0CmJlbmVmaXRfYmcTY2Fyb3VzZWxfdHJhY2tfaW5mbwdkaXNsaWtlBWdvb2RzEWJlbmVmaXRfdHh0X2NvbG9yA2dpZghsaXZlX3VybAlwbGF5X2xpdmUiYWJfaG9tZV9iaWxsaW9uX2Rpc2xpa2VfZ29vZHNfNzkyMANpZHgKcGFnZV9lbF9zbgc3MDQ4NjQzEGRpc2xpa2VfZ29vZHNfaWQLZGlzbGlrZV9pZHgFcF9yZWMHNjA5OTU1MwxkaXNsaWtlX3R5cGUHYXBpX3VybBUvYXBpL2NhdGVyaGFtL2Rpc2xpa2UGbWV0aG9kBFBPU1QEYm9keQhhcHBfbmFtZQlnb29kc19yZWMLcHJpY2Vfc3R5bGULcHJpY2Vfd29yZHMFcHJpY2URcHJpY2VfcHJlZml4X2ljb24CwqUBLhljbGllbnRTaG93UHJpY2VQcmVmaXhJY29uCXVuZGVmaW5lZAhmb250U2l6ZQlmb250UmVhZHkbYWJfaG9tZV9zaHJpbmtfbWFyZ2luc183ODMwATANcmVmX2dvb2RzX2ltZw1yZWZfZ29vZHNfZ2lmImFiX2hvbWVfbGVnb19pZ25vcmVfZGF5X2xpbWl0XzgwNDAZbGFzdF9nb29kc19saXZlX3BsYXlfdGltZR9sYXN0X2dvb2RzX2xpdmVfcGxheV90aW1lX2NvdW50F2JhaWJ1X2VudHJ5IGRpY3RWYWx1ZTogBm1vZHVsZQRob21lA2tleRdiYWlidV9sZWdvX2JhbmVyX3JlY29yZAV2YWx1ZSJhYl9ob21lX2xlZ29faWdub3JlX2RheV9saW1pdF83OTAwDGJhaWJ1X2VudHJ5IBNzaG93Q291bnRzIGlzIGVtcHR5",
+      "card_height_add_zoom_1": 4,
+      "card_height_add_zoom_2": 8,
+      "card_height": 106,
+      "auto_insert_separator": false
+     },
+     "page_info": {},
+     "template_sn": "pdd.home.billion_subsidy_entry",
+     "module_associated_info": {},
+     "config_info": {},
+     "version": "",
+     "template_associated_info": {}
+    },
+    "data": {
+     "data": {
+      "icon": "https://promotion.pddpic.com/promo/brand/7de18165-668c-4aaf-851e-5e88295a177d.png.slim.png",
+      "title": "百亿补贴",
+      "sub_title": "大牌正品",
+      "spit_image": "https://promotion.pddpic.com/promo/brand/86029c2e-7e48-4bed-b608-27ef6ec70c78.png.slim.png",
+      "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110237&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_0&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+      "track_info": {
+       "style_type": 10,
+       "in_show_type": 0,
+       "goodsidlist": "[873940548995,990078558508,974151430461,855809665194,1003188749109,960260569217,972363925552]",
+       "page_el_sn": "1110237"
+      },
+      "goods_list": [
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/c79a9eca-a717-11f1-a8f9-0a580a4ca9a6.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006&tgwith=home_subsidy_amount_tag",
+        "price_style": 0,
+        "price": 5516,
+        "track_info": {
+         "style_type": 101,
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/c79a9eca-a717-11f1-a8f9-0a580a4ca9a6.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "B_CSNcXiqzCdl3Q-DAzB_Q==",
+          "sid": "933",
+          "ept_arec_i": "x12GND6KVkiWMR1RuIdO7A==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "3333302",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "arec_data",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "873940548995",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "0",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 873940548995,
+         "idx": 0,
+         "page_el_sn": "1110247"
+        },
+        "ext_data": {
+         "benefit_bg": "https://promotion.pddpic.com/promo/bybt/e40f6dc0-0382-4d33-a34d-c1f6bdd3160f.png.slim.png",
+         "benefit_carousel_seconds": 3000,
+         "carousel_track_info": {
+          "in_show_type": 0,
+          "tagid": "home_subsidy_amount_tag",
+          "goods_id": 873940548995,
+          "benefit": "23.64元券",
+          "page_el_sn": 9397290
+         },
+         "benefit": "23.64元券"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/6527bd02-9acb-11f1-8996-0a580a4dd037.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=990078558508%2C873940548995%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 6181,
+        "track_info": {
+         "style_type": 101,
+         "ad": {
+          "bkfl": "1",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pkinfo": "Lg8Tcj78rXSdijtrNKvzOQzJZfm/APWwBtT0NuSB9ELkM8dE9X2wAhVazkGDKWsRR140euvfl77KuvP2azU+Sz4LuPEFlBqslx4jbk0scnOKnpfHyvdEYQ29D5iLml57zToVXI/sPJVpEWa8NcgsJUUC4OK8iycnZbcbSNcRs58onA2ACn1IXX1OkhKBO46kHwby2UiBNWUcFFkWFciWRoQyHMJQJ5L0lZNTQ8S4zOkq/2WQKqGi2pX81Gh9NfOU",
+          "pubinfo": "{\"item\":\"YACUJG5ME+VvFu8UK3I85Foivcrt7rko8WjdXEK3HVy5EcGHknV5WLX6pUtJB1Reux3KcKsQz38Tl+rnD9Frb+/MFt8/lGxEEMRYhRkvvYXm5EUVbSw7tb7plZyPUZFDu19LeEzBhEE3K4np0/njWnzjSiRay4Sc2aRB+PyQCJD6E26fdmc5jOZubId2wcvCNtTAjtmDwO+YT/5RAgVvaImOxEZxx/7a9FEYxJ6kuHqgcAY+ThMVnuoqF43mP982GJ6T+I87gV0hUMaYmq3gaujijqJ8KgMKJkTCY9SHuw7blbwshef2VOzwtH7jg8fhviVhJn/74y40B7CimCOdy5GpC0CXJJdBEE80rkT2ngulUohsfN5BWT32OntoNg3ueU3sLhn2QTPX9Tu0kC0ZNlb4kceqw+z/WlxA7WVTecxi73svvDCUYQ6PouQEUyD6npGNh/GpEhREguzjyG32IqrkYCw/kvUvPV5KpcxKE4JQgRLpVU6P9rfC4DED7/TbQWKGeLWTyD17GQQsQQnA12CHUD3QHid/71rXKuy4fY+TE+Kn5z6Y/WJHf4EYFDtqLtAS3vG57fsvWG23PGwYHg\\u003d\\u003d\",\"req\":\"QOa2DuagyGQ0bcYSlYBv/g\\u003d\\u003d\"}",
+          "nbid": "H5SO4Pes4qX7f/z9FWX312mzVORx9DT5nvFF48fat4RWBcG51nThoQ0w3vQu9r19n9qjmf9IqGyke2uVlGT1SOplXD89TSebBcFcHcjgegqNee3TxQ0G4e3Yd8JWR8hH",
+          "openinfo": "{\"ads_from\":0,\"ad_id\":10004085146,\"is_tr\":1}",
+          "mark": "bjWabOVIbsl2ooAjcWFvQDrg8r7dIka3rMAy8dyTFTQ=",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS"
+         },
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/6527bd02-9acb-11f1-8996-0a580a4dd037.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "1YV5SCi-ESIE0A0yjPA3Gw==",
+          "sid": "933",
+          "ept_arec_i": "U0dHgZ3kJ2E423sf+Nt53w==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "933",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "ads",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "990078558508",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "1",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 990078558508,
+         "idx": 1,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/08473414-7fbe-11f1-a39b-0a580a4dcd00.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=974151430461%2C873940548995%2C990078558508%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 1306,
+        "track_info": {
+         "style_type": 101,
+         "ad": {
+          "bkfl": "1",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pkinfo": "TfXJfMNaL2E8tcen24c7XStOB6UmZutbViwji3sbIeBwbjUBEAtBJ2pCmL//WSd4gvEDYKUgpehiRnyfguxh5ZcQWRqwsOY1Gcol2diuc71VR0RcZUHPPNINEv64J9aGfy74X5dms/UIuOGz+V/2rETMv8jRRP+t0yvthhsHgMgDq/FPWxvnQrJOzPyNYQlAwOOMhW9cUyFfOioxkxYkMJcvSH5L/lon2/g4Xtyfen4mPtXOkO3KpHpRQwyNGp0r",
+          "pubinfo": "{\"item\":\"UHhwoOc6iyZf3RmGcnyorHzUVUljEP+n1jidyBR6SfyFDMNSSVgkHq+bqDospiiOSk2+mlvPd+w2rbEHdMfFcFujyGnbRZ4+2o0ehqxCMvTU35HKREjRgkdOKU+LjTCLxgBVITn0N8k4ELlvQveL87By6d7avdy+8/nN9S99B4u4lQHNySYpEUzyUV5lBUm9Hvn0CneMxRAkNknpLuHgiOfMgT69UPmtI+djgC24jcPSgIhkBuvTS5mJ+2ow09w2f+Nk/50lEae9zOELB2fJbQGwO6+qK2NrppuSxpUYNFuow5NXqT+0+9Egdi1/+pKG29uxVCtYUB4HIr2AP/0GiPQUgpAv580clmbQG5kY2aOE35Cv05dWqeDk4kKzZnThKq2G1+l0+5079s2z3l0/1s0WA0wrbzVtp16wC0TAMYfxZHnX+VMIi9cy2oW2JkMsyaG6A0KzXbCd1nPhgCAoiXTadt5rHiNII5gMj51TXooLQHmbhCgVnGKRpKpNwzea5lgBG2aKX9YvK6LeCH+RADPBTZ1xIpAPpm+NFosddVs\\u003d\",\"req\":\"QOa2DuagyGQ0bcYSlYBv/g\\u003d\\u003d\"}",
+          "nbid": "pt34VZRRJNCvJjyFTxHZQsLWLXOsg44AGyPKlsK4bDNq/1xGoF31Y91mn9uLiKDK6rGlnnSSMUIST6rsWDiz9Pgdg2e7YqHKWri7gpDzZw58Tb+UAE/mn//o0Z7kFvcn",
+          "openinfo": "{\"ads_from\":0,\"ad_id\":9857962090,\"is_tr\":1}",
+          "mark": "SEBn3L8AmBTGXfE3umSz5zrg8r7dIka3rMAy8dyTFTQ=",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS"
+         },
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/08473414-7fbe-11f1-a39b-0a580a4dcd00.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "NUTODBPBc32WTPbWpluDBQ==",
+          "sid": "933",
+          "ept_arec_i": "8D0xJf4MCz/C0vtxwnMo9g==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "933",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "ads",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "974151430461",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "2",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 974151430461,
+         "idx": 2,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/cf43ede6-f4a4-11f0-b2e7-0a580a48d4c6.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=855809665194%2C873940548995%2C990078558508%2C974151430461%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 12500,
+        "track_info": {
+         "style_type": 101,
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/cf43ede6-f4a4-11f0-b2e7-0a580a48d4c6.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "oJ3L3QKST3k2UVE1z6J4Cg==",
+          "sid": "933",
+          "ept_arec_i": "TbiQaE1XDR1oKbWFIjkxhg==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "3333302",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "arec_data",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "855809665194",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "3",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 3,
+         "goods_id": 855809665194,
+         "idx": 3,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/24ee679e-ae27-11f1-88e4-0a580a4f402f.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=1003188749109%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C960260569217%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 12500,
+        "track_info": {
+         "style_type": 101,
+         "ad": {
+          "bkfl": "1",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pkinfo": "ltLYktGV6IiuRPpjAxPKPJy8V2NoCf8pobteYwStr9hfZ58ijY1yGFOCIV/2/+EUW+Gkz8vMI023cZgtowJ+fkAL03oymqw9St8H63uTC5IaeJxBt9V99G305fegfA9OAH9z+PfltUiL5ZZZiEu6gBL5l0ooTM8+fW23zpV7kmk+rYBgM9sODU3j44orq7NyrGDIR++Z5caUlrYSDK0IWP5uPcjksV9HG7fbxzPPX7QpEXoIpPQ8mpJ9execlgKM",
+          "pubinfo": "{\"item\":\"1tlF2daB5ndRflzz+QAYeTJempLFORgS1k9rhwPu9fcLvQcHl6IiTuHB2du1CMyul7n5f0zeTO7MZNEiGAxduYslHzuzVi5ckKRiY88Jpp7F9cwBbWbjmdpU0PZ80w3aiouQD2ES0WUu2+aIX+0B2cFslP1s0tBtxjrED1J29G7KJXY9uGfVvYgZOF7lONZzRRxIWDBSmMOADQ8cxMnE9EXU43M7CY/oqvDuG+fb4aYsXxnUuQhHzUhmu5WjdrqEy6KnpFzlKvxgeD4Y4D9aPaqThHyqKuXtB65I2IOcLeqWtjYl0blDabWFMeufhZcbX1w4vZ4o85AGWyUI+CMWLkXVnW+khhlQWqY+6MF+0JoGiPfW14FwMjndago+xyYGpYyixh5EC6Qe/LrIfIJVUnCbP4rCq5Z84Pzr9CsqNoWEYPoAJ4CWXrCCP7j48v407I9IP+Gox780GmRcgd2Ekg\\u003d\\u003d\",\"req\":\"QOa2DuagyGQ0bcYSlYBv/g\\u003d\\u003d\"}",
+          "nbid": "+p+oPc1oe7DyqTzRydgUyEtT8BmrPv9XA9tgkoVz4T0wKezXblxHjocotWJ0eCjbn9qjmf9IqGyke2uVlGT1SAdJxHLQi+WtAF3/a6lZ8bSNee3TxQ0G4e3Yd8JWR8hH",
+          "openinfo": "{\"ads_from\":0,\"ad_id\":10123196872,\"is_tr\":1}",
+          "mark": "Lu9KOu1glh6At7u8+OMZAjrg8r7dIka3rMAy8dyTFTQ=",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS"
+         },
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/24ee679e-ae27-11f1-88e4-0a580a4f402f.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "specialSalesTip": "2",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "Ox59vJKWNaOzZrhDwNTX6g==",
+          "sid": "933",
+          "ept_arec_i": "CrcA9LiAU78uqQZLWEvQQg==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "933",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "ads",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "1003188749109",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "4",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 1003188749109,
+         "idx": 4,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/62add972-6055-11f1-889a-0a580a4f541b.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=960260569217%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C972363925552%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 10990,
+        "track_info": {
+         "style_type": 101,
+         "ad": {
+          "bkfl": "1",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pkinfo": "PP/xyI7rju/nKyrkGAKJK74Ue7XYWgQAejl7KppeGrSVQBoKg+ewxrBn6077kAsZVhSyUOkeUydHIpvF8KW8No6y0rK9gY6a4LgAFtmIx2lovKMa0Xp/vTxgAaN5IXms0iRuzXOiIddUR7HX0bw5xGZHTjgCB0DpkX4kvSed7d8y8uHm1vtvB48RxERDavDOyBXGvIv6gQgI4+XNHp+Q5oMDWZ3+d4C/aYaMIDbCyAcO8R3cQDhTYOTkpqz/napc",
+          "pubinfo": "{\"item\":\"XPql5E9fGT+s6EMtJqnOHJ2C3ig4oDJ9J+KzFbyfTnHpPA/wmALBF2mrM8pmLizhaZsLuQXuyWQHnwBgPOTon+vnjx/YdN2zVoatpJrrtdlFNvaDtU7pevBYcWf8UOW9tF1N7ngxAxC6GiCDqUcP8alziDG7xRbcfe9Z5HopQSJbyIf+9U/L7OwKfDBg5cY9pmcLSqwZ2KuUznGUrUdwANQ3kU4nHBBB34FzFD4WGy8aZ9AON64Se60G6VP1z2ZB7Q/I6/iyMh9KKayHvt8/QvyRvcn9rr1U8qyT9EkmLd4FUa6eIC6EzCmXHB4966LDjketQ5uZNKFbFz/jQEPmkYu7TDt2sps5I6pqoRpC1BO5UFvj63ERDhO8S8rAuHmfpEAm93nHTsuvoT9tCZAsFCFHe8dj43UdjWRgKP7fusJjAVbv2CHh0366kFudyYhO4gW+oAVwLin1h9BS7OFzsWxKkEbOlP9x6Zh3lNGYsHdTrncmILcKMGumv2H0noIyUWB8SwtlICRBt41LtiRJGAVN7U0qoZ91BZYadL2+2SrS6nkz13C4CHgoUG5IAC1Rywoeq3ww/y7TUPBJO6YrIGzqhTVJBvWrdtYlvMKv7UY\\u003d\",\"req\":\"QOa2DuagyGQ0bcYSlYBv/g\\u003d\\u003d\"}",
+          "nbid": "qNm5FwmPhllme1Ut4ikeTpxyH1rN1XcK4UyAoTwVEo1GzfJ2jJoZ8v/wN5s1V+q3n9qjmf9IqGyke2uVlGT1SDMspYGfGaI1mdD74lvKuO6Nee3TxQ0G4e3Yd8JWR8hH",
+          "openinfo": "{\"ads_from\":0,\"ad_id\":9662508863,\"is_tr\":1}",
+          "mark": "q9J74gjG3wWdXEF+VzNiBDrg8r7dIka3rMAy8dyTFTQ=",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS"
+         },
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/62add972-6055-11f1-889a-0a580a4f541b.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "Mv--yHCJRVwjOYi7Ggm4KA==",
+          "sid": "933",
+          "ept_arec_i": "ZSh7FMAEaMOHO3Ts8DeidA==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "933",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "ads",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "960260569217",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "5",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 960260569217,
+         "idx": 5,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/132b5492-a574-11f1-a971-0a580a4cecc6.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=972363925552%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C1003795068990%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 6720,
+        "track_info": {
+         "style_type": 101,
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/132b5492-a574-11f1-a971-0a580a4cecc6.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "Oc8e3kzmIdzqi6-vh2IpVQ==",
+          "sid": "933",
+          "ept_arec_i": "Lm6Eaf7WmPVQl5xzk/9gWw==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "3333302",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "arec_data",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "972363925552",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "6",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 972363925552,
+         "idx": 6,
+         "page_el_sn": "1110247"
+        }
+       }
+      ],
+      "replace_goods_list": [
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/9ac54e86-afaa-11f1-9f37-0a580a4ed16e.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=1003795068990%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C869341189004%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 11800,
+        "track_info": {
+         "style_type": 101,
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/9ac54e86-afaa-11f1-9f37-0a580a4ed16e.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "specialSalesTip": "2",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "JkYS7B4oOOCRLmoqIvoImg==",
+          "sid": "933",
+          "ept_arec_i": "pyBsy/P5rxPc9cHpHZ0B8w==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "3333302",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "arec_data",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "1003795068990",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "7",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 1003795068990,
+         "idx": 7,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/b72d1068-62a7-11f1-9358-0a580a4a3060.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=844999148077%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C869341189004&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 1967,
+        "track_info": {
+         "style_type": 101,
+         "ad": {
+          "bkfl": "1",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pkinfo": "fUYO6n6qdMJmvmpbcZGeRQBScigUmWLXu0ieQB1lzka0VLBG6onUNZc+nfCJ0qHwUtN8olbghvBUhweNYVyU9UUXbgppJsRbIfNd7Q1XO6tRU39CX6PIwNMOWmNIX5luEdKMqamomrf4lH2a8cQrqzTJcQGku1eB6VXM8dPRaZIL5cvz2rpoApbQ/8MAEij/hSRVL5U4WUQs2kioH60tdKWbzfXPOqBXgt87JssKIjZpWo/UpuERKHaHIs9f6MRJ",
+          "pubinfo": "{\"item\":\"xWd5ndKGhjjjy+pbhcJZJ+fACeq3e5koT2p3pgJT5QpjoAtMPiWSjOA/tOMet9jjJoVJ6gZHVcFAZ9Da1GZluFVwml3iW1iqX2cXJZUoMIiS22QrV+EKBSWWKM4TRPHadGmbsRkuXI6nv7Yi3c2PBmESjY04Iy8s0p0MJCDqsWH0IwNeXpR2nCyP3sMMBU3uNo3emXRzX5xuhE2te13o2megoLbaUpbyQFmSMjNeRcDF3+o2Dz500mAx2tFlhukEMfh4OOq2OpacWBUJ3e1n/W33qMe1m23MVgxsm7AMtzFATpgFBdLk0P+AGaWqpWLBwpboC6iRwqqF5yuV+H6EcuOJk6n9f7pHKuwezjrnBOatXHcxBEefP57CKmExnK3dEr/1YLwdAktntvN/+zIpPhwtB/YzIDu1AKvwy31bW8zhqnRp2HEUYz16mNDW8bXhJQnWqB1JsSYm2rg/ifEPq/n/vNx2MT9Q5Sx/MprKxEMzxcoXP+SVvNV69isZyvvhBVnA3vZd281RhVTDhl0jgBAfTqZIZ+puEraAPkkxqtpElLPbSsTwsjAJz5Tb5503\",\"req\":\"QOa2DuagyGQ0bcYSlYBv/g\\u003d\\u003d\"}",
+          "nbid": "6L2XTHLTCHrs2fr+kzhI2gFqHvs5Jq9rcVCVcShrINz03j3jvD5zuKrNKwmIP/AEn9qjmf9IqGyke2uVlGT1SFWOqCZi2q1lbaYUGLSsyzCNee3TxQ0G4e3Yd8JWR8hH",
+          "openinfo": "{\"ads_from\":0,\"ad_id\":8534235006,\"is_tr\":1}",
+          "mark": "3xhgcEFnkgHzSO95Gp0+Hzrg8r7dIka3rMAy8dyTFTQ=",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS"
+         },
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/b72d1068-62a7-11f1-9358-0a580a4a3060.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "708U6RXXuuPern0x3cDcWg==",
+          "sid": "933",
+          "ept_arec_i": "CMAHsCPlN+bSMYt761k/Jg==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "933",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "ads",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "844999148077",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "9",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 1,
+         "goods_id": 844999148077,
+         "idx": 9,
+         "page_el_sn": "1110247"
+        }
+       },
+       {
+        "image_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/9e944ed0-1992-11f1-8467-0a580a48d54f.jpg",
+        "link_url": "brand_activity_subsidy.html?_pdd_fs=1&_pdd_tc=ffffff&_pdd_sbs=1&_x_sbsy_ent_src=icon&jump_action_type=1&home_req_action_type=10&access_from=home&refer_page_sn=10002&home_line=2&refer_page_el_sn=1110247&home_rec_goods=13Cx2gogkzqIr7ti%2FP5%2FwZb1J2ABCaV6PzKsnAdcXY1dVD9XUvk6Vne%2BBbMkxGwfeamiV3Ha0%2FcDA6%2FTQrQCif3rh16XmgVVf46geKeo%2Fpy9rHxUDzZCxv5ND7gL46DmPyVdzxb68xGUeKiIlU8KeRWFXj1Oh%2FzKNu3LD%2FukZdkdoMJMT6NjLxfeoaYubZuz&top_goods_list=869341189004%2C873940548995%2C990078558508%2C974151430461%2C855809665194%2C1003188749109%2C960260569217%2C972363925552%2C1003795068990%2C844999148077&encrypt_access_from=yZEbLAgVmPO8cUlJ4NXtkA%3D%3D&top_goods_sort=1_1&top_goods_ad_list=990078558508_10004085146%2C974151430461_9857962090%2C1003188749109_10123196872%2C960260569217_9662508863%2C844999148077_8534235006",
+        "price_style": 0,
+        "price": 6510,
+        "track_info": {
+         "style_type": 101,
+         "enlarge_goods_img": 1,
+         "goods_img_url": "https://img.pddpic.com/aid-image/aid-sr/crsl_image_enlarge/9e944ed0-1992-11f1-8467-0a580a48d54f.jpg",
+         "p_rec": {
+          "eventid": "51a79616bbb811f1b91b5d1b36b66d51",
+          "list_id": "1231299366",
+          "bk": "-1",
+          "mid": "121",
+          "main_img_src": "0",
+          "pid": "933",
+          "sub_stage": "0",
+          "ept_arec": "EnANNiztH--r-ruhr1Z8vQ==",
+          "sid": "933",
+          "ept_arec_i": "X5FY/uMPxHmuVIpoEtxWiQ==",
+          "sgid": "20",
+          "set": "shb1",
+          "org": "arec",
+          "g": "arec_data",
+          "scene_id": "3333302",
+          "join_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "g3": "arec",
+          "m": "arec_data",
+          "search_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "app_name": "goods_rec",
+          "t": "869341189004",
+          "stage": "2",
+          "llt": "1751024987",
+          "idx": "8",
+          "request_id": "f38UYpkfTFGv4azon7cQSJIctrfFc2kWaQPEj4co6Cfk0to9snTE3HY2YtliFEuS",
+          "pentos": "1",
+          "ts": "1790653574352"
+         },
+         "gimgsrc": 3,
+         "goods_id": 869341189004,
+         "idx": 8,
+         "page_el_sn": "1110247"
+        }
+       }
+      ],
+      "ext": {
+       "list_id": "1231299366",
+       "header_style": {
+        "hide_title": true,
+        "sub_title_color": "#C37309",
+        "icon": {
+         "url": "https://promotion.pddpic.com/promo/brand/7de18165-668c-4aaf-851e-5e88295a177d.png.slim.png",
+         "width": 153,
+         "height": 141
+        }
+       },
+       "custom_split": true,
+       "bg_image": "https://promotion.pddpic.com/promo/brand/8be5b4ee-bcfb-4c5f-8fd2-d55616ee9635.png",
+       "sub_icon": {
+        "width": 60,
+        "url": "https://funimg.pddpic.com/group/e6bf39ac-4e1a-4696-b185-be58fff1d36e.png.slim.png",
+        "height": 12
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,10 @@
+{
+  "_comment": "Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. Regenerate with: python3 tools/vendor-check.py --manifest",
+  "sources": {
+    "plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js",
+      "bytes": 2475,
+      "sha256": "63af2e44da24da11f5c1bc930aefdcef2ce16aa65293be3e80ba8520d46e9c58"
+    }
+  }
+}
