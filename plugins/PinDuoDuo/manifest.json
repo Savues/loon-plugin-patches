@@ -14,8 +14,8 @@
     "plugins/PinDuoDuo/src/homepage.response.js": {
       "upstream": null,
       "origin": "self-authored",
-      "bytes": 3840,
-      "sha256": "8ce1dee1f278f95e5131b0b6f6c06a33cfef03072dd5cbcc53ce96a8f12714af"
+      "bytes": 3815,
+      "sha256": "76d605ed928740009b26c908b8cef4138c7d076481e5bc4beefe015cbf8453de"
     },
     "plugins/PinDuoDuo/src/stub.response.js": {
       "upstream": null,

@@ -2,7 +2,7 @@
  * homepage.response.js —— 拼多多首页 hub 响应精简（自研脚本，非上游代码）
  *
  * 承担三件事，其中前两件替代上游写死的 jq：
- *   1. 删掉 icon_set / search_bar_hot_query / irregular_banner_dy  （等价上游 json-del）
+ *   1. 删掉 icon_set / irregular_banner_dy（等价上游 json-del）
  *   2. 自定义底栏按钮  —— 上游写死只留 index / chat / personal 三项
  *   3. 清掉顶部候选 all_top_opts 的图字段（沿用上游 jq 行为）
  *
