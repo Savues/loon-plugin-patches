@@ -79,30 +79,37 @@ async function run() {
     }
 
     let quotaUnit = null;
+    let announcements = null;
+    let siteName = null;
     try {
-        const status = await request("GET", "/api/status", { Accept: "application/json" }, undefined, "余额显示配置查询");
+        const status = await request("GET", "/api/status", { Accept: "application/json" }, undefined, "站点配置查询");
         const config = status.json.data;
         if (status.json.success === true && config && config.display_in_currency === true
             && typeof config.quota_per_unit === "number" && Number.isFinite(config.quota_per_unit) && config.quota_per_unit > 0) {
             quotaUnit = config.quota_per_unit;
         }
+        if (status.json.success === true && config) {
+            announcements = config.announcements;
+            siteName = typeof config.system_name === "string" && config.system_name ? config.system_name : null;
+        }
     } catch (_) {
-        debug("余额显示配置未取得，将显示原始额度");
+        debug("站点配置未取得，余额按原始额度显示");
     }
     const results = [];
     for (let i = 0; i < accounts.length; i++) {
         debug(`开始账号 ${i + 1}/${accounts.length}`);
         try {
-            results.push(await checkin(accounts[i], quotaUnit));
+            results.push(await checkin(accounts[i], quotaUnit, announcements, siteName));
         } catch (error) {
-            results.push({ title: "❌ 运行失败", content: error.message });
+            results.push({ title: "❌ 运行失败", content: error.message, topbar: null });
         }
     }
     if (results.length === 1) {
-        $.msg($.name, results[0].title, `👤 账号：${accounts[0].username}\n${results[0].content}`);
+        $.msg(results[0].topbar || $.name, results[0].title, results[0].content);
     } else {
-        $.msg($.name, `签到汇总（${results.length} 个账号）`, results.map((result, i) =>
-            `👤 账号 ${i + 1} · ${accounts[i].username}\n${result.title}\n${result.content}`).join("\n\n"));
+        $.msg(`签到汇总（${results.length} 个账号）`, "多账号",
+            results.map((result, i) =>
+            `账号 ${i + 1} · ${accounts[i].username}\n${result.title}\n${result.content}`).join("\n\n"));
     }
 }
 
@@ -131,7 +138,7 @@ function readAccounts() {
     return username && password ? [{ username, password }] : [];
 }
 
-async function checkin({ username, password }, quotaUnit) {
+async function checkin({ username, password }, quotaUnit, announcements, siteName) {
     const headers = {
         "User-Agent": UA,
         Accept: "application/json, text/plain, */*",
@@ -139,9 +146,7 @@ async function checkin({ username, password }, quotaUnit) {
         Origin: BASE_URL,
         Referer: `${BASE_URL}/login`,
     };
-    const loginStarted = Math.floor(Date.now() / 1000);
     const login = await request("POST", "/api/user/login", headers, JSON.stringify({ username, password }), "登录");
-    const loginFinished = Math.floor(Date.now() / 1000);
     if (login.json.success !== true) {
         return { title: "❌ 登录失败", content: `请先在 AgentRouter 网页确认账号、密码及是否需要验证码，再更新 ${SETTINGS_PAGE}` };
     }
@@ -183,6 +188,8 @@ async function checkin({ username, password }, quotaUnit) {
         if (!checkinRecord) detail = `最近 ${items.length} 条日志中未找到今日签到记录，请到网站核对`;
     }
 
+    // 账户信息用于顶栏（ID / 注册天数）与正文第 1 行（余额 / 已用 / 请求数）
+    let user = data;
     let stats;
     try {
         const profile = await request("GET", "/api/user/self", userHeaders, undefined, "余额查询");
@@ -190,89 +197,108 @@ async function checkin({ username, password }, quotaUnit) {
         if (profile.json.success !== true || typeof quota !== "number" || !Number.isFinite(quota)) {
             throw new Error("余额查询未返回有效额度，请到网站核对");
         }
-        stats = formatStats(profile.json.data, items, quotaUnit);
+        user = profile.json.data;
+        stats = formatStats(user, quotaUnit);
     } catch (error) {
-        stats = `💳 当前余额：查询失败\n📉 累计消耗：查询失败\n${error.message}`;
+        stats = `💳 余额查询失败：${error.message}`;
     }
+    const topbar = formatTopbar(user, siteName);
+    // 公告只占正文第 2-4 行；正文首行永远是余额那行
+    const announce = formatAnnouncement(announcements);
+    const body = announce ? `${stats}\n${announce}` : stats;
 
     if (checkinRecord) {
-        const time = new Date(checkinRecord.created_at * 1000);
-        const clock = [time.getHours(), time.getMinutes(), time.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
-        // 新增标记与本次登录期间的记录同时成立，才将奖励归于本次运行。
-        const isNew = data.checked_in === true && checkinRecord.created_at >= loginStarted && checkinRecord.created_at <= loginFinished;
-        const reward = formatCheckinReward(checkinRecord.content, isNew);
-        return { title: "✅ 今日签到已确认", content: `${reward}\n${stats}\n🕒 签到时间：${clock}` };
+        return { topbar, title: "✅ 今日已签到" + formatCheckinReward(checkinRecord.content), content: body };
     } else {
         const state = data.checked_in === true ? "服务端返回已签到，但日志尚未确认" : "登录成功，签到状态尚未确认";
-        return { title: "⚠️ 签到待确认", content: `🎁 签到奖励：待确认\n${stats}\n\n${state}\n${detail}` };
+        return { topbar, title: "⚠️ 签到待确认", content: `🎁 签到奖励：待确认\n${stats}\n\n${state}\n${detail}` };
     }
 }
 
-function formatAmount(label, value, quotaUnit) {
-    if (typeof value !== "number" || !Number.isFinite(value)) return `${label}：未返回`;
-    return quotaUnit === null ? `${label}（原始额度）：${value}` : `${label}：$${(value / quotaUnit).toFixed(2)}`;
-}
-
-// 通知里的统计段。items 是同一页 /api/log/self，签到判定和用量统计共用。
-function formatStats(user, items, quotaUnit) {
-    const lines = [
-        formatAmount("💳 当前余额", user.quota, quotaUnit),
-        formatAmount("📉 累计消耗", user.used_quota, quotaUnit),
-    ];
+// 通知正文第 1 行：余额 · 已用 · 请求数 挤在一行里。
+// iOS 锁屏通知正文只给 4 行，拆成多行会把下面的公告挤出预算。
+function formatStats(user, quotaUnit) {
+    const money = (v) => {
+        if (typeof v !== "number" || !Number.isFinite(v)) return null;
+        return quotaUnit === null ? String(v) : "$" + (v / quotaUnit).toFixed(2);
+    };
+    const parts = [];
+    const bal = money(user.quota);
+    const used = money(user.used_quota);
+    if (bal) parts.push(`💳 余额 ${bal}`);
+    if (used) parts.push(`已用 ${used}`);
     if (Number.isInteger(user.request_count) && user.request_count >= 0) {
-        lines.push(`⚡ 累计调用：${user.request_count} 次`);
+        parts.push(`${user.request_count} 次`);
     }
-    // 今日消耗：把本页 type=2（用量）且落在今天的记录加总。
-    // 只能统计本页覆盖到的部分 —— 日志量大时今日用量可能在更早的页里，故标注上限。
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const now = Date.now() / 1000;
-    const today = (items || []).filter((i) => i && i.type === 2
-        && typeof i.quota === "number" && Number.isFinite(i.quota)
-        && i.created_at * 1000 >= start.getTime() && i.created_at <= now);
-    if (today.length) {
-        const sum = today.reduce((s, i) => s + i.quota, 0);
-        const amount = quotaUnit === null ? String(sum) : "$" + (sum / quotaUnit).toFixed(4);
-        lines.push(`📅 今日消耗：${amount}（${today.length} 次）`);
+    return parts.join(" · ") || "💳 余额查询失败";
+}
+
+const ANNOUNCE_KEY = "agentrouter_announce_id";
+const ANNOUNCE_LINES = 3;   // 通知正文第 2-4 行留给公告
+
+// 公告：只在有新公告时占正文行。用 $persistentStore 记住上次见到的最大 id。
+// 首次运行没有记录，会把当前最新的那条当新公告报一次。
+function formatAnnouncement(announcements) {
+    if (!Array.isArray(announcements) || !announcements.length) return "";
+    const latest = announcements[0];
+    if (!latest || typeof latest.content !== "string") return "";
+    const seen = $.getdata(ANNOUNCE_KEY);
+    if (seen !== null && seen !== undefined && seen !== "" && String(latest.id) === String(seen)) return "";
+    $.setdata(String(latest.id), ANNOUNCE_KEY);
+    const date = String(latest.publishDate || "").slice(5, 10);   // MM-DD
+    const text = String(latest.content).replace(/\s+/g, " ").trim();
+    return wrap("📢 " + date + " " + text, ANNOUNCE_LINES);
+}
+
+// 按显示宽度断行：全角算 1、半角算 0.5，上限 max 行。iOS 通知正文不会自己折行，
+// 超出的部分直接被截掉，所以必须自己断。续行缩进 2 格，便于和首行的 📢 对齐。
+function wrap(text, max) {
+    const width = (ch) => (ch.charCodeAt(0) > 0x2e80 ? 1 : 0.5);
+    const INDENT = 2;                          // 续行缩进，也占行宽
+    const LIMIT = 19;                          // 19 全角单位 ≈ 窄屏一行
+    const out = [];
+    let cur = "", w = 0;
+    for (const ch of text) {
+        const cw = width(ch);
+        const room = LIMIT - (out.length ? INDENT : 0);
+        if (w + cw > room) {
+            out.push(cur);
+            if (out.length === max) break;
+            cur = ""; w = 0;
+        }
+        cur += ch; w += cw;
     }
-    // 距余额耗尽的粗略天数：按最近一天的消耗速度外推，没有消耗就不显示。
-    if (quotaUnit !== null && typeof user.quota === "number" && user.quota > 0) {
-        const spend = averageDailySpend(items, quotaUnit);
-        if (spend !== null) {
-            const days = user.quota / (spend * quotaUnit);
-            if (Number.isFinite(days) && days >= 1) {
-                lines.push(`⏳ 按当前用量约可用 ${days < 60 ? days.toFixed(0) + " 天" : (days / 30).toFixed(1) + " 个月"}`);
-            }
+    if (out.length < max && cur) out.push(cur);
+    if (out.length > max) out.length = max;
+    // 只要原文没被完整放下，末行就加省略号
+    const kept = out.join("").replace(/\s/g, "");
+    if (kept.length < text.replace(/\s/g, "").length) out[out.length - 1] += "…";
+    return out.map((l, i) => (i ? " ".repeat(INDENT) + l : l)).join("\n");
+}
+
+// 通知顶栏（副标题）：站点名 · 用户 ID · 注册至今天数
+function formatTopbar(user, siteName) {
+    const parts = [siteName || "AgentRouter"];
+    if (Number.isInteger(user && user.id) && user.id > 0) parts.push(String(user.id));
+    if (user && typeof user.created_at === "number" && user.created_at > 0) {
+        const days = (Date.now() / 1000 - user.created_at) / 86400;
+        // 注册当天算第 1 天，所以是 floor + 1。
+        // 上界 36500 天：登录响应的 created_at 是 0，不设上界会算出几万天。
+        if (Number.isFinite(days) && days >= 0 && days < 36500) {
+            parts.push("第 " + (Math.floor(days) + 1) + " 天");
         }
     }
-    return lines.join("\n");
+    return parts.join(" · ");
 }
 
-// 用本页日志里的用量记录算日均消耗。样本不足或跨天不完整时返回 null。
-function averageDailySpend(items, quotaUnit) {
-    if (!Array.isArray(items) || !items.length) return null;
-    const spend = items.filter((i) => i && i.type === 2
-        && typeof i.quota === "number" && Number.isFinite(i.quota) && i.quota > 0
-        && typeof i.created_at === "number" && Number.isFinite(i.created_at));
-    if (!spend.length) return null;
-    // 只统计最近 3 个自然日，样本太老对「当前用量」没参考价值
-    const latest = Math.max(...spend.map((i) => i.created_at));
-    const days = new Set(spend.filter((i) => (latest - i.created_at) < 3 * 86400)
-        .map((i) => new Date(i.created_at * 1000).toDateString())).size;
-    if (days < 1) return null;
-    const total = spend.filter((i) => (latest - i.created_at) < 3 * 86400)
-        .reduce((s, i) => s + i.quota, 0);
-    return total / days / quotaUnit;
-}
-
-function formatCheckinReward(content, isNew) {
+function formatCheckinReward(content) {
     // 系统日志的 quota 不是奖励；只解析实测详情中明确标注的美元金额。
     // 金额前的符号实测是全角 ＄（U+FF04），不是半角 $ —— 半角全角都收。
     const match = content.trim().match(/^每日签到成功，\s*增加额度\s*[$＄]\s*(\d+(?:\.\d+)?)\s*额度$/);
     const amount = match ? Number(match[1]) : NaN;
-    const label = isNew ? "🎁 本次奖励" : "🎁 今日奖励";
-    if (!Number.isFinite(amount)) return `${label}：金额未识别，请到网站核对`;
-    return `${label}：${amount > 0 ? "+" : ""}$${amount.toFixed(2)}${isNew ? "" : "（今日记录）"}`;
+    if (!Number.isFinite(amount)) return "（金额未识别，请到网站核对）";
+    // 整数不带小数点：$25 而不是 $25.00
+    return ` +$${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`;
 }
 
 function findTodayCheckin(items, now) {

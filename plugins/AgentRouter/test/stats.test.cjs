@@ -1,12 +1,21 @@
-/* stats.test.cjs —— formatStats / averageDailySpend 的单元测试
+/* stats.test.cjs —— 通知排版相关纯函数的单元测试
  * Node 里跑：node test/stats.test.cjs
  *
- * 这些是纯计算函数（只吃 /api/user/self 和 /api/log/self 的返回），不联网，
- * 所以直接从 src/agentrouter.js 里把函数抠出来 eval，测的是真实实现而不是副本。
+ * 这些函数只吃服务端返回的数据、不联网，从 src/agentrouter.js 里抠出来 eval，
+ * 测的是真实实现而不是副本。$persistentStore 用内存替身。
  */
 const fs = require("fs");
 const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "..", "src", "agentrouter.js"), "utf8");
+
+const STORE = {};
+const $persistentStore = {
+  read: (k) => (STORE[k] !== undefined ? STORE[k] : null),
+  write: (v, k) => { STORE[k] = String(v); return true; },
+  remove: () => { for (const k of Object.keys(STORE)) delete STORE[k]; return true; },
+};
+const $ = { getdata: (k) => $persistentStore.read(k), setdata: (v, k) => $persistentStore.write(v, k) };
+
 const pick = (name) => {
   const i = src.indexOf("function " + name);
   if (i < 0) throw new Error("找不到 " + name);
@@ -17,62 +26,138 @@ const pick = (name) => {
     else if (src[k] === "}") { d--; if (!d) return src.slice(i, k + 1); }
   }
 };
-eval([pick("formatAmount"), pick("formatStats"), pick("averageDailySpend")].join("\n"));
-const QPU=500000;
-const now=Date.now()/1000;
-const day=(n)=>now-n*86400;
-const usage=(d,quota)=>({type:2,quota,created_at:day(d)});
-const signin=(d)=>({type:4,quota:0,content:'每日签到成功，增加额度 ＄25.000000 额度',created_at:day(d)});
-const user=(o={})=>({quota:100*QPU,used_quota:7*QPU,request_count:37,...o});
-let pass=0,fail=0;
-function t(n,f){try{f();pass++;console.log('  ✓ '+n)}catch(e){fail++;console.log('  ✗ '+n+'\n      '+e.message)}}
+eval("const ANNOUNCE_KEY = 'agentrouter_announce_id';\nconst ANNOUNCE_LINES = 3;\n"
+  + [pick("formatStats"), pick("formatAnnouncement"), pick("wrap"),
+     pick("formatTopbar"), pick("formatCheckinReward")].join("\n"));
 
-console.log("=== formatStats ===");
-t('今日有消耗 → 显示今日消耗与次数',()=>{
-  const s=formatStats(user(),[usage(0.1,0.25*QPU),usage(0.2,0.25*QPU),signin(0.3)],QPU);
-  if(!/📅 今日消耗：\$0\.5000（2 次）/.test(s)) throw new Error(s);
+const QPU = 500000;
+let pass = 0, fail = 0;
+function t(name, fn) {
+  try { fn(); pass++; console.log("  ✓ " + name); }
+  catch (e) { fail++; console.log("  ✗ " + name + "\n      " + e.message); }
+}
+const reset = () => { for (const k of Object.keys(STORE)) delete STORE[k]; };
+
+console.log("=== formatStats：正文第 1 行，一行装完 ===\n");
+
+t("余额 · 已用 · 请求数 挤在一行", () => {
+  const s = formatStats({ quota: 671.57 * QPU, used_quota: 3.43 * QPU, request_count: 37 }, QPU);
+  if (s !== "💳 余额 $671.57 · 已用 $3.43 · 37 次") throw new Error(s);
 });
-t('今日无消耗 → 不显示今日消耗',()=>{
-  const s=formatStats(user(),[usage(3,0.25*QPU),signin(0.3)],QPU);
-  if(/今日消耗/.test(s)) throw new Error('不该显示: '+s);
+
+t("quotaUnit 未取到 → 显示原始额度", () => {
+  const s = formatStats({ quota: 100, used_quota: 20, request_count: 5 }, null);
+  if (!/💳 余额 100/.test(s) || !/已用 20/.test(s)) throw new Error(s);
 });
-t('items 为 null（日志查询失败）→ 不崩且不显示统计',()=>{
-  const s=formatStats(user(),null,QPU);
-  if(!/当前余额/.test(s)) throw new Error(s);
-  if(/今日消耗|约可用/.test(s)) throw new Error('不该显示用量相关: '+s);
+
+t("request_count 缺失 → 不显示那一段", () => {
+  const s = formatStats({ quota: 100, used_quota: 20 }, QPU);
+  if (/次/.test(s)) throw new Error(s);
 });
-t('quotaUnit=null（未取到单位）→ 今日消耗显示原始额度',()=>{
-  const s=formatStats(user(),[usage(0.1,100)],null);
-  if(!/今日消耗：100（1 次）/.test(s)) throw new Error(s);
+
+t("全部拿不到 → 明确的失败提示，不返回空串", () => {
+  const s = formatStats({}, QPU);
+  if (!/余额查询失败/.test(s)) throw new Error(s);
 });
-t('quotaUnit=null → 不做可用天数外推',()=>{
-  const s=formatStats(user(),[usage(1,0.25*QPU)],null);
-  if(/约可用/.test(s)) throw new Error('不该外推: '+s);
+
+console.log("\n=== formatCheckinReward：标题里的金额 ===\n");
+
+t("整数不带 .00（实测就是 $25）", () => {
+  if (formatCheckinReward("每日签到成功，增加额度 ＄25.000000 额度") !== " +$25")
+    throw new Error(JSON.stringify(formatCheckinReward("每日签到成功，增加额度 ＄25.000000 额度")));
 });
-t('余额为 0 → 不外推（避免除零/无穷）',()=>{
-  const s=formatStats(user({quota:0}),[usage(1,0.25*QPU)],QPU);
-  if(/约可用/.test(s)) throw new Error('不该外推: '+s);
+
+t("半角 $ 也能解析", () => {
+  if (formatCheckinReward("每日签到成功，增加额度 $40.000000 额度") !== " +$40")
+    throw new Error(formatCheckinReward("每日签到成功，增加额度 $40.000000 额度"));
 });
-t('无用量记录 → 不外推',()=>{
-  const s=formatStats(user(),[signin(0.3)],QPU);
-  if(/约可用/.test(s)) throw new Error('不该外推: '+s);
+
+t("有小数才保留两位", () => {
+  if (formatCheckinReward("每日签到成功，增加额度 ＄12.50 额度") !== " +$12.50")
+    throw new Error(formatCheckinReward("每日签到成功，增加额度 ＄12.50 额度"));
 });
-t('外推结果：3 天均 $0.25/天、余额 $100 → 约 133 天',()=>{
-  const s=formatStats(user(),[usage(0,0.25*QPU),usage(1,0.25*QPU),usage(2,0.25*QPU),signin(2.5)],QPU);
-  if(!/约可用 \d+ 天|约可用 [\d.]+ 个月/.test(s)) throw new Error(s);
-  console.log('      → '+s.split('\n').pop());
+
+t("认不出来时给提示而不是静默", () => {
+  if (!/未识别/.test(formatCheckinReward("别的内容"))) throw new Error("应提示未识别");
 });
-t('request_count 缺失 → 不显示累计调用',()=>{
-  const s=formatStats({quota:1,used_quota:1},[],QPU);
-  if(/累计调用/.test(s)) throw new Error(s);
+
+console.log("\n=== formatTopbar：顶栏 ===\n");
+
+t("站点名 · ID · 第 N 天", () => {
+  const s = formatTopbar({ id: 631097, created_at: Date.now() / 1000 - 19 * 86400 }, "Agent Router");
+  if (s !== "Agent Router · 631097 · 第 20 天") throw new Error(s);
 });
-t('过滤掉 3 天前的样本（对当前用量无参考价值）',()=>{
-  const s=formatStats(user(),[usage(10,100*QPU),usage(0.1,0.5*QPU),signin(0.2)],QPU);
-  const m=/约可用 ([\d.]+) (天|个月)/.exec(s);
-  if(!m) throw new Error('没外推: '+s);
-  const v=parseFloat(m[1])*(m[2]==='天'?1:30);
-  if(v<50) throw new Error('老样本污染了日均，剩 '+v.toFixed(0)+' 天（应远大于此）');
-  console.log('      → '+s.split('\n').pop());
+
+t("created_at 为 0（登录响应就是 0）→ 不显示天数", () => {
+  const s = formatTopbar({ id: 631097, created_at: 0 }, "Agent Router");
+  if (/天/.test(s)) throw new Error("不该显示天数: " + s);
 });
-console.log('\n'+pass+' 通过, '+fail+' 失败');
-process.exit(fail?1:0);
+
+t("created_at 缺失 → 不崩，退回站点名", () => {
+  if (formatTopbar({ id: 1 }, "X") !== "X · 1") throw new Error(formatTopbar({ id: 1 }, "X"));
+});
+
+t("siteName 缺失 → 退回 AgentRouter", () => {
+  if (!/^AgentRouter/.test(formatTopbar({ id: 1 }, null))) throw new Error("没退回默认名");
+});
+
+console.log("\n=== wrap：公告断行 ===\n");
+
+t("超长文本：收满 3 行就截，末行加省略号", () => {
+  // 约 90 单位，3 行最多装 ~54 单位，必须截断
+  const LONG = "额度用完后会报错 402 Budget pool quota has been exhausted，等待下一批投放，"
+    + "或切换至 DeepSeek 与 GLM 等其他模型即可继续使用，无需担心额度不足。";
+  const lines = wrap(LONG, 3).split("\n");
+  if (lines.length !== 3) throw new Error("行数不对: " + lines.length);
+  if (!lines[2].endsWith("…")) throw new Error("末行应有省略号: " + lines[2]);
+});
+
+t("短文本正好放下：不加省略号", () => {
+  // 41 单位 ÷ 19 = 3 行整，放得下就不该有省略号
+  const s = wrap("为保障服务长期运行，Claude 和 GPT 模型已调整为限量供应，每日分批次发放，用完即止。", 3);
+  if (s.includes("…")) throw new Error("放得下却加了省略号: " + s);
+  if (s.split("\n").length !== 3) throw new Error("行数不对: " + s);
+});
+
+t("续行缩进 2 格，且缩进算进行宽预算", () => {
+  const lines = wrap("一二三四五六七八九十一二三四五六七八九十", 3).split("\n");
+  if (!lines[1].startsWith("  ")) throw new Error("续行没缩进: " + JSON.stringify(lines[1]));
+  const w = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 1 : 0.5), 0);
+  for (const l of lines) if (w(l) > 19) throw new Error("行过宽 " + w(l) + ": " + l);
+});
+
+t("短文本不补空行", () => {
+  if (wrap("很短", 3) !== "很短") throw new Error(wrap("很短", 3));
+});
+
+console.log("\n=== formatAnnouncement：只在有新公告时占行 ===\n");
+
+const ANN = [{ id: 16, publishDate: "2026-08-28T03:19:38.000Z", content: "为保障服务长期运行，Claude 和 GPT 模型限量供应" }];
+
+t("首次运行 → 返回公告（没有历史 id）", () => {
+  reset();
+  const s = formatAnnouncement(ANN);
+  if (!/📢 08-28/.test(s)) throw new Error(JSON.stringify(s));
+});
+
+t("记下 id 之后再调 → 返回空串（不占行）", () => {
+  if (formatAnnouncement(ANN) !== "") throw new Error("不该重复报");
+});
+
+t("出现新公告（id 更大）→ 再报一次", () => {
+  const s = formatAnnouncement([{ id: 17, publishDate: "2026-09-30T00:00:00.000Z", content: "新公告" }]);
+  if (!/09-30/.test(s)) throw new Error(JSON.stringify(s));
+});
+
+t("公告为空数组 → 返回空串", () => {
+  reset();
+  if (formatAnnouncement([]) !== "") throw new Error("不该有内容");
+});
+
+t("公告字段缺失 → 不崩", () => {
+  reset();
+  if (formatAnnouncement([{ id: 1 }]) !== "") throw new Error("内容缺失时不该有输出");
+});
+
+console.log("\n" + pass + " 通过, " + fail + " 失败");
+process.exit(fail ? 1 : 0);

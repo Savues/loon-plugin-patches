@@ -98,44 +98,55 @@ t("上游原件确实没被改动过（改动只发生在副本上）", () => {
 });
 
 t("副本相对原件：删掉的行都有出处，且该删的都删了", () => {
-  // 这里只管**删除侧**。新增/改写侧不再逐行列白名单 ——
-  // formatStats / averageDailySpend 整个函数体都是新写的，逐行列必然漏，
-  // 漏一条就误报，白名单也就失去了意义。
-  // 改动的**行为正确性**由 test/stats.test.cjs 覆盖（纯函数，不联网，10 条用例），
-  // 关键的几条结构断言也单列在下面。
+  // 这里只做两件粗粒度的事：列出「删掉了哪些函数/字段」，
+  // 以及「新增了哪些函数」。逐行白名单在改动变大时是负资产
+  // —— 漏一条就误报，最后会逼人把断言写松或者干脆删掉。
+  // 行为正确性由 test/stats.test.cjs 覆盖（21 个纯函数用例，不联网）。
   const a = upstream.split("\n");
   const b = src.split("\n").filter(l => !l.includes("U+FF04"));
   const removed = a.filter(l => !new Set(b).has(l));
+  const added = b.filter(l => !new Set(a).has(l));
+  const dump = (arr) => arr.filter(x => x.trim() && !/^\s*\/\//.test(x));
 
-  const isKnownRemoved = (l) =>
-    /maskAccount|username\.split|name\.length|^function formatAmount|^\}$|^$/.test(l)
-    || /match\(\/\^每日签到成功/.test(l)          // 旧正则
-    || /findTodayCheckin|签到记录|log\/self|checkinRecord|let detail|detail =|最近记录数|今日签到记录/.test(l)
-    || /累计调用|request_count|stats =|stats \+=|const user = profile/.test(l)
-    || /const items = logs\.json\.data\.items;/.test(l);
-  for (const r of removed) {
-    assert.ok(isKnownRemoved(r), "删掉了预期外的行: " + JSON.stringify(r));
-  }
-  // 上游的 maskAccount 整块确实没了
-  assert.ok(removed.some(l => l.startsWith("function maskAccount")), "应删掉 maskAccount 定义");
+  // 上游有、本仓库没有的函数（整块删掉的）
+  // 注意：formatCheckinReward 只是签名变了（去掉 isNew 参数），函数还在，
+  // 所以判据是「函数名是否仍存在于副本」，不是「签名行是否逐字相同」。
+  const fnNames = (lines) => new Set(lines.map(l => (/^function (\w+)/.exec(l) || [])[1]).filter(Boolean));
+  const gone = [...fnNames(a)].filter(n => !fnNames(b).has(n));
+  assert.deepStrictEqual(gone.sort(), ["formatAmount", "maskAccount"],
+    "删掉的函数清单变了: " + JSON.stringify(gone));
+
+  // 打码必须彻底没了
   assert.ok(removed.some(l => l.includes("maskAccount(accounts[0].username)")), "应删掉单账号那处调用");
   assert.ok(removed.some(l => l.includes("maskAccount(accounts[i].username)")), "应删掉多账号那处调用");
   assert.ok(!/maskAccount/.test(src), "仍有 maskAccount 引用");
 
-  // 该加的都在
-  assert.ok(src.includes("function formatStats"), "应新增 formatStats");
-  assert.ok(src.includes("function averageDailySpend"), "应新增 averageDailySpend");
+  // 本仓库新增的函数
+  const fresh = [...fnNames(b)].filter(n => !fnNames(a).has(n));
+  assert.deepStrictEqual(fresh.sort(),
+    ["formatAnnouncement", "formatStats", "formatTopbar", "wrap"],
+    "新增函数清单变了: " + JSON.stringify(fresh));
+
+  // 关键行为在源码里确实在
   assert.ok(src.includes("[$＄]"), "改后的正则没收全角 ＄");
-  assert.ok(src.includes("📅 今日消耗"), "应显示今日消耗");
-  assert.ok(src.includes("⏳ 按当前用量约可用"), "应显示可用天数外推");
+  assert.ok(src.includes("📢 "), "公告应有 📢 前缀");
+  assert.ok(src.includes("💳 余额"), "正文首行应是余额");
+  assert.ok(!src.includes("⏳ 按当前用量约可用"), "「约可用 N 天」已按要求去掉");
+  assert.ok(!src.includes("🕒 签到时间"), "「签到时间」已按要求去掉");
+  assert.ok(!src.includes("👤 账号"), "账号行已并入顶栏");
 });
 
-t("签到判定和用量统计共用同一页日志（只拉一次）", () => {
-  // 两次 /api/log/self 就是白拉一次；findTodayCheckin 与 formatStats 应收同一个 items
-  const calls = [...src.matchAll(/request\("GET", "\/api\/log\/self/g)];
-  assert.strictEqual(calls.length, 1, "log/self 被请求了 " + calls.length + " 次");
-  assert.match(src, /const checkinRecord = items \? findTodayCheckin\(items, Date\.now\(\)\) : null;/);
-  assert.match(src, /stats = formatStats\(profile\.json\.data, items, quotaUnit\);/);
+t("通知三层：顶栏 / 标题 / 正文各司其职", () => {
+  // 顶栏 = 副标题（$.msg 第一参），标题第二参，正文第三参
+assert.ok(src.includes("$.msg(results[0].topbar || $.name, results[0].title, results[0].content)"), "三层分发不对");
+  // 标题把金额合并进去，且整数不带 .00
+assert.ok(src.includes('title: "✅ 今日已签到" + formatCheckinReward'), "标题合并不对");
+assert.ok(src.includes("amount % 1 === 0 ? amount.toFixed(0)"), "整数不该带 .00");
+  // 正文首行固定是余额，公告排在它下面
+  assert.ok(src.includes("const body = announce ? `${stats}\\n${announce}` : stats;"), "正文拼接不对");
+  // 公告只在新公告时出现，且只占 3 行
+assert.ok(src.includes("const ANNOUNCE_LINES = 3;"), "公告应占 3 行");
+assert.ok(src.includes("$.setdata(String(latest.id), ANNOUNCE_KEY)"), "没记公告 id");
 });
 
 t("签到记录的 quota 字段为 0，奖励金额只能靠解析文案", () => {

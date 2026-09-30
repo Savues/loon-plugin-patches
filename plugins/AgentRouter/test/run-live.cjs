@@ -14,6 +14,13 @@ if (!username || !password) {
 const mask = (s) => (s.length <= 2 ? s[0] + "*" : s.slice(0, 2) + "*".repeat(Math.min(s.length - 2, 8)));
 console.log("账号: " + mask(username) + "  密码: " + mask(password) + "\n");
 
+const STORE = {};
+global.$persistentStore = {
+  read: (k) => (STORE[k] !== undefined ? STORE[k] : null),
+  write: (v, k) => { STORE[k] = String(v); return true; },
+  remove: () => { for (const k of Object.keys(STORE)) delete STORE[k]; return true; },
+};
+
 function real(method) {
     return function (params, cb) {
         const u = new URL(params.url);

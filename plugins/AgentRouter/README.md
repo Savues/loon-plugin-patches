@@ -7,7 +7,7 @@
 | | 中文 | English |
 |---|---|---|
 | 清单改动 | 1 个开关 + cron 挂 `enable={auto}` | One switch, `enable={auto}` on cron |
-| 脚本改动 | 奖励正则 + 去掉账号打码，原件另存 `src/upstream-/` | Reward regex + account unmasking; pristine copy kept |
+| 脚本改动 | 奖励正则 + 去打码 + 通知三层重排，原件另存 `src/upstream-/` | Reward regex, unmasking, 3-tier notification layout |
 | 依据 | 多设备重复签到；真机实测奖励显示「金额未识别」 | Duplicate check-ins; live test showed reward unparsed |
 
 ---
@@ -29,13 +29,13 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | [manifest.json](manifest.json) | sha256 登记（含 `based-on`） | sha256 registry |
 | [UPSTREAM.md](UPSTREAM.md) | 上游出处与逐条改动依据 | Provenance & per-change reasoning |
 | [test/manifest.test.mjs](test/manifest.test.mjs) | 清单与脚本结构回归，23 个用例 | Structure regression tests |
-| [test/stats.test.cjs](test/stats.test.cjs) | 统计函数单元测试，10 个用例（不联网） | Stats unit tests, offline |
+| [test/stats.test.cjs](test/stats.test.cjs) | 通知排版函数单元测试，21 个用例（不联网） | Notification layout unit tests, offline |
 | [test/probe.cjs](test/probe.cjs) | 接口探查：打印各接口返回的字段结构 | Endpoint field-shape probe |
 | [test/run-live.cjs](test/run-live.cjs) | 真机全流程测试（读环境变量） | Live end-to-end test |
 
 ```bash
 node test/manifest.test.mjs        # 离线，23 个用例
-node test/stats.test.cjs           # 离线，10 个用例
+node test/stats.test.cjs           # 离线，21 个用例
 AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
 node test/probe.cjs                # 想看服务端还返回了什么，跑这个
 python3 tools/vendor-check.py --diff            # 上游是否更新
@@ -48,49 +48,27 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 2026-09-30 用真账号跑通全流程（`AGENTROUTER` 环境变量，格式 `用户名#密码`）：
 
 ```
-【通知】AgentRouter
-  ✅ 今日签到已确认
-  👤 账号：（完整显示，此处省略）
-  🎁 今日奖励：+$25.00（今日记录）
-  💳 当前余额：$XXX.XX
-  📉 累计消耗：$X.XX
-  ⚡ 累计调用：N 次
-  ⏳ 按当前用量约可用 N 个月
-  🕒 签到时间：00:05:20
+【通知】Agent Router · 用户ID · 第 N 天     ← 副标题（顶栏）
+  ✅ 今日已签到 +$25                         ← 标题
+  💳 余额 $XXX.XX · 已用 $X.XX · N 次        ← 正文
+  📢 08-28 为保障服务长期运行，Claude 和
+     GPT 模型已调整为限量供应，每日分
+     次发放，用完即止。新的投放时间为…
 ```
 
-`⏳ 按当前用量约可用` 是本仓库加的：拿日志里 `type=2`（用量）的记录按最近 3 天算日均，
-再拿余额除一下。取 3 天是显式取舍 —— 日志按时间倒序一页只有 20 条，
-取太久远的样本会把日均稀释掉。
+三层各放什么，按 iOS 的实际渲染分配：
 
-（上面示例里的账号、余额等数字都做了脱敏；`test/probe.cjs` 跑一遍能看服务端真实返回了什么。）
-
-**这条实测揪出了上游一个 bug**：修复前同一行显示的是
-「🎁 今日奖励：金额未识别，请到网站核对」——
-服务端 `/api/log/self` 返回的金额符号是**全角 `＄`（U+FF04）**，上游正则只认半角 `$`。
-本仓库把字符类改成 `[$＄]` 修掉了，详见 [UPSTREAM.md](UPSTREAM.md)。
-
-`test/run-live.cjs` 会把响应里的账号/密码/token 字段自动替换成 `***`。
-上面那行账号是因为本仓库改成了完整显示，示例里就不贴真实邮箱了。
-
----
-
-## 用法 · Usage
-
-| 开关 | 默认 | 作用 |
+| 层 | 内容 | 为什么放这儿 |
 |---|---|---|
-| **每日自动签到** | **关** | 打开后每天 09:00 自动执行 |
-| 调试模式 | 关 | 上游自带，输出请求状态与签到判定 |
+| 副标题 | 站点名 · 用户 ID · 注册至今天数 | 顶栏原本是插件名，跟上方 App 名重复；这里放身份信息 |
+| 标题 | 状态 + 金额 | 大字位置最该放结果，不是状态描述 |
+| 正文 1 行 | 余额 · 已用 · 请求数 | 挤一行才腾得出位置给公告 |
+| 正文 2-4 行 | 公告（续行缩进 2 格） | 只在有新公告时占行，靠 `persistentStore` 记 id |
 
-插件页面两个可点项：
+金额整数不带 `.00`（`$25` 不是 `$25.00`）。详细依据见 [UPSTREAM.md](UPSTREAM.md#03-通知重排用满三层把预算花在刀刃上)。
 
-**多设备**：全部装上，只在**一台**上打开「每日自动签到」，其余保持默认关闭。
-
-开关只拦自动调度，不影响手动触发 —— 关着的时候，插件页上仍能直接点那条 cron 跑一次。
-
-账号密码仍在上游那三个输入框里填，本改动没有动它们。
-
----
+`test/run-live.cjs` 会把响应里的账号/密码/token 字段自动替换成 `***`；
+上面那行账号省略是因为金额与余额都做了脱敏。
 
 ## 改了什么 · What changed
 
