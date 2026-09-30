@@ -31,7 +31,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
-| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 38 项账号属性<br>Spotify ad-block, three sources merged, 38 account properties | **v1.2** |
+| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 38 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 38 properties and 5 rewrites | **v1.3** |
 
 ### 托管了脚本的十个插件
 
@@ -85,6 +85,19 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 反向验证（退回原版）10 条转红。这次也钉住了一个坏消息：
 `tab_configuration` 属性已从服务端消失，**该开关当前无效**，
 而 Amlabort 最新脚本里那段 JSON 也是注释掉的 —— 同一个结论，两处独立来源。
+
+**v1.3**（同一批抓包驱动）补了两条 Rewrite：`watch-feed-entrypoints`（播放页「探索」，
+实测 iPad ×18 / iPhone ×4）与 `pam-view-service`（设置页返回明文 `Spotify Free`）——
+这两个是**独立端点，38 项属性表管不到**。同时**刻意不加** `/ads/` 与 `aet.spotify.com`：
+前者实测已是空 marquee（脚本把 `ads` 置 false 后服务端本就不下发），
+拦 `ads/v2/config` 只会打断 ad-logic 状态机；后者两平台都返回 0 字节。
+「拦已经没有广告的端点」是负收益，理由写进了 lpx 与 README。
+
+**v1.2 复测还定位了一个此前误判的根因**：v1.1 时 pendragon 完全不生效，
+而 v1.2 生效了 —— 但两版的 `[Rewrite]` **逐字节相同**，唯一变的是脚本。
+结论是 `[Rewrite]` 与 `[Script]` 属**同一个解析单元**，
+换脚本内容会让 Loon 重新解析整个 lpx，`[Rewrite]` 随之恢复。
+已写进 README「已知问题」：以后遇到「Rewrite 突然不生效」，先怀疑解析状态，别改正则。
 
 `AdGuard-Spoof` —— 第五种情况：**去混淆等价重写**。上游是 1905 B 的单行混淆（字符串表 + 移位自解机），
 本仓库把它还原成 9 行可读脚本，解码表在 `UPSTREAM.md` 里逐项列出。

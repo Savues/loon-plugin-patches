@@ -1,5 +1,5 @@
-#!name=Spotify去广告(合订版) v1.2
-#!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。v1.2 起脚本写入 38 项账号属性（音质/目录/离线/有声书等一并解锁）。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=Spotify去广告(合订版) v1.3
+#!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。脚本写入 38 项账号属性（音质/目录/离线/有声书等一并解锁），并屏蔽播放页「探索」与设置页会员信息两个独立端点。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: 001ProMax | 合并整理: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Spotify.png
-#!date=2026-09-30 20:40:00
+#!date=2026-09-30 21:10:00
 
 [Argument]
 tab=switch, false, true, tag=移除底栏创建按钮, desc=隐藏 Spotify 底栏中间的「创建」按钮（改后需重新登录）
@@ -19,6 +19,8 @@ AND, ((DOMAIN-SUFFIX, spotify.com), (PROTOCOL, QUIC)), REJECT
 [Rewrite]
 ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/pendragon\/ reject-dict
 ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/artistview\/v1\/artist\/(.*)&platform=iphone header https://spclient.wg.spotify.com/artistview/v1/artist/$1&platform=ipad
+^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/watch-feed-entrypoints\/ reject-dict
+^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/pam-view-service\/ reject-dict
 ^https:\/\/gae2-spclient\.spotify\.com:443\/ad reject
 
 [Script]
@@ -27,7 +29,57 @@ http-response ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/(
 [MitM]
 hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 
-# ==== PLUGIN_VERSION: 1.2 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.3 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.3：补两条 Rewrite，屏蔽 38 项属性管不到的两个独立端点】
+#   v1.2 的 38 项属性全部作用在 **bootstrap / customize 响应**上。
+#   但 2026-09-30 的两份真机抓包（iPad 115 秒 893 条 + iPhone 55 秒 424 条）
+#   暴露了两个**独立端点**，属性表改不到它们：
+#
+#   ① watch-feed-entrypoints/v1/discovery-from-seed —— 播放页「探索」内容
+#      iPad ×18（每次 3.5–4.0 KB）、iPhone ×4（1.7–2.0 KB）
+#   ② pam-view-service —— 设置页会员信息
+#      GetPremiumPlanRow 返回 63 B protobuf，**明文 `Spotify Free` + 「查看可用套餐」**
+#      GetPlanOverview  返回 344 B protobuf，含「在网页上管理你的 Premium 套餐」
+#      「继续使用 Premium」「续订订阅项目」等升级引导
+#      ⇒ iPad / iPhone **两个平台都复现**
+#
+#   两条都用 reject-dict，与既有 pendragon 同一手法。
+#   pam-view-service 是 application/protobuf + application/grpc，
+#   但 pendragon 也是 grpc 且实测拦截成功（见下），所以同样处理。
+#   规则写法沿用既有三条的 `(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?` 前缀，
+#   已用两份抓包里 23 条真实 URL 逐条验证过匹配。
+#
+# 【v1.3 刻意不加的两条，及理由 —— 拦「已经没有广告的端点」是负收益】
+#   ③ /ads/  —— **不加以免打断 ad-logic 状态机**
+#      实测 ads/v3/ads?slots=marquee 返回 `{"pod":{"marquee":[]}}`（22 B，空）
+#      原因：脚本已把 accountAttributes 的 `ads` 置为 false，服务端**本来就不下发广告**。
+#      而 ads/v2/config（607 B）是 ad-logic 的状态机配置，拦掉它会打断
+#      ad-logic/prefetch 的正常轮询，收益为零、风险为正。
+#      KPI0/fuck-Ads 那份拦了 `/ads/` 和 `/ad-logic/`，但那是纯屏蔽插件，
+#      不承担「不能影响正常功能」的约束。
+#   ④ aet.spotify.com REJECT —— **不加，两平台都返回 0 字节**
+#      iPad ×1 / iPhone ×1，content-type 空，body 长度 0。
+#      拦一个本来就空的东西没有任何可观测收益，只增加规则数量。
+#   另：37i9dQZF1EYkqdzj48dyYq（AI DJ 歌单）两份抓包里都稳定 404，
+#      Amlaborth 为它加的 reject-dict 确已无意义，本版不跟。
+#
+# 【v1.2 复测结论（iPad + iPhone 双平台，v1.2 真机实测）】
+#   ✅ 38 项属性 36/36 固定值全对，到期日 = 抓包时刻 +1 个月
+#   ✅ pendragon reject-dict **生效**（v1.1 时是失效的）
+#      铁证：_loon.log 出现 `Forward fake response stream code:200.`，
+#      响应体 2 B `{}`，无 server/via 头，downloadSize=0
+#   🔴 但**根因不是规则文本** —— v1.2 的 [Rewrite] 三条与 v1.1 逐字节相同，
+#      本次唯一变的是脚本。pendragon 从「零命中」变成「3/3 命中」。
+#      判定：`[Rewrite]` 与 `[Script]` 是**同一个解析单元**，
+#      换了 script 内容 → Loon 重新解析整个 lpx → [Rewrite] 随之恢复。
+#      与 B 站 2026-09-30 19:51→20:18 那次同款机制。
+#      推论：以后若发现「Rewrite 突然不生效」，先怀疑解析状态，别急着改正则。
+#   ✅ 38 项属性在 iPad / iPhone 上值完全一致，服务端下发仅 4 处平台差异
+#      （仅 iPad 有 tablet-free、仅 iPhone 有 ab-nft-navigation-menu、
+#        ab-navigation-menu 2 vs 1、strider-key 设备指纹）
+#      ⇒ 同一套脚本对两个平台都适用，不需要按平台分叉
+#   🔴 tab 开关在**两个平台上都不存在** tab_configuration / ios-feature-navigation
 #
 # 【v1.2：脚本写入的账号属性 10 → 38（真机抓包驱动）】
 #   v1.1 托管的是 kelee 版脚本，只写 10 个 accountAttributes。

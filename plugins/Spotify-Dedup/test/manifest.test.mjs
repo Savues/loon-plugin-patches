@@ -41,6 +41,10 @@ const rw = section('REWRITE')
 const rule = section('RULE')
 const script = section('SCRIPT')
 
+// 既有 5 条 Rewrite 共用的 host 前缀。v1.3 新增的两条必须沿用同一写法，
+// 否则 Loon 会对 guc3-spclient.spotify.com:443 匹配不上（实测该 host 带 :443）
+const HOST = '(?:\\w+-spclient|spclient\\.wg)\\.spotify\\.com(?::443)?'
+
 t('pendragon 广告配置拦截（kelee 与 730 共有）',
   rw.some(r => r.includes('/pendragon\\/') && r.includes('reject-dict')))
 t('artistview iphone→ipad 改写（kelee 与 730 共有）',
@@ -55,6 +59,46 @@ t('bootstrap 响应脚本（kelee 与 730 共有）',
 t('MITM 域名与两个来源一致',
   section('MITM').join(' ').includes('*-spclient.spotify.com') &&
   section('MITM').join(' ').includes('spclient.wg.spotify.com'))
+
+// ── 1b. v1.3 新增的两条 Rewrite ───────────────────────────────────
+console.log('\n【1b】v1.3：屏蔽 38 项属性管不到的两个独立端点')
+
+t('watch-feed-entrypoints 屏蔽（播放页「探索」，实测 iPad ×18 / iPhone ×4）',
+  rw.some(r => r.includes('/watch-feed-entrypoints\\/') && r.includes('reject-dict')))
+t('pam-view-service 屏蔽（设置页会员信息，实测返回明文 `Spotify Free`）',
+  rw.some(r => r.includes('/pam-view-service\\/') && r.includes('reject-dict')))
+
+t('新加的两条沿用既有 host 前缀写法',
+  rw.filter(r => r.includes('watch-feed-entrypoints') || r.includes('pam-view-service'))
+    .every(r => r.includes(HOST)),
+  'guc3-spclient.spotify.com 带 :443，写错前缀 Loon 匹配不上')
+
+// 逐条用真机抓包里的真实 URL 验证正则能匹配 —— 防止写出「看着对」的规则
+const REAL_URLS = [
+  // 来自 2026-09-30 的两份抓包（iPad 20:39 / iPhone 20:51），逐字节照抄
+  'https://guc3-spclient.spotify.com:443/watch-feed-entrypoints/v1/discovery-from-seed?contextUri=spotify:playlist:1YHbZpDpjSbOcUe1YjGd41&creatorUri=spotify:artist:1he19XnDUahODrmRwKlC8w&entityUri=spotify:track:3n3zzFH7zzO0gJNaw4RKSm&isTablet=true',
+  'https://guc3-spclient.spotify.com:443/pam-view-service/v1/GetPremiumPlanRow?locale=zh-Hans',
+  'https://guc3-spclient.spotify.com:443/pam-view-service/spotify.pam.v2.PamViewService/GetPlanOverview',
+  'https://guc3-spclient.spotify.com:443/pendragon/com.spotify.pendragon.v1.ClientMessageService/FetchMessageList'
+]
+const toJs = p => p.replace(/^\^/, '^').replace(/\\\//g, '/')
+for (const frag of ['watch-feed-entrypoints', 'pam-view-service', 'pendragon']) {
+  const line = rw.find(r => r.includes(`/${frag}`))
+  if (!line) { t(`${frag}: 规则存在`, false, '规则不见了'); continue }
+  // 规则行 = 正则 + 空格 + 动作；取动作之前的部分
+  const rxSrc = line.slice(0, line.lastIndexOf(' ')).trim()
+  let rx = null
+  try { rx = new RegExp(rxSrc) } catch (e) { /* 下面会红 */ }
+  const hit = rx ? REAL_URLS.filter(u => rx.test(u)) : []
+  t(`${frag}: 正则能匹配真机 URL`, !!rx && hit.length > 0,
+    rx ? `一条都没匹配上：${rxSrc}` : `正则语法错：${rxSrc}`)
+}
+
+// 明确写下「不加」的理由，防止以后有人看别的插件有就跟着加
+t('刻意不加 /ads/ 规则（ads/v3/ads 实测已是空 marquee，拦 ads/v2/config 会打断 ad-logic 状态机）',
+  !rw.some(r => /\/ads\//.test(r) || r.includes('ad-logic')))
+t('刻意不加 aet.spotify.com（iPad / iPhone 实测都返回 0 字节）',
+  !rule.some(r => r.includes('aet.spotify.com')))
 
 // ── 2. 没有死开关 ───────────────────────────────────────────
 console.log('\n【2】开关接线：声明的必须被引用，引用的必须已声明')
@@ -77,7 +121,7 @@ for (const n of allRefs) {
   t(`引用 ${n} 已声明`, argNames.includes(n), '引用了未声明的参数')
 }
 
-t('3 条 Rewrite 均无条件（enable= 在 [Rewrite] 上无依据，不写假开关）',
+t('全部 Rewrite 均无条件（enable= 在 [Rewrite] 上无依据，不写假开关）',
   rw.every(r => !r.includes('enable={')),
   '官方手册未记载 Rewrite 支持 enable；上游 4362 条 Rewrite 里零使用')
 
@@ -120,7 +164,7 @@ t('脚本收到的参数个数与脚本行声明的一致',
   })(), 'argument=[{tab},{useractivity}] 应为 2 个')
 
 // ── 3. 脚本托管完整性 ───────────────────────────────────────
-console.log('\n【3】脚本托管：v1.2 起属性表已并入 crack-dev，不再是逐字节副本')
+console.log('\n【3】脚本托管：v1.2 起属性表已并入 crack-dev，不再是逐字节副本（v1.3 未动脚本）')
 
 // v1.1 及以前钉的是 kelee 线上版的逐字节副本。v1.2 起 patch/merge-crack-dev.py
 // 把属性表从 10 项换成 38 项，SHA 随之改变 —— 这条断言的作用从「证明没被改过」

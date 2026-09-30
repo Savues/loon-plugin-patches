@@ -7,7 +7,7 @@
 
 **一个插件，三份来源合并 · One plugin, three sources merged**
 
-**v1.2** — 脚本写入的账号属性从 10 项扩到 38 项（音质、目录、离线、有声书等一并解锁）
+**v1.3** — 补两条 Rewrite：屏蔽播放页「探索」与设置页会员信息两个独立端点
 
 ---
 
@@ -24,26 +24,60 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Spotif
 
 ---
 
-## 合并了什么 · What was merged
+## v1.3 加了什么 · The two endpoints 38 properties can't reach
 
-同一批 Spotify 端点分散在两个上游里各有一份，Loon first-match-wins，
-先加载的那个赢，另一份等于白装。本插件把两边能力收成一份：
+v1.2 的 38 项属性**全部作用在 bootstrap / customize 响应上**。
+但真机抓包（iPad 115 秒 893 条 + iPhone 55 秒 424 条）暴露了两个独立端点，属性表改不到：
 
-| 规则 | kelee | 730 | 本插件 |
-|---|:--:|:--:|:--:|
-| `pendragon` 广告配置 `reject-dict` | ✅ | ✅ | ✅ |
-| `artistview` iphone→ipad 改写 | ✅ | ✅ | ✅ |
-| `gae2-spclient` `/ad` 拦截 | — | ✅ | ✅ |
-| `spotify.com` + QUIC → REJECT | ✅ | — | ✅ |
-| bootstrap Protobuf 脚本 | ✅（带开关） | ✅（开关失效） | ✅（kelee 那份 + crack-dev 属性表） |
+| 端点 | 是什么 | 实测 |
+|---|---|---|
+| `watch-feed-entrypoints/v1/discovery-from-seed` | 播放页「探索」内容 | iPad ×18（3.5–4.0 KB）、iPhone ×4（1.7–2.0 KB） |
+| `pam-view-service` | 设置页会员信息 | `GetPremiumPlanRow` 返回 63 B protobuf，**明文 `Spotify Free` + 「查看可用套餐」**；`GetPlanOverview` 返回 344 B，含「在网页上管理你的 Premium 套餐」「继续使用 Premium」「续订订阅项目」 |
 
-两条 Rewrite 在两个上游里**逐字节相同**，MITM 域名也相同。
+两个平台都复现。v1.3 用 `reject-dict` 屏蔽，**与既有 pendragon 同一手法**
+（`pam-view-service` 是 protobuf/grpc，而 pendragon 也是 grpc 且实测拦截成功）。
+
+### 刻意**不**加的两条，附理由
+
+| 候选 | 实测 | 决定 |
+|---|---|---|
+| `/ads/` | `ads/v3/ads` 返回 `{"marquee":[]}`（空）；`ads/v2/config` 607 B 是 ad-logic 状态机配置 | ❌ 不加 |
+| `aet.spotify.com` | iPad ×1 / iPhone ×1，**都返回 0 字节** | ❌ 不加 |
+
+`/ads/` 那条值得说清楚：广告之所以为空，是因为**脚本已经把 `ads` 属性置成 `false`，
+服务端本来就不下发广告**。再去拦 `ads/v2/config` 会打断 `ad-logic/prefetch` 的正常轮询
+—— 收益为零，风险为正。KPI0/fuck-Ads 那份拦了 `/ads/` 和 `/ad-logic/`，
+但那是纯屏蔽插件，不承担「不能影响正常功能」的约束。
+
+另：`37i9dQZF1EYkqdzj48dyYq`（AI DJ 歌单）两份抓包里都稳定 404，
+Amlabort 为它加的 `reject-dict` 确已无意义，本版不跟。
 
 ---
 
 ## v1.2 做了什么 · Why 10 → 38 properties
 
-2026-09-30 做了一次真机抓包验证（86 秒 601 条，流程是「已登录打开 → 退出登录 → 重新登录」），
+## 合并了什么 · What was merged
+
+同一批 Spotify 端点分散在两个上游里各有一份，Loon first-match-wins，
+先加载的那个赢，另一份等于白装。本插件把两边能力收成一份：
+
+| 规则 | kelee | 730 | 本插件 | Amlaborth |
+|---|:--:|:--:|:--:|:--:|
+| `pendragon` 广告配置 `reject-dict` | ✅ | ✅ | ✅ | ✅ |
+| `artistview` iphone→ipad 改写 | ✅ | ✅ | ✅ | — |
+| `gae2-spclient` `/ad` 拦截 | — | ✅ | ✅ | — |
+| `watch-feed-entrypoints` `reject-dict` | — | — | ✅ **（v1.3 新增）** | ✅ |
+| `pam-view-service` `reject-dict` | — | — | ✅ **（v1.3 新增）** | ✅ |
+| `spotify.com` + QUIC → REJECT | ✅ | — | ✅ | ✅ |
+| bootstrap Protobuf 脚本 | ✅（带开关） | ✅（开关失效） | ✅（kelee 那份 + crack-dev 属性表） | ✅ |
+
+前两条 Rewrite 在 kelee 与 730 里**逐字节相同**，MITM 域名也相同。
+
+---
+
+## v1.2 做了什么 · Why 10 → 38 properties
+
+2026-09-30 做了一次真机抓包验证（iPad 86 秒 601 条，流程是「已登录打开 → 退出登录 → 重新登录」），
 把脚本交付给 App 的响应解出来一看，结论很明确：
 
 > **去广告有效，但解锁维度基本没生效。**
@@ -82,21 +116,32 @@ v1.2 取两者之长：
 
 ## 已知问题 · Known issues
 
-### 🔴 `pendragon` 拦截目前没生效
+### 🔴 如果 `pendragon` 突然不生效，先别改正则
 
-2026-09-30 的抓包里，8 次 `pendragon` 请求全部走了真实服务器
-（`server-timing: edge` / `via: HTTP/2 edgeproxy`），`modifiedResponse: false`，
-`_loon.rewrite` 全 601 条皆空。其中 2 次返回了 5885 字节的真实 Premium 推广
-（「想下载 XX 的音乐吗？添加 Premium…」）。
+2026-09-30 出现过一次「v1.1 全失效、v1.2 全正常」的诡异现象，值得记下来。
 
-已排除的原因：MITM 正常（`mitmHost` 有值）、插件已加载（脚本确实跑了）、
-正则用 node 验证能匹配这个 URL。**根因尚未定位。**
-已核对全网 12 份同类插件，8 份用的是逐字节相同的正则 —— 所以不是规则文本的问题。
+**现象**：v1.1 抓包里 8 次 pendragon 全部走真实服务器，`_loon.rewrite` 601 条全空。
+但**规则文本、MITM、插件加载、正则匹配全部正常** —— 我为此查了三轮，盯着正则找。
+
+**根因**：v1.2 的 `[Rewrite]` 三条与 v1.1 **逐字节相同**，本次唯一变的是脚本。
+而 pendragon 从「零命中」变成「iPad 3/3、iPhone 1/1 全中」。
+
+```
+v1.1 抓包: (rule非空, rewrite非空) → {True:485}              rewrite 全灭
+v1.2 抓包: (rule非空, rewrite非空) → {True:833, rewrite:3}  ← 活了
+```
+
+**结论：`[Rewrite]` 与 `[Script]` 是同一个解析单元。换了 script 内容 → Loon 重新解析
+整个 lpx → `[Rewrite]` 随之恢复。**（这与 B 站 2026-09-30 19:51→20:18 那次同款机制。）
+
+**推论**：以后若发现「Rewrite 突然不生效」，**先怀疑解析状态，别急着改正则** ——
+正则写对了也可能就是不跑。常规动作是改一下脚本内容或重新导入插件，让 Loon 重新解析。
 
 ### 🔴 `tab` 开关当前无效
 
 抓包解出的 1125 条 `assignedValues` 里，`tab_configuration` 出现 0 次，
 scope `ios-feature-navigation` 整个不存在。回放 `tab=true` / `tab=false` 输出逐字节相同。
+**iPad 与 iPhone 两个平台都如此。**
 
 第三方佐证：`Amlabort/MY_clash` 的 `spot-proto-ev3.js` 里
 `tab_configuration` 那段 JSON **是被注释掉的** —— 连 2026 年最新的第三方脚本
@@ -170,11 +215,14 @@ use the global first node.
 ## 装了会怎样 · What you get
 
 - 播放前广告消失（`pendragon` 配置返回空字典 + bootstrap 里的 `ads` 属性置空）
+- 播放页「探索」内容消失（`watch-feed-entrypoints`，v1.3）
+- 设置页不再显示 `Spotify Free` 与升级引导（`pam-view-service`，v1.3）
 - 歌手/专辑列表恢复正常展示（`ios-system-your-plan-sidedrawer` 恒为关闭）
 - 客户端显示为 Premium 状态：目录、音质（`audio-quality=1`）、高码率、离线下载、
   有声书、智能洗牌、歌词离线等一并开启
 - 想要的话还能关掉 Apple 设备接力（`tab` 开关当前无效）
 - 老版本客户端的 `gae2` 广告端点也被拦
+- **iPad / iPhone 通用** —— 实测两端 38 项属性值完全一致，服务端下发仅 4 处平台差异
 - **不与 blockAds 合集撞车** —— 那份的 Spotify 规则已在 `patches/patch-blockads.py` 里退场
 
 ---
@@ -199,12 +247,17 @@ use the global first node.
 ```
 cd plugins/Spotify-Dedup
 node test/script.test.mjs      # 脚本层：回放真机响应体，解码逐条比对
-node test/manifest.test.mjs    # 清单层：合并完整性 / 开关接线 / enable= 位置
+node test/manifest.test.mjs    # 清单层：合并完整性 / 开关接线 / enable= 位置 / 新规则正则
 ```
 
 `script.test.mjs` 拿 2026-09-30 那份真机抓包里的两份 83 KB protobuf 响应体
 反复回放脚本，再把输出解回来比对。**光读代码是不够的** ——
 v1.1 那 10 项属性「看起来完全正常」，只有真跑一遍才发现另外 26 项根本没被写。
+
+`manifest.test.mjs` 里有 3 条断言**用真机抓包里的原始 URL 验证新规则的正则能匹配**
+（逐字节照抄那 4 条真实请求）。反向验证过：删掉新规则 → 4 条转红；
+把 host 前缀漏掉 `(?::443)?` → 2 条转红（`guc3-spclient.spotify.com` 带 `:443`，
+写错就匹配不上，这类错肉眼很难看出来）。
 
 反向验证：把脚本退回 kelee 原版，`script.test.mjs` 有 10 条断言转红。
 
