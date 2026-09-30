@@ -1,0 +1,19 @@
+#!name=【一次性】参数形状诊断
+#!desc=🔧 临时诊断插件：把 Loon 实际传给脚本的 $argument 原样回显成 599 响应，一次抓包定论。用完请删除本插件。
+#!author=诊断用 · Savues[https://github.com/Savues/loon-plugin-patches]
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!tag=诊断,MITM
+#!system=iOS, iPadOS
+#!date=2026-09-30 23:05:00
+# ==== 一次性工具 · 不做任何转发 · 取证后即删 ====
+
+[Argument]
+Enabled = input, "true", tag=启用转发, desc=保持默认，不要改
+Expires = input, "2099-09-09", tag=凭证到期日, desc=保持默认，不要改
+Country = input, "HK", tag=App Store 国家, desc=保持默认，不要改
+
+[Script]
+http-request ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt requires-body=1,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes-Spoof/diag/diag.js,tag=参数诊断
+
+[Mitm]
+hostname = buy.itunes.apple.com
