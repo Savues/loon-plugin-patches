@@ -145,8 +145,15 @@ console.log("\n【5】清单");
      "script-path 指向本仓库合成脚本");
   ok(!lpx.includes(WORKER), "清单里不含 Worker 域名");
   ok(!lpx.includes("reven.jsforbaby.workers.dev"), "清单里不含上游域名");
-  ok(/^http-response .*buy\\\.itunes\\\.apple\\\.com\\\/verifyReceipt/m.test(lpx),
-     "规则是 http-response（上游写 http-request，与真机抓包不符，见 UPSTREAM.md）");
+  // 🔴 必须是 http-request，不能改 response。
+  // 真机抓包（22:23 我方 vs 22:23 上游，同一台设备同一个 App）给出的结论：
+  //   http-request  → Trigger http-request(body) → Forward fake response  → modified=True
+  //   http-response → Trigger http-response(body) → 无转发、脚本白跑      → modified=False
+  // 也就是说 _loon.modifiedResponse=true 记的是「响应被替换了」，
+  // **不是「规则该挂哪一侧」** —— 我第一版把它读反了，真机表现是失效。
+  ok(/^http-request .*buy\\\.itunes\\\.apple\\\.com\\\/verifyReceipt/m.test(lpx),
+     "规则是 http-request（脚本在请求阶段就伪造回包 $done 返回）");
+  ok(!/^http-response /m.test(lpx), "没有误改成 http-response（那样脚本会白跑，已真机证实失效）");
   ok(/requires-body=1/.test(lpx), "requires-body=1");
   ok(/argument=\[\{Enabled\},\{Expires\},\{Country\}\]/.test(lpx), "三个参数接上");
   ok(/^Enabled = input, "true"/m.test(lpx), "Enabled 默认 true");

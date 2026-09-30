@@ -1,4 +1,4 @@
-#!name=iTunes 收据校验转发 v1.0
+#!name=iTunes 收据校验转发 v1.01
 #!desc=把 App 的 iOS 收据校验请求转发到注入服务，回包替换为伪造的高级版凭证。【上游 Jsforbaby，参数接线已修复】可在插件页关闭。
 #!author=原作者: Jsforbaby | 托管与修复: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
@@ -6,8 +6,9 @@
 #!tag=会员,MITM
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
-#!date=2026-09-30 20:30:00
-# ==== PLUGIN_VERSION: 1.0 | 壳层修复上游参数接线（上游开关无效）· 运行时仍依赖作者 Worker ====
+#!date=2026-09-30 22:40:00
+# ==== PLUGIN_VERSION: 1.01 | v1.01 修：v1.0 误把 http-request 改成 http-response，
+#   导致脚本被触发但不转发（真机对照证实，插件完全失效）。改回上游写法。 ====
 
 [Argument]
 # Enabled 原本是 input，值写 "true"/"false"。壳层只认小写 true，其余一律当关。
@@ -16,7 +17,7 @@ Expires = input, "2099-09-09", tag=凭证到期日, desc=格式 YYYY-MM-DD。注
 Country = input, "HK", tag=App Store 国家, desc=两位大写 ISO 3166-1。查询内购商品用的区，填错可能导致注入的商品在该区不存在
 
 [Script]
-http-response ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt requires-body=1,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes-Spoof/src/itunes-spoof.js,tag=iTunes收据转发,argument=[{Enabled},{Expires},{Country}]
+http-request ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt requires-body=1,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes-Spoof/src/itunes-spoof.js,tag=iTunes收据转发,argument=[{Enabled},{Expires},{Country}]
 
 [Mitm]
 hostname = buy.itunes.apple.com

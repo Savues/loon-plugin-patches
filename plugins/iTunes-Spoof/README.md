@@ -127,6 +127,8 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes
 脚本与清单版权归原作者 [Jsforbaby](https://reven.jsforbaby.workers.dev/reven/iTunes.lpx) 所有。
 **上游版权与许可全部适用。**
 
-本仓库的贡献：托管上游脚本与清单、**新增壳层修复上游的参数接线 bug**、
-修正清单里 `http-request` → `http-response`。
+本仓库的贡献：托管上游脚本与清单、**新增壳层修复上游的参数接线 bug**。
 **上游 374 KB 混淆代码一行未改**，逐条依据见 [UPSTREAM.md](UPSTREAM.md)。
+
+> v1.0 曾把清单里的 `http-request` 改成 `http-response`，导致插件完全失效（v1.01 已修）。
+> 教训见 UPSTREAM.md。

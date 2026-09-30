@@ -90,34 +90,36 @@ $argument → { Enabled, Expires, Country }   ← 实测访问记录
 |---|---|---|---|
 | 1 | `script-path` → 本仓库 `main` 分支 | 上游脚本挂在作者站点，可随时替换 | 实测 |
 | 2 | **新增壳层** `src/prelude.js`，修正参数类型 | 见上。壳层 + 上游合成 `src/itunes-spoof.js` | 实测 |
-| 3 | `http-request` → **`http-response`** | 见下 | 真机抓包 |
-| 4 | `tag=iTunes转发` → `iTunes收据转发` | 与上游同名 tag 区分，便于在 Loon 里分辨 | — |
-| 5 | `#!system` 显式写 `iOS, iPadOS` | 上游未写。仓库另 9 个插件都写，不写会在 iPad 上被判不兼容 | 推导 |
+| 3 | `tag=iTunes转发` → `iTunes收据转发` | 与上游同名 tag 区分，便于在 Loon 里分辨 | — |
+| 4 | `#!system` 显式写 `iOS, iPadOS` | 上游未写。仓库另 9 个插件都写，不写会在 iPad 上被判不兼容 | 推导 |
 
-### 关于第 3 条：`http-request` 是上游写错了
+> **v1.01 的教训**：v1.0 曾把 `http-request` 改成 `http-response`，理由是
+> 「抓包显示 `modifiedResponse: true` 挂在响应侧」。**这是把因果读反了**，
+> 插件因此完全失效。真机对照见下。
 
-上游清单写：
+### 🔴 我改错的那一处，以及真机证据
 
-```
-http-request ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt script-path=... requires-body=true
-```
+用户装了 v1.0 后反馈**无效**，并提供了同一台设备、同一个 App 的对照抓包：
 
-但用户提供的真机抓包（iOS，`verifyReceipt` 收据校验）显示：
+| | v1.0（我的，`http-response`） | 上游原版（`http-request`） |
+|---|---|---|
+| Loon 日志 | `Trigger http-response(body) script:iTunes收据转发` | `Trigger http-request(body) script:iTunes转发` |
+| 转发动作 | **无** | `Forward fake response` |
+| `modifiedResponse` | **`false`** | `true` |
+| 回包长度 | 810 B（Apple 原始回包） | 2457 B（含伪凭证） |
+| `download_id` 末位 | `…885897`（原值） | `…885900`（已改写） |
 
-```
-[45] POST buy.itunes.apple.com/verifyReceipt   script=['iTunes转发']  modified=True
-[40] POST buy.itunes.apple.com/verifyReceipt   script=['iTunes转发']  modified=True
-→ 同时出现对 reven.lovebabyforever.workers.dev 的转发
-```
+⇒ **脚本被触发了，但什么都没做，直接放行。**
 
-`modifiedResponse: true` 挂在 **`buy.itunes.apple.com` 的响应**上，且转发动作紧随其后。
-脚本转发的是**服务器返回的收据校验结果**（脚本内部把收到的回包转给 Worker），
-所以规则必须挂在响应侧。
+**根因**：上游脚本在**请求阶段**就把伪回包准备好，`$done()` 返回的响应直接顶替原响应，
+所以规则必须挂 `http-request`。我按 `_loon.modifiedResponse` 的字面意思改成了
+`http-response` —— **那个字段记的是「响应最终被替换了」，不是「规则该挂哪一侧」**。
 
-> ⚠️ 这条**没有真机对照实验**（不是「上游写错所以改成 response」那么简单）——
-> 抓包只证明了改写发生在响应侧。若两者都能工作，本条属「与实测一致」而非「修正错误」。
+教训：**从日志字段的字面意思推因果，是最容易犯的错。**
+两个字段都在响应上，`modifiedResponse: true` 完全可以在 `http-request` 规则下产生。
+改回上游写法后行为逐字一致，这条差异根本不该由我来"修正"。
 
-### 关于第 5 条：`#!system`
+### 关于第 4 条：`#!system`
 
 上游清单**根本没有 `#!system` 这一行**。本仓库显式补上 `iOS, iPadOS`，
 理由是仓库内 `AdGuard-Spoof v1.0` 曾因只写 `iOS` 导致 iPad 上无法加载。
