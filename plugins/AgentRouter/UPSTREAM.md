@@ -110,7 +110,7 @@ function maskAccount(username) {
 ```diff
  [Argument]
  debug = switch,false,tag=调试模式,desc=仅记录请求状态和签到判定
-+auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开。关闭后仍可手动点「立即签到」
++auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开
 ```
 
 **依据**：上游 cron 是 `enable=true`，装完即生效。多设备各装一份会重复签到 ——
@@ -133,15 +133,16 @@ function maskAccount(username) {
 ⚠️ `enable=` 只能挂在**无条件规则**上。这里 cron 的匹配条件是 cron 表达式本身，
 不是 URL/逻辑规则，属于可挂开关的规则类型。
 
-### 3. 新增「立即签到」手动触发
+### 3. 一度加了 `generic` 手动触发，后又删掉
 
 ```diff
-+generic script-path=..., argument=[...], tag=立即签到, img-url=..., timeout=300
++generic script-path=..., argument=[...], tag=立即签到, ...
 ```
 
-**依据**：上游只有 cron，没有手动入口 —— 开关关着时插件就完全没有可点项，
-没法验证账号密码填对没有。加一条 `generic` 让用户随时能手动跑一次。
-**这条规则刻意不写 `enable=`**，开关关着也能点。
+**当时的理由**：上游只有 cron，开关一关插件就完全没有可点项，没法验证账号密码填对没有。
+
+**删掉的原因**：真机使用后确认 **Loon 的 cron 本身就能在插件页手动触发** ——
+多加一条 `generic` 是纯粹冗余，还多占一个位置。开关只拦自动调度，不影响手动触发。
 
 ### 4. 头部元信息
 
@@ -173,7 +174,7 @@ function maskAccount(username) {
 `test/manifest.test.mjs`（22 个用例，`node test/manifest.test.mjs`）钉住清单与脚本两层：
 
 - 开关默认值、cron 挂上了、没有残留 `enable=true`
-- `generic` 存在且未被开关挡住
+- 没有多余的 `generic` 规则（cron 本身可手动触发）
 - 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key
 - `script-path` 全部指向本仓库托管副本
 - **上游原件的 sha256 与 manifest 一致**，且仍是 16104 B

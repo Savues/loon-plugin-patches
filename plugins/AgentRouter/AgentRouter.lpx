@@ -1,5 +1,5 @@
 #!name=AgentRouter签到
-#!desc=每日自动签到，查看奖励、余额与累计消耗。修改版：自动签到默认关闭（多设备只需一台开），另加「立即签到」手动触发。
+#!desc=每日自动签到，查看奖励、余额与累计消耗。修改版：自动签到默认关闭（多设备只需一台开），关着时仍可在插件页手动触发。
 #!author=773075692, MaYIHEI | 修改版: Savues <https://github.com/Savues/loon-plugin-patches>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/AgentRouter
 #!icon=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png
@@ -11,8 +11,7 @@ username = input,"",tag=账号,desc=网站账号或邮箱
 password = input,"",tag=密码,desc=网站登录密码
 accounts = input,"",tag=多账号（JSON）,desc=选填；填写后优先使用列表；格式见插件主页
 debug = switch,false,tag=调试模式,desc=仅记录请求状态和签到判定
-auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开。关闭后仍可手动点「立即签到」
+auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开。关着时仍可在插件页手动触发这条 cron
 
 [Script]
 cron "0 9 * * *" script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentRouter/src/agentrouter.js, argument=[{username},{password},{accounts},{debug}], tag=AgentRouter签到, timeout=300, img-url=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png, enable={auto}
-generic script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentRouter/src/agentrouter.js, argument=[{username},{password},{accounts},{debug}], tag=立即签到, img-url=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png, timeout=300

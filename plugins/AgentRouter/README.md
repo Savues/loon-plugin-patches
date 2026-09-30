@@ -1,12 +1,12 @@
 # AgentRouter 签到（修改版）
 
-> 上游插件的清单层修改：**自动签到默认关闭**，另加「立即签到」手动触发。脚本逐字节托管自上游。
-> Manifest-only patch of an upstream plugin: the daily cron is **off by default**, plus a manual
-> trigger. The script is vendored byte-for-byte, unmodified.
+> 上游插件的清单层修改：**自动签到默认关闭**。脚本托管自上游并修了奖励金额识别。
+> Manifest patch of an upstream plugin: the daily cron is **off by default** (still manually
+> triggerable from the plugin page). The script is vendored from upstream, with one regex fix.
 
 | | 中文 | English |
 |---|---|---|
-| 清单改动 | 1 个开关 + cron 挂 `enable` + 1 条 generic | One switch, `enable` on cron, one `generic` |
+| 清单改动 | 1 个开关 + cron 挂 `enable={auto}` | One switch, `enable={auto}` on cron |
 | 脚本改动 | 奖励正则 + 去掉账号打码，原件另存 `src/upstream-/` | Reward regex + account unmasking; pristine copy kept |
 | 依据 | 多设备重复签到；真机实测奖励显示「金额未识别」 | Duplicate check-ins; live test showed reward unparsed |
 
@@ -73,12 +73,9 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 
 插件页面两个可点项：
 
-| 按钮 | 行为 |
-|---|---|
-| **立即签到** | 手动跑一次，**不受开关影响** |
-| **AgentRouter签到** | 开关关闭时为灰色，Loon 不调度 |
-
 **多设备**：全部装上，只在**一台**上打开「每日自动签到」，其余保持默认关闭。
+
+开关只拦自动调度，不影响手动触发 —— 关着的时候，插件页上仍能直接点那条 cron 跑一次。
 
 账号密码仍在上游那三个输入框里填，本改动没有动它们。
 
@@ -90,12 +87,11 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 
 ```ini
 [Argument]
-+auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开。关闭后仍可手动点「立即签到」
++auto = switch,false,tag=每日自动签到,desc=默认关闭；多设备只需一台打开
 
 [Script]
 -cron "0 9 * * *" ..., tag=AgentRouter签到, ..., enable=true
 +cron "0 9 * * *" ..., tag=AgentRouter签到, ..., enable={auto}
-+generic ..., tag=立即签到, ...
 ```
 
 **为什么要改**
@@ -104,8 +100,8 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
    不会多给奖励，但请求是实打实发出去的。改成按需开启。
 2. **`enable={auto}` 走 Loon 调度层** —— 关闭时脚本不执行、不发请求、不耗流量。
    不是脚本里 `if` 判断。
-3. **补 `generic` 手动触发** —— 上游只有 cron，开关一关插件就完全没有可点项，
-   没法验证账号密码填对没有。这条规则刻意不写 `enable=`。
+3. **没做的**：加一条 `generic` 手动触发规则。曾一度加上，后确认 Loon 的 cron
+   本身就能在插件页手动触发，多加一条纯属冗余，已删。
 
 `argument=` 列表、上游 4 个 Argument、cron 时间**全部未动**。
 脚本只改了奖励金额那一行正则（修一个真机实测出来的显示 bug）。

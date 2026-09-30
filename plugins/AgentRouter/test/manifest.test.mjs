@@ -40,19 +40,13 @@ t("没有残留无条件 enable=true（开关才是唯一入口）", () => {
 
 /* ---------- 手动触发 ---------- */
 
-t("存在 generic 手动触发规则", () => {
-  assert.match(lpx, /^generic /m);
+t("没有多余的 generic 规则（cron 本身可手动触发）", () => {
+  assert.ok(!/^generic /m.test(lpx), "仍有 generic 规则");
+  assert.strictEqual(lpx.split("\n").filter(l => /^(cron|generic) /.test(l)).length, 1);
 });
 
-t("generic 不受开关控制（开关关着也能手动签）", () => {
-  const g = /^generic .*$/m.exec(lpx);
-  assert.ok(g, "没有 generic 规则");
-  assert.ok(!g[0].includes("enable="), "generic 被开关挡住了：" + g[0]);
-});
-
-t("两条规则都带 tag，插件页面上能看到两个可点项", () => {
+t("唯一那条规则带 tag，插件页上能看到", () => {
   const rules = lpx.split("\n").filter(l => /^(cron|generic) /.test(l));
-  assert.strictEqual(rules.length, 2, "规则数应为 2，实际 " + rules.length);
   for (const r of rules) assert.ok(/tag=/.test(r), "缺 tag: " + r);
 });
 
@@ -72,10 +66,9 @@ t("argument= 仍是上游那 4 个 key（auto 是纯开关，不进列表）", (
   assert.deepStrictEqual(m[1].split(",").map(s => s.trim().replace(/[{}]/g, "")), UPSTREAM_ARGS);
 });
 
-t("两条规则的 argument= 完全一致", () => {
+t("argument= 只出现一次（唯一那条 cron）", () => {
   const all = [...lpx.matchAll(/argument=\[([^\]]*)\]/g)].map(m => m[1]);
-  assert.ok(all.length >= 2);
-  for (const a of all) assert.strictEqual(a, all[0]);
+  assert.strictEqual(all.length, 1, "argument= 出现 " + all.length + " 次");
 });
 
 /* ---------- 脚本层托管且逐字节未改 ---------- */
@@ -199,9 +192,11 @@ t("标注修改版与仓库地址", () => {
   assert.ok(/^#!homepage=https:\/\/github\.com\/Savues\/loon-plugin-patches/m.test(lpx));
 });
 
-t("desc 说明了默认值与用法", () => {
+t("desc 说明了默认值与手动触发方式", () => {
   const d = /^#!desc=(.*)$/m.exec(lpx)[1];
   assert.ok(/默认关闭/.test(d), "desc 未说明默认关闭");
+  assert.ok(/手动触发/.test(d), "desc 未说明手动触发");
+  assert.ok(!/「立即签到」/.test(d), "desc 仍引用已删除的 generic 规则");
 });
 
 /* ---------- 汇总 ---------- */
