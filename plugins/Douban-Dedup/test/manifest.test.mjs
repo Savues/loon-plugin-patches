@@ -78,7 +78,7 @@ t('无 CRLF', !lpx.includes('\r'))
 t('元信息含作者署名（上游 + 本仓库）',
   /honue/.test(lpx) && /shengrui123/.test(lpx) && /Savues/.test(lpx))
 t('有 #!date 与 #!version', /^#!date=/m.test(lpx) && /^#!version=/m.test(lpx))
-t('版本号是 1.1（v1.0 真机证实信息流规则段位错误）', /^#!version=1\.1$/m.test(lpx))
+t('版本号是 1.2（v1.1 加入搜索页广告剥离脚本）', /^#!version=1\.2$/m.test(lpx))
 
 // ── 2. 🔴 反向断言：规则类型与位置 ──────────────────────────
 console.log('\n【2】🔴 规则类型与段位（v1.0 踩过的坑）')
@@ -115,16 +115,36 @@ console.log('\n【3】[Argument] 开关')
 const argNames = section('ARGUMENT').map(l => l.split('=')[0].trim())
 t('只保留 block_httpdns 一个开关（信息流挂不上开关就不假装有）',
   argNames.length === 1 && argNames[0] === 'block_httpdns', `实际 ${argNames.join(',')}`)
-t('不再声明 block_feed_ad（v1.0 的死开关）', !argNames.includes('block_feed_ad'))
+t('不声明 block_feed_ad（v1.0 的死开关）', !argNames.includes('block_feed_ad'))
+// 搜索广告靠 script-response-body 改写，只能写在 [URL Rewrite]，
+// 而该段挂 enable= 已在本仓库实测静默失效 ⇒ 不能给它配开关
+t('不声明 block_search_ad（[URL Rewrite] 挂不上 enable=，会变死开关）',
+  !argNames.includes('block_search_ad'))
 t('每个开关都被至少一条规则引用', argNames.every(a => lpx.includes(`enable={${a}}`)))
 t('每个被引用的开关都有定义',
   [...new Set([...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1]))].every(a => argNames.includes(a)))
 
+// ── 3b. 脚本规则 ────────────────────────────────────────────
+console.log('\n【3b】脚本规则（搜索页广告）')
+const scriptRules = rewriteLines.filter(l => l.includes('script-response-body'))
+t('恰好 1 条 script-response-body 规则', scriptRules.length === 1,
+  scriptRules.join('\n'))
+t('它匹配 search/found_words 与 search/hots 两个端点',
+  scriptRules.length === 1 && /search\\\/\(\?:found_words\|hots\)/.test(scriptRules[0])
+    || scriptRules.length === 1 && /found_words\|hots/.test(scriptRules[0]),
+  scriptRules.join('\n'))
+t('脚本指向本仓库托管路径（不是作者的站点）',
+  scriptRules.length === 1 &&
+  scriptRules[0].includes('Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js'))
+t('🔴 脚本规则没有挂 enable=（[Rewrite] 上挂了也是死开关）',
+  scriptRules.every(l => !l.includes('enable=')))
+
 // ── 4. 规则格式 ─────────────────────────────────────────────
 console.log('\n【4】规则格式')
-t('[URL Rewrite] 全部是 <正则> reject|reject-dict',
-  rewriteLines.every(l => /^\S+\s+(reject|reject-dict)$/.test(l)),
-  rewriteLines.filter(l => !/^\S+\s+(reject|reject-dict)$/.test(l)).join('\n'))
+const plainRewrite = rewriteLines.filter(l => !l.includes('script-response-body'))
+t('[URL Rewrite] 全部是 <正则> reject|reject-dict 或 script-response-body=',
+  plainRewrite.every(l => /^\S+\s+(reject|reject-dict)$/.test(l)),
+  plainRewrite.filter(l => !/^\S+\s+(reject|reject-dict)$/.test(l)).join('\n'))
 t('每条 Rewrite 正则都能编译', rewriteLines.every(l => {
   try { new RegExp(l.split(/\s+/)[0]); return true } catch { return false }
 }))
@@ -132,37 +152,48 @@ t('IP-CIDR 全部带 no-resolve', ruleLines.filter(l => l.startsWith('IP-CIDR'))
 
 // ── 5. 🔴 两份抓包全量回归 ─────────────────────────────────
 console.log('\n【5】🔴 两份抓包全量回归')
+// 区分两类规则：reject 类（直接拦）与 script 类（改写响应体）。
+// script 类不拦请求，只重写 body —— 混在一起算会让「零误伤」断言失真。
 const rw = rewriteLines.map(l => {
   const [re, act] = l.split(/\s+/)
-  return { re: new RegExp(re), act, src: l }
+  return {
+    re: new RegExp(re),
+    act: act.startsWith('script-response-body') ? 'script' : act,
+    src: l
+  }
 })
+const isScript = r => r && r.act === 'script'
 const hit = u => rw.find(r => r.re.test(u)) || null
+// 真正「拦下」的只有 reject 类
+const hitReject = u => { const h = hit(u); return h && !isScript(h) ? h : null }
 
-for (const [tag, c, expectBlocked] of [['A（218）', capA, null], ['B（249）', capB, null]]) {
-  const blocked = c.filter(e => hit(e.url))
+for (const [tag, c] of [['A（218）', capA], ['B（249）', capB]]) {
+  const blocked = c.filter(e => hitReject(e.url))
+  const scripted = c.filter(e => isScript(hit(e.url)))
   const passed = c.filter(e => !hit(e.url))
-  t(`${tag} 拦 ${blocked.length} / 放 ${passed.length}，总数守恒`, blocked.length + passed.length === c.length)
+  t(`${tag} 拦 ${blocked.length} / 脚本改写 ${scripted.length} / 放 ${passed.length}，总数守恒`,
+    blocked.length + scripted.length + passed.length === c.length)
 }
 
 // 5a. 固件 B：v1.0 漏掉的，v1.1 必须全部拦下
 const bFeed = capB.filter(e => /erebor\/feed_ad/.test(e.url))
 t(`🔴 固件 B 的 feed_ad 被拦（v1.0 时是 ${bFeed[0]?.size} B 真回包）`,
-  bFeed.length > 0 && bFeed.every(e => hit(e.url)), `size=${bFeed[0]?.size}`)
+  bFeed.length > 0 && bFeed.every(e => hitReject(e.url)), `size=${bFeed[0]?.size}`)
 const bMovie = capB.filter(e => /\/movie\/ad/.test(e.url))
 t(`🔴 固件 B 的 movie/ad 被拦（v1.0 时有 ${bMovie.filter(e => e.size > 100).length} 条带真实广告数据）`,
-  bMovie.length > 0 && bMovie.every(e => hit(e.url)))
+  bMovie.length > 0 && bMovie.every(e => hitReject(e.url)))
 const bHome = capB.filter(e => /home_ads|home_banner/.test(e.url))
-t('🔴 固件 B 的 home_ads / home_banner 被拦', bHome.every(e => hit(e.url)))
+t('🔴 固件 B 的 home_ads / home_banner 被拦', bHome.every(e => hitReject(e.url)))
 
 // 5b. 开屏
 const splash = cap.filter(e => e.url.includes('/v2/app_ads/splash'))
-t(`开屏接口被拦（两份抓包共 ${splash.length} 次）`, splash.every(e => hit(e.url)))
+t(`开屏接口被拦（两份抓包共 ${splash.length} 次）`, splash.every(e => hitReject(e.url)))
 t('splash 用 reject-dict（JSON 接口；honue 版的错是 reject）',
-  splash.every(e => hit(e.url).act === 'reject-dict'))
+  splash.every(e => hitReject(e.url)?.act === 'reject-dict'))
 const adImg = cap.filter(e => e.url.includes('/dale_ad/public/'))
-t(`开屏广告素材图被拦（共 ${adImg.length} 张）`, adImg.every(e => hit(e.url)))
+t(`开屏广告素材图被拦（共 ${adImg.length} 张）`, adImg.every(e => hitReject(e.url)))
 t('素材图用 reject（让 SDK 判失败退出，而非当成功继续倒计时）',
-  adImg.every(e => hit(e.url).act === 'reject'))
+  adImg.every(e => hitReject(e.url)?.act === 'reject'))
 
 // 5c. 🔴 零误伤
 const imgs = cap.filter(e => /\/view\//.test(e.url) && !e.url.includes('/dale_ad/'))
@@ -173,9 +204,14 @@ t('人物头像 / 海报等子目录一条都没拦',
   cap.filter(e => /\/view\/(celebrity|personage|photo|group)\//.test(e.url)).every(e => !hit(e.url)))
 t('正文接口 elendil/recommend_feed 未被拦',
   cap.filter(e => e.url.includes('elendil/recommend_feed')).every(e => !hit(e.url)))
-t('用户/影视/剧集/小组/搜索/通知零拦截',
-  cap.filter(e => /\/api\/v2\/(user|movie\/recommend|tv\/|group|search|notification)/.test(e.url))
+t('用户/影视/剧集/小组/通知零拦截',
+  cap.filter(e => /\/api\/v2\/(user|movie\/recommend|tv\/|group|notification)/.test(e.url))
     .every(e => !hit(e.url)))
+// 搜索端点走脚本改写（不 reject），所以不出现在 hit() 里 —— 单独断言
+t('🔴 搜索端点用 script-response-body 改写而非 reject',
+  scriptRules.length === 1 && /found_words\|hots/.test(scriptRules[0]))
+t('🔴 搜索端点走脚本改写，绝不 reject（否则搜索联想会报废）',
+  cap.filter(e => /\/api\/v2\/search\//.test(e.url)).every(e => !hitReject(e.url)))
 t('athena 埋点、halfhill 会员商品未被拦',
   cap.filter(e => e.url.includes('athena') || e.url.includes('halfhill')).every(e => !hit(e.url)))
 

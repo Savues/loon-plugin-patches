@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
-| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 去信息流 · 两份真机抓包 467 条逐条回放<br>Douban splash + feed ad-block, two real captures replayed | **v1.1** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索页广告词 · 四份真机抓包逐条回放<br>Douban splash, feed and search ad-block, four real captures replayed | **v1.2** |
 
 ### 托管了脚本的插件
 
@@ -149,7 +149,7 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-`Douban-Dedup` —— **纯清单层，测试用真机抓包做全量回放，且被真机打脸过一次**。合并了
+`Douban-Dedup` —— **以清单层为主，测试用真机抓包做全量回放，且被真机打脸过一次**。合并了
 [honue/rules](https://github.com/honue/rules)（480 B）与
 [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock)（1552 B）两家，
 两家原件逐字节留存并用 SHA256 钉死。测试把两份 HAR（218 + 249 条）压成 URL 清单逐条喂规则，
@@ -165,11 +165,18 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 代价是信息流挂不上开关，因此**直接删掉了那个开关**：宁可没有开关，
 也不要一个假装能关的开关。测试里有反向断言钉死「`[Rule]` 段零 `URL-REGEX`」。
 
-这份抓包还修正了 v1.0 一个过于保守的说法：README 原先写「必须完整删 App 重装」
+第三份抓包还修正了 v1.0 一个过于保守的说法：README 原先写「必须完整删 App 重装」
 （依据是 `splash_preload` 的 POST 体里有 `preload_ads` 本地缓存），但实测**不必删** ——
-素材图被拦住后 SDK 就会走失败跳过。同两份抓包也确认了两家上游都漏了
+素材图被拦住后 SDK 就会走失败跳过。三份抓包也确认了两家上游都漏了
 `frodo.douban.com` 上的信息流广告（单条 59 KB），而 shengrui 那条「让 App 立即跳过」的
 `splash_show` 规则在 7.135.0 上**一次都没触发**。
+
+**v1.2 加了本仓库第一个「自研脚本」**（`src/douban-search-ad.js`）：搜索框滚动广告与
+「发现」横滚标签里的广告，都在 `search/found_words` 的 `words[]` 与 `search/hots` 的
+`roofs[]` 里，与真实热搜**混在同一个数组**，只能靠 `layout:"ad"` 区分。
+直接 reject 会让搜索联想报废，所以改用 `script-response-body` 只删广告条目。
+脚本刻意不配开关 —— 改写响应体只能写在 `[URL Rewrite]`，而该段挂 `enable=` 已被本仓库
+实测静默失效，配了就是死开关。
 
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
@@ -205,7 +212,7 @@ broke the plugin — a diagnostic plugin showed the truth, that Loon passes `$ar
 and my "fix" was the only thing preventing the forward. The repo keeps the diagnostic plugin
 and pins the measured shape in tests, so nobody repeats the mistake.
 
-`Douban-Dedup` is manifest-only, but its test replays two real packet captures end to end —
+`Douban-Dedup` is manifest-first, replays real packet captures end to end —
 and the second one caught v1.0. It merges honue/rules (480 B) and
 shengrui123/douban-adblock (1552 B), both kept byte-for-byte and pinned by SHA256.
 The two HARs (218 + 249 requests) are compressed into URL fixtures and fed through the
@@ -228,10 +235,19 @@ zero `URL-REGEX`".
 The same capture also corrected an over-cautious claim in v1.0: the README had said the app
 must be fully deleted and reinstalled, based on `preload_ads` cached in the POST body of
 `splash_preload`. Empirically **it needn't be** — once the asset image is blocked the SDK
-takes the load-failure path and skips. Both captures also confirm that both upstreams miss
+takes the load-failure path and skips. The captures also confirm that both upstreams miss
 the feed ads on `frodo.douban.com` (59 KB in a single response), and that shengrui's
 `splash_show` rule — the one that makes the app skip immediately — **never fires at all**
 on 7.135.0.
+
+**v1.2 adds this repo's first self-written script** (`src/douban-search-ad.js`). The
+scrolling ad in the search box and the ad tags in the horizontal strip both live inside
+`words[]` of `search/found_words` and `roofs[]` of `search/hots` — **mixed into the same
+arrays as the real hot searches**, separable only by `layout:"ad"`. Rejecting the endpoint
+would break search suggestions outright, so the script deletes just the ad entries via
+`script-response-body`. It deliberately has **no switch**: a response-body rewrite can only
+live in `[URL Rewrite]`, and `enable=` on that section has been proven to fail silently in
+this repo — wiring one up would be a dead switch.
 
 ---
 

@@ -1,17 +1,68 @@
 # Douban-Dedup · 豆瓣去广告
 
-> 豆瓣 App 去广告。**去开屏 + 去信息流/横幅/影视页/剧集页**。
+> 豆瓣 App 去广告。**去开屏 + 信息流/横幅 + 搜索页预制广告词**。
 > 合并 [honue/rules](https://github.com/honue/rules) 与
 > [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) 两家，
-> 全部改动依据来自 **2026-10-01 的两份真机抓包**。**v1.1**
+> 全部改动依据来自 **2026-10-01 的四份真机抓包**。**v1.2**
 
 | | 中文 | English |
 |---|---|---|
 | 上游 A | [honue/rules](https://github.com/honue/rules) · 480 B（原件留存于 `upstream-honue.plugin`） | honue/rules, 480 B, pristine copy kept |
 | 上游 B | [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) · 1552 B（原件留存于 `upstream-shengrui.plugin`） | shengrui123, 1552 B, pristine copy kept |
-| 改动 | 清单层重写，**未改动上游任何一行 JavaScript**（两家原本都没有 JS） | Manifest rewritten; no upstream JS touched |
-| 脚本 | 无（本插件不含任何 JavaScript） | None |
-| 回归测试 | `test/manifest.test.mjs` —— 两份抓包共 467 条真实请求逐条回放 | Replays 467 real captured requests |
+| 改动 | 清单层重写 + **v1.2 新增一个自研脚本** | Manifest rewritten, plus one self-written script in v1.2 |
+| 脚本 | `src/douban-search-ad.js` —— 剥离搜索页预制广告词（**未改动上游任何 JS，两家原本都没有 JS**） | One self-written script; no upstream JS touched |
+| 回归测试 | `test/manifest.test.mjs` 77 项 + `test/script.test.mjs` 34 项 | 111 assertions total |
+
+---
+
+## 🆕 v1.2：搜索页预制广告词
+
+抓包发现搜索框滚动广告与「发现」横滚标签里的广告，都来自**搜索接口的响应体**：
+
+```
+/api/v2/search/found_words → { words: [...], top_word, cache_timeout }
+/api/v2/search/hots        → { roofs: [...], ..., ad_info: {...} }
+```
+
+广告条目和真实热搜**混在同一个数组里**，靠字段区分：
+
+| 位置 | 广告条目 | 正常条目 |
+|---|---|---|
+| `words[]` | `layout:"ad" search_type:"ad_link"` | `layout:"default" search_type:"all"` |
+| `roofs[]` | `layout:"ad"` | — |
+| `ad_info` | `ad_type:"fake" advertisement_type:43`<br>`unit_name:"dale_app_search_hots_page"`<br>`sdk_list:[{sdk_type:"pangolinSDK"}]` | — |
+
+抓包实测样本：
+
+```jsonc
+// words 数组（8 条，只有 [1] 是广告）
+[0] {"layout":"default","search_type":"all","title":"《复仇者联盟5》确认引进内地"}
+[1] {"layout":"ad","search_type":"ad_link","title":"看视频抽立减金",
+     "uri":"https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad"}
+[2] {"layout":"default","search_type":"all","title":"余红旧事"}
+...
+// top_word（搜索框里滚动的词，本次是正常热搜）
+{"title":"《沙丘3》确认引进","search_type":"all","layout":"default"}
+```
+
+### 为什么不能直接 reject
+
+真实热搜和广告在同一个数组里。拦掉整个端点 = **搜索联想功能报废**。
+
+所以改用 `script-response-body` **只删广告条目，其余原样返回**。
+
+### 脚本的三条保守原则
+
+1. **只按 `layout` / `search_type` 删**，不按标题关键词删 —— 广告词每天换
+2. **任何解析异常一律放行原响应** —— 搜索功能比去广告重要
+3. **删空数组时补一个占位条目** —— 避免 App 拿到空列表渲染异常
+
+### ⚠️ 这条规则刻意没有开关
+
+改写响应体只能写在 `[URL Rewrite]` 段，而本仓库**已实测该段尾部的 `enable=` 静默失效**
+（PinDuoDuo 二十多条全废的先例）。挂上去就是死开关 —— 用户会以为开关管用。
+
+所以搜索广告**没有开关**，要关只能关掉整个插件。测试里有反向断言钉死这一点。
 
 ---
 
@@ -180,7 +231,8 @@ preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
 
 ## 误伤验证 · Regression
 
-`test/manifest.test.mjs` 把两份抓包共 467 条真实请求逐条喂给规则：
+`test/manifest.test.mjs` 把两份抓包共 467 条真实请求逐条喂给规则。
+其中 **reject 类**才算「拦下」，**script 类**只重写 body，不计入拦截：
 
 | 检查项 | 结果 |
 |---|---|
@@ -190,6 +242,7 @@ preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
 | 开屏接口 ×4 | ✅ 全拦（`reject-dict`） |
 | 广告素材图 ×10 | ✅ 全拦（`reject`） |
 | **非广告图片（两份合计）** | ✅ **零误伤** |
+| 搜索端点 | ✅ 走脚本改写，**零 reject** |
 | 正文接口 `elendil/recommend_feed` | 未拦 |
 | 人物头像 / 海报 / 剧照 | 零拦截 |
 | 用户 / 影视 / 剧集 / 小组 / 搜索 / 通知 | 零拦截 |
@@ -206,7 +259,11 @@ preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
 | [Douban-Dedup.lpx](Douban-Dedup.lpx) | 插件清单 |
 | [upstream-honue.plugin](upstream-honue.plugin) | honue 原件，逐字节留存（SHA256 钉死） |
 | [upstream-shengrui.plugin](upstream-shengrui.plugin) | shengrui 原件，逐字节留存（SHA256 钉死） |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 68 项断言（`node test/manifest.test.mjs`） |
+| [src/douban-search-ad.js](src/douban-search-ad.js) | v1.2 自研脚本：剥离搜索页预制广告词 |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 77 项断言（`node test/manifest.test.mjs`） |
+| [test/script.test.mjs](test/script.test.mjs) | 34 项断言（`node test/script.test.mjs`） |
+| [test/fixtures/found_words.json](test/fixtures/found_words.json) | 真机响应原样留存（含广告条目） |
+| [test/fixtures/search_hots.json](test/fixtures/search_hots.json) | 真机响应原样留存 |
 | [test/fixtures/douban-7.135.0.har-urls.tsv](test/fixtures/douban-7.135.0.har-urls.tsv) | 固件 A · 218 条 |
 | [test/fixtures/douban-7.135.0-v10.har-urls.tsv](test/fixtures/douban-7.135.0-v10.har-urls.tsv) | 固件 B · 249 条（v1.0 真机） |
 | [icon.png](icon.png) | 图标（取自 honue 仓库） |

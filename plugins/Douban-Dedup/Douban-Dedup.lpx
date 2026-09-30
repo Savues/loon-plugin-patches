@@ -1,9 +1,9 @@
 #!name=豆瓣去广告
-#!desc=去开屏 + 去信息流/横幅/影视页广告。开屏素材图直接判失败以跳过本地倒计时。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 两份真机抓包重写。
+#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 四份真机抓包重写。
 #!author=honue, shengrui123, Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
 #!date=2026-10-01
-#!version=1.1
+#!version=1.2
 #!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
 #!tag=去广告
 
@@ -50,6 +50,17 @@ DOMAIN-SUFFIX,ugdtimg.com,REJECT,enable={block_httpdns}
 # 开屏广告素材：直接 reject 让广告 SDK 判定加载失败并退出，
 # 而不是把 1px 图当成功继续倒计时（honue 版「还要改 duration」的正解）
 ^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject
+
+# ── 搜索页预制广告词（必须改写响应体，不能 reject）─────────
+# 抓包实测：广告词和真实热搜在同一个数组里，只能靠 layout 区分
+#   found_words.words[] 里 layout="ad" search_type="ad_link"
+#   hots.roofs[]        里 layout="ad"
+# 例：words[1] "看视频抽立减金" → m.douban.com/cps-spu-page/.../daily-incentive-lottery
+# 而 words[0] "《复仇者联盟5》确认引进内地"、top_word "《沙丘3》确认引进" 是 layout="default"
+# ⇒ 直接 reject 这两个端点会让搜索联想功能报废，所以只删条目、保留其余。
+# ⚠️ 这里刻意不挂 enable={}：改写响应体只能写在 [URL Rewrite]，
+#    而本仓库已实测 [Rewrite] 尾部的 enable= 静默失效 —— 挂了就是死开关。
+^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)(?:[\/?].*)?$ script-response-body=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js
 
 [MITM]
 hostname = api.douban.com, frodo.douban.com, img*.doubanio.com
