@@ -1,14 +1,15 @@
 #!name=豆瓣去广告
-#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 四份真机抓包重写。
+#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 五份真机抓包重写。v1.3 移除 img*.doubanio.com（缓解个人主页/小组页连接池排队）。
 #!author=honue, shengrui123, Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
 #!date=2026-10-01
-#!version=1.2
+#!version=1.3
 #!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
 #!tag=去广告
 
 [Argument]
 block_httpdns = switch,true,tag=去腾讯优量汇,desc=拦腾讯广告 HTTPDNS 旁路；会连带影响其它 App 的腾讯广告，可关
+block_search_ad = switch,true,tag=去搜索页预制广告词,desc=剥掉搜索框滚动广告与「发现」横滚标签里的广告条目；真实热搜不受影响
 
 [Rule]
 # ── 腾讯优量汇 HTTPDNS 旁路 ─────────────────────────────────
@@ -47,20 +48,36 @@ DOMAIN-SUFFIX,ugdtimg.com,REJECT,enable={block_httpdns}
 ^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash_show(?:[\/?].*)?$ reject
 ^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash(?:_preload)?(?:[\/?].*)?$ reject-dict
 
-# 开屏广告素材：直接 reject 让广告 SDK 判定加载失败并退出，
-# 而不是把 1px 图当成功继续倒计时（honue 版「还要改 duration」的正解）
-^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject
+# ⚠️ v1.3 移除了「开屏广告素材图」规则 —— 它需要 img*.doubanio.com 进 [MITM]，
+#    而真机实测代价远大于收益：
+#      · 打开小组/个人主页时 17 并发，同一时刻有 5~6 张头像/小组图
+#        瞬时失败（status=0），33~42 ms 后重试全部成功
+#      · 这些失败与 119.29.29.90 的 HTTPDNS 请求精确同刻（差 −17~+7 ms）
+#        ⇒ 连接池排队，不是拦截。用户症状是「前几次能开、后来不行、重启就好」
+#      · 根因是每个请求多一层 TLS 握手把连接池挤满
+#    移除后开屏素材图会放行，但 splash_preload 接口仍被 reject-dict，
+#    App 拿不到新广告对象，最坏是多停 1~2 秒，而不是显示广告。
+#    （原规则： ^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject ）
 
-# ── 搜索页预制广告词（必须改写响应体，不能 reject）─────────
-# 抓包实测：广告词和真实热搜在同一个数组里，只能靠 layout 区分
-#   found_words.words[] 里 layout="ad" search_type="ad_link"
-#   hots.roofs[]        里 layout="ad"
+# ── 搜索页预制广告词 → 见 [Script] 段的 http-response ──────
+# 🔴 v1.2 曾把这条写成 [URL Rewrite] 的 script-response-body=，
+#    真机实测完全没执行（响应头 13 条真回包、ad_info 仍在）。
+#    查 Loon 官方文档 docs/cn/rewrite.md：[Rewrite] 只支持
+#    URL/Header 改写、302/307、以及 5 种 reject —— 根本没有响应体改写。
+#    响应体改写必须写在 [Script] 段，语法是 http-response + requires-body=true。
+
+[Script]
+# 剥离搜索框滚动广告与「发现」横滚标签里的预制广告词。
+# 抓包实测：广告与真实热搜混在同一数组，只能靠 layout / search_type 区分
+#   found_words.words[]  layout="ad" search_type="ad_link"
+#   hots.roofs[]         layout="ad"
+#   hots.ad_info         ad_type="fake" unit_name="dale_app_search_hots_page"
 # 例：words[1] "看视频抽立减金" → m.douban.com/cps-spu-page/.../daily-incentive-lottery
 # 而 words[0] "《复仇者联盟5》确认引进内地"、top_word "《沙丘3》确认引进" 是 layout="default"
-# ⇒ 直接 reject 这两个端点会让搜索联想功能报废，所以只删条目、保留其余。
-# ⚠️ 这里刻意不挂 enable={}：改写响应体只能写在 [URL Rewrite]，
-#    而本仓库已实测 [Rewrite] 尾部的 enable= 静默失效 —— 挂了就是死开关。
-^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)(?:[\/?].*)?$ script-response-body=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js
+# ⇒ 不能 reject 这两个端点（会让搜索联想报废），只能删条目、保留其余。
+# 官方文档：http-response 的 $done({body}) 会自动重算 content-length 与 content-encoding，
+# 所以服务端原本的 gzip 不用管。
+http-response ^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)(?:[\/?].*)?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js, tag=搜索页广告词, requires-body=true, timeout=10, enable={block_search_ad}
 
 [MITM]
-hostname = api.douban.com, frodo.douban.com, img*.doubanio.com
+hostname = api.douban.com, frodo.douban.com

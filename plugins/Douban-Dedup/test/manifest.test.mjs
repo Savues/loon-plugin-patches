@@ -78,7 +78,7 @@ t('无 CRLF', !lpx.includes('\r'))
 t('元信息含作者署名（上游 + 本仓库）',
   /honue/.test(lpx) && /shengrui123/.test(lpx) && /Savues/.test(lpx))
 t('有 #!date 与 #!version', /^#!date=/m.test(lpx) && /^#!version=/m.test(lpx))
-t('版本号是 1.2（v1.1 加入搜索页广告剥离脚本）', /^#!version=1\.2$/m.test(lpx))
+t('版本号是 1.3（移除 img*.doubanio.com，脚本改挂 [Script]）', /^#!version=1\.3$/m.test(lpx))
 
 // ── 2. 🔴 反向断言：规则类型与位置 ──────────────────────────
 console.log('\n【2】🔴 规则类型与段位（v1.0 踩过的坑）')
@@ -113,31 +113,37 @@ t('没有逻辑规则的策略名里含逗号', logicalRules.every(r => !policyO
 // ── 3. 开关完整性 ───────────────────────────────────────────
 console.log('\n【3】[Argument] 开关')
 const argNames = section('ARGUMENT').map(l => l.split('=')[0].trim())
-t('只保留 block_httpdns 一个开关（信息流挂不上开关就不假装有）',
-  argNames.length === 1 && argNames[0] === 'block_httpdns', `实际 ${argNames.join(',')}`)
+t('两个开关：block_httpdns 与 block_search_ad',
+  argNames.length === 2 && argNames.includes('block_httpdns') && argNames.includes('block_search_ad'),
+  `实际 ${argNames.join(',')}`)
 t('不声明 block_feed_ad（v1.0 的死开关）', !argNames.includes('block_feed_ad'))
-// 搜索广告靠 script-response-body 改写，只能写在 [URL Rewrite]，
-// 而该段挂 enable= 已在本仓库实测静默失效 ⇒ 不能给它配开关
-t('不声明 block_search_ad（[URL Rewrite] 挂不上 enable=，会变死开关）',
-  !argNames.includes('block_search_ad'))
+t('block_search_ad 挂在 [Script] 上（[Script] 段的 enable= 有官方文档背书）',
+  section('SCRIPT').some(l => l.includes('enable={block_search_ad}')) &&
+  !section('URL REWRITE').some(l => l.includes('block_search_ad')))
 t('每个开关都被至少一条规则引用', argNames.every(a => lpx.includes(`enable={${a}}`)))
 t('每个被引用的开关都有定义',
   [...new Set([...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1]))].every(a => argNames.includes(a)))
 
 // ── 3b. 脚本规则 ────────────────────────────────────────────
 console.log('\n【3b】脚本规则（搜索页广告）')
-const scriptRules = rewriteLines.filter(l => l.includes('script-response-body'))
-t('恰好 1 条 script-response-body 规则', scriptRules.length === 1,
-  scriptRules.join('\n'))
+// 🔴 v1.2 教训：响应体改写写在 [URL Rewrite] 的 script-response-body= 上，
+//    真机实测一次都没执行。官方文档 docs/cn/rewrite.md 只列了
+//    URL/Header 改写、302/307、5 种 reject —— 没有响应体改写。
+//    正解是 [Script] 段的 http-response + requires-body=true。
+const scriptRules = section('SCRIPT')
+t('恰好 1 条 [Script] 规则', scriptRules.length === 1, scriptRules.join('\n'))
+t('类型是 http-response（响应体改写只能走 [Script]，见 docs/cn/script.md）',
+  scriptRules.length === 1 && scriptRules[0].startsWith('http-response '))
+t('🔴 requires-body=true（否则 $response.body 恒为 undefined，脚本会永远放行）',
+  scriptRules.length === 1 && scriptRules[0].includes('requires-body=true'))
 t('它匹配 search/found_words 与 search/hots 两个端点',
-  scriptRules.length === 1 && /search\\\/\(\?:found_words\|hots\)/.test(scriptRules[0])
-    || scriptRules.length === 1 && /found_words\|hots/.test(scriptRules[0]),
+  scriptRules.length === 1 && /found_words\|hots/.test(scriptRules[0]),
   scriptRules.join('\n'))
 t('脚本指向本仓库托管路径（不是作者的站点）',
   scriptRules.length === 1 &&
   scriptRules[0].includes('Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js'))
-t('🔴 脚本规则没有挂 enable=（[Rewrite] 上挂了也是死开关）',
-  scriptRules.every(l => !l.includes('enable=')))
+t('🔴 [URL Rewrite] 段没有 script-response-body（v1.2 的错：官方文档无此语法）',
+  !rewriteLines.some(l => l.includes('script-response-body')))
 
 // ── 4. 规则格式 ─────────────────────────────────────────────
 console.log('\n【4】规则格式')
@@ -190,10 +196,13 @@ const splash = cap.filter(e => e.url.includes('/v2/app_ads/splash'))
 t(`开屏接口被拦（两份抓包共 ${splash.length} 次）`, splash.every(e => hitReject(e.url)))
 t('splash 用 reject-dict（JSON 接口；honue 版的错是 reject）',
   splash.every(e => hitReject(e.url)?.act === 'reject-dict'))
+// v1.3 移除了素材图规则：它需要 img*.doubanio.com 进 [MITM]，
+// 真机实测会让个人主页/小组页的并发图片请求瞬时失败（连接池排队）。
 const adImg = cap.filter(e => e.url.includes('/dale_ad/public/'))
-t(`开屏广告素材图被拦（共 ${adImg.length} 张）`, adImg.every(e => hitReject(e.url)))
-t('素材图用 reject（让 SDK 判失败退出，而非当成功继续倒计时）',
-  adImg.every(e => hitReject(e.url)?.act === 'reject'))
+t(`素材图已不再拦截（v1.3 移除，共 ${adImg.length} 张受影响）`,
+  adImg.every(e => !hitReject(e.url)))
+t('🔴 移除后 splash_preload 仍被拦（开屏接口是主要防线）',
+  cap.filter(e => e.url.includes('app_ads')).every(e => hitReject(e.url)))
 
 // 5c. 🔴 零误伤
 const imgs = cap.filter(e => /\/view\//.test(e.url) && !e.url.includes('/dale_ad/'))
@@ -217,18 +226,25 @@ t('athena 埋点、halfhill 会员商品未被拦',
 
 // 5d. 覆盖完整性
 const upstreamBlocked = [...capA, ...capB].filter(e => e.hdrCount === 0 && e.status === 404)
-t(`本清单覆盖了两份抓包中全部 ${upstreamBlocked.length} 条上游已拦请求`,
-  upstreamBlocked.every(e => hit(e.url)))
+// v1.3 移除了素材图规则，dale_ad 那几条不再被覆盖 —— 其余必须全覆盖
+const adImgOnly = upstreamBlocked.filter(e => /dale_ad\/public\//.test(e.url))
+t(`素材图 ${adImgOnly.length} 条已由 v1.3 主动放弃（不再要求覆盖）`,
+  adImgOnly.every(e => !hit(e.url)))
+const restBlocked = upstreamBlocked.filter(e => !/dale_ad\/public\//.test(e.url))
+t(`其余 ${restBlocked.length} 条上游已拦请求全部覆盖`,
+  restBlocked.length > 0 && restBlocked.every(e => hit(e.url)),
+  restBlocked.filter(e => !hit(e.url)).map(e => e.url).join('\n'))
 
 // ── 6. 跨版本与边界 ─────────────────────────────────────────
 console.log('\n【6】跨版本与边界')
 t('正则用 v\\d+ 而非硬编码 v2（honue 版的错）',
   rw.some(r => r.src.includes('v\\d+')) && !rw.some(r => r.src.includes('/v2/app_ads/')))
 t('v3 路径同样命中', hit('https://api.douban.com/v3/app_ads/splash_preload')?.act === 'reject-dict')
-t('img 主机名用 img\\d+（730 的 img\\d 漏掉 img12 这类）', rw.some(r => r.src.includes('img\\d+')))
-t('img12 能命中', !!hit('https://img12.doubanio.com/view/dale-online/dale_ad/public/x.jpg'))
-t('qnmob3-sign.doubanio.com 不被 img 规则误伤',
-  !hit('https://qnmob3-sign.doubanio.com/view/dale-online/dale_ad/public/x.jpg'))
+t('🔴 素材图规则已随 img*.doubanio.com 一起移除',
+  !rw.some(r => r.src.includes('dale_ad')))
+t('素材图 URL 现在完全放行（不再解密 doubanio）',
+  !hit('https://img3.doubanio.com/view/dale-online/dale_ad/public/x.jpg') &&
+  !hit('https://img12.doubanio.com/view/dale-online/dale_ad/public/x.jpg'))
 t('v2 根路径不误伤', !hit('https://api.douban.com/v2/app_ads'))
 t('非广告的 app_ads 子路径不被吞掉', !hit('https://api.douban.com/v2/app_ads/banner'))
 t('🆕 剧集页广告 /api/v2/tv/<id>/ad 被拦（v1.1 新增）',
@@ -244,16 +260,20 @@ t('home_ads 规则不会误伤 home_ads_next 之类',
 console.log('\n【7】[MITM] 域名')
 const mitm = section('MITM').join('').replace(/^hostname\s*=\s*/, '')
   .split(',').map(s => s.trim()).filter(Boolean)
-t('恰好 3 个域名', mitm.length === 3, `实际 ${mitm.join(',')}`)
+t('恰好 2 个域名（v1.3 移除 img*.doubanio.com）', mitm.length === 2, `实际 ${mitm.join(',')}`)
 // frodo.douban.com 不是白 decrypt：它是 [URL Rewrite] 改写 HTTPS 路径的前提
 t('frodo.douban.com 在列（[URL Rewrite] 改写 HTTPS 路径的前提条件）',
   mitm.includes('frodo.douban.com'))
 t('api.douban.com 在列（开屏接口）', mitm.includes('api.douban.com'))
-t('img*.doubanio.com 在列（开屏素材图）', mitm.includes('img*.doubanio.com'))
-t('每个 MITM 域名都有对应的 [URL Rewrite] 规则（无白 decrypt）',
+t('🔴 img*.doubanio.com 已移出（真机实测导致个人主页/小组页连接池排队）',
+  !mitm.some(m => m.includes('doubanio')))
+t('每个 MITM 域名都有对应规则（无白 decrypt）',
+  mitm.every(m => rw.some(r => r.src.includes(m.split('.').slice(-2)[0]))))
+t('MITM 域名都能被 [URL Rewrite] 或 [Script] 的规则命中',
   mitm.every(m => {
-    const re = m === 'img*.doubanio.com' ? /img\\d\+/ : new RegExp(m.replace(/\./g, '\\.'))
-    return rw.some(r => r.re.source.includes(re.source.slice(1, -1).split('\\')[0]) || r.re.test(`https://${m}/x`))
+    const host = m.replace(/\./g, '\\.')
+    return rw.some(r => r.re.source.includes(host)) ||
+           section('SCRIPT').some(l => l.includes(m.replace(/\./g, '\\.')))
   }))
 t('没有把 *.douban.com 主域名收进来（那会解密全部业务流量）',
   !mitm.some(m => m === 'douban.com' || m === '*.douban.com'))

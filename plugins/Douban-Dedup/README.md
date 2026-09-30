@@ -3,19 +3,19 @@
 > 豆瓣 App 去广告。**去开屏 + 信息流/横幅 + 搜索页预制广告词**。
 > 合并 [honue/rules](https://github.com/honue/rules) 与
 > [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) 两家，
-> 全部改动依据来自 **2026-10-01 的四份真机抓包**。**v1.2**
+> 全部改动依据来自 **2026-10-01 的五份真机抓包**。**v1.3**
 
 | | 中文 | English |
 |---|---|---|
 | 上游 A | [honue/rules](https://github.com/honue/rules) · 480 B（原件留存于 `upstream-honue.plugin`） | honue/rules, 480 B, pristine copy kept |
 | 上游 B | [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) · 1552 B（原件留存于 `upstream-shengrui.plugin`） | shengrui123, 1552 B, pristine copy kept |
-| 改动 | 清单层重写 + **v1.2 新增一个自研脚本** | Manifest rewritten, plus one self-written script in v1.2 |
+| 改动 | 清单层重写 + **一个自研脚本**（v1.2 起） | Manifest rewritten, plus one self-written script |
 | 脚本 | `src/douban-search-ad.js` —— 剥离搜索页预制广告词（**未改动上游任何 JS，两家原本都没有 JS**） | One self-written script; no upstream JS touched |
-| 回归测试 | `test/manifest.test.mjs` 77 项 + `test/script.test.mjs` 34 项 | 111 assertions total |
+| 回归测试 | `test/manifest.test.mjs` 80 项 + `test/script.test.mjs` 42 项 | 122 assertions total |
 
 ---
 
-## 🆕 v1.2：搜索页预制广告词
+## 🆕 v1.3 / v1.2：脚本与 MITM 的两次返工
 
 抓包发现搜索框滚动广告与「发现」横滚标签里的广告，都来自**搜索接口的响应体**：
 
@@ -276,3 +276,98 @@ preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
 - [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) —— 素材图规则与 HTTPDNS 拦截
 
 本版是这两者的合并与重写，改动依据全部来自上文的真机抓包。
+
+---
+
+## 🔴 v1.3：移除 `img*.doubanio.com`（真机实测代价大于收益）
+
+v1.2 把 `img*.doubanio.com` 加进 `[MITM]`，只为拦 5 张开屏广告素材图。
+第五份抓包证明这笔买卖是亏的。
+
+### 症状
+
+用户反馈：**「打开 App 后前两三次还能打开个人主页，后面就不行了，重启 App 能解决」**。
+
+### 抓包证据
+
+打开个人主页/小组页时，**17 个请求并发**，其中 5–6 张头像/小组图瞬时失败：
+
+```
+04:39:44.569  img3.doubanio.com/icon/up176880095-18.jpg   🔴 status=0
+04:39:44.575  img9.doubanio.com/icon/up78087662-16.jpg    🔴 status=0
+04:39:44.580  img9.doubanio.com/icon/up213482928-14.jpg   🔴 status=0
+04:39:44.590  img2.doubanio.com/icon/up163261619-1.jpg    🔴 status=0
+04:39:44.592  img9.doubanio.com/icon/up262479169-4.jpg    🔴 status=0
+04:39:44.607  ↑ 33–42 ms 后全部重试成功，hdr=14~18 真回包
+```
+
+个人主页的 8 个接口本身**全部 200**，唯一失败的 `/api/v2/user/<id>/hitmap`
+在 1.7 秒后重试也成功了。
+
+### 为什么判定是连接池排队而非拦截
+
+| 观察 | 意义 |
+|---|---|
+| 每次失败都在 **33–42 ms** 后原样重试并成功 | 瞬时排队，不是策略拒绝 |
+| 失败时刻与 `119.29.29.90` HTTPDNS 请求**精确同刻**（差 −17 ~ +7 ms） | 连接建立阶段被挤占 |
+| 同一域名其它请求 `hdr=14~21` 全部正常 | 没有被规则拦 |
+| 前后 100 ms 内并发数 **17** | 连接池被打满 |
+
+**「重启 App 能解决」正好印证这是连接池状态问题** —— 重启清空了池子。
+
+根因：`[MITM]` 让每个图片请求多一次 TLS 握手，把原本够用的连接池挤爆。
+
+### 处置
+
+移除 `img*.doubanio.com` 与对应的素材图规则。
+
+**代价**：开屏素材图会放行。但开屏接口 `splash_preload` 仍被 `reject-dict`
+（返回 `{}`），App 拿不到新的广告对象 —— 最坏是多停 1–2 秒，而不是显示广告。
+
+**保留** `frodo.douban.com`：它承载信息流拦截（59 KB 广告数据），
+且抓包里主页那 8 个接口从未失败。
+
+---
+
+## 🔴 v1.2 → v1.3：脚本挂错段（查官方文档才定位）
+
+v1.2 把搜索广告剥离写成：
+
+```ini
+^.../search/(?:found_words|hots)$ script-response-body=https://.../douban-search-ad.js
+```
+
+放在 `[URL Rewrite]` 段。**真机实测一次都没执行** —— 响应头 13 条真回包，
+`ad_info` 仍在，广告条目仍在。
+
+查 Loon 官方手册 `docs/cn/rewrite.md`，`[Rewrite]` 只支持：
+
+- URL 类型改写（`header`）
+- 直接响应类：`302` / `307` / `reject` / `reject-200` / `reject-img` / `reject-dict` / `reject-array`
+- Header 类型改写（`header-add` / `header-del` / `header-replace`）
+
+**根本没有响应体改写这个语法。** 正解在 `docs/cn/script.md`：
+
+```ini
+[Script]
+http-response ^...$ script-path=https://.../douban-search-ad.js, requires-body=true, timeout=10, enable={block_search_ad}
+```
+
+关键点是 **`requires-body=true`** —— 手册明确写了「如果响应带有 body，
+并且 `requires-body = true` 时此参数才有值」。漏掉它 `$response.body` 恒为 `undefined`，
+脚本会永远走放行分支。
+
+手册还保证 `$done({body})` 会**自动重算 `content-length` 与 `content-encoding`**，
+所以服务端原本的 gzip 不需要手动处理。
+
+### 附带收获：`[Script]` 段的 `enable=` 有效
+
+v1.2 我因为「`[Rewrite]` 挂 `enable=` 会静默失效」而删掉了 `block_search_ad` 开关。
+改挂 `[Script]` 后可以名正言顺地加回来 —— 官方 `docs/cn/script.md` 的示例里
+就有 `enable=true`，这是有文档背书的用法。
+
+### 教训
+
+**改用没验证过的语法之前先查官方手册。** 本仓库已经因为「凭印象写语法」
+踩了三次：`[Rule]` 的 `URL-REGEX` 不参与 HTTPS 改写、`[Rewrite]` 挂 `enable=` 静默失效、
+`[Rewrite]` 的 `script-response-body=` 根本不存在。

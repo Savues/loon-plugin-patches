@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
-| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索页广告词 · 四份真机抓包逐条回放<br>Douban splash, feed and search ad-block, four real captures replayed | **v1.2** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索页广告词 · 五份真机抓包逐条回放<br>Douban splash, feed and search ad-block, five real captures replayed | **v1.3** |
 
 ### 托管了脚本的插件
 
@@ -171,12 +171,25 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 `frodo.douban.com` 上的信息流广告（单条 59 KB），而 shengrui 那条「让 App 立即跳过」的
 `splash_show` 规则在 7.135.0 上**一次都没触发**。
 
-**v1.2 加了本仓库第一个「自研脚本」**（`src/douban-search-ad.js`）：搜索框滚动广告与
+**v1.2 加了本仓库第一个「自研脚本」**（`src/douban-search-ad.js`，v1.3 改挂 `[Script]` 段）：搜索框滚动广告与
 「发现」横滚标签里的广告，都在 `search/found_words` 的 `words[]` 与 `search/hots` 的
 `roofs[]` 里，与真实热搜**混在同一个数组**，只能靠 `layout:"ad"` 区分。
 直接 reject 会让搜索联想报废，所以改用 `script-response-body` 只删广告条目。
-脚本刻意不配开关 —— 改写响应体只能写在 `[URL Rewrite]`，而该段挂 `enable=` 已被本仓库
-实测静默失效，配了就是死开关。
+v1.2 把它挂在 `[URL Rewrite]` 的 `script-response-body=` 上，**真机实测一次都没执行**。
+查官方手册 `docs/cn/rewrite.md` 才发现 `[Rewrite]` 只支持 URL/Header 改写、302/307
+与 5 种 reject，**根本没有响应体改写**；正解是 `[Script]` 段的
+`http-response` + **`requires-body=true`**（漏掉它 `$response.body` 恒为 undefined）。
+改挂 `[Script]` 后 `enable={}` 也名正言顺了 —— 官方 `docs/cn/script.md` 的示例里就有。
+
+**v1.3 移除了 `img*.doubanio.com`**：它原本只为拦 5 张开屏广告素材图，
+但真机实测在个人主页/小组页引发**连接池排队** —— 17 并发时 5~6 张头像瞬时失败
+（`status=0`），33~42 ms 后重试全部成功，且失败时刻与 HTTPDNS 请求精确同刻。
+用户症状「前几次能开、后来不行、重启就好」正是连接池被填满的典型表现。
+代价是开屏素材图放行，但 `splash_preload` 接口仍被拒，App 拿不到新广告对象。
+
+🔴 **三次「凭印象写 Loon 语法」的教训**：本仓库已经栽了三次 ——
+`[Rule]` 的 `URL-REGEX` 不参与 HTTPS 改写、`[Rewrite]` 挂 `enable=` 静默失效、
+`[Rewrite]` 的 `script-response-body=` 根本不存在。**用没验证过的语法前先查官方手册。**
 
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
@@ -240,14 +253,32 @@ the feed ads on `frodo.douban.com` (59 KB in a single response), and that shengr
 `splash_show` rule — the one that makes the app skip immediately — **never fires at all**
 on 7.135.0.
 
-**v1.2 adds this repo's first self-written script** (`src/douban-search-ad.js`). The
+**v1.2 adds this repo's first self-written script** (`src/douban-search-ad.js`;
+rehomed into `[Script]` in v1.3). The
 scrolling ad in the search box and the ad tags in the horizontal strip both live inside
 `words[]` of `search/found_words` and `roofs[]` of `search/hots` — **mixed into the same
 arrays as the real hot searches**, separable only by `layout:"ad"`. Rejecting the endpoint
 would break search suggestions outright, so the script deletes just the ad entries via
-`script-response-body`. It deliberately has **no switch**: a response-body rewrite can only
-live in `[URL Rewrite]`, and `enable=` on that section has been proven to fail silently in
-this repo — wiring one up would be a dead switch.
+`script-response-body`. v1.2 put it on `[URL Rewrite]`, and **it never ran once** — the
+capture still showed a 13-header real reply with `ad_info` intact. The official manual
+(`docs/cn/rewrite.md`) settled it: `[Rewrite]` only does URL/Header rewrites, 302/307 and
+five reject variants — **there is no response-body rewrite at all**. The correct form is
+`http-response` in `[Script]` with **`requires-body=true`** (without it `$response.body` is
+permanently `undefined`). Rehomed into `[Script]`, the `enable={}` switch is legitimate too,
+since the official `docs/cn/script.md` examples use it.
+
+**v1.3 drops `img*.doubanio.com`** from `[MITM]`. It was only there to block five splash
+ad images, but on real devices it caused **connection-pool queuing** on profile and group
+pages: with 17 concurrent requests, five or six avatars fail instantly (`status=0`) and
+succeed on retry 33–42 ms later, at exactly the moment a HTTPDNS request lands. The user's
+own symptom — "works the first few times, then stops; restarting the app fixes it" — is the
+textbook signature of a saturated pool. The cost is that splash creatives are no longer
+blocked, but `splash_preload` still is, so the app gets no fresh ad object.
+
+🔴 **Three strikes for writing Loon syntax from memory**: `[Rule]`'s `URL-REGEX` does not
+participate in HTTPS rewriting; `enable=` on `[Rewrite]` fails silently; and
+`script-response-body=` on `[Rewrite]` does not exist. **Read the official manual before
+using syntax you have not verified.**
 
 ---
 
