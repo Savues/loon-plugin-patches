@@ -301,11 +301,12 @@ function formatTopbar(user, siteName) {
     }
     const tail = parts.join("·");
     if (!siteName) return tail;
-    const full = siteName + "·" + tail;
-    // 10 个全角单位是实测余量：副标题右侧的时间戳最宽是隔天的「昨天 20:05」，
-    // 再宽就会把副标题截掉（「第 20 天」曾被截成「第 2...」）。
-    // 站点名超预算就整段砍掉 —— 它是静态的，ID 和天数每天都会变。
-    return width(full) <= 10 ? full : tail;
+    // 站点名里的空格删掉：通知宽度紧张，"Agent Router"(6) 比 "AgentRouter"(5.5) 贵半个单位
+    const name = String(siteName).replace(/\s+/g, "");
+    const full = name + "·" + tail;
+    // 13 个全角单位：实测的最坏情况预算 —— 副标题右侧的时间戳最宽是隔天的
+    // 「昨天 20:05」。超了就整段砍掉站点名（它静态，ID 和天数每天都在变）。
+    return width(full) <= 13 ? full : tail;
 }
 
 // 全角算 1、半角算 0.5 —— 断行与长度判断都用它
