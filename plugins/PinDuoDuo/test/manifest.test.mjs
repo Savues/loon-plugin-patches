@@ -5,7 +5,6 @@
 // 无外部依赖，jq 走 node:child_process 调用系统 jq（缺失则跳过 jq 组用例）
 
 import { readFileSync, existsSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { t, done } from './harness.mjs'
@@ -50,22 +49,17 @@ const rdCount = (readme.match(/\/\s*(\d+)\s*条生效规则/) || [])[1]
 t('README 生效规则数与清单一致', rdCount && Number(rdCount) === activeCount,
   `README=${rdCount} 实际=${activeCount}（RULE ${section('RULE').length} + REWRITE ${section('REWRITE').length} + SCRIPT ${section('SCRIPT').length}）`)
 
-// 仓库原则 #9：每次改动必须 +0.01。对着上一个 commit 的 lpx 校验。
-// 拿不到历史（非 git 环境 / 浅克隆）就跳过，不让这条守卫本身变成故障源。
-const LPX_REL = 'plugins/PinDuoDuo/PinDuoDuo.lpx'
-const prevLpx = (() => {
-  try { return execFileSync('git', ['show', `HEAD~1:${LPX_REL}`], { cwd: join(HERE, '..', '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) }
-  catch { return null }
-})()
-if (prevLpx) {
-  const pv = ((prevLpx.match(/^#!name=.* (v[\d.]+)$/m) || [])[1]) || null
-  const num = (v) => v && Number(v.slice(1))
-  // 浮点：1.7 + 0.01 = 1.709999...，用 ×100 取整再比
-  const step = pv && ver ? Math.round((num(ver) - num(pv)) * 100) / 100 : null
-  t('版本号较上次 +0.01（原则 #9）', step === 0.01, `上次 ${pv} → 本次 ${ver}（步长 ${step}）`)
-} else {
-  console.log('  ⚠️  取不到 HEAD~1，跳过版本步长校验')
-}
+// 原「版本号较上次 +0.01」守卫已删除（2026-09-29）。
+// 它用 `git show HEAD~1:<lpx>` 取「上次版本」，而 HEAD~1 是「上一个碰本仓库的提交」，
+// 不是本插件自己的历史。多会话并发提交时序列被打散，就会拿别的插件当参照物 → 步长 0 → 误报。
+// 实际发生过两次：一次是别的插件插在中间，一次是三个提交都与本插件无关。
+//
+// 删它的代价很小：真改动几乎都会动到「README 生效规则数」或「开关默认值」，
+// 那两条对账式守卫会先报红。此守卫额外覆盖的只有「纯文档改动也要升版本号」。
+//
+// 若日后要恢复这条约束，用对账式而非差分式：
+//   顶层 README 表格里的版本号 == 本插件 #!name 的版本号
+// 这类断言只依赖当前文件内容，不受提交顺序影响。
 
 // ── 2. 开关声明 == 引用 ─────────────────────────────────────
 console.log('\n【2】Argument 开关')
