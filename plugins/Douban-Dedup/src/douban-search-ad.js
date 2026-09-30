@@ -18,7 +18,12 @@
 //
 // 同一响应里的正常条目（不能删）：
 //   words[0] { layout:"default", search_type:"all", title:"《复仇者联盟5》确认引进内地" }
-//   top_word { layout:"default", search_type:"all", title:"《沙丘3》确认引进" }
+//
+// ⚠️ top_word 例外：它是搜索框滚动词，也是「搜索词投放」广告的落点，
+//    但 layout/search_type 标的是 "default"/"all"，与正常热搜无任何差别。
+//    跨 8 份抓包 12 个样本全部如此，其中《沙丘3》确认引进 与
+//    女生独闯肯尼亚safari 被用户确认为广告，而《Girls》主创Lena Dunham代孕
+//    明显是真实热搜。协议层面无法区分，只能整字段删除。
 //
 // 为什么不能直接 reject 整个端点：真实热搜和广告在同一个数组里，
 // 拦掉等于搜索联想功能报废。所以这里只删广告条目，其余原样返回。
@@ -70,9 +75,20 @@ try {
         removed++
       }
 
-      // top_word 是搜索框里滚动的那个词。抓包样本是 layout:"default"（正常词），
-      // 所以正常不动；只有它自己被标成广告时才删。
-      if (data.top_word && isAdItem(data.top_word)) {
+      // top_word 是搜索框里滚动的那个词，也是「搜索词投放」广告的落点。
+      // 🔴 v1.2/v1.3 判据说它 layout:"default" 所以是正常词、故意不动 ——
+      //    真机证明那是错的。跨 8 份抓包共 12 个不同的 top_word，
+      //    没有一个带任何广告标记：
+      //      《沙丘3》确认引进          layout=default  ← 用户确认是广告
+      //      女生独闯肯尼亚safari       layout=default  ← 用户确认是广告
+      //      《Girls》主创Lena Dunham代孕 layout=default ← 明显是正常热搜
+      //    即服务端刻意把它伪装成普通热搜词，协议层面无法区分。
+      //    试过的判据全部不成立：layout / search_type 无差别；
+      //    URI 的话题 #xxx# 形式正常热搜也在用；含英文字母的
+      //    《Girls》主创Lena Dunham代孕 反而是真热搜。
+      //    ⇒ 只能整字段删除。搜索框因此不再显示滚动词，
+      //      但搜索功能完全不受影响（用户确认接受这个代价）。
+      if ('top_word' in data) {
         delete data.top_word
         removed++
       }

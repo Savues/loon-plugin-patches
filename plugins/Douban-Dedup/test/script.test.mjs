@@ -55,9 +55,13 @@ t('《复仇者联盟5》确认引进内地 保留',
 t('时尚芭莎对李庚希好残忍 保留', titles(fw, 'words').includes('时尚芭莎对李庚希好残忍'))
 t('广告项整体消失（不只是改标题）',
   (fw.words || []).every((w) => !(w.layout === 'ad' || w.search_type === 'ad_link')))
-t('top_word（《沙丘3》确认引进）原样保留 —— 它 layout=default 不是广告',
-  fw.top_word && fw.top_word.title === '《沙丘3》确认引进',
-  JSON.stringify(fw.top_word))
+// 🔴 v1.3 的错误断言：曾断言 top_word 应保留。v1.4 真机证明那是广告。
+t('🔴 top_word 被整字段删除（搜索词投放广告，协议层无法与热搜区分）',
+  fw.top_word === undefined, JSON.stringify(fw.top_word))
+t('🔴 固件里 top_word 确实存在（证明上一条不是「本来就没有」）',
+  foundWords.top_word && typeof foundWords.top_word.title === 'string')
+t('🔴 top_word 的 layout 是 default —— 正是它骗过了 v1.2/v1.3',
+  foundWords.top_word && foundWords.top_word.layout === 'default')
 t('cache_timeout 保留', fw.cache_timeout === foundWords.cache_timeout)
 t('正常词条字段未被破坏（uri / search_type 完整）',
   (fw.words || []).filter((w) => w.layout === 'default')
@@ -77,6 +81,8 @@ const hb = sh.hot_search_board || []
 t(`hot_search_board ${hb.length} 条热搜全部保留`, hb.length === hots.hot_search_board.length)
 t('严子怡最喜欢的运动员（rank 1）保留',
   hb.some((x) => x.title === '严子怡最喜欢的运动员' && x.rank_value === 1))
+t('🔴 hots 里的 top_word 同样被删（同一字段，跨端点一致）',
+  sh.top_word === undefined)
 t('subjects / top_groups / gallery_topics 保留',
   JSON.stringify(sh.subjects) === JSON.stringify(hots.subjects) &&
   JSON.stringify(sh.top_groups) === JSON.stringify(hots.top_groups) &&
@@ -144,6 +150,8 @@ for (const [name, raw] of [['found_words', foundWordsRaw], ['search_hots', hotsR
   // 不查手机号：model=iPad16,1 这类设备串会误命中正则。
   t(`${name}.json 里没有邮箱形态`, !/\w+@[\w.]+\.\w+/.test(raw))
 }
+t('固件仍保留 top_word 样本（供回归证明「本来有、现在被删」）',
+  typeof foundWords.top_word?.title === 'string')
 t('脱敏后仍能识别出广告条目（layout/search_type 保留）',
   foundWords.words.some((w) => w.layout === 'ad' && w.search_type === 'ad_link') &&
   hots.roofs.some((r) => r.layout === 'ad'))

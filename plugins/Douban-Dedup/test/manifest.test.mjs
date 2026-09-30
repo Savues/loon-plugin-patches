@@ -78,7 +78,7 @@ t('无 CRLF', !lpx.includes('\r'))
 t('元信息含作者署名（上游 + 本仓库）',
   /honue/.test(lpx) && /shengrui123/.test(lpx) && /Savues/.test(lpx))
 t('有 #!date 与 #!version', /^#!date=/m.test(lpx) && /^#!version=/m.test(lpx))
-t('版本号是 1.3（移除 img*.doubanio.com，脚本改挂 [Script]）', /^#!version=1\.3$/m.test(lpx))
+t('版本号是 1.4（删除 top_word，补上 group/<id>/ad）', /^#!version=1\.4$/m.test(lpx))
 
 // ── 2. 🔴 反向断言：规则类型与位置 ──────────────────────────
 console.log('\n【2】🔴 规则类型与段位（v1.0 踩过的坑）')
@@ -250,6 +250,10 @@ t('非广告的 app_ads 子路径不被吞掉', !hit('https://api.douban.com/v2/
 t('🆕 剧集页广告 /api/v2/tv/<id>/ad 被拦（v1.1 新增）',
   !!hit('https://frodo.douban.com/api/v2/tv/36117379/ad') &&
   !!hit('https://frodo.douban.com/api/v2/tv/36449291/ad?x=1'))
+t('🆕 小组页广告 /api/v2/group/<id>/ad 被拦（v1.4 补，抓包实测 /group/736627/ad）',
+  !!hit('https://frodo.douban.com/api/v2/group/736627/ad'))
+t('小组本体 /api/v2/group/<id> 不被误伤',
+  !hit('https://frodo.douban.com/api/v2/group/736627'))
 t('剧集本体 /api/v2/tv/<id> 不被误伤', !hit('https://frodo.douban.com/api/v2/tv/36117379'))
 t('影视本体 /api/v2/movie/recommend 不被误伤',
   !hit('https://frodo.douban.com/api/v2/movie/recommend'))

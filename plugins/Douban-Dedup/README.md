@@ -3,7 +3,7 @@
 > 豆瓣 App 去广告。**去开屏 + 信息流/横幅 + 搜索页预制广告词**。
 > 合并 [honue/rules](https://github.com/honue/rules) 与
 > [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) 两家，
-> 全部改动依据来自 **2026-10-01 的五份真机抓包**。**v1.3**
+> 全部改动依据来自 **2026-10-01 的六份真机抓包**。**v1.4**
 
 | | 中文 | English |
 |---|---|---|
@@ -11,11 +11,11 @@
 | 上游 B | [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) · 1552 B（原件留存于 `upstream-shengrui.plugin`） | shengrui123, 1552 B, pristine copy kept |
 | 改动 | 清单层重写 + **一个自研脚本**（v1.2 起） | Manifest rewritten, plus one self-written script |
 | 脚本 | `src/douban-search-ad.js` —— 剥离搜索页预制广告词（**未改动上游任何 JS，两家原本都没有 JS**） | One self-written script; no upstream JS touched |
-| 回归测试 | `test/manifest.test.mjs` 80 项 + `test/script.test.mjs` 42 项 | 122 assertions total |
+| 回归测试 | `test/manifest.test.mjs` 82 项 + `test/script.test.mjs` 46 项 | 128 assertions total |
 
 ---
 
-## 🆕 v1.3 / v1.2：脚本与 MITM 的两次返工
+## 🆕 v1.4 / v1.3 / v1.2：三次返工的完整记录
 
 抓包发现搜索框滚动广告与「发现」横滚标签里的广告，都来自**搜索接口的响应体**：
 
@@ -29,6 +29,7 @@
 | 位置 | 广告条目 | 正常条目 |
 |---|---|---|
 | `words[]` | `layout:"ad" search_type:"ad_link"` | `layout:"default" search_type:"all"` |
+| `top_word` | 🔴 **与正常热搜完全一样**（见下） | — |
 | `roofs[]` | `layout:"ad"` | — |
 | `ad_info` | `ad_type:"fake" advertisement_type:43`<br>`unit_name:"dale_app_search_hots_page"`<br>`sdk_list:[{sdk_type:"pangolinSDK"}]` | — |
 
@@ -41,7 +42,7 @@
      "uri":"https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad"}
 [2] {"layout":"default","search_type":"all","title":"余红旧事"}
 ...
-// top_word（搜索框里滚动的词，本次是正常热搜）
+// top_word（搜索框里滚动的词）—— v1.4 起整字段删除
 {"title":"《沙丘3》确认引进","search_type":"all","layout":"default"}
 ```
 
@@ -371,3 +372,83 @@ v1.2 我因为「`[Rewrite]` 挂 `enable=` 会静默失效」而删掉了 `block
 **改用没验证过的语法之前先查官方手册。** 本仓库已经因为「凭印象写语法」
 踩了三次：`[Rule]` 的 `URL-REGEX` 不参与 HTTPS 改写、`[Rewrite]` 挂 `enable=` 静默失效、
 `[Rewrite]` 的 `script-response-body=` 根本不存在。
+
+---
+
+## 🔴 v1.4：`top_word` 整字段删除（我判断错了两次）
+
+### 症状
+
+用户反馈搜索框里始终有滚动广告词，v1.2/v1.3 装了脚本仍然存在：
+`《沙丘3》确认引进` → 下一份抓包变成 `女生独闯肯尼亚safari`。
+
+### 我错在哪
+
+v1.2 写脚本时，我看到抓包样本里
+
+```jsonc
+"top_word": {"title":"《沙丘3》确认引进", "search_type":"all", "layout":"default"}
+```
+
+判定「它标的是 `default` 而不是 `ad`，所以是正常热搜，不动它」。
+**这个判断是错的，而且我在 v1.3 里又重复了一次。**
+
+### 为什么协议层无法区分
+
+跨 8 份抓包共 12 个不同的 `top_word`，**没有一个带任何广告标记**：
+
+| `top_word` | 用户判定 |
+|---|---|
+| 《沙丘3》确认引进 | 🔴 广告 |
+| 女生独闯肯尼亚safari | 🔴 广告 |
+| 《Girls》主创Lena Dunham代孕 | ✅ 正常热搜 |
+| 孙怡获平遥影后 / 我不是大师 / 无可替代 | ✅ 正常热搜 |
+| 商务部给每个国家写了一份超详细"使用说明书" | ✅ 正常热搜 |
+
+试过的判据**全部不成立**：
+
+| 判据 | 为什么失效 |
+|---|---|
+| `layout` / `search_type` | 12 个样本全是 `default`/`all` |
+| URI 是话题 `#xxx#` 还是裸词 | 正常热搜也大量用话题：`#林诗栋4:0击败王楚钦亚运夺冠#` |
+| 标题含英文字母 | `《Girls》主创Lena Dunham代孕` 含字母但是真热搜 |
+
+⇒ **这是「搜索词投放」广告的固有做法：刻意伪装成普通热搜。**
+
+### 处置
+
+整字段 `delete data.top_word`。代价是搜索框不再显示滚动词，
+**搜索功能完全不受影响**（用户确认接受）。
+
+脚本里保留了三行说明，避免以后有人又"优化"回去。
+
+### 顺带补上漏掉的端点
+
+第四份抓包里有 `frodo.douban.com/api/v2/group/736627/ad`（小组页广告位），
+v1.3 的规则只覆盖 `movie`/`tv`。已把 `group` 并入：
+
+```ini
+^https?:\/\/frodo\.douban\.com\/api\/v2\/(?:movie|tv|group)\/[\d\w-]+\/ad(?:[\/?].*)?$ reject-dict
+```
+
+⚠️ 注意路径形态不同：`/group/736627/ad` 里**没有第二段名字**，
+不能想当然写成 `/(?:movie|group)\/(?:\w+)\/ad$` 之类。
+
+---
+
+## 三次返工的共同教训
+
+| 版本 | 我以为 | 真机证明 |
+|---|---|---|
+| v1.0 | `[Rule]` 的 `URL-REGEX` 能改写 HTTPS 路径（还能挂开关） | 一条都没拦下，59 KB 广告完整下发 |
+| v1.2 | `[URL Rewrite]` 支持 `script-response-body=` | **该语法不存在**，脚本一次没跑 |
+| v1.4 | `top_word` 标 `default` 所以是正常热搜 | 它就是广告，而且**协议层无法与热搜区分** |
+
+三次都是**看了一个样本就下结论**。
+
+- v1.0 该做的是**查 `[Rule]` 段的规则类型语义**（哪些参与 HTTPS 改写）
+- v1.2 该做的是**翻官方手册 `docs/cn/rewrite.md`**（两分钟能查到）
+- v1.4 该做的是**问用户「点进去跳到哪」**（我纠结了三个判据才问）
+
+**一个样本证明不了「这批数据同质」。** 抓包里同一个字段出现 12 个不同值时，
+要先确认它们是否同质，再决定能否按字段特征过滤。

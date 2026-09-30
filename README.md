@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
-| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索页广告词 · 五份真机抓包逐条回放<br>Douban splash, feed and search ad-block, five real captures replayed | **v1.3** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索词投放 · 六份真机抓包逐条回放<br>Douban splash, feed and search ad-block, six real captures replayed | **v1.4** |
 
 ### 托管了脚本的插件
 
@@ -187,6 +187,12 @@ v1.2 把它挂在 `[URL Rewrite]` 的 `script-response-body=` 上，**真机实�
 用户症状「前几次能开、后来不行、重启就好」正是连接池被填满的典型表现。
 代价是开屏素材图放行，但 `splash_preload` 接口仍被拒，App 拿不到新广告对象。
 
+🔴 **v1.4：`top_word` 整字段删除**。v1.2/v1.3 我都判定「`top_word` 标 `default` 所以是
+正常热搜」，真机证明那是「搜索词投放」广告（`《沙丘3》确认引进`、`女生独闯肯尼亚safari`）。
+跨 8 份抓包 12 个样本，**没有一个带广告标记**，而 `《Girls》主创Lena Dunham代孕`
+明显是真热搜 —— 协议层无法区分。三个判据全部失效：`layout`/`search_type` 无差别、
+URI 的话题 `#xxx#` 形式正常热搜也在用、含英文字母的反而是真热搜。
+
 🔴 **三次「凭印象写 Loon 语法」的教训**：本仓库已经栽了三次 ——
 `[Rule]` 的 `URL-REGEX` 不参与 HTTPS 改写、`[Rewrite]` 挂 `enable=` 静默失效、
 `[Rewrite]` 的 `script-response-body=` 根本不存在。**用没验证过的语法前先查官方手册。**
@@ -259,7 +265,15 @@ scrolling ad in the search box and the ad tags in the horizontal strip both live
 `words[]` of `search/found_words` and `roofs[]` of `search/hots` — **mixed into the same
 arrays as the real hot searches**, separable only by `layout:"ad"`. Rejecting the endpoint
 would break search suggestions outright, so the script deletes just the ad entries via
-`script-response-body`. v1.2 put it on `[URL Rewrite]`, and **it never ran once** — the
+**v1.4 deletes `top_word` outright.** v1.2 and v1.3 both judged it a normal hot search
+because it carries `layout:"default"`; the device proved otherwise — it is where Douban's
+search-word advertising lands. Across 8 captures and 12 distinct `top_word` values **not one
+carries an ad marker**, while `《Girls》主创Lena Dunham代孕` is plainly a real hot search.
+Every heuristic fails: `layout`/`search_type` are identical across all samples; the
+`#topic#` URI form is used by genuine hot searches too; and the value containing Latin
+letters is the *real* one. v1.4 also adds the missing `group/<id>/ad` endpoint.
+
+v1.2 put the script on `[URL Rewrite]`, and **it never ran once** — the
 capture still showed a 13-header real reply with `ad_info` intact. The official manual
 (`docs/cn/rewrite.md`) settled it: `[Rewrite]` only does URL/Header rewrites, 302/307 and
 five reject variants — **there is no response-body rewrite at all**. The correct form is

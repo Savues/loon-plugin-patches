@@ -1,9 +1,9 @@
 #!name=豆瓣去广告
-#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 五份真机抓包重写。v1.3 移除 img*.doubanio.com（缓解个人主页/小组页连接池排队）。
+#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 五份真机抓包重写。v1.4 删掉搜索框滚动词 top_word（搜索词投放广告）；v1.3 移除 img*.doubanio.com。
 #!author=honue, shengrui123, Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
 #!date=2026-10-01
-#!version=1.3
+#!version=1.4
 #!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
 #!tag=去广告
 
@@ -33,12 +33,15 @@ DOMAIN-SUFFIX,ugdtimg.com,REJECT,enable={block_httpdns}
 #    原因：[Rule] 段的 URL-REGEX 不参与 HTTPS 路径改写。
 #    代价是这四条挂不上开关 —— 宁可没开关，不要假装能关的开关。
 # erebor=首页信息流, movie/ad=影视页, tv/<id>/ad=剧集页,
-# home_banner=首页横幅, home_ads=开屏聚合
+# group/<id>/ad=小组页, home_banner=首页横幅, home_ads=开屏聚合
+# group/<id>/ad 来自 2026-10-01 第四份真机抓包（/api/v2/group/736627/ad），
+# v1.3 之前漏了。⚠️ 别写成 /(?:movie|tv|group)\/…\/ad$ —— [URL Rewrite] 是
+#    整串正则，分段顺序不同，group 的是 /group/736627/ad（无第二段名字）。
 # ⚠️ 路径要逐个写全：Loon 的 [URL Rewrite] 是整串正则匹配，
 #    写成 /(?:movie|home)/(?:banner|ads) 那种「分段择一」的形式匹配不到
 #    /api/v2/movie/ad —— 分段顺序不同。
 ^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/(?:feed_ad|special_ad)(?:[\/?].*)?$ reject-dict
-^https?:\/\/frodo\.douban\.com\/api\/v2\/(?:movie|tv)\/[\d\w-]+\/ad(?:[\/?].*)?$ reject-dict
+^https?:\/\/frodo\.douban\.com\/api\/v2\/(?:movie|tv|group)\/[\d\w-]+\/ad(?:[\/?].*)?$ reject-dict
 ^https?:\/\/frodo\.douban\.com\/api\/v2\/movie\/ad(?:[\/?].*)?$ reject-dict
 ^https?:\/\/frodo\.douban\.com\/api\/v2\/home_(?:ads|banner)(?:[\/?].*)?$ reject-dict
 
