@@ -208,7 +208,12 @@ async function checkin({ username, password }, quotaUnit, announcements, siteNam
     const body = announce ? `${stats}\n${announce}` : stats;
 
     if (checkinRecord) {
-        return { topbar, title: "✅ 今日已签到" + formatCheckinReward(checkinRecord.content), content: body };
+        const day = accountDay(user);
+        return {
+            topbar,
+            title: "✅ 今日已签到" + formatCheckinReward(checkinRecord.content) + (day ? " · " + day : ""),
+            content: body,
+        };
     } else {
         const state = data.checked_in === true ? "服务端返回已签到，但日志尚未确认" : "登录成功，签到状态尚未确认";
         return { topbar, title: "⚠️ 签到待确认", content: `🎁 签到奖励：待确认\n${stats}\n\n${state}\n${detail}` };
@@ -227,9 +232,6 @@ function formatStats(user, quotaUnit) {
     const used = money(user.used_quota);
     if (bal) parts.push(`💳 余额 ${bal}`);
     if (used) parts.push(`已用 ${used}`);
-    if (Number.isInteger(user.request_count) && user.request_count >= 0) {
-        parts.push(`${user.request_count} 次`);
-    }
     return parts.join(" · ") || "💳 余额查询失败";
 }
 
@@ -290,15 +292,19 @@ function formatTopbar(user, siteName) {
     // 贵半个单位，副标题右侧还要给时间戳留位。
     const parts = [(siteName || "AgentRouter").replace(/\s+/g, "")];
     if (Number.isInteger(user && user.id) && user.id > 0) parts.push(String(user.id));
-    if (user && typeof user.created_at === "number" && user.created_at > 0) {
-        const days = (Date.now() / 1000 - user.created_at) / 86400;
-        // 注册当天算第 1 天，所以是 floor + 1。
-        // 上界 36500 天：登录响应的 created_at 是 0，不设上界会算出几万天。
-        if (Number.isFinite(days) && days >= 0 && days < 36500) {
-            parts.push("第 " + (Math.floor(days) + 1) + " 天");
-        }
-    }
     return parts.join(" · ");
+}
+
+// 注册至今天数。放标题里而不是副标题：副标题右侧被时间戳占着，
+// 宽度随通知新旧变化（最宽是隔天的「昨天 20:05」），天数会被整个截掉；
+// 标题是全宽，没有这个问题。
+function accountDay(user) {
+    if (!user || typeof user.created_at !== "number" || user.created_at <= 0) return "";
+    const days = (Date.now() / 1000 - user.created_at) / 86400;
+    // 注册当天算第 1 天，所以是 floor + 1。
+    // 上界 36500 天：登录响应的 created_at 是 0，不设上界会算出几万天。
+    if (!Number.isFinite(days) || days < 0 || days >= 36500) return "";
+    return "第 " + (Math.floor(days) + 1) + " 天";
 }
 
 function formatCheckinReward(content) {

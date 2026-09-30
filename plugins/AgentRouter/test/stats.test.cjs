@@ -28,7 +28,7 @@ const pick = (name) => {
 };
 eval("const ANNOUNCE_KEY = 'agentrouter_announce_id';\nconst ANNOUNCE_LINES = 3;\n"
   + ["formatStats", "formatAnnouncement", "wrap",
-     "formatTopbar", "formatCheckinReward"].map(pick).join("\n"));
+     "formatTopbar", "accountDay", "formatCheckinReward"].map(pick).join("\n"));
 
 const QPU = 500000;
 let pass = 0, fail = 0;
@@ -40,9 +40,10 @@ const reset = () => { for (const k of Object.keys(STORE)) delete STORE[k]; };
 
 console.log("=== formatStats：正文第 1 行，一行装完 ===\n");
 
-t("余额 · 已用 · 请求数 挤在一行", () => {
+t("正文第 1 行：余额 · 已用（不带请求次数，太长）", () => {
   const s = formatStats({ quota: 671.57 * QPU, used_quota: 3.43 * QPU, request_count: 37 }, QPU);
-  if (s !== "💳 余额 $671.57 · 已用 $3.43 · 37 次") throw new Error(s);
+  if (s !== "💳 余额 $671.57 · 已用 $3.43") throw new Error(s);
+  if (/次/.test(s)) throw new Error("不该带请求次数: " + s);
 });
 
 t("quotaUnit 未取到 → 显示原始额度", () => {
@@ -50,9 +51,11 @@ t("quotaUnit 未取到 → 显示原始额度", () => {
   if (!/💳 余额 100/.test(s) || !/已用 20/.test(s)) throw new Error(s);
 });
 
-t("request_count 缺失 → 不显示那一段", () => {
-  const s = formatStats({ quota: 100, used_quota: 20 }, QPU);
-  if (/次/.test(s)) throw new Error(s);
+t("request_count 无论有没有都不显示", () => {
+  for (const rc of [0, 37, 999999, undefined]) {
+    const s = formatStats({ quota: 100, used_quota: 20, request_count: rc }, QPU);
+    if (/次/.test(s)) throw new Error("request_count=" + rc + " 时不该显示: " + s);
+  }
 });
 
 t("全部拿不到 → 明确的失败提示，不返回空串", () => {
@@ -176,11 +179,14 @@ t("中文标点后的空格被去掉（原文段落换行压成的空格）", ()
   if (/。\s+第/.test(out)) throw new Error("中文标点后仍有空格: " + out);
 });
 
-t("副标题：站点名 · ID · 第N天（时间戳占位后仍完整）", () => {
-  // 站点名的空格要删掉 —— 副标题右侧留给时间戳（「昨天 20:05」最宽，7 字），
-  // 「Agent Router」比「AgentRouter」贵半个单位。
+t("副标题只剩站点名 · ID（天数挪走了，见 accountDay）", () => {
+  // 副标题右侧留给时间戳（「昨天 20:05」最宽，7 字），最坏预算约 11 单位。
+  // 天数放那儿会被整个截掉，所以挪到标题。
   const s = formatTopbar(DAY19, "Agent Router");
-  if (s !== "AgentRouter · 631097 · 第 20 天") throw new Error(s);
+  if (s !== "AgentRouter · 631097") throw new Error(s);
+  if (/天/.test(s)) throw new Error("副标题不该带天数: " + s);
+  const w = [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 1 : 0.5), 0);
+  if (w > 11) throw new Error("副标题在最坏时间戳下会截: " + w + " 单位");
 });
 
 t("siteName 为空时退回 AgentRouter", () => {
@@ -199,6 +205,23 @@ t("created_at 超过 36500 天 → 不显示天数（防脏数据）", () => {
   const ancient = Date.now() / 1000 - 40000 * 86400;
   const s = formatTopbar({ id: 1, created_at: ancient }, "X");
   if (/天/.test(s)) throw new Error("不该显示天数: " + s);
+});
+
+t("accountDay：注册当天算第 1 天", () => {
+  const justNow = Date.now() / 1000;
+  if (accountDay({ created_at: justNow }) !== "第 1 天") throw new Error(accountDay({ created_at: justNow }));
+  const d19 = justNow - 19 * 86400;
+  if (accountDay({ created_at: d19 }) !== "第 20 天") throw new Error(accountDay({ created_at: d19 }));
+});
+
+t("accountDay：位数增长到 4 位仍在标题预算内", () => {
+  // 天数从 20 涨到 9999 只多 1 个单位 —— 标题是全宽的（预算约 24），余量充足
+  const w = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 1 : 0.5), 0);
+  for (const n of [20, 100, 1000, 9999]) {
+    const day = accountDay({ created_at: Date.now() / 1000 - (n - 1) * 86400 });
+    const title = "✅ 今日已签到 +$25 · " + day;
+    if (w(title) > 24) throw new Error("第 " + n + " 天时标题超宽 " + w(title) + ": " + title);
+  }
 });
 
 console.log("\n" + pass + " 通过, " + fail + " 失败");
