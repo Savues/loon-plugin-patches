@@ -25,7 +25,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.74** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
-| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭<br>AgentRouter check-in · cron off by default | **v1.1** |
+| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 脚本已托管<br>AgentRouter check-in · cron off by default · script vendored | **v1.2** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify 部分整体退场<br>Bilibili + YouTube + Spotify removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.1** |
 
-### 托管了脚本的九个插件（外加一个只改清单的）
+### 托管了脚本的十个插件
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -79,12 +79,13 @@ blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插�
 与 Reven-Mirror 那种「把依赖从 A 挪到 B」不同，这里是真的没有 B。
 ✅ `status.html` 那个端点**没拦，实测也确认不用拦** —— 解锁正常。
 
-`AgentRouter` —— 不属于以上任何一类：**脚本既不托管也不修改**，`script-path` 仍指向上游 raw URL，
-改动全在清单层 —— 上游的 cron 是 `enable=true` 装完即生效，改成 `enable={auto}` 且开关默认关闭，
-另补一条不受开关控制的 `generic` 手动触发。
-不托管副本是有意的取舍：上游仓库在 GitHub 上稳定存在，托管反而要多背一份同步责任。
-代价是上游若删目录本插件会失效 —— 这一点写进了插件 README，没有含糊过去。
-14 个清单回归用例，逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
+`AgentRouter` —— **托管但不改一个字**。上游脚本 16 KB，一行没动，只是收进 `src/` 并把
+`script-path` 改指本仓库 —— 理由跟 Reven-Mirror 一样：作者的个人仓库不是长期承诺的 CDN，
+站点消失已导入的插件就会加载失败。改动全在清单层：上游的 cron 是 `enable=true` 装完即生效，
+改成 `enable={auto}` 且开关默认关闭，另补一条不受开关控制的 `generic` 手动触发。
+代价是上游更新不再自动生效，`tools/vendor-check.py --diff` 就是为此存在。
+18 个回归用例，其中一条会比对托管件的 sha256 —— 托管件被人动过会被测试挡下。
+逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
 曾一度怀疑解锁不完整（收据端点已伪造，`status.html` 仍在报 `status: FREE`），
 真机实测排除：**AdGuard 4.5.23 的会员态由收据校验结果决定，不读那个端点**。
 这印证了当初不拦它是对的 —— 手上只有 `status: FREE` 一份样本，
@@ -94,7 +95,7 @@ blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插�
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-Eight plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+Ten plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
 that site disappeared. `YouTube-Test` and `PinDuoDuo` host the upstream scripts and add
@@ -110,9 +111,10 @@ capture, 2.3 KB, 17 tests, and no `[MITM]` at all.
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its
 real-world effectiveness is explicitly unverified.
-`AgentRouter` belongs to none of these: its script is neither vendored nor modified, and
-the whole patch lives in the manifest — cron off by default plus a manual trigger,
-covered by 14 manifest tests.
+`AgentRouter` hosts its script **without touching a single line** — same rationale as
+`Reven-Mirror`, since an author's personal repo is not a long-lived CDN. The whole patch
+lives in the manifest: cron off by default plus an ungated manual trigger, covered by
+18 tests, one of which diffs the vendored files against their recorded sha256.
 
 ---
 

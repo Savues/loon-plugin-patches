@@ -18,14 +18,30 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 | 抓取日期 Fetched | 2026-09-29 |
 | 外部依赖 External | 无 · none |
 
-**脚本逐字节沿用上游，本仓库未做任何修改、未托管副本** —— `script-path` 仍指向上游 raw URL。
-改动全部在清单层。
+**脚本与清单原件均逐字节托管**，`script-path` 已改指本仓库。脚本本身**一个字都没改** ——
+托管的只是「跑谁家的代码」这件事。sha256 登记在 `manifest.json`，
+`python3 tools/vendor-check.py --diff` 可随时比对上游是否漂移。
 
 ---
 
 ## 改动清单 · Change List
 
 上游 965 B → 本版 1615 B，**脚本 0 行改动**。
+
+### 0. 托管上游原件，script-path 改指本仓库
+
+```diff
+-cron "0 9 * * *" script-path=https://raw.githubusercontent.com/MaYIHEI/paperclip/.../agentrouter.js, ...
++generic/cron script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentRouter/src/agentrouter.js, ...
+```
+
+**依据**：托管的意义是「上游没了也能用」。作者的个人仓库不是长期稳定承诺的 CDN，
+站点消失的话已导入的插件会直接加载失败。跟 GeoFix / YouTube-Test 同一个理由。
+
+**代价**：上游更新不再自动生效，要手动跟。`tools/vendor-check.py --diff` 就是为此存在 ——
+它会告诉你上游出了新版本，由你决定跟不跟。
+
+`#!icon` **仍指向上游**（每次现取，不托管）—— 与 AdGuard-Spoof 一致。
 
 ### 1. 新增 `auto` 开关，默认关闭
 
@@ -82,21 +98,30 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 
 | 事项 | 原因 |
 |---|---|
-| 托管脚本到 `src/` | 脚本零改动，上游仓库在 GitHub 上稳定存在，没有托管必要 |
 | 改脚本做多设备互斥 | 服务端 `checked_in` 已判重，重复签到不多给奖励，只是多一轮请求 |
 | 改 cron 时间 | 上游定的 09:00 无问题，不动 |
 | 加 `[MITM]` | 不需要，本插件不抓包 |
+| 托管 icon | 每次现取即可，托管反而要跟着上游改 size |
 
 ---
 
 ## 验证 · Verification
 
-`test/manifest.test.mjs`（14 个用例，`node test/manifest.test.mjs`）钉住：
+`test/manifest.test.mjs`（18 个用例，`node test/manifest.test.mjs`）钉住：
 
 - 开关默认值、cron 挂上了、没有残留 `enable=true`
 - `generic` 存在且未被开关挡住
 - 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key，两条规则一致
-- `script-path` 仍指向上游、无 `[MITM]` 段
+- `script-path` 全部指向本仓库托管副本，无 `[MITM]` 段
+- **托管件被改动能被抓到**：两个原件的 sha256 与 `manifest.json` 逐一比对
 - 署名与 homepage 正确
 
-已反向验证：把 `enable={auto}` 改回 `enable=true`，测试报 2 项失败 —— 不是空断言。
+`python3 tools/vendor-check.py --hash` 校验本地完整性，`--diff` 拉上游比对漂移（当前均一致）。
+
+三条反向验证，确认不是空断言：
+
+| 注入的错误 | 测试反应 |
+|---|---|
+| `enable={auto}` 改回 `enable=true` | 2 项失败 |
+| `script-path` 改回指向上游 | 1 项失败 |
+| 往托管脚本 / 清单原件尾部追加一行 | 1 项失败（sha256 对不上） |

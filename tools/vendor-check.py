@@ -45,6 +45,11 @@ SOURCES = {
         'https://reven.jsforbaby.workers.dev/reven/loon-redirect.js',
     'plugins/Reven-Mirror/upstream-Reven.lpx':
         'https://reven.jsforbaby.workers.dev/reven/reven.lpx',
+    # AgentRouter：清单原件与脚本原件一并托管，脚本本身逐字节未改
+    'plugins/AgentRouter/src/agentrouter.js':
+        'https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.js',
+    'plugins/AgentRouter/upstream-agentrouter.lpx':
+        'https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.lpx',
 }
 
 # 自研脚本：无上游，不做漂移比对，但登记 sha256 以便查本地完整性
@@ -62,6 +67,8 @@ MANIFEST_OF = {
     'plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js': 'plugins/PinDuoDuo/manifest.json',
     **{r: 'plugins/Reven-Mirror/manifest.json' for r in SOURCES
        if r.startswith('plugins/Reven-Mirror/')},
+    **{r: 'plugins/AgentRouter/manifest.json' for r in SOURCES
+       if r.startswith('plugins/AgentRouter/')},
 }
 
 

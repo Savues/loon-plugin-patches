@@ -5,7 +5,8 @@
  * 开关默认关闭、cron 挂上开关、手动触发不受开关控制，
  * 以及上游的 Argument / argument= 对应关系没被改坏。
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import assert from "node:assert";
 
 const ROOT = new URL("../", import.meta.url);
@@ -73,13 +74,48 @@ t("两条规则的 argument= 完全一致", () => {
   for (const a of all) assert.strictEqual(a, all[0]);
 });
 
-/* ---------- 脚本层未被改动 ---------- */
+/* ---------- 脚本层托管且逐字节未改 ---------- */
 
-t("script-path 仍指向上游仓库（脚本逐字节沿用）", () => {
-  for (const m of lpx.matchAll(/script-path=(\S+?)(?:,|\s|$)/g)) {
-    assert.ok(m[1].startsWith("https://raw.githubusercontent.com/MaYIHEI/paperclip/"),
-              "script-path 指向别处: " + m[1]);
+t("script-path 全部指向本仓库托管的副本", () => {
+  const urls = [...lpx.matchAll(/script-path=(\S+?)(?:,|\s|$)/g)].map(m => m[1]);
+  assert.ok(urls.length, "没有 script-path");
+  for (const u of urls) {
+    assert.ok(u.startsWith("https://raw.githubusercontent.com/Savues/loon-plugin-patches/"),
+              "仍指向上游: " + u);
   }
+});
+
+t("托管的脚本与清单原件都在仓库里", () => {
+  for (const f of ["src/agentrouter.js", "upstream-agentrouter.lpx"]) {
+    assert.ok(existsSync(new URL(f, ROOT)), "缺 " + f);
+  }
+});
+
+t("manifest.json 登记了这两个文件", () => {
+  const m = JSON.parse(readFileSync(new URL("manifest.json", ROOT), "utf8"));
+  for (const f of ["plugins/AgentRouter/src/agentrouter.js",
+                   "plugins/AgentRouter/upstream-agentrouter.lpx"]) {
+    assert.ok(m.sources[f], "manifest 未登记 " + f);
+    assert.match(m.sources[f].sha256, /^[0-9a-f]{64}$/);
+  }
+});
+
+t("清单原件与脚本原件的 sha256 都与 manifest 一致（托管件没被改动）", () => {
+  const m = JSON.parse(readFileSync(new URL("manifest.json", ROOT), "utf8"));
+  for (const f of ["upstream-agentrouter.lpx", "src/agentrouter.js"]) {
+    const actual = createHash("sha256").update(readFileSync(new URL(f, ROOT))).digest("hex");
+    assert.strictEqual(actual, m.sources["plugins/AgentRouter/" + f].sha256, f + " 已被改动");
+  }
+  assert.strictEqual(
+    m.sources["plugins/AgentRouter/upstream-agentrouter.lpx"].upstream,
+    "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.lpx");
+  assert.strictEqual(
+    m.sources["plugins/AgentRouter/src/agentrouter.js"].upstream,
+    "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.js");
+});
+
+t("icon 仍指向上游（每次现取，不托管）", () => {
+  assert.match(lpx, /^#!icon=https:\/\/raw\.githubusercontent\.com\/MaYIHEI\//m);
 });
 
 t("无 MITM 段（本插件不解密任何域名）", () => {

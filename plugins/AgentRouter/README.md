@@ -1,13 +1,13 @@
 # AgentRouter 签到（修改版）
 
-> 上游插件的清单层修改：**自动签到默认关闭**，另加「立即签到」手动触发。脚本逐字节沿用上游。
+> 上游插件的清单层修改：**自动签到默认关闭**，另加「立即签到」手动触发。脚本逐字节托管自上游。
 > Manifest-only patch of an upstream plugin: the daily cron is **off by default**, plus a manual
-> trigger. The script is used byte-for-byte as upstream ships it.
+> trigger. The script is vendored byte-for-byte, unmodified.
 
 | | 中文 | English |
 |---|---|---|
 | 改动范围 | **仅清单层**：1 个开关 + cron 挂 `enable` + 1 条 generic | **Manifest only**: one switch, `enable` on cron, one `generic` |
-| 脚本改动 | **0 行**，仍从上游 raw 加载 | **None**, still loaded from upstream |
+| 脚本改动 | **0 行**，托管进 `src/`，sha256 由 `manifest.json` 钉死 | **None**, vendored into `src/`, sha256 pinned in `manifest.json` |
 | 依据 | 多设备重复签到 | Duplicate check-ins across devices |
 
 ---
@@ -23,10 +23,14 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | [AgentRouter.lpx](AgentRouter.lpx) | 插件清单 | Plugin manifest |
+| [src/agentrouter.js](src/agentrouter.js) | 上游脚本原件，逐字节未改 | Upstream script, byte-for-byte |
+| [upstream-agentrouter.lpx](upstream-agentrouter.lpx) | 上游清单原件 | Upstream manifest, byte-for-byte |
+| [manifest.json](manifest.json) | 托管件 sha256 登记 | sha256 registry |
 | [UPSTREAM.md](UPSTREAM.md) | 上游出处与逐条改动依据 | Provenance & per-change reasoning |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单回归测试，14 个用例 | Manifest regression tests |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单回归测试，18 个用例 | Manifest regression tests |
 
 跑测试：`node test/manifest.test.mjs`
+查上游是否更新：`python3 tools/vendor-check.py --diff`
 
 ---
 
@@ -80,7 +84,9 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 
 ## 注意 · Notes
 
-- **脚本仍从上游仓库加载**（`MaYIHEI/paperclip`）。上游删目录或改路径，本插件会失效。
-  这是「不托管副本」的代价，换来的是上游更新自动生效。
+- **脚本已托管进本仓库**（`src/agentrouter.js`），上游删目录也不会失效。
+  代价是上游更新不再自动生效 —— `python3 tools/vendor-check.py --diff` 会告诉你上游出了新版本，
+  由你决定跟不跟。
+- `#!icon` 仍指向上游（每次现取，不托管）。
 - 上游仓库提供了 Surge / Quantumult X / Stash 的配置片段，本仓库只收 Loon 版。
 - 账号密码由插件填写并保存在 Loon 本地，本仓库不涉及。
