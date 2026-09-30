@@ -124,7 +124,7 @@ t("副本相对原件：删掉的行都有出处，且该删的都删了", () =>
   // 本仓库新增的函数
   const fresh = [...fnNames(b)].filter(n => !fnNames(a).has(n));
   assert.deepStrictEqual(fresh.sort(),
-    ["formatAnnouncement", "formatStats", "formatTopbar", "width", "wrap"],
+    ["formatAnnouncement", "formatStats", "formatTopbar", "wrap"],
     "新增函数清单变了: " + JSON.stringify(fresh));
 
   // 关键行为在源码里确实在

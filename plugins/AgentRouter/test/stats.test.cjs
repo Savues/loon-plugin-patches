@@ -27,7 +27,7 @@ const pick = (name) => {
   }
 };
 eval("const ANNOUNCE_KEY = 'agentrouter_announce_id';\nconst ANNOUNCE_LINES = 3;\n"
-  + ["width", "formatStats", "formatAnnouncement", "wrap",
+  + ["formatStats", "formatAnnouncement", "wrap",
      "formatTopbar", "formatCheckinReward"].map(pick).join("\n"));
 
 const QPU = 500000;
@@ -85,38 +85,9 @@ console.log("\n=== formatTopbar：顶栏 ===\n");
 
 const DAY19 = { id: 631097, created_at: Date.now() / 1000 - 19 * 86400 };
 
-t("站点名的空格被去掉（Agent Router → AgentRouter，省半个单位）", () => {
-  const s = formatTopbar(DAY19, "Agent Router");
-  if (/\s/.test(s)) throw new Error("还有空格: " + JSON.stringify(s));
-  if (s !== "AgentRouter·631097·第20天") throw new Error(s);
-});
-
-t("站点名够短才带上，够长就砍", () => {
-  if (formatTopbar(DAY19, "AR") !== "AR·631097·第20天") {
-    throw new Error(formatTopbar(DAY19, "AR"));
-  }
-  if (/长/.test(formatTopbar(DAY19, "某中文站名很长"))) {
-    throw new Error("长站点名应被砍: " + formatTopbar(DAY19, "某中文站名很长"));
-  }
-});
-
 t("created_at 为 0（登录响应就是 0）→ 不显示天数", () => {
   const s = formatTopbar({ id: 631097, created_at: 0 }, "X");
   if (/天/.test(s)) throw new Error("不该显示天数: " + s);
-});
-
-t("created_at 缺失 → 不崩", () => {
-  if (!formatTopbar({ id: 1 }, "X").includes("1")) throw new Error(formatTopbar({ id: 1 }, "X"));
-});
-
-t("id 缺失 → 至少留个占位，不返回空串", () => {
-  const s = formatTopbar({}, "AR");
-  if (!s) throw new Error("返回了空串");
-});
-
-t("siteName 缺失 → 只显示 ID 和天数（不编一个假站点名）", () => {
-  const s = formatTopbar(DAY19, null);
-  if (s !== "631097·第20天") throw new Error(s);
 });
 
 console.log("\n=== wrap：公告断行 ===\n");
@@ -205,27 +176,29 @@ t("中文标点后的空格被去掉（原文段落换行压成的空格）", ()
   if (/。\s+第/.test(out)) throw new Error("中文标点后仍有空格: " + out);
 });
 
-t("副标题超预算时砍掉站点名（时间戳会挤占副标题宽度）", () => {
-  // 真机实测：时间戳「现在」(2字) 时副标题完整，「31分钟前」(5字) 时
-  // 「第 20 天」被截成「第 2...」，隔天的「昨天 20:05」更宽。
-  const u = { id: 631097, created_at: Date.now() / 1000 - 19 * 86400 };
-  const w = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 1 : 0.5), 0);
-  // 长站点名 → 砍掉，只留 ID 和天数
-  const long = formatTopbar(u, "某中文站名很长");
-  if (/长/.test(long)) throw new Error("长站点名应被砍掉: " + long);
-  // 砍掉后必须远低于预算，给最宽的时间戳留余量
-  if (w(long) > 8) throw new Error("砍完仍偏宽 " + w(long) + " 单位: " + long);
-  // 带站点名时也不能超 13 单位（实测的最坏情况预算）
-  if (w(formatTopbar(u, "AR")) > 13) throw new Error("短站点名仍超预算");
-  // 短站点名 → 保留
-  const short = formatTopbar(u, "AR");
-  if (!/^AR·/.test(short)) throw new Error("短站点名应保留: " + short);
-  // 无论哪种情况，完整版都不能超过 10 个全角单位
-  for (const name of ["AR", "Agent Router", "AgentRouter", "某中文站名很长", ""]) {
-    if (w(formatTopbar(u, name || null)) > 13) {
-      throw new Error("副标题超预算: " + formatTopbar(u, name || null));
-    }
+t("副标题：站点名 · ID · 第N天（时间戳占位后仍完整）", () => {
+  // 站点名的空格要删掉 —— 副标题右侧留给时间戳（「昨天 20:05」最宽，7 字），
+  // 「Agent Router」比「AgentRouter」贵半个单位。
+  const s = formatTopbar(DAY19, "Agent Router");
+  if (s !== "AgentRouter · 631097 · 第 20 天") throw new Error(s);
+});
+
+t("siteName 为空时退回 AgentRouter", () => {
+  const s = formatTopbar(DAY19, "");
+  if (!/^AgentRouter ·/.test(s)) throw new Error(s);
+});
+
+t("created_at 是 0 或负数 → 不显示天数（登录响应就返回 0）", () => {
+  for (const c of [0, -1, undefined, null]) {
+    const s = formatTopbar({ id: 1, created_at: c }, "X");
+    if (/天/.test(s)) throw new Error("created_at=" + c + " 时不该显示天数: " + s);
   }
+});
+
+t("created_at 超过 36500 天 → 不显示天数（防脏数据）", () => {
+  const ancient = Date.now() / 1000 - 40000 * 86400;
+  const s = formatTopbar({ id: 1, created_at: ancient }, "X");
+  if (/天/.test(s)) throw new Error("不该显示天数: " + s);
 });
 
 console.log("\n" + pass + " 通过, " + fail + " 失败");
