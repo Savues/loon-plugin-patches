@@ -1,17 +1,17 @@
 # Douban-Dedup · 豆瓣去广告
 
-> 豆瓣 App 去广告合并版。**去开屏 + 去信息流/横幅**，两处干扰可关。
-> 在 [honue/rules](https://github.com/honue/rules) 与
-> [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock)
-> 两家基础上，按 **2026-10-01 用户真机抓包**（豆瓣 7.135.0 / iPadOS 18.7.3 / 218 条请求）重写。
+> 豆瓣 App 去广告。**去开屏 + 去信息流/横幅/影视页/剧集页**。
+> 合并 [honue/rules](https://github.com/honue/rules) 与
+> [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) 两家，
+> 全部改动依据来自 **2026-10-01 的两份真机抓包**。**v1.1**
 
 | | 中文 | English |
 |---|---|---|
-| 上游 A | [honue/rules](https://github.com/honue/rules) · `Douban.plugin` 480 B（原件逐字节留存于 `upstream-honue.plugin`） | honue/rules, 480 B, pristine copy kept |
-| 上游 B | [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) · `Douban_AdBlock.plugin` 1552 B（原件留存于 `upstream-shengrui.plugin`） | shengrui123, 1552 B, pristine copy kept |
-| 改动 | 清单层重写，**未改动上游任何一行 JavaScript**（两家原本都没有 JS） | Manifest rewritten; no upstream JS touched (neither had any) |
+| 上游 A | [honue/rules](https://github.com/honue/rules) · 480 B（原件留存于 `upstream-honue.plugin`） | honue/rules, 480 B, pristine copy kept |
+| 上游 B | [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) · 1552 B（原件留存于 `upstream-shengrui.plugin`） | shengrui123, 1552 B, pristine copy kept |
+| 改动 | 清单层重写，**未改动上游任何一行 JavaScript**（两家原本都没有 JS） | Manifest rewritten; no upstream JS touched |
 | 脚本 | 无（本插件不含任何 JavaScript） | None |
-| 回归测试 | `test/manifest.test.mjs` —— 拿真机抓包的 218 条请求逐条回放 | Replays all 218 real captured requests |
+| 回归测试 | `test/manifest.test.mjs` —— 两份抓包共 467 条真实请求逐条回放 | Replays 467 real captured requests |
 
 ---
 
@@ -21,13 +21,105 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/Douban-Dedup.lpx
 ```
 
-> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h。拉不到时在地址末尾加随机参数：`?cb=2`
+> ⚠️ `raw.githubusercontent.com` 的 CDN 缓存最长约 24h。拉不到时加随机参数：`?cb=2`
 
 ---
 
-## 🔴 安装前必读：必须删掉 App 重装
+## 🔴 v1.0 的真机失败（这节是本插件最重要的一页）
 
-**只装插件不够。** 抓包显示豆瓣把开屏广告**缓存在本地**，`splash_preload` 的 POST 体里带着：
+v1.0 我把 4 条信息流规则放在 `[Rule]` 段的 `URL-REGEX` 上，**理由是「只有 `[Rule]` 能挂
+`enable={}` 开关」**。装上后用户抓包（固件 B）打脸：
+
+| 端点 | 响应头 | 大小 | 结论 |
+|---|---|---|---|
+| `splash_preload` ×2 | **1** | 2 B (`{}`) | ✅ 拦住 |
+| `dale_ad` 素材图 ×5 | **0** | 0 B | ✅ 拦住 |
+| `erebor/feed_ad` | 10 | **60908 B** | 🔴 **漏** |
+| `movie/ad` ×6 | 16 | 4603 B / 4593 B | 🔴 **漏** |
+| `home_ads` | 13 | 24 B | 🔴 漏 |
+| `home_banner` | 13 | 2 B | 🔴 漏 |
+
+**根因：`[Rule]` 段的 `URL-REGEX` 不参与 HTTPS 路径改写。**
+
+判定「本地合成 vs 真实回包」靠**响应头数量**——真回包带 `date` / `server: dae` / `x-dae-app`
+等 10–16 条响应头，Loon 本地合成的 `reject-dict` 只有 1 条 `content-type`、`reject` 是 0 条。
+
+### 为什么同段的 `IP-CIDR` 却生效了
+
+同一份抓包里 `[Rule]` 的 `IP-CIDR,119.29.29.90` 拦下了 15 次 HTTPDNS 请求。
+**所以不是整段失效，是 `URL-REGEX` 这一种规则类型不生效。** 这个区分是定位的关键——
+若只看「`[Rule]` 段不工作」就会错误地改掉本来正确的 HTTPDNS 规则。
+
+### 修复与代价
+
+信息流规则全部移回 `[URL Rewrite]`，代价是**挂不上开关**。
+
+因此本版**删掉了 `block_feed_ad` 开关**，只保留 `block_httpdns`（它挂在 `IP-CIDR` 上，真机确认生效）。
+
+> 宁可没有开关，也不要一个假装能关的开关 —— 用户会以为开关管用。
+> 这一点在本仓库已犯过三次，见根目录 README。
+
+`test/manifest.test.mjs` 里有**反向断言**钉死：`[Rule]` 段一旦出现 `URL-REGEX` 立刻转红。
+
+### v1.1 同时新增
+
+| 端点 | 来源 |
+|---|---|
+| `/api/v2/tv/<id>/ad` | 固件 B 新发现的剧集页广告位 |
+
+---
+
+## 抓包证据 · What the captures showed
+
+| 固件 | 来源 | 场景 |
+|---|---|---|
+| A（218 条） | `shared-5E597331_214_1790793676708.har` · 02:41:20–02:41:50 | 装着上游 honue + shengrui |
+| B（249 条） | `shared-16EF1D6F_215_1790796176727.har` · 03:22:59–03:23:32 | 装着本仓库 v1.0 |
+
+两份都压成 `test/fixtures/*.tsv` 入库（已脱敏）。
+
+### 发现 1：两家上游都漏了 59 KB 的信息流广告
+
+| 端点 | 次数 | 响应 | honue | shengrui | 730 |
+|---|---|---|---|---|---|
+| `erebor/feed_ad` | 2 | **55958 / 60908 B** | ❌ | ❌ | ❌ |
+| `movie/ad` | 6 | 4606 / 4603 B | ❌ | ❌ | ❌ |
+| `erebor/special_ad` | 1 | `{"ad_info":null}` | ❌ | ❌ | ❌ |
+| `home_banner` | 2 | `{}` | ❌ | ❌ | ❌ |
+| `home_ads` | 2 | `{"cache_duration":7200}` | ❌ | ❌ | ❌ |
+| `api.douban.com/v2/app_ads/splash_preload` | 4 | — | ✅ | ✅ | ✅ |
+| `img*.doubanio.com/.../dale_ad/public/*.jpg` | 10 | — | ❌ | ✅ | ✅ |
+
+三家里**只有 730 拦到了 `home_ads` 附近的路径**，但它的 `movie/banner` 写错了词
+（真实端点是 `movie/ad`），且 `v\d` 只匹配一位版本号。
+
+### 发现 2：`splash_show` 在 7.135.0 上是死规则
+
+两份抓包里 splash 相关路径**只有 `splash_preload`**，从未出现 `splash_show`。
+shengrui 那条「让 App 立即跳过」的规则从未触发。本版保留但标注为跨版本兜底。
+
+### 发现 3：广告素材图才是「跳过倒计时」的真解
+
+```
+03:23:31.480  404 hdr=0  img3.doubanio.com/view/dale-online/dale_ad/public/a67d495a10e8da2.jpg
+03:23:30.023  404 hdr=0  img3.doubanio.com/.../eba38c8e9667cf7.jpg
+03:23:27.261  404 hdr=0  img3.doubanio.com/.../5a316fe086b1ea2.jpg
+03:23:27.260  404 hdr=0  img1.doubanio.com/.../320420350d3abdd.jpg
+03:23:06.549  404 hdr=0  img3.doubanio.com/.../46420be2b809c28.jpg
+```
+
+`hdr=0` + `404` = Loon 本地合成的 reject，素材确实被掐断了。
+**这就是 honue 作者那句「后期还要改 duration」的正解** —— 让 SDK 在加载阶段就判定失败退出。
+
+### 发现 4：优量汇广告域名一次都没出现，HTTPDNS 却在狂跑
+
+两份抓包共 42 次 `http://119.29.29.90/d?dn=...`，全部 `200` 但 `size=0`
+（响应头只有 `Content-Length: 0` + `Proxy-Connection: close`）。
+而 `*qq.com` 请求数为 **0** —— 广告域名在解析阶段就被掐断了。
+
+### 关于本地缓存：`preload_ads`
+
+`splash_preload` 是 **POST**，6423 B 表单体里带着：
 
 ```
 preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
@@ -36,56 +128,11 @@ preload_ads = [{"uniq_id":"46ccd888...","is_valid":1,"is_exposed":"0",
                 "ad_type":"common","ad_id":"268225"}, ...]
 ```
 
-这是**已经缓存好的广告对象**，带曝光标记和有效期。网络层拦接口拦不到它。
+这是**已缓存在本地的开屏广告对象**，带曝光标记和有效期。
 
-| 步骤 | 操作 |
-|---|---|
-| 1 | 更新并启用本插件 |
-| 2 | **完整删除豆瓣 App** —— 不要选「保留 App 数据」的卸载方式 |
-| 3 | 重新安装，首次启动 |
-
-不做第 2 步，你看到的仍是本地缓存的旧开屏。
-
----
-
-## 抓包证据 · What the capture showed
-
-抓包文件 `shared-5E597331_214_1790793676708.har`（8.6 MB / 218 条 / 02:41:20–02:41:50），
-压成 `test/fixtures/douban-7.135.0.har-urls.tsv` 入库。判定「是否被本地合成」的依据是
-**响应头数量为 0 且状态码 404** —— 真实网络往返不可能在 9 ms 内完成。
-
-### 关键发现 1：两个上游当时都装着，且都在生效
-
-```
-02:41:20.180  404  hdr=0  POST https://api.douban.com/v2/app_ads/splash_preload
-02:41:25.183  404  hdr=0  POST https://api.douban.com/v2/app_ads/splash_preload   ← 相隔 5 秒重试
-02:41:25.183  404  hdr=0  GET  img3.doubanio.com/view/dale-online/dale_ad/public/eba38c8e9667cf7.jpg
-```
-
-第一条是 honue 规则命中，第二条是 shengrui 规则命中。**两版规则同时作用于同一批请求。**
-
-### 关键发现 2：两版作者都漏了 56 KB 的信息流广告
-
-| 端点 | 次数 | 响应 | 两版是否覆盖 |
-|---|---|---|---|
-| `/api/v2/erebor/feed_ad` | 2 | **55958 / 59871 B** | ❌ ❌ |
-| `/api/v2/movie/ad` | 3 | 4606 B（含 `"ad_expose_time_ms": 600`） | ❌ ❌ |
-| `/api/v2/home_banner` | 1 | `{}` | ❌ ❌ |
-| `/api/v2/home_ads` | 1 | `{"cache_duration": 7200}` | ❌ ❌ |
-
-这四个都在 **`frodo.douban.com`**，而 honue 的 `[MITM]` 只有 `api.douban.com` —— 连解密都没做。
-
-### 关键发现 3：`splash_show` 在 7.135.0 上是死规则
-
-整个抓包里 `splash` 相关路径**只有 `splash_preload`**，从未出现 `splash_show`。
-shengrui 插件里那条「展示阶段直接失败让 App 跳过」的规则，在当前版本上从不触发。
-本版保留它，但标注为**跨版本兜底**，不是当前版本的有效规则。
-
-### 关键发现 4：优量汇广告域名一次都没出现，HTTPDNS 却在狂跑
-
-27 次 `http://119.29.29.90/d?dn=...` 全部 `200` 但 `size=0`（响应头只有
-`Content-Length: 0` + `Proxy-Connection: close`，典型本地合成）→ shengrui 的 `IP-CIDR` 规则在拦。
-而 `*qq.com` 请求数为 **0**，说明广告域名在解析阶段就被掐断了。
+**但实测下来不必删 App**：固件 B 里用户没删 App（`preload_ads` 与固件 A 完全相同），
+开屏素材图仍然被拦住 ⇒ **只要网络层拦到素材，SDK 就会走失败跳过。**
+这修正了 v1.0 README 里「必须完整删 App 重装」的说法——那个判断过于保守。
 
 ---
 
@@ -93,16 +140,16 @@ shengrui 插件里那条「展示阶段直接失败让 App 跳过」的规则，
 
 | # | 改动 | 依据 |
 |---|---|---|
-| 1 | `v2` → `v\d+` | honue 硬编码 `v2`，豆瓣升版即失效 |
-| 2 | `splash_preload` 由 `reject` → `reject-dict` | honue 用 `reject` 返回空体，JSON 接口应返回 `{}` 防止反复重试 |
-| 3 | **新增** `frodo.douban.com` 进 `[MITM]` + 4 条信息流规则 | 抓包实测 8 条请求、59 KB 广告数据，两版都漏 |
-| 4 | 信息流规则放 `[Rule]` 的 `URL-REGEX` 而非 `[URL Rewrite]` | **只有 `[Rule]` 能挂 `enable=`**，见下方「开关」一节 |
-| 5 | 新增 `block_feed_ad` / `block_httpdns` 两个开关 | shengrui 的腾讯段 REJECT 的是**公共域名**，会影响其它 App |
-| 6 | `img*.doubanio.com` 精确到 `/view/dale-online/dale_ad/public/` | 抓包 76 张正常图零误伤 |
-| 7 | 保留 `splash_show` 但注明是兜底 | 抓包证明当前版本不发 |
+| 1 | **信息流规则从 `[Rule]` 移回 `[URL Rewrite]`** | 🔴 固件 B：v1.0 一条没拦住 |
+| 2 | 删掉 `block_feed_ad` 开关 | 移回 `[URL Rewrite]` 后挂不上 `enable=`，留着就是死开关 |
+| 3 | 新增 `/api/v2/tv/<id>/ad` | 固件 B 新发现 |
+| 4 | `v2` → `v\d+` | honue 硬编码，豆瓣升版即失效 |
+| 5 | `splash_preload` 由 `reject` → `reject-dict` | honue 用 `reject` 返回空体，JSON 接口应返回 `{}` |
+| 6 | 新增 `frodo.douban.com` 进 `[MITM]` | 信息流规则改写 HTTPS 路径的前提条件 |
+| 7 | `img\d+` 而非 `img\d` | 730 的 `img\d` 漏掉 `img12` 这类分配 |
+| 8 | 保留 `splash_show` 但注明是兜底 | 两份抓包证明当前版本不发 |
 
-**没有动的**：honue 原文里那两条注释掉的规则。它们本来就是冗余的（第一条粗规则已覆盖），
-本版不保留冗余行。
+**没有动的**：honue 原文里那两条注释掉的规则。它们本来就冗余（第一条粗规则已覆盖）。
 
 ---
 
@@ -110,53 +157,45 @@ shengrui 插件里那条「展示阶段直接失败让 App 跳过」的规则，
 
 | 开关 | 默认 | 作用 | 关掉的后果 |
 |---|---|---|---|
-| `block_feed_ad` | 开 | 拦首页/影视页信息流与横幅 | 恢复信息流广告 |
 | `block_httpdns` | 开 | 拦腾讯优量汇 HTTPDNS 旁路 | 优量汇广告可能复活 |
+
+开屏与信息流**没有开关**（无条件生效）—— 见上文「修复与代价」。
 
 ### ⚠️ `block_httpdns` 会影响其它 App
 
-优量汇是**腾讯广告的公共 SDK**，本插件 REJECT 的是 `*.gdt.qq.com` / `*.gdtimg.com` 等域名。
-开着时，**其它使用腾讯广告的 App 也加载不了它们的广告**。
+优量汇是**腾讯广告的公共 SDK**，本插件 REJECT 的是 `*.gdt.qq.com` / `*.gdtimg.com`。
+开着时，**其它使用腾讯广告的 App 也加载不了它们的广告**。在意就关掉。
 
-只用豆瓣、不介意别的 App 少广告 → 保持默认开。
-在意的话 → 关掉这个开关，代价是豆瓣的优量汇广告拦不干净。
+### 为什么开屏/信息流放 `[URL Rewrite]`，腾讯放 `[Rule]`
 
-### 关于 `enable=` 的可靠性
-
-`[Rule]` 段挂 `enable={}` 在本仓库已有真机验证先例（AntiRevoke 17 条、PinDuoDuo 8 条）。
-`[URL Rewrite]` 段则**没有** —— 本仓库曾给 `[Rewrite]` 批量挂 `enable=`，真机实测**全部静默失效**。
-
-因此本版的分工是：
-
-- **可关的部分全放 `[Rule]`**（信息流、腾讯）→ 挂在 `URL-REGEX` / `DOMAIN*` / `IP-CIDR` 上
-- **不可关的部分放 `[URL Rewrite]`**（开屏接口、开屏素材）→ 无条件，这是插件的核心功能
-
-`test/manifest.test.mjs` 里有**反向断言**钉死这一点：`[URL Rewrite]` 段一旦出现 `enable=` 就转红。
-
-> 装好后请在 Loon 参数页确认两个开关**确实渲染出来了**。若不显示，说明 `[Argument]` 段没被识别。
+| 段 | 规则类型 | 真机状态 |
+|---|---|---|
+| `[URL Rewrite]` | 整串正则 | ✅ 确认能改写 HTTPS 路径 |
+| `[Rule]` | `IP-CIDR` / `DOMAIN*` | ✅ 确认生效 |
+| `[Rule]` | `URL-REGEX` | 🔴 **确认不生效**（v1.0 的教训） |
+| `[Rule]` | `AND`/`OR`/`NOT` 逻辑规则 | ❌ 尾部 `enable=` 不被解析 |
+| `[URL Rewrite]` | 挂 `enable=` | ❌ 本仓库有静默失效先例 |
 
 ---
 
-## 误伤验证 · Regression against the real capture
+## 误伤验证 · Regression
 
-`test/manifest.test.mjs` 把 218 条真实请求逐条喂给规则：
-
-```
-拦下 15 条 / 放过 203 条
-```
+`test/manifest.test.mjs` 把两份抓包共 467 条真实请求逐条喂给规则：
 
 | 检查项 | 结果 |
 |---|---|
-| 开屏接口 | 2 条全拦（`reject-dict`） |
-| 广告素材图 | 5 张全拦（`reject`） |
-| 信息流/横幅/影视页 | 8 条全拦 |
-| **正常图片** | **76 / 76 全部放过，零误伤** |
+| 固件 B 的 `feed_ad`（v1.0 时 60908 B 真回包） | ✅ 拦下 |
+| 固件 B 的 `movie/ad` ×6 | ✅ 全拦 |
+| 固件 B 的 `home_ads` / `home_banner` | ✅ 全拦 |
+| 开屏接口 ×4 | ✅ 全拦（`reject-dict`） |
+| 广告素材图 ×10 | ✅ 全拦（`reject`） |
+| **非广告图片（两份合计）** | ✅ **零误伤** |
 | 正文接口 `elendil/recommend_feed` | 未拦 |
-| 用户/影视/小组/搜索/通知 | 零拦截 |
+| 人物头像 / 海报 / 剧照 | 零拦截 |
+| 用户 / 影视 / 剧集 / 小组 / 搜索 / 通知 | 零拦截 |
 | 埋点 `athena`、会员商品 `halfhill` | 未拦 |
-| 跨版本 | `v3/app_ads/splash_preload` 同样命中 |
-
-被拦的 15 条全部是广告，无一条业务请求。
+| 跨版本 | `v3/app_ads/splash_preload`、`img12.doubanio.com` 均命中 |
+| 边界 | `/api/v2/tv/<id>`（剧集本体）、`/api/v2/movie/recommend` 均不误伤 |
 
 ---
 
@@ -165,10 +204,11 @@ shengrui 插件里那条「展示阶段直接失败让 App 跳过」的规则，
 | 文件 | 用途 |
 |---|---|
 | [Douban-Dedup.lpx](Douban-Dedup.lpx) | 插件清单 |
-| [upstream-honue.plugin](upstream-honue.plugin) | honue 原件，逐字节留存 |
-| [upstream-shengrui.plugin](upstream-shengrui.plugin) | shengrui 原件，逐字节留存 |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 回归测试（`node test/manifest.test.mjs`） |
-| [test/fixtures/douban-7.135.0.har-urls.tsv](test/fixtures/douban-7.135.0.har-urls.tsv) | 抓包固件 218 行 |
+| [upstream-honue.plugin](upstream-honue.plugin) | honue 原件，逐字节留存（SHA256 钉死） |
+| [upstream-shengrui.plugin](upstream-shengrui.plugin) | shengrui 原件，逐字节留存（SHA256 钉死） |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 68 项断言（`node test/manifest.test.mjs`） |
+| [test/fixtures/douban-7.135.0.har-urls.tsv](test/fixtures/douban-7.135.0.har-urls.tsv) | 固件 A · 218 条 |
+| [test/fixtures/douban-7.135.0-v10.har-urls.tsv](test/fixtures/douban-7.135.0-v10.har-urls.tsv) | 固件 B · 249 条（v1.0 真机） |
 | [icon.png](icon.png) | 图标（取自 honue 仓库） |
 
 ---

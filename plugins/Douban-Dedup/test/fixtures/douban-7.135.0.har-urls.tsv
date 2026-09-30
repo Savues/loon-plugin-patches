@@ -1,13 +1,15 @@
-# 抓包固件 · 豆瓣 7.135.0 / iPadOS 18.7.3（iPad16,1）
-# 来源：用户真机 Loon 导出 HAR shared-5E597331_214_1790793676708.har（2026-10-01 02:41:20-02:41:50，218 条）
-# 完整 HAR 8.6 MB 不入库（内含 cookie / apikey / 设备指纹），只保留判回归需要的这 218 行。
-#
+# 抓包固件 A · 豆瓣 7.135.0 / iPadOS 18.7.3（iPad16,1）
+# 来源：用户真机 Loon HAR shared-5E597331_214_1790793676708.har（2026-10-01 02:41:20-02:41:50）
+# 此时用户装的是上游 honue + shengrui 两个插件，尚未装本仓库版本。
 # 格式：<方法>\t<URL>\t<状态码>\t<响应字节>\t<响应头数量>
 #
-# 「响应头数量」是关键：0 = Loon 本地合成的 reject（真实往返不可能 9ms 完成），>0 = 真实回包。
-# 抓包时用户同时装着 honue 与 shengrui 两个上游插件，所以 404+0 的记录就是它们留下的痕迹。
+# 「响应头数量」是判「本地合成 vs 真实回包」的唯一可靠依据：
+#   0    = Loon 本地合成的 reject（无任何真实响应头）
+#   1    = 本地合成的 reject-dict（只有 content-type，body 为 {} 即 e30=）
+#   >=2  = 真实回包（含 date / server / x-dae-* 等）
+# 真实网络往返不可能在 9 ms 内完成；纯 Python 抓包极易把本地合成误当服务端 404。
 #
-# 已脱敏：cookie / apikey / _sig / _ts / udid / device 指纹等 query 值一律替换为 <KEY>。
+# 已脱敏：apikey / _sig / _ts / udid / 设备指纹等 query 值一律替换为 <KEY>。
 # 主机名与路径保留原样 —— 回归要靠它们区分广告与业务。
 GET	https://frodo.douban.com/api/v2/im/sync/current?_sig=%3C_SIG%3E&_ts=%3C_TS%3E&alt=json&apikey=%3CAPIKEY%3E&douban_udid=%3CDOUBAN_UDID%3E&type=group&udid=%3CUDID%3E	200	57	14
 GET	https://frodo.douban.com/api/v2/im/sync?_sig=%3C_SIG%3E&_ts=%3C_TS%3E&alt=json&apikey=%3CAPIKEY%3E&count=200&douban_udid=%3CDOUBAN_UDID%3E&sync_id=27&type=private&udid=%3CUDID%3E	200	155	14
@@ -29,7 +31,7 @@ GET	https://dg.k.jd.com/console/admin/getConfigNew?configid=%3CCONFIGID%3E&keple
 POST	https://knicks.jd.com/log/server	200	10	5
 POST	https://dypnsapi-dualstack.aliyuncs.com/	200	874	10
 GET	https://acs.m.taobao.com/gw/mtop.common.getTimestamp/*	200	109	13
-GET	https://1253747176.trtcube-license.cn/license/v2/1253747176_1/v_cube.license	304	0	15
+GET	https://1253747176.trtcube-license.cn/license/v2/<NUM>_1/v_cube.license	304	0	15
 POST	https://dypnsapi-dualstack.aliyuncs.com/	400	306	10
 GET	http://119.29.29.90/d?dn=9B359C181424350298033F7795A4D65609CC14F8B5F46178&ttl=1&id=105&type=addrs	200	0	3
 GET	http://119.29.29.90/d?dn=312552EFE9DA7FFC4CE2ED3E8BAFB438FD03086D3CBB431E&ttl=1&id=105&type=addrs	200	0	3
@@ -136,10 +138,10 @@ GET	https://img3.doubanio.com/dae/niffler/niffler/images/<UUID>.jpeg	200	6295	17
 GET	https://img1.doubanio.com/img/files/file-1626246302-0.png	200	4411	19
 POST	https://frodo.douban.com/api/athena/analytics/HMSpiEQOvpMPVkoe/collect	200	13	9
 GET	https://img1.doubanio.com/view/treasury_image/raw/public/8f84f9d8e52f7ac.jpg	200	126317	20
-GET	https://img3.doubanio.com/view/treasury_image/raw/public/81057754fa2c4e3.jpg	200	22913	19
+GET	https://img3.doubanio.com/view/treasury_image/raw/public/<NUM>fa2c4e3.jpg	200	22913	19
 GET	https://img3.doubanio.com/view/treasury_image/raw/public/3d70e67ea7483f2.jpg	200	20971	19
 POST	https://frodo.douban.com/api/athena/analytics/HMSpiEQOvpMPVkoe/collect	200	13	9
-GET	https://img1.doubanio.com/view/dale-online/dale_ad/public/320420350d3abdd.jpg?company_token=%3CCOMPANY_TOKEN%3E	404	0	0
+GET	https://img1.doubanio.com/view/dale-online/dale_ad/public/<NUM>d3abdd.jpg?company_token=%3CCOMPANY_TOKEN%3E	404	0	0
 POST	https://frodo.douban.com/api/athena/analytics/HMSpiEQOvpMPVkoe/collect	200	13	9
 GET	https://img3.doubanio.com/view/treasury_image/raw/public/7278dc671c84d03.jpg	200	12937	19
 GET	https://img1.doubanio.com/view/treasury_image/raw/public/20a0771314de6c9.jpg	200	20578	20
@@ -168,7 +170,7 @@ GET	https://img3.doubanio.com/icon/u36693283-2.jpg	200	2296	18
 GET	https://img9.doubanio.com/icon/u58217379-24.jpg	200	2152	14
 GET	https://img3.doubanio.com/icon/u219199174-22.jpg	200	2335	18
 GET	https://img9.doubanio.com/view/treasury_image/raw/public/ed3d3c333a96515.jpg	200	82663	15
-GET	https://img3.doubanio.com/view/treasury_image/raw/public/018873bd0ef0d3b.jpg	200	86310	19
+GET	https://img3.doubanio.com/view/treasury_image/raw/public/<NUM>bd0ef0d3b.jpg	200	86310	19
 POST	https://frodo.douban.com/api/athena/analytics/HMSpiEQOvpMPVkoe/collect	200	13	9
 GET	http://119.29.29.90/d?dn=9B359C181424350298033F7795A4D65609CC14F8B5F46178&ttl=1&id=105&type=addrs	200	0	3
 GET	https://img3.doubanio.com/view/treasury_image/raw/public/e8aff7eb522c1da.jpg	200	101053	19
@@ -201,10 +203,10 @@ GET	http://119.29.29.90/d?dn=9B359C181424350298033F7795A4D65609CC14F8B5F46178&tt
 GET	https://img9.doubanio.com/view/group/sqxs/public/33db36099276956.webp	200	6442	15
 GET	https://frodo.douban.com/api/v2/search/found_words?_sig=%3C_SIG%3E&_ts=%3C_TS%3E&abt_id=%7B%22284%22%3A%22D%22%2C%22289%22%3A%22D%22%2C%22302%22%3A%22B%22%2C%22306%22%3A%22B%22%2C%22310%22%3A%22I%22%7D&alt=json&apikey=%3CAPIKEY%3E&birth_time=%3CBIRTH_TIME%3E&contents=%5B%7B%22ids%22%3A%5B%22497810093%22%2C%22498425472%22%2C%22493607132%22%2C%22478971212%22%2C%22309196118%22%2C%22495763634%22%2C%22496991961%22%2C%22497172414%22%2C%22497248503%22%2C%22318261272%22%2C%22315186781%22%2C%22474096926%22%2C%22340361860%22%2C%22496533158%22%2C%22496331206%22%2C%22497069323%22%2C%22497028724%22%2C%22497023542%22%2C%22486323205%22%2C%22483346946%22%5D%2C%22type%22%3A%22topic%22%7D%5D&count=8&country_code=US&device_boot_time=%3CDEVICE_BOOT_TIME%3E&device_name=iPad&disk=%3CDISK%3E&douban_udid=%3CDOUBAN_UDID%3E&enable_sdk_bidding=1&exchange=0&flush_top_word=0&gender=&kid=%3CKID%3E&language=zh-Hans-US&machine=iPad16%2C1&memory=%3CMEMORY%3E&mnt_id=%3CMNT_ID%3E&model=J410AP&network=wifi&onion=%3CONION%3E&opensdk_ver=2.0.4&screen_height=1488.0&screen_scale=2.0&screen_width=2266.0&storage=%3CSTORAGE%3E&sugar=%3CSUGAR%3E&sys_update_time=%3CSYS_UPDATE_TIME%3E&t2=%3CT2%3E&t8=%3CT8%3E&timezone=Asia%2FTaipei&udid=%3CUDID%3E&update_mark=%3CUPDATE_MARK%3E&version=7.135.0&watermelon=%3CWATERMELON%3E&wx_installed=true	200	4435	13
 GET	https://img3.doubanio.com/view/group/sqxs/public/57546bb2295cdcf.webp	200	7062	19
-GET	https://img9.doubanio.com/view/group/sqxs/public/246226a815ba7f5.webp	200	7356	14
+GET	https://img9.doubanio.com/view/group/sqxs/public/<NUM>a815ba7f5.webp	200	7356	14
 GET	https://img3.doubanio.com/view/group/sqxs/public/bc2a4564e9bd22c.webp	200	12440	19
 GET	https://img3.doubanio.com/view/group/sqxs/public/911a93da7550e0a.webp	200	12152	18
-GET	https://img1.doubanio.com/view/group/sqxs/public/626825e83e169dd.webp	200	15146	20
+GET	https://img1.doubanio.com/view/group/sqxs/public/<NUM>e83e169dd.webp	200	15146	20
 GET	https://img3.doubanio.com/view/group/sqxs/public/390f44354b3b1cf.webp	200	4798	18
 GET	https://qnmob3-sign.doubanio.com/view/photo/large/public/p2933527614.jpg?sa_cv=%3CSA_CV%3E&sa_ct=6ab35be7&imageView2%2F0%2Fq%2F80%2Fw%2F9999%2Fh%2F120%2Fformat%2Fwebp=	403	238	8
 GET	https://img3.doubanio.com/view/group/sqxs/public/5918ec7ca9df338.webp	200	4232	19
@@ -212,7 +214,7 @@ GET	https://qnmob3-sign.doubanio.com/view/photo/large/public/p2931558074.jpg?sa_
 GET	https://qnmob3-sign.doubanio.com/view/photo/large/public/p2932319485.jpg?sa_cv=%3CSA_CV%3E&sa_ct=6ab35be7&imageView2%2F0%2Fq%2F80%2Fw%2F9999%2Fh%2F120%2Fformat%2Fwebp=	403	238	8
 GET	https://frodo.douban.com/api/v2/erebor/feed_ad?apikey=%3CAPIKEY%3E&wx_installed=true&webview_ua=%3CWEBVIEW_UA%3E&douban_udid=%3CDOUBAN_UDID%3E&sugar=%3CSUGAR%3E&fake_chicken=4b25b4b1e5f355bf8119d9545fea8d25&uid=%3CUID%3E&support_video=1&machine=iPad16%2C1&version=7.135.0&gender=&chicken=%3CCHICKEN%3E&udid=%3CUDID%3E&memory=%3CMEMORY%3E&update_mark=%3CUPDATE_MARK%3E&postback=%7B%22feed_slot_index%22%3A1%7D&sys_update_time=%3CSYS_UPDATE_TIME%3E&ad_filter_type=0&onion=%3CONION%3E&timezone=Asia%2FTaipei&device_name=iPad&network=wifi&kid=%3CKID%3E&disk=%3CDISK%3E&need_blocked_cids=0&screen_scale=2.0&screen_height=1488.0&screen_width=2266.0&mnt_id=%3CMNT_ID%3E&opensdk_ver=2.0.4&storage=%3CSTORAGE%3E&abt_id=%7B%22284%22%3A%22D%22%2C%22289%22%3A%22D%22%2C%22302%22%3A%22B%22%2C%22306%22%3A%22B%22%2C%22310%22%3A%22I%22%7D&t2=%3CT2%3E&unit=dale_app_search_hots_page&country_code=US&device_boot_time=%3CDEVICE_BOOT_TIME%3E&watermelon=%3CWATERMELON%3E&_sig=%3C_SIG%3E&model=J410AP&enable_sdk_bidding=1&birth_time=%3CBIRTH_TIME%3E&t8=%3CT8%3E&_ts=%3C_TS%3E&language=zh-Hans-US	200	59871	10
 GET	https://qnmob3-sign.doubanio.com/view/photo/large/public/p2936030404.jpg?sa_cv=%3CSA_CV%3E&sa_ct=6abd5795&imageView2%2F0%2Fq%2F80%2Fw%2F9999%2Fh%2F120%2Fformat%2Fwebp=	200	6436	25
-GET	https://img3.doubanio.com/view/group/sqxs/public/626825e83e169dd.webp	200	15146	18
+GET	https://img3.doubanio.com/view/group/sqxs/public/<NUM>e83e169dd.webp	200	15146	18
 GET	https://img2.doubanio.com/view/group/sqxs/public/eca1a97f96e36ee.webp	200	12242	16
 GET	http://119.29.29.90/d?dn=9B359C181424350298033F7795A4D65609CC14F8B5F46178&ttl=1&id=105&type=addrs	200	0	3
 GET	https://img3.doubanio.com/view/group/sqxs/public/c2357c4b074088d.webp	200	15296	19
