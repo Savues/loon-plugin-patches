@@ -12,3 +12,7 @@ loon-ca.crt
 
 # GeoFix 生成物（dist/ 里的成品要入库，给用户直接下载）
 plugins/GeoFix/companion/shortcut/GeoFix位置.build.shortcut
+
+# 一次性分析脚本的中间产物（HAR 派生的 json 可达上百 MB，务必不入库）
+# 结论固化进各自的 test 后，这些脚本就只是临时工具
+plugins/Bilibili-Dedup-lab/
