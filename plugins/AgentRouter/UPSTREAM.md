@@ -26,7 +26,7 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 
 ## 改动清单 · Change List
 
-上游 965 B → 本版 1615 B；脚本 16104 B → 16211 B（**1 行正则 + 1 行注释**）。
+上游 965 B → 本版 1615 B；脚本 16104 B → 16009 B（**改了 3 处，见下**）。
 
 ### 0. 托管上游原件，script-path 改指本仓库
 
@@ -72,9 +72,38 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 | 修复前 | 🎁 今日奖励：金额未识别，请到网站核对 |
 | 修复后 | 🎁 今日奖励：**+$25.00**（今日记录） |
 
-**原件另存**：`src/upstream-agentrouter.js` 是逐字节原件，`manifest.json` 里
+### 0.2 去掉账号打码
+
+上游有个 `maskAccount()`，把账号掐头去尾各留 2 个字符、中间用 `***` 盖住：
+
+```js
+function maskAccount(username) {
+    const name = username.split("@")[0];
+    return name.length > 4 ? `${name.slice(0, 2)}***${name.slice(-2)}` : `${name.slice(0, 1)}***`;
+}
+```
+
+**改动**：两处调用改为直接显示 `accounts[i].username`，函数定义整段删掉（留着就是死代码）。
+
+**依据**：个人自用，通知在锁屏上只有自己能看见；打码反而让多账号场景难以分辨。
+
+**顺带发现上游一个真问题**：`name.length > 4` 这个分支会让**短账号藏得更少** ——
+5 位账号显示成 `ab***de`，只藏 1 个字符；4 位及以下走 else 分支只留首字符。
+不过本仓库已删掉该函数，此问题不再存在。
+
+> ⚠️ 代价要说清楚：通知里现在会出现**完整邮箱**。Loon 的通知在锁屏上可见，
+> 别人瞥一眼就能拿到你的账号。多设备或共用设备场景下要留意。
+> 想要打码的话把 `src/agentrouter.js` 那两处插值改回 `${maskAccount(...)}` 并恢复函数即可，
+> 逐字节原件在 `src/upstream-agentrouter.js`。
+
+### 0.3 原件另存
+
+`src/upstream-agentrouter.js` 是逐字节原件（16104 B，sha256 `f688ff55…`），`manifest.json` 里
 `origin: patched-upstream` + `based-on` 指向它，与 PinDuoDuo 的 `src/upstream/` 同一做法。
 `vendor-check.py` 因此新增了 `PATCHED` 表 —— 这类文件不参与漂移比对（改了，比对必然报差异）。
+
+脚本层合计改了 3 处：奖励正则（+1 行注释）、两处打码调用、`maskAccount` 函数定义。
+副本 16009 B，原件 16104 B。
 
 ### 1. 新增 `auto` 开关，默认关闭
 
@@ -148,7 +177,8 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 - 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key
 - `script-path` 全部指向本仓库托管副本
 - **上游原件的 sha256 与 manifest 一致**，且仍是 16104 B
-- **副本相对原件只差正则那一行**（去掉注释后逐行比对，差异处数必须为 1）
+- **副本相对原件只改了已知三处**（奖励正则、两处打码调用、maskAccount 定义）——
+  逐行分类比对，删掉或改写任何预期外的行都会红
 - **修复真的生效**：拿 2026-09-30 真机 `/api/log/self` 的原句（全角 `＄25.000000`）
   喂给脚本里那条正则，必须解析出 25；半角 `$25.00` 也仍要能解析
 - 托管件被改动能被抓到；`based-on` / `origin` 登记正确

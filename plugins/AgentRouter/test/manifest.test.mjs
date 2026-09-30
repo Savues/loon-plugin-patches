@@ -104,20 +104,44 @@ t("上游原件确实没被改动过（改动只发生在副本上）", () => {
   assert.strictEqual(m.sources["plugins/AgentRouter/src/upstream-agentrouter.js"].bytes, 16104);
 });
 
-t("副本相对原件只改了奖励正则那一行（外加一行注释）", () => {
-  // 去掉新增的注释行后，两份必须只剩正则那一处差异 ——
-  // 这比数 diff 处数更直观，也保证「只改了奖励正则」不会被后来的改动悄悄破坏。
+t("副本相对原件只改了三处：奖励正则、去打码、删掉 maskAccount", () => {
+  // 目的不是数行数，而是保证「只改了已知这几处」不会被后来的改动悄悄破坏。
+  // 做法：所有只在原件里出现的行（= 被删的），加上被改写的行，逐条分类。
   const a = upstream.split("\n");
   const b = src.split("\n").filter(l => !l.includes("U+FF04"));
-  assert.strictEqual(b.length, a.length, "去掉注释后行数应相同");
-  const diff = [];
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff.push([a[i], b[i]]);
-  assert.strictEqual(diff.length, 1, "差异处数应为 1，实际 " + diff.length);
-  assert.ok(/match\(\/\^每日签到成功/.test(diff[0][0]), "改的不是那条正则");
+  const bSet = new Set(b);
+  const removed = a.filter(l => !bSet.has(l));
+  const changed = b.filter(l => l !== a[l] && !a.includes(l));
+
+  // 删掉的行必须全属于 maskAccount：2 处调用 + 函数定义（含空行）
+  for (const r of removed) {
+    const ok = /maskAccount|username\.split|name\.length|^function formatAmount|^\}$|^$/
+      // 改写掉的旧正则那行也归到这里
+      .test(r) || /match\(\/\^每日签到成功/.test(r);
+    assert.ok(ok, "删掉了预期外的行: " + JSON.stringify(r));
+  }
+  assert.ok(removed.some(l => l.includes("maskAccount(accounts[0].username)")),
+    "应删掉单账号那处调用");
+  assert.ok(removed.some(l => l.includes("maskAccount(accounts[i].username)")),
+    "应删掉多账号那处调用");
+  assert.ok(removed.some(l => l.startsWith("function maskAccount")),
+    "应删掉 maskAccount 的定义");
+
+  // 改写的行：只该是奖励正则 + 两处插值
+  assert.strictEqual(changed.filter(l => l.includes("[$＄]")).length, 1, "奖励正则应只改一处");
+  assert.strictEqual(changed.filter(l => l.includes("👤 账号：${accounts[0].username}")).length, 1);
+  assert.strictEqual(changed.filter(l => l.includes("👤 账号 ${i + 1} · ${accounts[i].username}")).length, 1);
+  for (const c of changed) {
+    const ok = c.includes("[$＄]") || c.includes("${accounts[0].username}") || c.includes("${accounts[i].username}");
+    assert.ok(ok, "改写了预期外的行: " + JSON.stringify(c));
+  }
+  // 新增的注释行只有一行（总行数差 = 删掉的净行数 + 1）
+  assert.strictEqual(src.split("\n").length - a.length, -(a.length - b.length) + 1);
+
   // 改后的正则必须半角全角都收
-  assert.ok(diff[0][1].includes("[$＄]"), "改后的正则没收全角 ＄");
-  // 且只多了这一行注释
-  assert.strictEqual(src.split("\n").length - a.length, 1);
+  assert.ok(src.includes("[$＄]"), "改后的正则没收全角 ＄");
+  // 打码确实没了
+  assert.ok(!/maskAccount/.test(src), "仍有 maskAccount 引用");
 });
 
 t("奖励金额正则收全角 ＄（U+FF04）—— 服务端实测返回的就是全角", () => {

@@ -7,7 +7,7 @@
 | | 中文 | English |
 |---|---|---|
 | 清单改动 | 1 个开关 + cron 挂 `enable` + 1 条 generic | One switch, `enable` on cron, one `generic` |
-| 脚本改动 | **1 行正则**（修奖励金额识别不出来），原件另存 `src/upstream-/` | **One regex** (reward amount never parsed); pristine copy kept |
+| 脚本改动 | 奖励正则 + 去掉账号打码，原件另存 `src/upstream-/` | Reward regex + account unmasking; pristine copy kept |
 | 依据 | 多设备重复签到；真机实测奖励显示「金额未识别」 | Duplicate check-ins; live test showed reward unparsed |
 
 ---
@@ -46,7 +46,7 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 ```
 【通知】AgentRouter
   ✅ 今日签到已确认
-  👤 账号：tg***ax
+  👤 账号：（完整显示，此处省略）
   🎁 今日奖励：+$25.00（今日记录）
   💳 当前余额：$671.57
   📉 累计消耗：$3.43
@@ -59,8 +59,8 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 服务端 `/api/log/self` 返回的金额符号是**全角 `＄`（U+FF04）**，上游正则只认半角 `$`。
 本仓库把字符类改成 `[$＄]` 修掉了，详见 [UPSTREAM.md](UPSTREAM.md)。
 
-`test/run-live.cjs` 会把响应里的账号/密码/token 字段自动替换成 `***`，
-账号名也只显示 `tg***ax` 这种脱敏形式。
+`test/run-live.cjs` 会把响应里的账号/密码/token 字段自动替换成 `***`。
+上面那行账号是因为本仓库改成了完整显示，示例里就不贴真实邮箱了。
 
 ---
 

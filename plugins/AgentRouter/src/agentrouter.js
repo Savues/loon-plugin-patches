@@ -99,10 +99,10 @@ async function run() {
         }
     }
     if (results.length === 1) {
-        $.msg($.name, results[0].title, `👤 账号：${maskAccount(accounts[0].username)}\n${results[0].content}`);
+        $.msg($.name, results[0].title, `👤 账号：${accounts[0].username}\n${results[0].content}`);
     } else {
         $.msg($.name, `签到汇总（${results.length} 个账号）`, results.map((result, i) =>
-            `👤 账号 ${i + 1} · ${maskAccount(accounts[i].username)}\n${result.title}\n${result.content}`).join("\n\n"));
+            `👤 账号 ${i + 1} · ${accounts[i].username}\n${result.title}\n${result.content}`).join("\n\n"));
     }
 }
 
@@ -205,11 +205,6 @@ async function checkin({ username, password }, quotaUnit) {
         const state = data.checked_in === true ? "服务端返回已签到，但日志尚未确认" : "登录成功，签到状态尚未确认";
         return { title: "⚠️ 签到待确认", content: `🎁 签到奖励：待确认\n${stats}\n\n${state}\n${detail}` };
     }
-}
-
-function maskAccount(username) {
-    const name = username.split("@")[0];
-    return name.length > 4 ? `${name.slice(0, 2)}***${name.slice(-2)}` : `${name.slice(0, 1)}***`;
 }
 
 function formatAmount(label, value, quotaUnit) {

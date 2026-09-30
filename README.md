@@ -25,7 +25,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.74** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
-| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修奖励金额识别<br>AgentRouter check-in · cron off by default · reward amount fixed | **v1.3** |
+| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修奖励金额识别<br>AgentRouter check-in · cron off by default · reward amount fixed | **v1.4** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
@@ -83,9 +83,10 @@ blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插�
 控制的 `generic` 手动触发），理由跟 Reven-Mirror 一样：作者的个人仓库不是长期承诺的 CDN。
 但脚本不是纯托管 —— 真机跑通后发现通知里奖励金额一直显示「金额未识别」，
 根因是服务端返回的金额符号是**全角 `＄`（U+FF04）**而上游正则只认半角 `$`，
-字符类改成 `[$＄]` 修掉了。原件另存 `src/upstream-agentrouter.js`。
-22 个回归用例：其中三条钉住「上游原件 sha256 不变」「副本相对原件只差正则那一行」
-「拿真机原句喂正则必须解析出 25」。逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
+字符类改成 `[$＄]` 修掉了。个人自用，所以也去掉了 `maskAccount()` 账号打码
+（代价是通知里会出现完整邮箱，锁屏可见 —— 已在插件 README 写明）。
+原件另存 `src/upstream-agentrouter.js`。22 个回归用例，其中一条逐行分类比对，
+保证副本相对原件只改了奖励正则与打码这两处。逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
 曾一度怀疑解锁不完整（收据端点已伪造，`status.html` 仍在报 `status: FREE`），
 真机实测排除：**AdGuard 4.5.23 的会员态由收据校验结果决定，不读那个端点**。
 这印证了当初不拦它是对的 —— 手上只有 `status: FREE` 一份样本，
@@ -114,9 +115,9 @@ real-world effectiveness is explicitly unverified.
 `AgentRouter` is vendored **and patched**: the live test showed the reward line always
 reading "amount not recognised", because the server returns a **full-width `＄` (U+FF04)**
 while the upstream regex only accepts a half-width `$`. The character class is now `[$＄]`.
-The pristine original is kept alongside, and 22 tests pin three things: the original's
-sha256 never moves, the copy differs from it by exactly the regex line, and the real
-server string parses to 25.
+`maskAccount()` is dropped for personal use — the cost, a full e-mail visible on the
+lock screen, is stated in the plugin README. The pristine original is kept alongside,
+and 22 tests pin that the copy differs from it by exactly those two changes.
 
 ---
 
