@@ -11,8 +11,9 @@
 | 基线 SHA256 | `198cb5869d9710c56ed1945156c8f6227fdf9d19da38ee1c8870f4d72f26c6c8` |
 | **v1.1 及以前** | **逐字节副本，一个字符未改** |
 | **v1.2 起** | **属性表被替换（见下），protobuf 与开关逻辑未动** |
-| v1.2 大小 | 10476 B |
-| v1.2 SHA256 | `270b1c76a4e93a8b7d22fa6988c29f3292a3661a5f39d584e554f4fb8882bb6a` |
+| **v1.4 起** | **属性表再剔除 3 项假权限（见下）** |
+| v1.4 大小 | 10386 B |
+| v1.4 SHA256 | `96b2e392f8cfa77964ee0284e291efe23575deb46f7c453f6bac1c17bbafb6b3` |
 | 作者 | 001ProMax <https://github.com/001ProMax> |
 
 > 采集时的线上副本仍可从 `Moli-X/Tool` 的
@@ -33,13 +34,48 @@
 `tab_configuration` 与 `is_useractivity_sharing_enabled` 两处开关逻辑、
 `200 !== $response.status` 状态守卫、`$done({body:s})` 写回。
 
-### 属性表 10 → 38 的来源
+### v1.4 剔除的 3 项假权限（重要）
+
+`high-bitrate` / `libspotify` / `audio-quality` **不能写**。
+
+2026-09-30 的对照实验（关脚本 → 重新登录 → 音质改回默认 → 开脚本 → 重新登录，
+抓包 1141 条）把服务端对**免费账号**真实下发的值照了出来：
+
+| 属性 | 服务端真实值 | v1.2 写的 |
+|---|---|---|
+| `high-bitrate` | **`false`** | `true` |
+| `libspotify` | **`false`** | `true` |
+| `audio-quality` | **`"0"`** | `"1"` |
+
+后果（v1.3 抓包 642 条实测，32 次请求零例外）：
+
+| `storage-resolve` 档位 | `playplay` 结果 |
+|---|---|
+| `interactive/0` | 200 × 12 |
+| `interactive/1` | 200 × 12 |
+| **`interactive/2`**（24-bit 无损） | **403 × 7** |
+
+`storage-resolve` 照样 200 并返回 CDN 链接，但 `playplay` 的播放密钥被拒
+⇒ 客户端拿不到密钥 ⇒ **拖动进度条后自动跳下一首 + 部分歌曲无法播放**。
+（客户端随后 5 次 CDN 请求全是 `RST:8` CANCEL、time 仅 2–68 ms ——
+是它自己放弃的，不是网络或 CDN 拒绝。）
+
+同一份包的脚本关闭段：`interactive/1` 5 次、`playplay` 16 次全 200、
+CDN 15 次全 206、`track-error` **0 次**。
+
+**这三个是「假权限」** —— 服务端根本没给，写 true 只是骗客户端去要
+它不会给的东西。Amlabort 版同样没写它们。
+代价是失去音质相关的「解锁」，而那本来就是拿不到的。
+
+### 属性表 10 → 35 的来源
 
 | 来源 | 项数 | 内容 |
 |---|---|---|
 | kelee 原版 | 10 | `ads` / `player-license` / `type` / `name` / `financial-product` / `publish-playlist` / `nft-disabled` / `offline` / `streaming-rules` / `com.spotify.madprops.use.ucs.product.state` |
 | 001ProMax `Spotify.Crack.Dev.js` | 36 | 见下 |
-| 取舍 | 38 | crack-dev 的 36 项 **全部保留**（含与 kelee 重名的 8 项，值一致）+ kelee 独有的 2 项 |
+| 取舍（v1.2） | 38 | crack-dev 的 36 项全部保留 + kelee 独有的 2 项 |
+| **v1.4 剔除** | **−3** | **`high-bitrate` / `libspotify` / `audio-quality`**（假权限，见上） |
+| **v1.4 合计** | **35** | |
 
 crack-dev 相对 kelee 新增的 26 项，逐条抄自其 `A()` 函数：
 `subscription-enddate`、`product-expiry`、`smart-shuffle`、`is-euterpe`、
@@ -86,8 +122,11 @@ v1.2 取两者之长：留 kelee 的开关机制，换 crack-dev 的属性表。
 
 ⇒ **去广告有效（Premium 推广被拦掉一部分），解锁维度基本没生效。**
 
-v1.2 用同一份响应体回放验证：**21 项翻转 + 5 项新增**，
-`test/script.test.mjs` 39 条断言全绿。反向验证（退回 kelee 原版）10 条转红。
+v1.2 用同一份响应体回放验证：**21 项翻转 + 5 项新增**。
+v1.4 剔除三项假权限后：**20 项翻转 + 5 项新增**，
+且三项假权限保持服务端原值（`high-bitrate=false` / `libspotify=false` / `audio-quality="0"`）。
+`test/script.test.mjs` 47 条断言全绿。反向验证：
+退回 kelee 原版 10 条转红；把 `audio-quality` 加回去 4 条转红。
 
 ### 开关语义（`switch, 默认值, 取反值`）
 
@@ -121,7 +160,7 @@ scope `ios-feature-navigation` **整个不存在**。回放 `tab=true` / `tab=fa
 
 | 文件 | 作用 |
 |---|---|
-| `test/script.test.mjs` | 39 断言。拿真机响应体（已脱敏）回放脚本，解码输出逐条比对 |
+| `test/script.test.mjs` | 47 断言。拿真机响应体（已脱敏）回放脚本，解码输出逐条比对 |
 | `test/manifest.test.mjs` | 清单层：合并完整性、开关接线、`enable=` 不得挂逻辑规则 |
 | `test/fixtures/*.bin.gz` | 真机响应体，83 KB → 25 KB。`patch/make-fixture.py` 从 HAR 生成 |
 | `patch/merge-crack-dev.py` | 生成 v1.2 脚本，幂等 |

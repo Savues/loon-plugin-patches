@@ -7,7 +7,7 @@
 
 **一个插件，三份来源合并 · One plugin, three sources merged**
 
-**v1.3** — 补两条 Rewrite：屏蔽播放页「探索」与设置页会员信息两个独立端点
+**v1.4** — 移除三项会导致部分歌曲无法播放的假权限（`high-bitrate` / `libspotify` / `audio-quality`）
 
 ---
 
@@ -21,6 +21,46 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Spotif
 `*‑spclient.spotify.com`），两者不会撞车。
 
 > 更新后请在 Loon 里刷新一次插件（raw CDN 缓存约 24h，必要时加 `?cb=2`）。
+
+---
+
+## 🔴 v1.4 修的是什么 · Why some tracks wouldn't play
+
+v1.3 引入后用户报「拖动进度条导致歌曲自动跳过，且有些歌无法播放」。
+查包定位到根因，**是我自己写进去的属性**。
+
+抓包里 `playplay/v1/key/` 有 7 次 403（其余 25 次全 200），
+`track-error` 同步上报 7 次。相关性零例外：
+
+| `storage-resolve` 档位 | `playplay` 结果 |
+|---|---|
+| `interactive/0` | 200 × 12 |
+| `interactive/1` | 200 × 12 |
+| **`interactive/2`**（24-bit 无损） | **403 × 7** |
+
+`storage-resolve` 照样 200 并返回 CDN 链接，但 `playplay` 的播放密钥被拒。
+
+**为什么** —— 你的一次对照实验（关脚本 → 重新登录 → 音质改回默认 → 开脚本 → 重新登录，
+抓包 1141 条）把服务端对**免费账号**真实下发的值照了出来：
+
+| 属性 | 服务端真实值 | v1.2 写的 |
+|---|---|---|
+| `high-bitrate` | **`false`** | `true` |
+| `libspotify` | **`false`** | `true` |
+| `audio-quality` | **`"0"`** | `"1"` |
+
+服务端**从来没给过**这三个权限。脚本硬写成 true，客户端就以为有了，
+去请求 `interactive/2` 无损档，服务端在 `playplay` 阶段直接拒绝
+⇒ 拿不到播放密钥 ⇒ 跳歌 + 部分歌曲播不了。
+
+同一份包的脚本关闭段：`playplay` 16 次全 200、CDN 15 次全 206、`track-error` **0 次**。
+
+**v1.4 把这三项删掉**，属性表 38 → 35。代价是失去音质相关的「解锁」——
+而那本来就是拿不到的。`test/script.test.mjs`【3b】有 7 条断言钉住
+「必须保持服务端原值」，反向验证过：把 `audio-quality` 加回去会红 4 条。
+
+> 顺带说明：`Amlabort` 那份插件也没写这三个 —— 当时只当它是风格差异，
+> 现在知道那是同一个判断。
 
 ---
 
@@ -85,8 +125,6 @@ Amlabort 为它加的 `reject-dict` 确已无意义，本版不跟。
 | 属性 | v1.1 交付的值 | v1.2 交付的值 |
 |---|---|---|
 | `catalogue` | `free` | `premium` |
-| `audio-quality` | `0` | `1` |
-| `high-bitrate` / `libspotify` | `false` | `true` |
 | `smart-shuffle` | `UNAVAILABLE` | `AVAILABLE` |
 | `mixing-tools` | `VIEW` | `EDIT` |
 | `offline-backup` | `DISABLED` | `UNRESTRICTED` |
@@ -103,6 +141,8 @@ v1.2 取两者之长：
 - **属性表**换成 crack-dev 的 36 项 + kelee 独有的 2 项（`publish-playlist`、`financial-product`）
 - **开关机制**继续用 kelee 那份（`$argument` 出现 4 次，crack-dev 是 0 次）
 - **protobuf 读写器、开关逻辑、状态守卫一行未动**
+
+⚠️ 其中 3 项后来在 v1.4 剔除了 —— 详见上面「v1.4 修的是什么」。
 
 改动由 `patch/merge-crack-dev.py` 生成（幂等可重跑），不是手改压缩过的 JS。
 
@@ -218,11 +258,13 @@ use the global first node.
 - 播放页「探索」内容消失（`watch-feed-entrypoints`，v1.3）
 - 设置页不再显示 `Spotify Free` 与升级引导（`pam-view-service`，v1.3）
 - 歌手/专辑列表恢复正常展示（`ios-system-your-plan-sidedrawer` 恒为关闭）
-- 客户端显示为 Premium 状态：目录、音质（`audio-quality=1`）、高码率、离线下载、
-  有声书、智能洗牌、歌词离线等一并开启
+- 客户端显示为 Premium 状态：目录、离线下载、有声书、智能洗牌、歌词离线、
+  混音工具等一并开启
+- **不写服务端不认的假权限**（`high-bitrate` / `libspotify` / `audio-quality`）——
+  见「v1.4 修的是什么」，写这些会导致部分歌曲无法播放
 - 想要的话还能关掉 Apple 设备接力（`tab` 开关当前无效）
 - 老版本客户端的 `gae2` 广告端点也被拦
-- **iPad / iPhone 通用** —— 实测两端 38 项属性值完全一致，服务端下发仅 4 处平台差异
+- **iPad / iPhone 通用** —— 实测两端属性值完全一致，服务端下发仅 4 处平台差异
 - **不与 blockAds 合集撞车** —— 那份的 Spotify 规则已在 `patches/patch-blockads.py` 里退场
 
 ---
@@ -236,7 +278,7 @@ use the global first node.
 | `src/UPSTREAM.md` | 出处、SHA256、三个版本的关系、v1.2 改动明细 | Provenance, hashes, version relationship, v1.2 changelog |
 | `patch/merge-crack-dev.py` | 生成 v1.2 脚本，幂等 | Generates the v1.2 script, idempotent |
 | `patch/make-fixture.py` | 从 HAR 生成脱敏测试数据 | Generates redacted fixtures from a HAR |
-| `test/script.test.mjs` | 39 条断言，拿真机响应体回放脚本 | 39 assertions replaying real response bodies |
+| `test/script.test.mjs` | 47 条断言，拿真机响应体回放脚本 | 47 assertions replaying real response bodies |
 | `test/manifest.test.mjs` | 34 条断言，清单层 | 34 assertions on the manifest |
 | `test/fixtures/*.bin.gz` | 真机响应体（83 KB → 25 KB，已脱敏） | Real device responses, redacted |
 
@@ -246,7 +288,7 @@ use the global first node.
 
 ```
 cd plugins/Spotify-Dedup
-node test/script.test.mjs      # 脚本层：回放真机响应体，解码逐条比对
+node test/script.test.mjs      # 脚本层：回放真机响应体，解码逐条比对（47 断言）
 node test/manifest.test.mjs    # 清单层：合并完整性 / 开关接线 / enable= 位置 / 新规则正则
 ```
 

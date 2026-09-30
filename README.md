@@ -31,7 +31,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
-| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 38 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 38 properties and 5 rewrites | **v1.3** |
+| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 
 ### 托管了脚本的十个插件
 
@@ -81,10 +81,26 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 （`catalogue=free`、`audio-quality=0`、`high-bitrate=false`、`offline-backup=DISABLED`…）。
 本版把 001ProMax 现役脚本的 36 项属性并进来（+ kelee 独有的 2 项），
 **protobuf 读写器与开关逻辑一行未动**，改动由 `patch/merge-crack-dev.py` 幂等生成。
-用同一份真机响应体回放验证：21 项翻转 + 5 项新增，73 条断言全绿，
-反向验证（退回原版）10 条转红。这次也钉住了一个坏消息：
-`tab_configuration` 属性已从服务端消失，**该开关当前无效**，
+用同一份真机响应体回放验证：21 项翻转 + 5 项新增。
+这次也钉住了一个坏消息：`tab_configuration` 属性已从服务端消失，**该开关当前无效**，
 而 Amlabort 最新脚本里那段 JSON 也是注释掉的 —— 同一个结论，两处独立来源。
+
+**v1.3 补两条 Rewrite**：`watch-feed-entrypoints`（播放页「探索」，实测 iPad ×18 / iPhone ×4）
+与 `pam-view-service`（设置页返回明文 `Spotify Free`）—— 这两个是**独立端点，
+38 项属性表管不到**。同时**刻意不加** `/ads/` 与 `aet.spotify.com`：
+前者实测已是空 marquee（脚本把 `ads` 置 false 后服务端本就不下发），
+拦 `ads/v2/config` 只会打断 ad-logic 状态机；后者两平台都返回 0 字节。
+「拦已经没有广告的端点」是负收益，理由写进了 lpx 与 README。
+
+**v1.4 是修自己引入的 bug** —— v1.3 用户报「拖进度条跳歌 + 部分歌播不了」，
+查到是 v1.2 并入的 `high-bitrate` / `libspotify` / `audio-quality` 三项。
+用户做了一次对照实验（关脚本 → 重新登录 → 音质改回默认 → 开脚本 → 重新登录），
+把服务端对**免费账号**真实下发的值照了出来：**三项全是 false/「0」，从来没给过**。
+脚本硬写 true ⇒ 客户端去请求 `storage-resolve` 的 `interactive/2`（24-bit 无损）⇒
+`playplay` 全部 403 ⇒ 拿不到播放密钥 ⇒ 跳歌。相关性 32 次请求零例外。
+**结论：向客户端声称服务端不认的权限，比不写更糟** —— 不写只是没这个功能，
+写 true 则会让功能进入「请求了但必然被拒」的状态。属性表 38 → 35，
+测试加了 7 条断言钉住「必须保持服务端原值」。
 
 **v1.3**（同一批抓包驱动）补了两条 Rewrite：`watch-feed-entrypoints`（播放页「探索」，
 实测 iPad ×18 / iPhone ×4）与 `pam-view-service`（设置页返回明文 `Spotify Free`）——

@@ -160,9 +160,10 @@ for (const n of ['customize', 'bootstrap']) {
   after[n] = r.out
 }
 
-// ── 3. 36 个 crack-dev 属性全部落地 ────────────────────────────────────
-console.log('\n【3】解锁维度：crack-dev 的 36 个 accountAttributes 全部写入')
-// 逐条抄自 001ProMax/Surge Script/Spotify.Crack.Dev.js 的 A() 函数
+// ── 3. 35 项 accountAttributes 落地 ────────────────────────────────────
+console.log('\n【3】解锁维度：35 项 accountAttributes 全部写入')
+// 逐条抄自 001ProMax/Surge Script/Spotify.Crack.Dev.js 的 A() 函数，
+// 但去掉了 high-bitrate / libspotify / audio-quality 三项（见下）
 const EXPECT = {
   'smart-shuffle': { string: 'AVAILABLE' },
   'is-euterpe': { bool: 1 },
@@ -173,14 +174,11 @@ const EXPECT = {
   'can_use_superbird': { bool: 1 },
   'jam-social-session': { string: 'EXPANDED' },
   'offline': { bool: 1 },
-  'audio-quality': { string: '1' },
   'shuffle-algorithm': { string: 'RANDOM' },
   'is-thalia': { bool: 1 },
   'shuffle': { bool: 0 },
   'is-pigeon': { bool: 1 },
   'nft-disabled': { string: '1' },
-  'libspotify': { bool: 1 },
-  'high-bitrate': { bool: 1 },
   'unrestricted': { bool: 1 },
   'catalogue': { string: 'premium' },
   'your-library-tags': { bool: 1 },
@@ -210,11 +208,34 @@ for (const n of ['customize', 'bootstrap']) {
     const ok = got && Object.entries(v).every(([kk, vv]) => got[kk] === vv)
     if (!ok) bad.push(`${k}=${JSON.stringify(got)} 期望 ${JSON.stringify(v)}`)
   }
-  t(`${n}: 38 个属性全部写入正确`, bad.length === 0, bad.slice(0, 5).join(' | '))
+  t(`${n}: 35 项属性全部写入正确`, bad.length === 0, bad.slice(0, 5).join(' | '))
 }
-t('EXPECT 表覆盖 36 项固定值（34 crack-dev + kelee 独有 2；另 2 个动态到期日单独断言）',
-  Object.keys(EXPECT).length === 36,
-  `实际 ${Object.keys(EXPECT).length} —— crack-dev 的 36 项里 subscription-enddate / product-expiry 是动态值，不在此表`)
+t('EXPECT 表覆盖 33 项固定值（31 crack-dev + kelee 独有 2；另 2 个动态到期日单独断言）',
+  Object.keys(EXPECT).length === 33,
+  `实际 ${Object.keys(EXPECT).length} —— 目标属性表 35 项里 subscription-enddate / product-expiry 是动态值，不在此表`)
+
+// ── 3b. 三项假权限必须保持服务端原值 ────────────────────────────────────
+console.log('\n【3b】假权限：high-bitrate / libspotify / audio-quality 不得写入')
+// 2026-09-30 对照实验（关脚本 → 重新登录 → 音质改回默认 → 开脚本 → 重新登录，
+// 抓包 1141 条）证明：服务端对免费账号真实下发
+//     high-bitrate=false  libspotify=false  audio-quality="0"
+// 脚本写 true / "1" 会让客户端去请求 storage-resolve 的 interactive/2 档
+// （24-bit 无损），服务端在 playplay/v1/key/ 阶段直接 403（实测 7/7 全 403），
+// 客户端拿不到播放密钥 => 拖进度条后自动跳歌 + 部分歌曲无法播放。
+const FAKE = { 'high-bitrate': { bool: 0 }, 'libspotify': { bool: 0 }, 'audio-quality': { string: '0' } }
+for (const n of ['customize', 'bootstrap']) {
+  const b = accountAttributes(before[n])
+  const a = accountAttributes(after[n])
+  for (const [k, v] of Object.entries(FAKE)) {
+    const got = a[k]
+    const ok = got && Object.entries(v).every(([kk, vv]) => got[kk] === vv)
+    t(`${n}: ${k} 保持服务端原值（${JSON.stringify(v)}）`, ok,
+      `实际 ${JSON.stringify(got)} —— 写 true 会导致 playplay 403、部分歌曲播不了`)
+  }
+}
+t('脚本源码里根本不出现这三个键（防照抄 crack-dev 加回来）',
+  ['high-bitrate', 'libspotify', 'audio-quality'].every(k => !js.toString().includes(k)),
+  'crack-dev.js 里有，但那份是给真 Premium 账号用的')
 
 // 到期日：当前时间 +1 个月。
 // 注意断言写成容差比较 —— 脚本在 run() 那一刻取 new Date()，
@@ -235,7 +256,7 @@ for (const n of ['customize', 'bootstrap']) {
 }
 
 // ── 4. 开关仍然工作（并进属性表不能把开关机制弄坏）──────────────────────
-console.log('\n【4】开关：并入 36 个属性后 $argument 机制仍有效')
+console.log('\n【4】开关：并入属性表后 $argument 机制仍有效')
 t('脚本仍读 $argument（4 次以上）',
   (js.toString().match(/\$argument/g) || []).length >= 4,
   '掉到 0 次 = 开关全部失效，这正是 crack-dev.js 的短板')
@@ -300,11 +321,14 @@ console.log('\n【7】脚本指纹')
 t('SHA256 记录在案（改动脚本请同步更新 UPSTREAM.md）',
   createHash('sha256').update(js).digest('hex').length === 64,
   createHash('sha256').update(js).digest('hex'))
-t('含 crack-dev 的 36 个属性（抽样 6 个）',
+t('含 crack-dev 的属性（抽样 5 个，均非假权限）',
   // 注意：合法 JS 标识符键在压缩后不带引号（catalogue:{...}），含连字符的才带引号
-  ['catalogue', 'audio-quality', 'loudness-levels', 'offline-backup', 'smart-shuffle', 'mixing-tools']
+  ['catalogue', 'loudness-levels', 'offline-backup', 'smart-shuffle', 'mixing-tools']
     .every(k => js.toString().includes(k)))
 t('含 kelee 独有的 financial-product', js.toString().includes('"financial-product"'))
 t('含到期日计算 setMonth', js.toString().includes('setMonth'))
+t('🔴 源码里没有 high-bitrate / libspotify / audio-quality（v1.4 删掉的假权限）',
+  ['high-bitrate', 'libspotify', 'audio-quality'].every(k => !js.toString().includes(k)),
+  '加回来会导致 playplay 403、部分歌曲无法播放 —— 见【3b】')
 
 done()

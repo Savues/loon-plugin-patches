@@ -164,15 +164,15 @@ t('脚本收到的参数个数与脚本行声明的一致',
   })(), 'argument=[{tab},{useractivity}] 应为 2 个')
 
 // ── 3. 脚本托管完整性 ───────────────────────────────────────
-console.log('\n【3】脚本托管：v1.2 起属性表已并入 crack-dev，不再是逐字节副本（v1.3 未动脚本）')
+console.log('\n【3】脚本托管：属性表已并入 crack-dev 并剔除 3 项假权限，不再是逐字节副本')
 
 // v1.1 及以前钉的是 kelee 线上版的逐字节副本。v1.2 起 patch/merge-crack-dev.py
 // 把属性表从 10 项换成 38 项，SHA 随之改变 —— 这条断言的作用从「证明没被改过」
 // 变成「改动必须是有意为之，且改完记得同步 UPSTREAM.md」。
-const SHA_V12 = '270b1c76a4e93a8b7d22fa6988c29f3292a3661a5f39d584e554f4fb8882bb6a'
+const SHA_V14 = '96b2e392f8cfa77964ee0284e291efe23575deb46f7c453f6bac1c17bbafb6b3'
 t('src/spotify.response.js 存在', existsSync(jsPath))
-t(`SHA256 与 v1.2 记录一致（${js.length} B）`,
-  createHash('sha256').update(js).digest('hex') === SHA_V12,
+t(`SHA256 与 v1.4 记录一致（${js.length} B）`,
+  createHash('sha256').update(js).digest('hex') === SHA_V14,
   '脚本被改动却没同步这里 —— 请同时更新 src/UPSTREAM.md 的 SHA 与说明')
 
 t('script-path 指向本仓库 raw（不再是 kelee.one）',
@@ -190,8 +190,12 @@ t('脚本含 Loon 状态守卫（非 200 直接透传）',
 // v1.2：属性表已并入。数量钉死，防止以后误删
 const j = js.toString()
 const attrCount = (j.slice(j.indexOf('function A(e,t)')).match(/(boolValue|stringValue|longValue):/g) || []).length
-t('A() 属性表已并入 crack-dev（>= 38 项写入）', attrCount >= 38, `实际 ${attrCount}`)
+t('A() 属性表已并入 crack-dev（>= 35 项写入）', attrCount >= 35, `实际 ${attrCount}`)
 t('含 crack-dev 独有的 catalogue=premium', j.includes('catalogue:{stringValue:"premium"}'))
+// v1.4：这三项是假权限，源码里必须不出现
+t('🔴 源码不含 high-bitrate / libspotify / audio-quality（v1.4 剔除，服务端不认）',
+  ['high-bitrate', 'libspotify', 'audio-quality'].every(k => !j.includes(k)),
+  '写 true 会让客户端请求 interactive/2 无损档 → playplay 403 → 部分歌曲无法播放')
 t('含 crack-dev 独有的 subscription-enddate', j.includes('"subscription-enddate"'))
 t('含 kelee 独有的 financial-product', j.includes('"financial-product"'))
 
