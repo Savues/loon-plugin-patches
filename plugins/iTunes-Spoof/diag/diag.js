@@ -9,6 +9,20 @@ var _dLen = _dStr.length;
 var _dCodes = '';
 for (var _i = 0; _i < Math.min(_dLen, 60); _i++) _dCodes += _dStr.charCodeAt(_i) + ' ';
 
+// ── 对象形状专用输出（真机证实 TYPE=object，见 UPSTREAM.md）────────
+var _dDump = '';
+if (_dType === 'object' && $argument !== null) {
+  var _ks = Object.keys($argument);
+  _dDump += 'KEYS=' + JSON.stringify(_ks) + '\n';
+  for (var _j = 0; _j < _ks.length; _j++) {
+    var _v = $argument[_ks[_j]];
+    _dDump += 'K=' + _ks[_j] + ' TYPE=' + (typeof _v) + ' VAL=' + JSON.stringify(_v) + '\n';
+  }
+} else if (_dType === 'function') {
+  _dDump += 'IS_FUNCTION\n';
+  _dDump += 'FN_STR=' + String($argument).slice(0, 200) + '\n';
+}
+
 $done({
   response: {
     status: 599,
@@ -17,7 +31,7 @@ $done({
           'TYPE=' + _dType + '\n' +
           'LEN=' + _dLen + '\n' +
           'RAW=' + _dStr + '\n' +
-          'CODES=' + _dCodes + '\n' +
+          'CODES=' + _dCodes + '\n' + _dDump +
           'DIAG-END\n'
   }
 });
