@@ -48,7 +48,6 @@ if (realDelta.length) process.exitCode = 1;
 const uo = sec(OLD, "Rule"), un = sec(NEW, "Rule");
 console.log("Rule     " + (JSON.stringify(uo) === JSON.stringify(un) ? "逐条一致 ✓" : "不一致 ✗"));
 // [Mitm] 同样走白名单：删域名是有意为之（零覆盖 = 白解密），但必须登记
-// [Mitm] 同样走白名单：删域名是有意为之（零覆盖 = 白解密），但必须登记
 const EXPECTED_MITM_DELTA = [
   // lab7：摘掉 api.vc.bilibili.com（lab6 删掉那 3 条 api.vc 规则后它零覆盖）
   "hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com",
@@ -67,6 +66,29 @@ mitmAdded.forEach((l) => console.log("  " + (allowedMitm(l) ? "已登记-增: " 
 if (mitmBad.length) process.exitCode = 1;
 const ao = sec(OLD, "Argument"), an = sec(NEW, "Argument");
 console.log("Argument " + ao.length + " -> " + an.length + " 项");
+
+// gRPC mock 载荷必须是**合法帧**：<1 字节压缩标志><4 字节大端长度><payload>
+// 曾出现过长度字段写 0、实际带 20 字节 payload 的畸形帧：客户端按长度读 0 字节，
+// 恰好等于「空响应」所以功能看不出坏，但严格校验帧长的客户端会直接报错。
+// 这里逐条解帧校验，让这类错误在提交前就红。
+let frameBad = 0;
+for (const l of rn.filter((x) => /mock-data-is-base64=true/.test(x))) {
+  const b64 = (l.match(/data="([A-Za-z0-9+/=]+)"/) || [])[1];
+  const name = (l.match(/(Search\/DefaultWords|Teenagers\/ModeStatus)/) || [, "?"])[1];
+  if (!b64) { console.log("  ✗ " + name + "  取不到 base64 载荷"); frameBad++; continue; }
+  const b = Buffer.from(b64, "base64");
+  if (b.length < 5) { console.log("  ✗ " + name + "  载荷不足 5 字节，构不成帧"); frameBad++; continue; }
+  const declared = b.readUInt32BE(1), actual = b.length - 5;
+  const gzip = b[5] === 0x1f && b[6] === 0x8b;
+  if (declared !== actual) {
+    console.log("  ✗ " + name + "  帧长字段=" + declared + " 实际 payload=" + actual + "（畸形帧）");
+    frameBad++;
+  } else {
+    console.log("  ok " + name + "  帧长字段=" + declared + " = payload" + (gzip ? "（gzip 压缩）" : ""));
+  }
+}
+console.log("gRPC帧 " + (frameBad ? frameBad + " 条畸形 ✗" : "全部合法 ✓"));
+if (frameBad) process.exitCode = 1;
 
 // 2) Script 正则：老规则匹配过的 URL，新规则必须也匹配
 const urls = [
