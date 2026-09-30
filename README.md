@@ -31,7 +31,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
-| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.1** |
+| [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 38 项账号属性<br>Spotify ad-block, three sources merged, 38 account properties | **v1.2** |
 
 ### 托管了脚本的十个插件
 
@@ -69,12 +69,22 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 托管只把「设备上跑谁家的代码」变成可 diff 的固定文件；**运行时依赖作者域并未消除**，
 README 里用对照表把这一点写在最前面，不含糊过去。
 
-`Spotify-Dedup` —— **纯合订，清单层为主**。同一批 Spotify 端点在 kelee 的插件和
-blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插件把两边能力收成一份
-（730 独有的 `gae2` 老端点拦截 + kelee 独有的 QUIC 封锁），blockAds 那份同步退场。
-托管的是 **kelee 那份脚本而不是 730 指向的** —— 后者在 2026-07-26 重构后改走
-`new Request/Response` 的 fetch 重写，`$argument` 出现 **0 次**，
-即声明了 `tab`/`useractivity` 两个开关却一个都不读。脚本逐字节未改，SHA256 由测试钉死。
+`Spotify-Dedup` —— **纯合订，清单层为主 + 一次有真机依据的脚本增强**。同一批 Spotify 端点
+在 kelee 的插件和 blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。
+本插件把两边能力收成一份（730 独有的 `gae2` 老端点拦截 + kelee 独有的 QUIC 封锁），
+blockAds 那份同步退场。托管的是 **kelee 那份脚本而不是 730 指向的** ——
+后者在 2026-07-26 重构后改走 `new Request/Response` 的 fetch 重写，
+`$argument` 出现 **0 次**，即声明了 `tab`/`useractivity` 两个开关却一个都不读。
+
+v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601 条，走完「已登录 → 退出 → 重新登录」）
+证明 kelee 版只写 10 个 `accountAttributes`，**去广告有效但解锁维度基本没生效**
+（`catalogue=free`、`audio-quality=0`、`high-bitrate=false`、`offline-backup=DISABLED`…）。
+本版把 001ProMax 现役脚本的 36 项属性并进来（+ kelee 独有的 2 项），
+**protobuf 读写器与开关逻辑一行未动**，改动由 `patch/merge-crack-dev.py` 幂等生成。
+用同一份真机响应体回放验证：21 项翻转 + 5 项新增，73 条断言全绿，
+反向验证（退回原版）10 条转红。这次也钉住了一个坏消息：
+`tab_configuration` 属性已从服务端消失，**该开关当前无效**，
+而 Amlabort 最新脚本里那段 JSON 也是注释掉的 —— 同一个结论，两处独立来源。
 
 `AdGuard-Spoof` —— 第五种情况：**去混淆等价重写**。上游是 1905 B 的单行混淆（字符串表 + 移位自解机），
 本仓库把它还原成 9 行可读脚本，解码表在 `UPSTREAM.md` 里逐项列出。

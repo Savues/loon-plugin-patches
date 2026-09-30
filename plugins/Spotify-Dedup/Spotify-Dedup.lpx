@@ -1,5 +1,5 @@
-#!name=Spotify去广告(合订版) v1.1
-#!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
+#!name=Spotify去广告(合订版) v1.2
+#!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。v1.2 起脚本写入 38 项账号属性（音质/目录/离线/有声书等一并解锁）。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
 #!author=原作者: 001ProMax | 合并整理: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Spotify.png
-#!date=2026-09-29 21:30:00
+#!date=2026-09-30 20:40:00
 
 [Argument]
 tab=switch, false, true, tag=移除底栏创建按钮, desc=隐藏 Spotify 底栏中间的「创建」按钮（改后需重新登录）
@@ -27,7 +27,38 @@ http-response ^https:\/\/(?:\w+-spclient|spclient\.wg)\.spotify\.com(?::443)?\/(
 [MitM]
 hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 
-# ==== PLUGIN_VERSION: 1.1 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+# ==== PLUGIN_VERSION: 1.2 | BUILD_BY: Savues | 仓库: https://github.com/Savues/loon-plugin-patches ====
+#
+# 【v1.2：脚本写入的账号属性 10 → 38（真机抓包驱动）】
+#   v1.1 托管的是 kelee 版脚本，只写 10 个 accountAttributes。
+#   2026-09-30 真机抓包（86 秒 601 条，走完「已登录打开 → 退出 → 重新登录」）
+#   把交付给 App 的响应解出来一看，**去广告有效，但解锁维度基本没生效**：
+#     catalogue=free  audio-quality=0  high-bitrate=false  libspotify=false
+#     smart-shuffle=UNAVAILABLE  mixing-tools=VIEW  offline-backup=DISABLED
+#     social-session=false  can_use_superbird=false  jam-social-session=BASIC
+#     subscription-enddate / product-expiry / unrestricted / loudness-levels 全部缺失
+#   001ProMax 现役的 Script/Spotify.Crack.Dev.js 写 36 个 —— 但那份 `$argument`
+#   出现 0 次，两个开关形同虚设（本仓库 v1.0 选 kelee 版正是为此）。
+#   本版取两者之长：属性表用 crack-dev 的 36 项 + kelee 独有的 2 项
+#   （publish-playlist、financial-product），protobuf 编解码与开关逻辑一行未动。
+#   改动由 patch/merge-crack-dev.py 生成（幂等，可重跑），不是手改压缩过的 JS。
+#   真实效果已用真机响应体回放验证：21 项翻转 + 5 项新增，test/script.test.mjs 39 断言。
+#
+#   ⚠️ 到期日沿用上游语义：`subscription-enddate` / `product-expiry` = 当前时间 +1 个月。
+#   这是**伪装值**，不代表真实订阅。1 个月后若想刷新显示，需重新登录触发一次全量响应。
+#   参考：更激进的 Amlabort 版用 +1 年，并额外删改 ad-catalogues / ad-use-adlogic /
+#   shuffle 等属性 —— 那属于另一条路线，本版不跟（改动越大越难验证）。
+#
+# 【v1.2 的 tab 开关：实测已失效，保留但不推荐用】
+#   抓包解出的 1125 条 assignedValues 里，`tab_configuration` 出现 0 次，
+#   scope `ios-feature-navigation` 整个不存在。node 回放 tab=true / tab=false
+#   输出逐字节相同 ⇒ 该开关当前是纯装饰。
+#   第三方佐证：Amlabort 的 spot-proto-ev3.js（2026 年最新、最激进那份）里
+#   `tab_configuration` 那段 JSON **是被注释掉的**，注释里还留着
+#   `"enumValue": {"value": "CreateRight"}` —— 连最新脚本也当它是死属性。
+#   本版暂不删这个开关：等 Spotify 若恢复下发该属性，它无需改动即自动生效；
+#   test/script.test.mjs【5】已把「当前无效」这个事实钉住，
+#   哪天属性回来了那条断言会红，会提醒回来改测试。
 #
 # 【v1.1 修：enable= 不能挂在逻辑规则上，真机弹窗】
 #   v1.0 的 QUIC 规则写成了
@@ -53,7 +84,7 @@ hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 #   Rewrite artistview iphone→ipad      两边逐字节相同
 #   Rewrite gae2-spclient /ad reject     仅 blockAds 有（老版客户端端点）
 #   Rule    spotify.com + QUIC → REJECT 仅 kelee 有
-#   Script  kelee 托管版（带开关）       见下
+#   Script  kelee 托管版 + crack-dev 属性表  见下
 #
 # 【为什么用 kelee 那份脚本，而不是 730 指向的 raw.githubusercontent 版】
 #   两者同源于 001ProMax/Surge 的 Spotify.Crack.Dev.js，但 kelee 托管的是
@@ -61,11 +92,16 @@ hostname=*-spclient.spotify.com, spclient.wg.spotify.com
 #   重构后的版本把功能改写成走 new Request/Response 的 fetch 重写，
 #   `$argument` 出现 0 次 —— 即上游那两个开关形同虚设。
 #   kelee 版 $argument 出现 4 次，tab / useractivity 均真正生效。
-#   本仓库托管的是 kelee 版的逐字节副本，见 src/UPSTREAM.md。
+#   v1.2 保留 kelee 的开关机制，只把 crack-dev 的属性表并进来 —— 各取所长。
+#   详见 src/UPSTREAM.md。
 #
-# 【逐字节副本，未改一个字符】脚本逻辑完全等于 kelee 线上那份。
-#   唯一的差别是托管位置从 kelee.one 换成本仓库 raw，
-#   理由与 PinDuoDuo / YouTube-Dedup 相同：第三方站点消失会导致已导入的插件加载失败。
+# 【脚本已不是逐字节副本 —— v1.2 起】
+#   v1.1 及以前是 kelee 线上版的逐字节副本（SHA256 198cb586…，由测试钉死）。
+#   v1.2 起属性表被替换为 38 项（36 crack-dev + 2 kelee），
+#   protobuf 编解码、开关逻辑、状态守卫**一行未动**，只改 A() 函数里的写入表
+#   和函数头的一行到期日计算。改动过程见 patch/merge-crack-dev.py。
+#   托管位置仍从 kelee.one 换成本仓库 raw，理由与 PinDuoDuo / YouTube-Dedup 相同：
+#   第三方站点消失会导致已导入的插件加载失败（kelee.one 现已 404，改对了）。
 #
 # 【只有 tab / useractivity 两个开关，全部作用于脚本】
 #   3 条 Rewrite 与 1 条逻辑 Rule 全部无条件生效。理由：

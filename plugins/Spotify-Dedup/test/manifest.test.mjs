@@ -3,7 +3,10 @@
 // 守三件事：
 //   1. 合并完整性 —— kelee 与 730 各自独有的那条规则都在
 //   2. 没有死开关 —— 声明的开关必须真被引用（上一轮的教训）
-//   3. 托管脚本是 kelee 线上版的逐字节副本
+//   3. 脚本托管完整性 —— v1.2 起脚本由 patch/merge-crack-dev.py 生成，
+//      这里钉住 SHA 与并入的属性，防止「手改压缩过的 JS」这类不可追溯的改动
+//
+// 脚本层回归在同目录的 script.test.mjs（拿真机响应体回放）。
 //
 // 运行：node test/manifest.test.mjs
 
@@ -117,17 +120,21 @@ t('脚本收到的参数个数与脚本行声明的一致',
   })(), 'argument=[{tab},{useractivity}] 应为 2 个')
 
 // ── 3. 脚本托管完整性 ───────────────────────────────────────
-console.log('\n【3】脚本托管：kelee 线上版逐字节副本')
+console.log('\n【3】脚本托管：v1.2 起属性表已并入 crack-dev，不再是逐字节副本')
 
-const SHA = '198cb5869d9710c56ed1945156c8f6227fdf9d19da38ee1c8870f4d72f26c6c8'
+// v1.1 及以前钉的是 kelee 线上版的逐字节副本。v1.2 起 patch/merge-crack-dev.py
+// 把属性表从 10 项换成 38 项，SHA 随之改变 —— 这条断言的作用从「证明没被改过」
+// 变成「改动必须是有意为之，且改完记得同步 UPSTREAM.md」。
+const SHA_V12 = '270b1c76a4e93a8b7d22fa6988c29f3292a3661a5f39d584e554f4fb8882bb6a'
 t('src/spotify.response.js 存在', existsSync(jsPath))
-t(`SHA256 与采集时一致（${js.length} B）`,
-  createHash('sha256').update(js).digest('hex') === SHA)
+t(`SHA256 与 v1.2 记录一致（${js.length} B）`,
+  createHash('sha256').update(js).digest('hex') === SHA_V12,
+  '脚本被改动却没同步这里 —— 请同时更新 src/UPSTREAM.md 的 SHA 与说明')
 
 t('script-path 指向本仓库 raw（不再是 kelee.one）',
   script.some(s => s.includes('raw.githubusercontent.com/Savues/loon-plugin-patches')) &&
   !script.some(s => s.includes('kelee.one')),
-  '第三方站点消失会导致已导入的插件加载失败')
+  '第三方站点消失会导致已导入的插件加载失败（kelee.one 现已 404）')
 
 t('脚本真的读 $argument（这是选 kelee 版而非 730 版的唯一理由）',
   (js.toString().match(/\$argument/g) || []).length >= 4,
@@ -135,6 +142,25 @@ t('脚本真的读 $argument（这是选 kelee 版而非 730 版的唯一理由�
 
 t('脚本含 Loon 状态守卫（非 200 直接透传）',
   js.toString().includes('200!==$response.status'))
+
+// v1.2：属性表已并入。数量钉死，防止以后误删
+const j = js.toString()
+const attrCount = (j.slice(j.indexOf('function A(e,t)')).match(/(boolValue|stringValue|longValue):/g) || []).length
+t('A() 属性表已并入 crack-dev（>= 38 项写入）', attrCount >= 38, `实际 ${attrCount}`)
+t('含 crack-dev 独有的 catalogue=premium', j.includes('catalogue:{stringValue:"premium"}'))
+t('含 crack-dev 独有的 subscription-enddate', j.includes('"subscription-enddate"'))
+t('含 kelee 独有的 financial-product', j.includes('"financial-product"'))
+
+// 补丁脚本必须在（脚本是生成的，不能手改）
+t('patch/merge-crack-dev.py 存在（脚本是生成的）',
+  existsSync(join(HERE, '..', 'patch', 'merge-crack-dev.py')))
+t('patch/make-fixture.py 存在（fixture 可从 HAR 重新生成）',
+  existsSync(join(HERE, '..', 'patch', 'make-fixture.py')))
+t('fixture 已入库（真机响应体，脱敏后）',
+  existsSync(join(HERE, 'fixtures', 'customize.bin.gz')) &&
+  existsSync(join(HERE, 'fixtures', 'bootstrap.bin.gz')))
+t('test/script.test.mjs 存在（脚本层回归）',
+  existsSync(join(HERE, 'script.test.mjs')))
 
 // ── 4. 头部字段 ─────────────────────────────────────────────
 console.log('\n【4】头部字段')
