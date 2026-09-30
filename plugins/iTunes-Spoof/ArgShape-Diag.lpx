@@ -13,7 +13,7 @@ Expires = input, "2099-09-09", tag=凭证到期日, desc=保持默认，不要�
 Country = input, "HK", tag=App Store 国家, desc=保持默认，不要改
 
 [Script]
-http-request ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt requires-body=1,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes-Spoof/diag/diag.js,tag=参数诊断
+http-request ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt requires-body=true,script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes-Spoof/diag/diag.js,tag=参数诊断,argument=[{Enabled},{Expires},{Country}]
 
 [Mitm]
 hostname = buy.itunes.apple.com
