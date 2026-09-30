@@ -30,10 +30,14 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
+| [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · **壳层修好上游失效的开关** · 仍有 Worker 依赖<br>iOS receipt forwarding · prelude fixes upstream's dead switch · Worker dep remains | **v1.0** |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 
-### 托管了脚本的十个插件
+### 托管了脚本的插件
+
+> 各插件的具体清单见上方表格「脚本」列 —— **这个数字随插件增删变化，请勿手写**，
+> 由 `find plugins -name '*.js'` 得出（2026-09-30：12 个插件带 JS）。
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -144,7 +148,7 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-Ten plugins ship scripts. `Bilibili-UI` changes argument parsing because the upstream
+Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
 that site disappeared. `YouTube-Test` and `PinDuoDuo` host the upstream scripts and add
@@ -170,6 +174,15 @@ the reward amount in the title, balance+spent+requests squeezed onto one body
 line, and the last three lines reserved for announcements (only when a new one
 exists, tracked via persistentStore). The pristine original is kept alongside;
 44 tests across two files cover structure and the pure layout functions.
+
+`iTunes-Spoof` is the sixth route: **a prelude that repairs upstream's own dead switch.**
+The upstream declares three parameters but reads them off a camelCase *object*
+(`$argument.Enabled`) while Loon passes a comma-separated *string*, so every value reads
+as `undefined` and the `Enabled=false` switch never took effect — the plugin forwarded
+receipts no matter what. The fix is **1.7 KB in front of a 374 KB untouched upstream file**:
+type correction before the original runs. Tests prove the file is byte-identical once the
+prelude is stripped. Unlike `AdGuard-Spoof`, the runtime dependency **is not** eliminated —
+receipts still reach the author's Worker, which generates the forged response.
 
 ---
 

@@ -83,3 +83,18 @@ AdGuard-Spoof
   - 出处与逐句对照见 plugins/AdGuard-Spoof/UPSTREAM.md。
   - ⚠️ 该脚本日期为 2022-12-26，**是否仍能生效未经真机验证**。
 ────────────────────────────────────────────────────────────────────────
+
+iTunes-Spoof
+  插件为**绕过付费校验的破解脚本**，特此单独声明，请使用者自行判断：
+  - 上游脚本 loon-itunes.js 版权归原作者 Jsforbaby 所有，**未见许可声明**。
+  - 本仓库的 src/loon-itunes.js 是该混淆脚本的**逐字节副本**（sha256 2fab4bf8…），
+    src/prelude.js 与 src/itunes-spoof.js 中除该副本以外的部分为本仓库自写。
+  - 本仓库的贡献：托管位置迁移；**新增壳层修复上游参数接线 bug**
+    （上游读驼峰对象 $argument.Enabled，Loon 传逗号字符串，导致用户侧的 Enabled=false
+    开关完全失效）；清单层 http-request 改为 http-response。
+  - **未增加任何上游不具备的绕过能力**，且**未修改上游 374 KB 混淆代码的任何一行**
+    —— 由 src/itunes-spoof.js 剥掉壳层后与上游逐字节相同这一事实保证（53 个用例）。
+  - 🔴 **运行时外部依赖未消除**：收据原样转发到作者的 Cloudflare Worker，
+    伪回包由该 Worker 生成。镜像只固定了设备上运行的代码，不等于去掉依赖。
+  - 出处与逐条依据见 plugins/iTunes-Spoof/UPSTREAM.md。
+────────────────────────────────────────────────────────────────────────

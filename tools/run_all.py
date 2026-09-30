@@ -14,6 +14,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # (相对路径, 说明, 解释器)  —— 解释器缺省按 .py / .mjs 后缀判断
 TESTS = [
     ("plugins/AdGuard-Spoof/test/equivalence.test.mjs", "AdGuard-Spoof 去混淆等价性"),
+    ("plugins/iTunes-Spoof/test/itunes-spoof.test.mjs", "iTunes-Spoof 参数修复 + 托管"),
     ("plugins/AntiRevoke/test/manifest.test.mjs", "AntiRevoke 清单"),
     ("plugins/Reven-Mirror/test/manifest.test.mjs", "Reven-Mirror 托管正确性"),
     ("plugins/Bilibili-Dedup/vip.test.mjs", "Bilibili-Dedup VIP 伪装"),

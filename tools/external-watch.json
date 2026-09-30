@@ -54,6 +54,27 @@
       "bytes": 8870,
       "text": false,
       "note": "图标。size 不校验，只看 sha256"
+    },
+    {
+      "id": "itunes-lpx",
+      "kind": "plugin-manifest",
+      "url": "https://reven.jsforbaby.workers.dev/reven/iTunes.lpx",
+      "sha256": "22de70f25c47f622bb7140ffabf39747ec2d225f2280bfc3293abeea1a1fb1df",
+      "bytes": 1121,
+      "text": true,
+      "note": "iTunes-Spoof 的上游清单。改这里=改 MITM 域名/参数/规则"
+    },
+    {
+      "id": "itunes-script",
+      "kind": "script-path",
+      "url": "https://reven.jsforbaby.workers.dev/reven/loon-itunes.js",
+      "sha256": "2fab4bf8fa34d367d234be7577d706e7054ad8b44bebd2249f495d0cce30ee8d",
+      "bytes": 374259,
+      "text": true,
+      "note": "iTunes-Spoof 的上游脚本，374 KB 混淆代码。本仓库 src/loon-itunes.js 是它的逐字节副本 —— 它一变，托管校验第 4 组就会红"
     }
-  ]
+  ],
+  "notes": {
+    "itunes-worker-runtime": "🔴 iTunes-Spoof 的运行时转发目标 https://reven.lovebabyforever.workers.dev/ 不在此登记 —— 它要求 POST + Apple 收据 body，GET 会返回 400，内容也随请求变化，不是可 pin 的静态资源。收据原样发去那里、伪回包由它生成这件事记在 plugins/iTunes-Spoof/UPSTREAM.md"
+  }
 }
