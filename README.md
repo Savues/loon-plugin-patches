@@ -24,7 +24,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.74** |
-| [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.0** |
+| [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.1** |
 | [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修奖励金额识别<br>AgentRouter check-in · cron off by default · reward amount fixed | **v1.4** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
@@ -55,7 +55,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 该脚本不含上游代码，有 16 个回归用例。
 
 `QuarkCheckIn` —— 第四种情况：**完全自研，无任何上游代码**。脚本从真机抓包逆向得到，
-2.3 KB 单文件，17 个回归用例。它只用 `$httpClient` 主动发请求，不涉及 `[MITM]`，
+2.3 KB 单文件，24 个回归用例（含 7 条清单结构断言）。它只用 `$httpClient` 主动发请求，不涉及 `[MITM]`，
 因此不用装根证书、与其他插件零冲突。
 
 `Reven-Mirror` —— **只托管，不改一个字**。上游脚本 98 行全是 `$httpClient` 透明转发，
@@ -108,7 +108,7 @@ pass-through and the response forging lives in the author's own Worker, so there
 nothing to change — only a URL to relocate. The README says so plainly rather than
 implying the author's domain is now gone.
 `QuarkCheckIn` is a further case still: written entirely from scratch off a real packet
-capture, 2.3 KB, 17 tests, and no `[MITM]` at all.
+capture, 2.3 KB, 24 tests, and no `[MITM]` at all.
 `AdGuard-Spoof` is the one plugin whose script was **deobfuscated and rewritten**: equivalence
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its

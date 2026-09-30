@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert";
 
 const SRC = readFileSync(new URL("./quark_checkin.js", import.meta.url), "utf8");
+const LPX = readFileSync(new URL("./QuarkCheckIn.lpx", import.meta.url), "utf8");
 
 // 跑一次脚本，返回 { notification, done, request }
 function run({ body = "", err = null, status = 200 } = {}) {
@@ -142,6 +143,47 @@ check("关闭 auto-cookie，凭证不外流", () => {
 
 check("insecure 关闭，不接受伪造证书", () => {
   assert.strictEqual(run({ body: "{}" }).request.insecure, false);
+});
+
+/* ---------- 清单：开关与规则 ---------- */
+
+check("auto 声明为 switch 且默认 false", () => {
+  assert.match(LPX, /^auto\s*=\s*switch\s*,\s*false/m);
+});
+
+check("cron 挂上 enable={auto}", () => {
+  assert.match(LPX, /^cron .*enable=\{auto\}$/m);
+});
+
+check("没有多余的 generic 规则（cron 本身可手动触发）", () => {
+  assert.ok(!/^generic /m.test(LPX), "仍有 generic 规则");
+  assert.strictEqual(LPX.split("\n").filter((l) => /^(cron|generic) /.test(l)).length, 1);
+});
+
+check("唯一那条规则带 tag，插件页上能看到", () => {
+  for (const r of LPX.split("\n").filter((l) => /^(cron|generic) /.test(l))) {
+    assert.match(r, /tag=/, "缺 tag: " + r);
+  }
+});
+
+check("auto 的 desc 说明手动触发方式，且不提已删除的「立即签到」", () => {
+  const d = /^auto\s*=.*?desc=(.*)$/m.exec(LPX)[1];
+  assert.match(d, /手动触发/, "未说明手动触发");
+  assert.ok(!d.includes("立即签到"), "desc 仍引用已删除的 generic 规则");
+  assert.ok(!/#!desc=.*立即签到/.test(LPX), "#!desc 仍提「立即签到」");
+});
+
+check("script-path 指向本仓库托管的脚本", () => {
+  const urls = [...LPX.matchAll(/script-path=(\S+?)(?:,|\s|$)/g)].map((m) => m[1]);
+  assert.ok(urls.length, "没有 script-path");
+  for (const u of urls) {
+    assert.ok(u.startsWith("https://raw.githubusercontent.com/Savues/loon-plugin-patches/"),
+      "未指向本仓库: " + u);
+  }
+});
+
+check("无 MITM 段（本插件不解密任何域名）", () => {
+  assert.ok(!/\[MITM\]/i.test(LPX));
 });
 
 /* ---------- 汇总 ---------- */
