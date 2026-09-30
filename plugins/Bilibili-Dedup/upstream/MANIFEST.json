@@ -74,48 +74,6 @@
     "sha256": "fa8fe17042bac09192f7465217b5c04bbaefa66f7178255b3fb084e02a51f739",
     "mirrored_at": "2026-09-28"
   },
-  "vip-assets/annual-super.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/10df1f7f4af1292f773489e36554a05177785143.png",
-    "bytes": 25518,
-    "sha256": "561e2ceae03a33ac11a8045259d3689a06c66ffbcf75673d773501680b933649",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/super.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/491ee694ffc139a23e329cf0e4465e8f6b7583fa.png",
-    "bytes": 22441,
-    "sha256": "10e805f519ff8655e6d865b6597216e3835549a2a039d23780f63f6ed7c97a6c",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/annual-cannon.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/6234b05743730217bac0aa02d19ed98b49458b68.png",
-    "bytes": 24904,
-    "sha256": "37049d4d2bff3d86a775cb769e772289d43a620c3c193b64f17789fcdc9ad800",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/ten-super.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/6ebc71d481dd3b84412dff9ac958bee7bae97122.png",
-    "bytes": 24905,
-    "sha256": "8268d1df0912bab896612ef5ec0c35ba399b02eab28c0db2915339b51669374c",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/super-annual.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/8d7e624d13d3e134251e4174a7318c19a8edbd71.png",
-    "bytes": 13783,
-    "sha256": "a00bab8181da6e49277c7b538f0b9c33d80721df36c2c7aca73eadeb026ca699",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/mascot.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/99f54078df2412394140aa5df4422bc0a1ca3d3e.png",
-    "bytes": 20525,
-    "sha256": "19f78a401b3e6365a8ab780b109b1a9f6d01e1014de2985537530168b3bb735b",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/vip-cannon.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/b10e2b207a8f23982d61c1e67a7802db8cc0770f.png",
-    "bytes": 21519,
-    "sha256": "798ac7ec075a2b433549d2f82472ef89559aa3a79a6afd4818b1cd9c811e5517",
-    "mirrored_at": "2026-09-28"
-  },
   "vip-assets/ten-cannon.png": {
     "source": "https://i1.hdslb.com/bfs/vip/b3d1836175ca2ff6032bef017b6e9115bcbaf4a9.png",
     "bytes": 24569,
@@ -129,7 +87,7 @@
     "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
     "mirrored_at": "2026-09-28"
   },
-  "upstream/adblock-hotsearch.js": {
+  "adblock-hotsearch.js": {
     "source": "本仓库自撰",
     "note": "搜索页下拉过滤 trending/recommend，保留 history。同端点双规则只有首条生效，故独立处理",
     "bytes": 817,
