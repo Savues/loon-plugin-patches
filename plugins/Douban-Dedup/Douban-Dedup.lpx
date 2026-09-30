@@ -1,0 +1,48 @@
+#!name=豆瓣去广告
+#!desc=去开屏 + 去信息流/横幅广告。开屏素材图直接判失败以跳过本地倒计时；信息流与腾讯优量汇 HTTPDNS 拦截均可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 真机抓包重写。
+#!author=honue, shengrui123, Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
+#!date=2026-10-01
+#!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
+#!tag=去广告
+
+[Argument]
+block_feed_ad = switch,true,tag=去信息流广告,desc=拦首页/影视页信息流与横幅；只想去开屏可关掉
+block_httpdns = switch,true,tag=去腾讯优量汇,desc=拦腾讯广告 HTTPDNS 旁路；会连带影响其它 App 的腾讯广告，可关
+
+[Rule]
+# ── 豆瓣自家信息流 / 横幅 / 影视页广告 ──────────────────────
+# 放在 [Rule] 而非 [URL Rewrite]：只有 [Rule] 能挂 enable={}，开关才不是死开关。
+# 这四个都是纯广告端点，被拒不影响正文（正文走 elendil/recommend_feed，未拦）。
+# erebor=首页信息流, movie/ad=影视页, home_banner=首页横幅, home_ads=开屏聚合
+URL-REGEX,^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/(?:feed_ad|special_ad)(?:[\/?].*)?$,REJECT,enable={block_feed_ad}
+URL-REGEX,^https?:\/\/frodo\.douban\.com\/api\/v2\/movie\/ad(?:[\/?].*)?$,REJECT,enable={block_feed_ad}
+URL-REGEX,^https?:\/\/frodo\.douban\.com\/api\/v2\/home_banner(?:[\/?].*)?$,REJECT,enable={block_feed_ad}
+URL-REGEX,^https?:\/\/frodo\.douban\.com\/api\/v2\/home_ads(?:[\/?].*)?$,REJECT,enable={block_feed_ad}
+
+# ── 腾讯优量汇 HTTPDNS 旁路 ─────────────────────────────────
+# 把广告域名解析成 IP 以绕过域名规则。119.29.29.90 来自真机抓包实测（27 次请求）；
+# .98/.99 为腾讯官方现行入口
+IP-CIDR,119.29.29.90/32,REJECT,no-resolve,enable={block_httpdns}
+IP-CIDR,119.29.29.98/32,REJECT,no-resolve,enable={block_httpdns}
+IP-CIDR,119.29.29.99/32,REJECT,no-resolve,enable={block_httpdns}
+
+# 优量汇广告链：抓包中一次都没出现（HTTPDNS 已在更前面被拦），仅作兜底
+DOMAIN,sdk.e.qq.com,REJECT,enable={block_httpdns}
+DOMAIN-SUFFIX,gdt.qq.com,REJECT,enable={block_httpdns}
+DOMAIN-SUFFIX,gdtimg.com,REJECT,enable={block_httpdns}
+DOMAIN-SUFFIX,ugdtimg.com,REJECT,enable={block_httpdns}
+
+[URL Rewrite]
+# ── 开屏（无条件，这是插件的核心功能，不设开关）──────────────
+# 展示阶段直接失败让 App 走跳过回调；预加载返回空 JSON 防止反复重试。
+# 抓包实测 7.135.0 只发 splash_preload、从不发 splash_show，后者为跨版本兜底。
+^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash_show(?:[\/?].*)?$ reject
+^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash(?:_preload)?(?:[\/?].*)?$ reject-dict
+
+# 开屏广告素材：直接 reject 让广告 SDK 判定加载失败并退出，
+# 而不是把 1px 图当成功继续倒计时（honue 版「还要改 duration」的正解）
+^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject
+
+[MITM]
+hostname = api.douban.com, frodo.douban.com, img*.doubanio.com

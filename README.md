@@ -33,6 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 去信息流 · 两家上游合并 · 218 条真机抓包逐条回放<br>Douban splash + feed ad-block, two upstreams merged, 218 real requests replayed | **v1.0** |
 
 ### 托管了脚本的插件
 
@@ -148,6 +149,21 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
+`Douban-Dedup` —— **纯清单层，但测试用真机抓包做全量回放**。合并了
+[honue/rules](https://github.com/honue/rules)（480 B）与
+[shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock)（1552 B）两家，
+两家原件逐字节留存并用 SHA256 钉死。改动的依据是一份 218 条的豆瓣 7.135.0 真机 HAR，
+压成 `test/fixtures/douban-7.135.0.har-urls.tsv` 入库，测试把每条 URL 喂给规则，
+因此「这份清单在真实流量上拦什么、放什么」是钉死的而非推测。抓包推翻了作者的判断：
+**两版都漏了 `frodo.douban.com` 上的信息流广告**（单条 59 KB，是开屏素材的十几倍），
+而 honue 的 `[MITM]` 根本没有这个域名；反过来 shengrui 那条「让 App 立即跳过」的
+`splash_show` 规则在 7.135.0 上**一次都没触发**，本版保留但标注为跨版本兜底。
+最有价值的一条证据是 `splash_preload` 的 **POST 体**：里面带着 `preload_ads`，
+即**已缓存在本地的开屏广告对象**（含 `is_exposed` 曝光标记与有效期）——
+这解释了 honue 作者那句「后期还要改 duration」，也意味着**装完插件必须完整删 App 重装**。
+可关的部分全放 `[Rule]`（信息流、腾讯 HTTPDNS），不可关的放 `[URL Rewrite]`（开屏），
+分工理由是 `[Rewrite]` 挂 `enable=` 在本仓库有静默失效的真机先例，测试里有反向断言钉死。
+
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
 fetched its three scripts from the author's site, so the plugin would break outright if
@@ -181,6 +197,24 @@ broke the plugin — a diagnostic plugin showed the truth, that Loon passes `$ar
 *object* whose keys are exactly `Enabled`/`Expires`/`Country`, so upstream was never broken
 and my "fix" was the only thing preventing the forward. The repo keeps the diagnostic plugin
 and pins the measured shape in tests, so nobody repeats the mistake.
+
+`Douban-Dedup` is manifest-only, but its test replays a real packet capture end to end.
+It merges honue/rules (480 B) and shengrui123/douban-adblock (1552 B), both kept
+byte-for-byte and pinned by SHA256. The evidence for every change is a 218-request HAR
+from Douban 7.135.0, compressed into `test/fixtures/douban-7.135.0.har-urls.tsv` and fed
+through the rules one URL at a time — so "what this manifest blocks on real traffic" is
+pinned rather than assumed. The capture overturned both authors: **both versions miss
+the feed ads on `frodo.douban.com`** (a single 59 KB response, an order of magnitude
+larger than any splash asset), a domain honue never even decrypts; and shengrui's
+`splash_show` rule — the one that makes the app skip immediately — **never fires at all**
+on 7.135.0, so it is kept but labelled a cross-version fallback. The most valuable single
+piece of evidence is the **POST body** of `splash_preload`: it carries `preload_ads`,
+i.e. the splash ad **already cached on the device**, with exposure flags and a validity
+window. That explains honue's "still need to change duration", and it means the plugin is
+useless unless the app is fully deleted and reinstalled. Switchable parts live in `[Rule]`
+(feed ads, Tencent HTTPDNS) and the always-on parts in `[URL Rewrite]` (splash) — because
+`enable=` on `[Rewrite]` has a documented silent-failure precedent in this repo, and a
+reverse assertion pins that.
 
 ---
 

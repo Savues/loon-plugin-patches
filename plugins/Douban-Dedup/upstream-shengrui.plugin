@@ -1,0 +1,36 @@
+#!name = 豆瓣开屏去广告
+#!desc = 去除豆瓣 App 自有及腾讯优量汇开屏广告，并拦截对应广告素材。
+#!author = Codex
+#!date = 2026-08-06
+
+[Rule]
+# 腾讯 HTTPDNS：阻止广告 SDK 将域名解析为 IP 后绕过域名规则
+# 119.29.29.90 来自豆瓣 7.130.1 实际抓包；.98/.99 为腾讯官方现行入口
+IP-CIDR,119.29.29.90/32,REJECT,no-resolve
+IP-CIDR,119.29.29.98/32,REJECT,no-resolve
+IP-CIDR,119.29.29.99/32,REJECT,no-resolve
+
+# 腾讯优量汇广告链：在 SDK 创建开屏广告对象前直接阻断
+DOMAIN,sdk.e.qq.com,REJECT
+DOMAIN-SUFFIX,gdt.qq.com,REJECT
+DOMAIN-SUFFIX,gdtimg.com,REJECT
+DOMAIN-SUFFIX,ugdtimg.com,REJECT
+DOMAIN,pgdt.gtimg.cn,REJECT
+DOMAIN,qzs.qq.com,REJECT
+
+[URL Rewrite]
+# 展示阶段直接返回失败，让 App 立即执行广告加载失败回调并跳过
+^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash_show(?:[\/?].*)?$ reject
+
+# 阻止开屏配置及素材预加载，返回空 JSON 避免反复重试
+^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash(?:_preload)?(?:[\/?].*)?$ reject-dict
+
+# 腾讯优量汇 URL 兜底：阻止广告 SDK 初始化及广告视图配置拉取
+^https?:\/\/sdk\.e\.qq\.com\/(?:activate|launch)(?:[\/?].*)?$ reject
+^https?:\/\/mi\.gdt\.qq\.com\/gdt_mview\.fcg(?:\?.*)?$ reject
+
+# 开屏广告素材：直接拒绝而非返回 1px 图片，让广告 SDK 触发加载失败并退出
+^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject
+
+[MITM]
+hostname = api.douban.com, img*.doubanio.com, sdk.e.qq.com, mi.gdt.qq.com
