@@ -30,7 +30,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
-| [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** |
+| [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 

@@ -112,7 +112,29 @@ console.log("\n【4】清单：与上游逐字段对照");
   }
 }
 
-console.log("\n【5】🔴 运行时外部依赖仍在 —— 钉成断言，不假装已消除");
+console.log("\n【5】✅ 真机验证已通过（2026-09-30 00:11）");
+{
+  // 下面是 iPad 真机抓包的实测值。用来确认「现在这份配置是对的」，
+  // 也提醒后来者：这些字段一旦变了，插件多半又不工作了。
+  //   script=['iTunes收据转发']  modified=true      ← 脚本触发并改写了响应
+  //   回包 2457 B                                     ← 伪造后的长度（Apple 原包是 810）
+  //   download_id 末位 900                           ← 897 是 Apple 原值，900 才是伪造
+  //   转发目标 …/verifyReceipt?enabled=true&expires=2099-09-09&country=HK
+  //   in_app[0] = com.knockout.1year.AIVIP / expires 2099-09-09 / PURCHASED
+  ok(/src\/loon-itunes\.js/.test(lpx), "指向上游原件（与成功那次一致）");
+  ok(/^http-request /m.test(lpx), "http-request（与成功那次一致）");
+  ok(/argument=\[\{Enabled\},\{Expires\},\{Country\}\]/.test(lpx),
+     "argument 与成功那次一致");
+  // 失效那两版的特征值，出现即说明配置被改回去了
+  ok(!/http-response \^https/.test(lpx), "没有退回 v1.0 的 http-response（那样 modified=false）");
+  // 那句把对象强制置空的代码原本在壳层里，壳层已整体删除。
+  // 这里确认仓库里再没有活代码做这件事（注释里出现是允许的，UPSTREAM.md 有留存）。
+  const liveJs = fs.readdirSync(path.join(dir, "src")).map(f => read(path.join(dir, "src", f))).join("\n");
+  ok(!/typeof\s+\$argument\s*!==\s*['"]string['"]/.test(liveJs),
+     "src/ 下没有把 $argument 强制置空的代码（v1.01 失效的真凶）");
+}
+
+console.log("\n【6】🔴 运行时外部依赖仍在 —— 钉成断言，不假装已消除");
 {
   ok(!new RegExp(WORKER.replace(/\./g, "\\.")).test(upstream),
      "源码里找不到 Worker 域名（374 KB 内是编码态，扫文本证明不了任何事）");

@@ -118,6 +118,35 @@ v1.0 那次改 `http-request`→`http-response` 时，我在 commit 里写了
 
 ---
 
+## ✅ 真机验证通过（2026-09-30 00:11）
+
+v1.02（删掉壳层、纯上游）在 iPad 上实测：
+
+```
+00:11:03  POST buy.itunes.apple.com/verifyReceipt
+          script=['iTunes收据转发']  modified=true      ← 脚本触发并改写了响应
+          回包 2457 B                                     ← 伪造后长度（Apple 原包 810）
+          download_id 末位 900                           ← 897 是 Apple 原值，900 是伪造
+          in_app[0] = com.knockout.1year.AIVIP / expires 2099-09-09 / PURCHASED
+          → 转发到 reven.lovebabyforever.workers.dev
+             ?enabled=true&expires=2099-09-09&country=HK
+```
+
+与失败版本逐项对照：
+
+| | 失败（v1.01 带壳层） | 成功（v1.02 纯上游） |
+|---|---|---|
+| `modifiedResponse` | `false` | **`true`** |
+| 回包长度 | 810 B（Apple 原包） | **2457 B** |
+| `download_id` 末位 | `897` | **`900`** |
+| 是否转发到 Worker | 否 | **是** |
+
+⇒ **本仓库版本与上游行为一致**，托管之外没有任何行为变更。
+
+用户反馈：解锁正常。
+
+---
+
 ## 测试为什么分两个文件 · 一条重要的教训
 
 | 文件 | 测什么 | 耗时 |
