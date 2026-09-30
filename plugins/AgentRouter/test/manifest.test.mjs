@@ -97,44 +97,51 @@ t("上游原件确实没被改动过（改动只发生在副本上）", () => {
   assert.strictEqual(m.sources["plugins/AgentRouter/src/upstream-agentrouter.js"].bytes, 16104);
 });
 
-t("副本相对原件只改了三处：奖励正则、去打码、删掉 maskAccount", () => {
-  // 目的不是数行数，而是保证「只改了已知这几处」不会被后来的改动悄悄破坏。
-  // 做法：所有只在原件里出现的行（= 被删的），加上被改写的行，逐条分类。
+t("副本相对原件：删掉的行都有出处，且该删的都删了", () => {
+  // 这里只管**删除侧**。新增/改写侧不再逐行列白名单 ——
+  // formatStats / averageDailySpend 整个函数体都是新写的，逐行列必然漏，
+  // 漏一条就误报，白名单也就失去了意义。
+  // 改动的**行为正确性**由 test/stats.test.cjs 覆盖（纯函数，不联网，10 条用例），
+  // 关键的几条结构断言也单列在下面。
   const a = upstream.split("\n");
   const b = src.split("\n").filter(l => !l.includes("U+FF04"));
-  const bSet = new Set(b);
-  const removed = a.filter(l => !bSet.has(l));
-  const changed = b.filter(l => l !== a[l] && !a.includes(l));
+  const removed = a.filter(l => !new Set(b).has(l));
 
-  // 删掉的行必须全属于 maskAccount：2 处调用 + 函数定义（含空行）
+  const isKnownRemoved = (l) =>
+    /maskAccount|username\.split|name\.length|^function formatAmount|^\}$|^$/.test(l)
+    || /match\(\/\^每日签到成功/.test(l)          // 旧正则
+    || /findTodayCheckin|签到记录|log\/self|checkinRecord|let detail|detail =|最近记录数|今日签到记录/.test(l)
+    || /累计调用|request_count|stats =|stats \+=|const user = profile/.test(l)
+    || /const items = logs\.json\.data\.items;/.test(l);
   for (const r of removed) {
-    const ok = /maskAccount|username\.split|name\.length|^function formatAmount|^\}$|^$/
-      // 改写掉的旧正则那行也归到这里
-      .test(r) || /match\(\/\^每日签到成功/.test(r);
-    assert.ok(ok, "删掉了预期外的行: " + JSON.stringify(r));
+    assert.ok(isKnownRemoved(r), "删掉了预期外的行: " + JSON.stringify(r));
   }
-  assert.ok(removed.some(l => l.includes("maskAccount(accounts[0].username)")),
-    "应删掉单账号那处调用");
-  assert.ok(removed.some(l => l.includes("maskAccount(accounts[i].username)")),
-    "应删掉多账号那处调用");
-  assert.ok(removed.some(l => l.startsWith("function maskAccount")),
-    "应删掉 maskAccount 的定义");
-
-  // 改写的行：只该是奖励正则 + 两处插值
-  assert.strictEqual(changed.filter(l => l.includes("[$＄]")).length, 1, "奖励正则应只改一处");
-  assert.strictEqual(changed.filter(l => l.includes("👤 账号：${accounts[0].username}")).length, 1);
-  assert.strictEqual(changed.filter(l => l.includes("👤 账号 ${i + 1} · ${accounts[i].username}")).length, 1);
-  for (const c of changed) {
-    const ok = c.includes("[$＄]") || c.includes("${accounts[0].username}") || c.includes("${accounts[i].username}");
-    assert.ok(ok, "改写了预期外的行: " + JSON.stringify(c));
-  }
-  // 新增的注释行只有一行（总行数差 = 删掉的净行数 + 1）
-  assert.strictEqual(src.split("\n").length - a.length, -(a.length - b.length) + 1);
-
-  // 改后的正则必须半角全角都收
-  assert.ok(src.includes("[$＄]"), "改后的正则没收全角 ＄");
-  // 打码确实没了
+  // 上游的 maskAccount 整块确实没了
+  assert.ok(removed.some(l => l.startsWith("function maskAccount")), "应删掉 maskAccount 定义");
+  assert.ok(removed.some(l => l.includes("maskAccount(accounts[0].username)")), "应删掉单账号那处调用");
+  assert.ok(removed.some(l => l.includes("maskAccount(accounts[i].username)")), "应删掉多账号那处调用");
   assert.ok(!/maskAccount/.test(src), "仍有 maskAccount 引用");
+
+  // 该加的都在
+  assert.ok(src.includes("function formatStats"), "应新增 formatStats");
+  assert.ok(src.includes("function averageDailySpend"), "应新增 averageDailySpend");
+  assert.ok(src.includes("[$＄]"), "改后的正则没收全角 ＄");
+  assert.ok(src.includes("📅 今日消耗"), "应显示今日消耗");
+  assert.ok(src.includes("⏳ 按当前用量约可用"), "应显示可用天数外推");
+});
+
+t("签到判定和用量统计共用同一页日志（只拉一次）", () => {
+  // 两次 /api/log/self 就是白拉一次；findTodayCheckin 与 formatStats 应收同一个 items
+  const calls = [...src.matchAll(/request\("GET", "\/api\/log\/self/g)];
+  assert.strictEqual(calls.length, 1, "log/self 被请求了 " + calls.length + " 次");
+  assert.match(src, /const checkinRecord = items \? findTodayCheckin\(items, Date\.now\(\)\) : null;/);
+  assert.match(src, /stats = formatStats\(profile\.json\.data, items, quotaUnit\);/);
+});
+
+t("签到记录的 quota 字段为 0，奖励金额只能靠解析文案", () => {
+  // 2026-09-30 真机实测：type=4 的记录 quota=0，内容里才有金额。
+  // 这条断言是提醒：别想着改用 quota 字段取奖励金额。
+  assert.match(src, /系统日志的 quota 不是奖励/);
 });
 
 t("奖励金额正则收全角 ＄（U+FF04）—— 服务端实测返回的就是全角", () => {

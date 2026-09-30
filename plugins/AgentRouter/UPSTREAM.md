@@ -96,14 +96,53 @@ function maskAccount(username) {
 > 想要打码的话把 `src/agentrouter.js` 那两处插值改回 `${maskAccount(...)}` 并恢复函数即可，
 > 逐字节原件在 `src/upstream-agentrouter.js`。
 
-### 0.3 原件另存
+### 0.3 通知里加两项统计
+
+上游原本只显示「当前余额 / 累计消耗 / 累计调用」。服务端其实还返回了更有用的东西，
+用 2026-09-30 的真机返回逐字段看过（`test/probe.cjs`，跑一遍就能看全）：
+
+```
+👤 账号：（完整显示，此处省略）
+🎁 今日奖励：+$25.00（今日记录）
+💳 当前余额：$XXX.XX
+📉 累计消耗：$X.XX
+⚡ 累计调用：N 次
+⏳ 按当前用量约可用 N 个月        ← 新增
+🕒 签到时间：00:05:20
+```
+
+**新增的「按当前用量约可用 N 天」**：拿 `/api/log/self` 里 `type=2`（用量）的记录，
+按最近 3 个自然日算日均消耗，再拿 `quota` 除一下。
+
+**为什么只取 3 天**：日志是按时间倒序的，一页 20 条。取太久远的样本对「当前用量」没参考价值 ——
+一个月前的一天算进来，日均会被严重稀释。这个取舍是显式的，不是随手写的。
+
+**没加的**（探查过但价值不大）：
+
+| 字段 | 为什么没加 |
+|---|---|
+| `📅 今日消耗` | 实现了又删了：日志量大时今日用量可能落在更早的页里，显示一个不完整的数反而误导 |
+| `aff_code` / `aff_count` / `aff_quota` | 邀请返利，账号没在用 |
+| `last_login_time` | 签到脚本每次跑都会刷新它，显示出来没信息量 |
+| `version` / `start_time` | 服务端信息，不是账户信息 |
+| `announcements` | 15 条公告，塞进通知太长 |
+
+**顺手做的一处优化**：把 `/api/log/self` 的查询挪到了 `/api/user/self` 之前 ——
+签到判定和用量统计现在共用同一页 `items`，不用为算日均再拉一次。
+
+**顺带确认的一件事**：签到记录（`type=4`）的 `quota` 字段是 **0**，
+金额只存在于 `content` 文案里。所以解析文案是唯一途径，
+那个全角 `＄` 的正则修复是必需的 —— 换 `quota` 字段这条路走不通。
+这条写成了断言钉在 `test/manifest.test.mjs` 里，防止后来的人想当然去改用 `quota`。
+
+### 0.4 原件另存
 
 `src/upstream-agentrouter.js` 是逐字节原件（16104 B，sha256 `f688ff55…`），`manifest.json` 里
 `origin: patched-upstream` + `based-on` 指向它，与 PinDuoDuo 的 `src/upstream/` 同一做法。
 `vendor-check.py` 因此新增了 `PATCHED` 表 —— 这类文件不参与漂移比对（改了，比对必然报差异）。
 
-脚本层合计改了 3 处：奖励正则（+1 行注释）、两处打码调用、`maskAccount` 函数定义。
-副本 16009 B，原件 16104 B。
+脚本层合计改了：奖励正则（+1 行注释）、两处打码调用、`maskAccount` 函数删除、
+新增 `formatStats` / `averageDailySpend` 两个函数、日志查询挪位与共用。
 
 ### 1. 新增 `auto` 开关，默认关闭
 
@@ -171,15 +210,24 @@ function maskAccount(username) {
 
 ## 验证 · Verification
 
-`test/manifest.test.mjs`（22 个用例，`node test/manifest.test.mjs`）钉住清单与脚本两层：
+`test/manifest.test.mjs`（23 个用例）+ `test/stats.test.cjs`（10 个用例，不联网）：
+
+```bash
+node test/manifest.test.mjs     # 清单 + 脚本结构
+node test/stats.test.cjs        # formatStats / averageDailySpend 纯函数
+AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
+python3 tools/vendor-check.py --diff             # 上游是否更新
+```
+
+清单与脚本两层钉住：
 
 - 开关默认值、cron 挂上了、没有残留 `enable=true`
 - 没有多余的 `generic` 规则（cron 本身可手动触发）
 - 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key
 - `script-path` 全部指向本仓库托管副本
 - **上游原件的 sha256 与 manifest 一致**，且仍是 16104 B
-- **副本相对原件只改了已知三处**（奖励正则、两处打码调用、maskAccount 定义）——
-  逐行分类比对，删掉或改写任何预期外的行都会红
+- **副本相对原件删掉的行都有出处**，且该删的（打码三处、旧正则、旧统计拼装）都删干净了
+- **该加的都在**：两个新函数、今日消耗与可用天数的文案
 - **修复真的生效**：拿 2026-09-30 真机 `/api/log/self` 的原句（全角 `＄25.000000`）
   喂给脚本里那条正则，必须解析出 25；半角 `$25.00` 也仍要能解析
 - 托管件被改动能被抓到；`based-on` / `origin` 登记正确
@@ -198,3 +246,5 @@ function maskAccount(username) {
 | 往托管件尾部追加一行 | 1 项失败（sha256 对不上） |
 | 正则改回只认半角 `$` | 2 项失败 |
 | 改上游原件的 `BASE_URL` | 3 项失败 |
+| 复制一份 `/api/log/self` 查询 | 1 项失败（共用断言） |
+| 日均窗口从 3 天改成 30 天 | 1 项失败（老样本污染） |

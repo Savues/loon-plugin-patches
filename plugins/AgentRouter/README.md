@@ -28,12 +28,16 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | [upstream-agentrouter.lpx](upstream-agentrouter.lpx) | 上游清单原件 | Pristine upstream manifest |
 | [manifest.json](manifest.json) | sha256 登记（含 `based-on`） | sha256 registry |
 | [UPSTREAM.md](UPSTREAM.md) | 上游出处与逐条改动依据 | Provenance & per-change reasoning |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 回归测试，22 个用例 | Regression tests |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单与脚本结构回归，23 个用例 | Structure regression tests |
+| [test/stats.test.cjs](test/stats.test.cjs) | 统计函数单元测试，10 个用例（不联网） | Stats unit tests, offline |
+| [test/probe.cjs](test/probe.cjs) | 接口探查：打印各接口返回的字段结构 | Endpoint field-shape probe |
 | [test/run-live.cjs](test/run-live.cjs) | 真机全流程测试（读环境变量） | Live end-to-end test |
 
 ```bash
-node test/manifest.test.mjs        # 离线，22 个用例
+node test/manifest.test.mjs        # 离线，23 个用例
+node test/stats.test.cjs           # 离线，10 个用例
 AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
+node test/probe.cjs                # 想看服务端还返回了什么，跑这个
 python3 tools/vendor-check.py --diff            # 上游是否更新
 ```
 
@@ -48,11 +52,18 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
   ✅ 今日签到已确认
   👤 账号：（完整显示，此处省略）
   🎁 今日奖励：+$25.00（今日记录）
-  💳 当前余额：$671.57
-  📉 累计消耗：$3.43
-  ⚡ 累计调用：37 次
+  💳 当前余额：$XXX.XX
+  📉 累计消耗：$X.XX
+  ⚡ 累计调用：N 次
+  ⏳ 按当前用量约可用 N 个月
   🕒 签到时间：00:05:20
 ```
+
+`⏳ 按当前用量约可用` 是本仓库加的：拿日志里 `type=2`（用量）的记录按最近 3 天算日均，
+再拿余额除一下。取 3 天是显式取舍 —— 日志按时间倒序一页只有 20 条，
+取太久远的样本会把日均稀释掉。
+
+（上面示例里的账号、余额等数字都做了脱敏；`test/probe.cjs` 跑一遍能看服务端真实返回了什么。）
 
 **这条实测揪出了上游一个 bug**：修复前同一行显示的是
 「🎁 今日奖励：金额未识别，请到网站核对」——

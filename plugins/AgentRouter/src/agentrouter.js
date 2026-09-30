@@ -161,22 +161,8 @@ async function checkin({ username, password }, quotaUnit) {
         Cookie: cookie,
         "New-API-User": String(data.id),
     };
-    let stats;
-    try {
-        const profile = await request("GET", "/api/user/self", userHeaders, undefined, "余额查询");
-        const quota = profile.json.data && profile.json.data.quota;
-        if (profile.json.success !== true || typeof quota !== "number" || !Number.isFinite(quota)) {
-            throw new Error("余额查询未返回有效额度，请到网站核对");
-        }
-        const user = profile.json.data;
-        stats = `${formatAmount("💳 当前余额", quota, quotaUnit)}\n${formatAmount("📉 累计消耗", user.used_quota, quotaUnit)}`;
-        if (Number.isInteger(user.request_count) && user.request_count >= 0) {
-            stats += `\n⚡ 累计调用：${user.request_count} 次`;
-        }
-    } catch (error) {
-        stats = `💳 当前余额：查询失败\n📉 累计消耗：查询失败\n${error.message}`;
-    }
-    let checkinRecord = null;
+    // 日志只拉一次，签到判定和用量统计共用这一页
+    let items = null;
     let detail;
     try {
         const logs = await request("GET", "/api/log/self?p=1&page_size=20", {
@@ -186,12 +172,27 @@ async function checkin({ username, password }, quotaUnit) {
         if (logs.json.success !== true || !logs.json.data || !Array.isArray(logs.json.data.items)) {
             throw new Error("签到记录查询未成功，请在网站使用日志中核对");
         }
-        const items = logs.json.data.items;
-        checkinRecord = findTodayCheckin(items, Date.now());
-        debug(`最近记录数=${items.length}；今日签到记录=${!!checkinRecord}`);
-        if (!checkinRecord) detail = "最近 20 条日志中未找到今日签到记录，请到网站核对";
+        items = logs.json.data.items;
+        debug(`最近记录数=${items.length}`);
     } catch (error) {
         detail = error.message;
+    }
+    const checkinRecord = items ? findTodayCheckin(items, Date.now()) : null;
+    if (items) {
+        debug(`今日签到记录=${!!checkinRecord}`);
+        if (!checkinRecord) detail = `最近 ${items.length} 条日志中未找到今日签到记录，请到网站核对`;
+    }
+
+    let stats;
+    try {
+        const profile = await request("GET", "/api/user/self", userHeaders, undefined, "余额查询");
+        const quota = profile.json.data && profile.json.data.quota;
+        if (profile.json.success !== true || typeof quota !== "number" || !Number.isFinite(quota)) {
+            throw new Error("余额查询未返回有效额度，请到网站核对");
+        }
+        stats = formatStats(profile.json.data, items, quotaUnit);
+    } catch (error) {
+        stats = `💳 当前余额：查询失败\n📉 累计消耗：查询失败\n${error.message}`;
     }
 
     if (checkinRecord) {
@@ -210,6 +211,58 @@ async function checkin({ username, password }, quotaUnit) {
 function formatAmount(label, value, quotaUnit) {
     if (typeof value !== "number" || !Number.isFinite(value)) return `${label}：未返回`;
     return quotaUnit === null ? `${label}（原始额度）：${value}` : `${label}：$${(value / quotaUnit).toFixed(2)}`;
+}
+
+// 通知里的统计段。items 是同一页 /api/log/self，签到判定和用量统计共用。
+function formatStats(user, items, quotaUnit) {
+    const lines = [
+        formatAmount("💳 当前余额", user.quota, quotaUnit),
+        formatAmount("📉 累计消耗", user.used_quota, quotaUnit),
+    ];
+    if (Number.isInteger(user.request_count) && user.request_count >= 0) {
+        lines.push(`⚡ 累计调用：${user.request_count} 次`);
+    }
+    // 今日消耗：把本页 type=2（用量）且落在今天的记录加总。
+    // 只能统计本页覆盖到的部分 —— 日志量大时今日用量可能在更早的页里，故标注上限。
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const now = Date.now() / 1000;
+    const today = (items || []).filter((i) => i && i.type === 2
+        && typeof i.quota === "number" && Number.isFinite(i.quota)
+        && i.created_at * 1000 >= start.getTime() && i.created_at <= now);
+    if (today.length) {
+        const sum = today.reduce((s, i) => s + i.quota, 0);
+        const amount = quotaUnit === null ? String(sum) : "$" + (sum / quotaUnit).toFixed(4);
+        lines.push(`📅 今日消耗：${amount}（${today.length} 次）`);
+    }
+    // 距余额耗尽的粗略天数：按最近一天的消耗速度外推，没有消耗就不显示。
+    if (quotaUnit !== null && typeof user.quota === "number" && user.quota > 0) {
+        const spend = averageDailySpend(items, quotaUnit);
+        if (spend !== null) {
+            const days = user.quota / (spend * quotaUnit);
+            if (Number.isFinite(days) && days >= 1) {
+                lines.push(`⏳ 按当前用量约可用 ${days < 60 ? days.toFixed(0) + " 天" : (days / 30).toFixed(1) + " 个月"}`);
+            }
+        }
+    }
+    return lines.join("\n");
+}
+
+// 用本页日志里的用量记录算日均消耗。样本不足或跨天不完整时返回 null。
+function averageDailySpend(items, quotaUnit) {
+    if (!Array.isArray(items) || !items.length) return null;
+    const spend = items.filter((i) => i && i.type === 2
+        && typeof i.quota === "number" && Number.isFinite(i.quota) && i.quota > 0
+        && typeof i.created_at === "number" && Number.isFinite(i.created_at));
+    if (!spend.length) return null;
+    // 只统计最近 3 个自然日，样本太老对「当前用量」没参考价值
+    const latest = Math.max(...spend.map((i) => i.created_at));
+    const days = new Set(spend.filter((i) => (latest - i.created_at) < 3 * 86400)
+        .map((i) => new Date(i.created_at * 1000).toDateString())).size;
+    if (days < 1) return null;
+    const total = spend.filter((i) => (latest - i.created_at) < 3 * 86400)
+        .reduce((s, i) => s + i.quota, 0);
+    return total / days / quotaUnit;
 }
 
 function formatCheckinReward(content, isNew) {

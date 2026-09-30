@@ -25,7 +25,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.74** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.1** |
-| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修奖励金额识别<br>AgentRouter check-in · cron off by default · reward amount fixed | **v1.4** |
+| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修奖励识别 + 用量预估<br>AgentRouter check-in · cron off by default · reward fix + usage forecast | **v1.6** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
@@ -86,8 +86,10 @@ blockAds 合集里各有一份，Loon first-match-wins 先加载的赢。本插�
 根因是服务端返回的金额符号是**全角 `＄`（U+FF04）**而上游正则只认半角 `$`，
 字符类改成 `[$＄]` 修掉了。个人自用，所以也去掉了 `maskAccount()` 账号打码
 （代价是通知里会出现完整邮箱，锁屏可见 —— 已在插件 README 写明）。
-原件另存 `src/upstream-agentrouter.js`。22 个回归用例，其中一条逐行分类比对，
-保证副本相对原件只改了奖励正则与打码这两处。逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
+通知里还加了一项「按当前用量约可用 N 天」—— 拿日志里的用量记录按最近 3 天算日均再除。
+原件另存 `src/upstream-agentrouter.js`。23 个结构用例 + 10 个纯函数用例，
+其中一条钉住「签到记录的 quota 字段是 0，奖励金额只能解析文案」——
+免得后来的人想当然改用 quota 字段。逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
 曾一度怀疑解锁不完整（收据端点已伪造，`status.html` 仍在报 `status: FREE`），
 真机实测排除：**AdGuard 4.5.23 的会员态由收据校验结果决定，不读那个端点**。
 这印证了当初不拦它是对的 —— 手上只有 `status: FREE` 一份样本，
@@ -117,8 +119,10 @@ real-world effectiveness is explicitly unverified.
 reading "amount not recognised", because the server returns a **full-width `＄` (U+FF04)**
 while the upstream regex only accepts a half-width `$`. The character class is now `[$＄]`.
 `maskAccount()` is dropped for personal use — the cost, a full e-mail visible on the
-lock screen, is stated in the plugin README. The pristine original is kept alongside,
-and 22 tests pin that the copy differs from it by exactly those two changes.
+lock screen, is stated in the plugin README. The notification also gained a
+"days left at current usage" line, derived from the usage records in the log page
+(a 3-day window, explicitly chosen). The pristine original is kept alongside;
+33 tests across two files cover structure and the pure stat functions.
 
 ---
 
