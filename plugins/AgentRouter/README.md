@@ -6,9 +6,9 @@
 
 | | 中文 | English |
 |---|---|---|
-| 改动范围 | **仅清单层**：1 个开关 + cron 挂 `enable` + 1 条 generic | **Manifest only**: one switch, `enable` on cron, one `generic` |
-| 脚本改动 | **0 行**，托管进 `src/`，sha256 由 `manifest.json` 钉死 | **None**, vendored into `src/`, sha256 pinned in `manifest.json` |
-| 依据 | 多设备重复签到 | Duplicate check-ins across devices |
+| 清单改动 | 1 个开关 + cron 挂 `enable` + 1 条 generic | One switch, `enable` on cron, one `generic` |
+| 脚本改动 | **1 行正则**（修奖励金额识别不出来），原件另存 `src/upstream-/` | **One regex** (reward amount never parsed); pristine copy kept |
+| 依据 | 多设备重复签到；真机实测奖励显示「金额未识别」 | Duplicate check-ins; live test showed reward unparsed |
 
 ---
 
@@ -23,14 +23,44 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | [AgentRouter.lpx](AgentRouter.lpx) | 插件清单 | Plugin manifest |
-| [src/agentrouter.js](src/agentrouter.js) | 上游脚本原件，逐字节未改 | Upstream script, byte-for-byte |
-| [upstream-agentrouter.lpx](upstream-agentrouter.lpx) | 上游清单原件 | Upstream manifest, byte-for-byte |
-| [manifest.json](manifest.json) | 托管件 sha256 登记 | sha256 registry |
+| [src/agentrouter.js](src/agentrouter.js) | 上游脚本 + 1 行修复 | Upstream script, one fix |
+| [src/upstream-agentrouter.js](src/upstream-agentrouter.js) | 上游脚本原件，逐字节未改 | Pristine upstream script |
+| [upstream-agentrouter.lpx](upstream-agentrouter.lpx) | 上游清单原件 | Pristine upstream manifest |
+| [manifest.json](manifest.json) | sha256 登记（含 `based-on`） | sha256 registry |
 | [UPSTREAM.md](UPSTREAM.md) | 上游出处与逐条改动依据 | Provenance & per-change reasoning |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单回归测试，18 个用例 | Manifest regression tests |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 回归测试，22 个用例 | Regression tests |
+| [test/run-live.cjs](test/run-live.cjs) | 真机全流程测试（读环境变量） | Live end-to-end test |
 
-跑测试：`node test/manifest.test.mjs`
-查上游是否更新：`python3 tools/vendor-check.py --diff`
+```bash
+node test/manifest.test.mjs        # 离线，22 个用例
+AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
+python3 tools/vendor-check.py --diff            # 上游是否更新
+```
+
+---
+
+## 真机实测 · Live test
+
+2026-09-30 用真账号跑通全流程（`AGENTROUTER` 环境变量，格式 `用户名#密码`）：
+
+```
+【通知】AgentRouter
+  ✅ 今日签到已确认
+  👤 账号：tg***ax
+  🎁 今日奖励：+$25.00（今日记录）
+  💳 当前余额：$671.57
+  📉 累计消耗：$3.43
+  ⚡ 累计调用：37 次
+  🕒 签到时间：00:05:20
+```
+
+**这条实测揪出了上游一个 bug**：修复前同一行显示的是
+「🎁 今日奖励：金额未识别，请到网站核对」——
+服务端 `/api/log/self` 返回的金额符号是**全角 `＄`（U+FF04）**，上游正则只认半角 `$`。
+本仓库把字符类改成 `[$＄]` 修掉了，详见 [UPSTREAM.md](UPSTREAM.md)。
+
+`test/run-live.cjs` 会把响应里的账号/密码/token 字段自动替换成 `***`，
+账号名也只显示 `tg***ax` 这种脱敏形式。
 
 ---
 
@@ -77,7 +107,8 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 3. **补 `generic` 手动触发** —— 上游只有 cron，开关一关插件就完全没有可点项，
    没法验证账号密码填对没有。这条规则刻意不写 `enable=`。
 
-`argument=` 列表、上游 4 个 Argument、cron 时间、脚本本体**全部未动**。
+`argument=` 列表、上游 4 个 Argument、cron 时间**全部未动**。
+脚本只改了奖励金额那一行正则（修一个真机实测出来的显示 bug）。
 逐条依据见 [UPSTREAM.md](UPSTREAM.md)。
 
 ---

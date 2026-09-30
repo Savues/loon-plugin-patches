@@ -219,8 +219,7 @@ function formatAmount(label, value, quotaUnit) {
 
 function formatCheckinReward(content, isNew) {
     // 系统日志的 quota 不是奖励；只解析实测详情中明确标注的美元金额。
-    // 金额前的符号实测是全角 ＄（U+FF04），不是半角 $ —— 半角全角都收。
-    const match = content.trim().match(/^每日签到成功，\s*增加额度\s*[$＄]\s*(\d+(?:\.\d+)?)\s*额度$/);
+    const match = content.trim().match(/^每日签到成功，\s*增加额度\s*\$\s*(\d+(?:\.\d+)?)\s*额度$/);
     const amount = match ? Number(match[1]) : NaN;
     const label = isNew ? "🎁 本次奖励" : "🎁 今日奖励";
     if (!Number.isFinite(amount)) return `${label}：金额未识别，请到网站核对`;

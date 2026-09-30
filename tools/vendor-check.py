@@ -45,8 +45,9 @@ SOURCES = {
         'https://reven.jsforbaby.workers.dev/reven/loon-redirect.js',
     'plugins/Reven-Mirror/upstream-Reven.lpx':
         'https://reven.jsforbaby.workers.dev/reven/reven.lpx',
-    # AgentRouter：清单原件与脚本原件一并托管，脚本本身逐字节未改
-    'plugins/AgentRouter/src/agentrouter.js':
+    # AgentRouter：上游原件存 src/upstream-，src/ 下那份改了奖励正则，
+    # 不参与漂移比对（同 PinDuoDuo 的做法）
+    'plugins/AgentRouter/src/upstream-agentrouter.js':
         'https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.js',
     'plugins/AgentRouter/upstream-agentrouter.lpx':
         'https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.lpx',
@@ -56,6 +57,13 @@ SOURCES = {
 OWN_SCRIPTS = {
     'plugins/PinDuoDuo/src/homepage.response.js': 'plugins/PinDuoDuo/manifest.json',
     'plugins/PinDuoDuo/src/stub.response.js': 'plugins/PinDuoDuo/manifest.json',
+}
+
+# 改过上游脚本的副本：无上游，不做漂移比对，但登记 sha256 以便查本地完整性
+# 值 = (登记到哪个 manifest, 它基于哪个上游原件)
+PATCHED = {
+    'plugins/AgentRouter/src/agentrouter.js':
+        ('plugins/AgentRouter/manifest.json', 'plugins/AgentRouter/src/upstream-agentrouter.js'),
 }
 
 # 源文件登记在哪个 manifest.json（显式列出，不按目录推导：
@@ -99,7 +107,8 @@ def main():
     a = ap.parse_args()
 
     if a.manifest:
-        for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values()}):
+        for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values(),
+                    *(m for m, _ in PATCHED.values())}):
             src = {}
             for rel, url in SOURCES.items():
                 if MANIFEST_OF.get(rel) != mf:
@@ -112,6 +121,12 @@ def main():
                 p = ROOT / rel
                 src[rel] = {'upstream': None, 'origin': 'self-authored',
                             'bytes': p.stat().st_size, 'sha256': sha256(p)}
+            for rel, (m, base) in PATCHED.items():
+                if m != mf:
+                    continue
+                p = ROOT / rel
+                src[rel] = {'upstream': None, 'origin': 'patched-upstream', 'based-on': base,
+                            'bytes': p.stat().st_size, 'sha256': sha256(p)}
             doc = {'_comment': 'Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. '
                                'Regenerate with: python3 tools/vendor-check.py --manifest',
                    'sources': src}
@@ -121,7 +136,8 @@ def main():
         return 0
 
     bad = 0
-    for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values()}):
+    for mf in sorted({*MANIFEST_OF.values(), *OWN_SCRIPTS.values(),
+                    *(m for m, _ in PATCHED.values())}):
         mp = ROOT / mf
         if not mp.exists():
             print('缺少 %s，先跑 --manifest 生成' % mf, file=sys.stderr)
@@ -129,10 +145,12 @@ def main():
             continue
         want = json.loads(mp.read_text(encoding='utf-8'))['sources']
         for rel in [r for r in SOURCES if MANIFEST_OF.get(r) == mf] \
-                 + [r for r, m in OWN_SCRIPTS.items() if m == mf]:
+                 + [r for r, m in OWN_SCRIPTS.items() if m == mf] \
+                 + [r for r, (m, _) in PATCHED.items() if m == mf]:
             p = ROOT / rel
             name = rel.split('/')[-1]
             own = rel in OWN_SCRIPTS
+            patched = rel in PATCHED
             if not p.exists():
                 print('❌ %s: 本地缺失' % name)
                 bad += 1
@@ -151,8 +169,9 @@ def main():
                     bad += 1
                 continue
             ok = got == exp
+            tag = '  (自研)' if own else '  (改自上游)' if patched else ''
             print('%s %s  %7d B  %s…%s' % ('✅' if ok else '⚠️ ', name, p.stat().st_size,
-                                           got[:16], '  (自研)' if own else ''))
+                                           got[:16], tag))
             if not ok:
                 print('    期望 %s… —— 本地与 manifest 不符' % (exp or '?')[:16])
                 bad += 1

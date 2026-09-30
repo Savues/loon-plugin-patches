@@ -26,13 +26,13 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 
 ## 改动清单 · Change List
 
-上游 965 B → 本版 1615 B，**脚本 0 行改动**。
+上游 965 B → 本版 1615 B；脚本 16104 B → 16211 B（**1 行正则 + 1 行注释**）。
 
 ### 0. 托管上游原件，script-path 改指本仓库
 
 ```diff
 -cron "0 9 * * *" script-path=https://raw.githubusercontent.com/MaYIHEI/paperclip/.../agentrouter.js, ...
-+generic/cron script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentRouter/src/agentrouter.js, ...
++cron "0 9 * * *" script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentRouter/src/agentrouter.js, ...
 ```
 
 **依据**：托管的意义是「上游没了也能用」。作者的个人仓库不是长期稳定承诺的 CDN，
@@ -42,6 +42,39 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 它会告诉你上游出了新版本，由你决定跟不跟。
 
 `#!icon` **仍指向上游**（每次现取，不托管）—— 与 AdGuard-Spoof 一致。
+
+### 0.1 脚本层唯一的改动：修奖励金额永远识别不出来
+
+**真机实测（2026-09-30）**：脚本跑通、签到成功，但通知里写的是
+「🎁 今日奖励：**金额未识别，请到网站核对**」。
+
+**根因**：`/api/log/self` 返回的签到记录长这样：
+
+```
+每日签到成功，增加额度 ＄25.000000 额度
+        ↑ 全角 ＄（U+FF04）
+```
+
+上游正则只认半角 `$`：
+
+```diff
+-const match = content.trim().match(/^每日签到成功，\s*增加额度\s*\$\s*(\d+(?:\.\d+)?)\s*额度$/);
++// 金额前的符号实测是全角 ＄（U+FF04），不是半角 $ —— 半角全角都收。
++const match = content.trim().match(/^每日签到成功，\s*增加额度\s*[$＄]\s*(\d+(?:\.\d+)?)\s*额度$/);
+```
+
+字符类 `[$＄]` 半角全角都收，**不破坏**原本能显示的场景。
+
+**修复前后**（同一账号同一天）：
+
+| | 通知正文 |
+|---|---|
+| 修复前 | 🎁 今日奖励：金额未识别，请到网站核对 |
+| 修复后 | 🎁 今日奖励：**+$25.00**（今日记录） |
+
+**原件另存**：`src/upstream-agentrouter.js` 是逐字节原件，`manifest.json` 里
+`origin: patched-upstream` + `based-on` 指向它，与 PinDuoDuo 的 `src/upstream/` 同一做法。
+`vendor-check.py` 因此新增了 `PATCHED` 表 —— 这类文件不参与漂移比对（改了，比对必然报差异）。
 
 ### 1. 新增 `auto` 开关，默认关闭
 
@@ -102,26 +135,35 @@ Provenance and per-change reasoning; user-facing notes live in README.md.
 | 改 cron 时间 | 上游定的 09:00 无问题，不动 |
 | 加 `[MITM]` | 不需要，本插件不抓包 |
 | 托管 icon | 每次现取即可，托管反而要跟着上游改 size |
+| 动 `findTodayCheckin` | 签到判定（`type===4` + 内容含「签到成功」）实测正确 |
 
 ---
 
 ## 验证 · Verification
 
-`test/manifest.test.mjs`（18 个用例，`node test/manifest.test.mjs`）钉住：
+`test/manifest.test.mjs`（22 个用例，`node test/manifest.test.mjs`）钉住清单与脚本两层：
 
 - 开关默认值、cron 挂上了、没有残留 `enable=true`
 - `generic` 存在且未被开关挡住
-- 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key，两条规则一致
-- `script-path` 全部指向本仓库托管副本，无 `[MITM]` 段
-- **托管件被改动能被抓到**：两个原件的 sha256 与 `manifest.json` 逐一比对
-- 署名与 homepage 正确
+- 上游 4 个 Argument 一条没删，`argument=` 仍是对应的 4 个 key
+- `script-path` 全部指向本仓库托管副本
+- **上游原件的 sha256 与 manifest 一致**，且仍是 16104 B
+- **副本相对原件只差正则那一行**（去掉注释后逐行比对，差异处数必须为 1）
+- **修复真的生效**：拿 2026-09-30 真机 `/api/log/self` 的原句（全角 `＄25.000000`）
+  喂给脚本里那条正则，必须解析出 25；半角 `$25.00` 也仍要能解析
+- 托管件被改动能被抓到；`based-on` / `origin` 登记正确
 
-`python3 tools/vendor-check.py --hash` 校验本地完整性，`--diff` 拉上游比对漂移（当前均一致）。
+`test/run-live.cjs` 用环境变量 `AGENTROUTER`（格式 `用户名#密码`）跑**真实网络**全流程，
+响应里的账号字段自动脱敏。
 
-三条反向验证，确认不是空断言：
+`python3 tools/vendor-check.py --hash` 校验本地完整性，`--diff` 拉上游比对漂移。
+
+反向验证，确认不是空断言：
 
 | 注入的错误 | 测试反应 |
 |---|---|
 | `enable={auto}` 改回 `enable=true` | 2 项失败 |
 | `script-path` 改回指向上游 | 1 项失败 |
-| 往托管脚本 / 清单原件尾部追加一行 | 1 项失败（sha256 对不上） |
+| 往托管件尾部追加一行 | 1 项失败（sha256 对不上） |
+| 正则改回只认半角 `$` | 2 项失败 |
+| 改上游原件的 `BASE_URL` | 3 项失败 |

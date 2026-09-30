@@ -1,7 +1,7 @@
 {
   "_comment": "Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. Regenerate with: python3 tools/vendor-check.py --manifest",
   "sources": {
-    "plugins/AgentRouter/src/agentrouter.js": {
+    "plugins/AgentRouter/src/upstream-agentrouter.js": {
       "upstream": "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.js",
       "bytes": 16104,
       "sha256": "f688ff55fa51dcdc029ba0f2a79e3262618c2fef04fff1d64fdb9ae1bdd7cdb5"
@@ -10,6 +10,13 @@
       "upstream": "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.lpx",
       "bytes": 965,
       "sha256": "525501a70e2958a7546f67a4b9a7eb1abf78b624f930e5d53eee9164c8477b4b"
+    },
+    "plugins/AgentRouter/src/agentrouter.js": {
+      "upstream": null,
+      "origin": "patched-upstream",
+      "based-on": "plugins/AgentRouter/src/upstream-agentrouter.js",
+      "bytes": 16211,
+      "sha256": "c3060e653a74d6050d48cf7c3c81472e62b266e94c5ef795e70e65486786a106"
     }
   }
 }

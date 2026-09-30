@@ -1,9 +1,11 @@
 /*
- * AgentRouter 清单回归测试。Node 里跑：node test/manifest.test.mjs
+ * AgentRouter 回归测试。Node 里跑：node test/manifest.test.mjs
  *
- * 本插件只改清单层，脚本逐字节沿用上游，因此这里只校验清单：
- * 开关默认关闭、cron 挂上开关、手动触发不受开关控制，
- * 以及上游的 Argument / argument= 对应关系没被改坏。
+ * 覆盖两层：
+ *   清单 —— 开关默认关闭、cron 挂上开关、手动触发不受开关控制，
+ *           上游的 Argument / argument= 对应关系没被改坏；
+ *   脚本 —— src/agentrouter.js 相对上游原件只改了奖励金额的正则，
+ *           且这份修改确实生效（拿服务端实测返回的那句话喂进去）。
  */
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -11,6 +13,8 @@ import assert from "node:assert";
 
 const ROOT = new URL("../", import.meta.url);
 const lpx = readFileSync(new URL("AgentRouter.lpx", ROOT), "utf8");
+const src = readFileSync(new URL("src/agentrouter.js", ROOT), "utf8");
+const upstream = readFileSync(new URL("src/upstream-agentrouter.js", ROOT), "utf8");
 
 let pass = 0, fail = 0;
 function t(name, fn) {
@@ -86,9 +90,46 @@ t("script-path 全部指向本仓库托管的副本", () => {
 });
 
 t("托管的脚本与清单原件都在仓库里", () => {
-  for (const f of ["src/agentrouter.js", "upstream-agentrouter.lpx"]) {
+  for (const f of ["src/agentrouter.js", "src/upstream-agentrouter.js",
+                   "upstream-agentrouter.lpx"]) {
     assert.ok(existsSync(new URL(f, ROOT)), "缺 " + f);
   }
+});
+
+t("上游原件确实没被改动过（改动只发生在副本上）", () => {
+  const m = JSON.parse(readFileSync(new URL("manifest.json", ROOT), "utf8"));
+  const actual = createHash("sha256").update(upstream).digest("hex");
+  assert.strictEqual(actual,
+    m.sources["plugins/AgentRouter/src/upstream-agentrouter.js"].sha256);
+  assert.strictEqual(m.sources["plugins/AgentRouter/src/upstream-agentrouter.js"].bytes, 16104);
+});
+
+t("副本相对原件只改了奖励正则那一行（外加一行注释）", () => {
+  // 去掉新增的注释行后，两份必须只剩正则那一处差异 ——
+  // 这比数 diff 处数更直观，也保证「只改了奖励正则」不会被后来的改动悄悄破坏。
+  const a = upstream.split("\n");
+  const b = src.split("\n").filter(l => !l.includes("U+FF04"));
+  assert.strictEqual(b.length, a.length, "去掉注释后行数应相同");
+  const diff = [];
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff.push([a[i], b[i]]);
+  assert.strictEqual(diff.length, 1, "差异处数应为 1，实际 " + diff.length);
+  assert.ok(/match\(\/\^每日签到成功/.test(diff[0][0]), "改的不是那条正则");
+  // 改后的正则必须半角全角都收
+  assert.ok(diff[0][1].includes("[$＄]"), "改后的正则没收全角 ＄");
+  // 且只多了这一行注释
+  assert.strictEqual(src.split("\n").length - a.length, 1);
+});
+
+t("奖励金额正则收全角 ＄（U+FF04）—— 服务端实测返回的就是全角", () => {
+  const rx = /每日签到成功，\s*增加额度\s*[$＄]\s*(\d+(?:\.\d+)?)\s*额度$/;
+  const m = "每日签到成功，增加额度 ＄25.000000 额度".trim().match(rx);
+  assert.ok(m, "全角 ＄ 匹配失败");
+  assert.strictEqual(Number(m[1]), 25);
+  assert.ok("每日签到成功，增加额度 $25.00 额度".trim().match(rx), "半角 $ 匹配失败");
+});
+
+t("脚本源码里那条正则确实半角全角都收", () => {
+  assert.ok(src.includes("[$＄]"), "未找到同时含半角 $ 与全角 ＄ 的字符类");
 });
 
 t("manifest.json 登记了这两个文件", () => {
@@ -100,18 +141,19 @@ t("manifest.json 登记了这两个文件", () => {
   }
 });
 
-t("清单原件与脚本原件的 sha256 都与 manifest 一致（托管件没被改动）", () => {
+t("清单原件与上游脚本原件的 sha256 都与 manifest 一致", () => {
   const m = JSON.parse(readFileSync(new URL("manifest.json", ROOT), "utf8"));
-  for (const f of ["upstream-agentrouter.lpx", "src/agentrouter.js"]) {
+  for (const f of ["upstream-agentrouter.lpx", "src/upstream-agentrouter.js"]) {
     const actual = createHash("sha256").update(readFileSync(new URL(f, ROOT))).digest("hex");
     assert.strictEqual(actual, m.sources["plugins/AgentRouter/" + f].sha256, f + " 已被改动");
+    assert.match(m.sources["plugins/AgentRouter/" + f].upstream,
+      /^https:\/\/raw\.githubusercontent\.com\/MaYIHEI\//);
   }
-  assert.strictEqual(
-    m.sources["plugins/AgentRouter/upstream-agentrouter.lpx"].upstream,
-    "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.lpx");
-  assert.strictEqual(
-    m.sources["plugins/AgentRouter/src/agentrouter.js"].upstream,
-    "https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/agentrouter.js");
+  // 改过的副本单独登记，标注 based-on，不参与漂移比对
+  // 注意：based-on 带连字符，必须用方括号取，不能写 patched.based-on
+  const patched = m.sources["plugins/AgentRouter/src/agentrouter.js"];
+  assert.strictEqual(patched["origin"], "patched-upstream");
+  assert.strictEqual(patched["based-on"], "plugins/AgentRouter/src/upstream-agentrouter.js");
 });
 
 t("icon 仍指向上游（每次现取，不托管）", () => {
