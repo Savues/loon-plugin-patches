@@ -18,9 +18,10 @@ BILI = re.compile(
     r'|hdslb\.com|manhuaren)', re.I)
 YT = re.compile(r'(youtube|googlevideo|youtu\.be|ytimg)', re.I)
 SPOTIFY = re.compile(r'spotify', re.I)
+PDD = re.compile(r'(pinduoduo|yangkeduo|pddpic)', re.I)
 
 RULE_SECTS = ('REWRITE', 'SCRIPT', 'RULE')
-REMOVALS = (('B 站', BILI), ('YouTube', YT), ('Spotify', SPOTIFY))
+REMOVALS = (('B 站', BILI), ('YouTube', YT), ('Spotify', SPOTIFY), ('拼多多', PDD))
 
 
 def norm(t):
@@ -86,13 +87,14 @@ def main():
     nb = s.count('[bilibili-removed]')
     ny = s.count('[youtube-removed]')
     ns = s.count('[spotify-removed]')
+    np_ = s.count('[pinduoduo-removed]')
     if bad:
         for b in bad:
             print('::error::' + b)
         print('::error::退场或结构校验未通过，不要推送这个产物')
         return 1
-    print(f'::notice::通过 —— B 站已注释 {nb} 条、YouTube {ny} 条、Spotify {ns} 条，'
-          f'MITM 无残留，{len(s.splitlines())} 行 / {len(s.encode())} B')
+    print(f'::notice::通过 —— B 站已注释 {nb} 条、YouTube {ny} 条、Spotify {ns} 条、'
+          f'拼多多 {np_} 条，MITM 无残留，{len(s.splitlines())} 行 / {len(s.encode())} B')
     return 0
 
 

@@ -30,7 +30,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
-| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify 部分整体退场<br>Bilibili + YouTube + Spotify removal from the big collection | 自动 Auto |
+| [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 2 个真开关<br>Spotify ad-block, three sources merged, two working switches | **v1.1** |
 
 ### 托管了脚本的十个插件
@@ -48,6 +48,12 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 修掉了两个上游缺陷（切断了消息推送 WebSocket、jq 空值崩溃），依据是一份未开插件的基线 HAR。
 上游脚本里还硬编码了一个 kelee.one 的 chunk 地址（会把官方 JS 换成第三方版本），已连同 chunk 一并收进仓库。
 `src/homepage.response.js` 是自研的：底栏按钮可自定义、jq 空值安全、同一 URL 只留一条处理规则。
+
+⚠️ **本插件装上还不够，blockAds 合集必须用退场版**。合集里那两条拼多多
+`[Rewrite]`（开屏 `cappuccino/splash`、会场 `hungary/global/homepage`）在
+**请求阶段**就返回假响应，比本插件的响应体脚本早一步，`api_stub` / `chat_stub` /
+`order_stub` 三个开关对这两个端点**完全失效** —— 2026-09-30 两台真机抓包里
+这些记录的 `script` 字段一律为空。已在 [patches/README.md](patches/README.md) 里退场。
 
 `YouTube-Dedup` —— 第三条路：**上游解析不了某个端点时，另写自研脚本顶上**。
 上游给 `config` 响应的 `ColdConfigGroup` 写的是空 schema，解析必然崩溃（2026-09-29 真机抓包证实），
@@ -156,8 +162,8 @@ and to #5 (upstream product name kept in the directory and `#!name`).
 
 ## 🔄 自动同步 · Auto Sync
 
-`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube + Spotify）
-Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify removal patch re-applied.
+`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube + Spotify + 拼多多）
+Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo removal patch re-applied.
 
 [`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)
 

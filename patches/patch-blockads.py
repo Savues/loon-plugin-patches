@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-patch-blockads.py —— 把 blockAds.plugin 的【B 站 + YouTube】部分整体退场
+patch-blockads.py —— 把 blockAds.plugin 的【B 站 / YouTube / Spotify / 拼多多】部分整体退场
 
 为什么需要
 ----------
@@ -8,7 +8,7 @@ fmz200/wool_scripts 的 blockAds.plugin 由 tools/splitRules/mergeLoon.js 从
 db/inaisi.db（3.2MB 二进制规则库）自动生成，跟踪 main 分支，无 tag/release。
 无法固定版本引用，只能本地生成打过补丁的副本。
 
-退场的两块
+退场的四块
 ----------
 **B 站**（与 Bilibili-Dedup 重复）
 1. **内置重复脚本**：kokoryh 的 bilibili.protobuf.*.js 与独立去广告插件同源，
@@ -26,14 +26,33 @@ db/inaisi.db（3.2MB 二进制规则库）自动生成，跟踪 main 分支，�
 5. **无 enable 保护的 Rewrite**：rr*.googlevideo.com/initplayback reject-dict
    两条常无 enable 保护，会打断 UMP 与字幕翻译。
 
+**Spotify**（与 Spotify-Dedup 重复）
+6. 同一批 pendragon / bootstrap / gae2-spclient 端点与 Spotify-Dedup 重复，
+   两份 rewrite 抢同一条 URL，参数（tab / useractivity）也归它管。
+
+**拼多多**（与 PinDuoDuo 冲突，而且更严重）
+7. **合集无条件，且抢在用户插件之前**：合集里
+   `api.(pinduoduo|yangkeduo).com/api/cappuccino/splash` → reject(404)、
+   `api.pinduoduo.com/api/aquarius/hungary/global/homepage?` → reject-dict
+   都是 [Rewrite] **请求阶段**就返回假响应。请求阶段先结束，
+   响应体脚本根本没有机会跑 —— 2026-09-30 两台真机抓包里这批记录的
+   `script` 字段一律为空，而 PinDuoDuo 的 api_stub / chat_stub / order_stub
+   开关对这两个端点**完全失效**，用户在参数页怎么调都没用。
+8. 其余 7 条（t-dsp / images.pinduoduo / video-dsp.pddpic / 多多严选）虽是纯广告
+   端点，但同属一个 App，一并退场，免得日后上游再加新的进来。
+
 本补丁
 ------
-把这两块的规则整体注释掉，能力交给本仓库的独立插件承担：
+把这四块的规则整体注释掉，能力交给本仓库的独立插件承担：
 
-  [Rewrite]  B 站 + YouTube → 注释
-  [Script]   B 站 + YouTube → 注释
-  [Rule]     B 站 + YouTube → 注释
-  [MITM]     两块用到的域名 → 移除
+  [Rewrite]  四块 → 注释
+  [Script]   四块 → 注释
+  [Rule]     四块 → 注释
+  [MITM]     四块用到的域名 → 移除
+
+拼多多那 6 个 MITM 域名（api.pinduoduo.com / api.yangkeduo.com /
+mobile.yangkeduo.com / t-dsp.pinduoduo.com / images.pinduoduo.com /
+video-dsp.pddpic.com）移除后不影响 PinDuoDuo —— 它自带 [MitM]。
 
 其余 700+ App 的规则逐字节保持原样。
 
@@ -61,6 +80,16 @@ YT = re.compile(r'(youtube|googlevideo|youtu\.be|ytimg)', re.I)
 # 判定「属于 Spotify」。能力交给本仓库的 Spotify-Dedup 承担
 # （那一份合了 kelee 的开关版脚本、730 的 gae2 老端点规则与 QUIC 拦截）。
 SPOTIFY = re.compile(r'spotify', re.I)
+# 判定「属于拼多多」。能力交给本仓库的 PinDuoDuo 承担。
+# ⚠️ 这三条实测是「抢在用户插件之前、且无法用任何开关关掉」的：
+#   2026-09-30 两台真机抓包确认，合集里
+#     api.(pinduoduo|yangkeduo).com/api/cappuccino/splash        reject
+#     api.pinduoduo.com/api/aquarius/hungary/global/homepage?  reject-dict
+#   都是 [Rewrite] **请求阶段**直接返回假响应，
+#   于是 PinDuoDuo 自己的 stub.response.js 根本没机会跑（Loon 记录里 script:[] 为证），
+#   api_stub / chat_stub / order_stub 等开关对这两个端点**完全失效**。
+#   pddpic.com 是拼多多的图片/素材 CDN，只此一家，不会有别的 App 用。
+PDD = re.compile(r'(pinduoduo|yangkeduo|pddpic)', re.I)
 SKIP_SECT = {'ARGUMENT', 'GENERAL', 'MITM'}   # MITM 由 strip_mitm 单独处理
 
 # (名字, 注释标记, 域名正则)
@@ -68,6 +97,7 @@ REMOVALS = (
     ('B 站', 'bilibili-removed', BILI),
     ('YouTube', 'youtube-removed', YT),
     ('Spotify', 'spotify-removed', SPOTIFY),
+    ('拼多多', 'pinduoduo-removed', PDD),
 )
 
 
