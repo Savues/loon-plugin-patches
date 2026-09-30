@@ -159,5 +159,33 @@ t("公告字段缺失 → 不崩", () => {
   if (formatAnnouncement([{ id: 1 }]) !== "") throw new Error("内容缺失时不该有输出");
 });
 
+t("续行缩进与首行「📢 」等宽（emoji 1 + 空格 0.5 = 1.5 单位）", () => {
+  // 真机截图暴露的缺陷：第一版缩进 2 个半角空格（1 个单位），
+  // 续行起点比首行文字靠左半个字，肉眼可见。
+  const w = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 1 : 0.5), 0);
+  // 用 2026-09-30 真机那条公告的实际文案（含 "和 GPT" 之间的空格 ——
+  // 断行点正好落在那个空格后面，是「某行多缩进一格」缺陷的触发条件）
+  const text = "📢 08-28 为保障服务长期运行，Claude 和 GPT 模型已调整为限量供应，"
+    + "每日分批次发放，用完即止。新的投放时间为🕙北京时间10:00和19:00。";
+  const lines = wrap(text, 3).split("\n");
+  // 所有续行的缩进必须完全一致，且等于首行「📢 」的宽度
+  const leads = lines.map(l => w(/^(\s*)/.exec(l)[1]));
+  if (new Set(leads.slice(1)).size !== 1) {
+    throw new Error("各续行缩进不一致: " + JSON.stringify(leads));
+  }
+  // 缩进宽度必须等于首行「📢 」的宽度
+  const prefix = w("📢 ");
+  if (leads[1] !== prefix) throw new Error("缩进 " + leads[1] + " 单位 ≠ 首行前缀 " + prefix + " 单位");
+});
+
+t("中文标点后的空格被去掉（原文段落换行压成的空格）", () => {
+  reset();
+  const out = formatAnnouncement([{
+    id: 99, publishDate: "2026-09-30T00:00:00.000Z",
+    content: "第一段结束。\n\n第二段开始。",
+  }]);
+  if (/。\s+第/.test(out)) throw new Error("中文标点后仍有空格: " + out);
+});
+
 console.log("\n" + pass + " 通过, " + fail + " 失败");
 process.exit(fail ? 1 : 0);

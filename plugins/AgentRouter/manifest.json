@@ -15,8 +15,8 @@
       "upstream": null,
       "origin": "patched-upstream",
       "based-on": "plugins/AgentRouter/src/upstream-agentrouter.js",
-      "bytes": 19216,
-      "sha256": "5b9e3389edd566e013b06f8bd810b88cf468d08d17818cb377f7d9fb3171ed6b"
+      "bytes": 19891,
+      "sha256": "207a212c92d528bfee8189ae12f1551506b2ed77f1353129037ad672a7904ced"
     }
   }
 }

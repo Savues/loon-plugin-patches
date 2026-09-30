@@ -246,7 +246,11 @@ function formatAnnouncement(announcements) {
     if (seen !== null && seen !== undefined && seen !== "" && String(latest.id) === String(seen)) return "";
     $.setdata(String(latest.id), ANNOUNCE_KEY);
     const date = String(latest.publishDate || "").slice(5, 10);   // MM-DD
-    const text = String(latest.content).replace(/\s+/g, " ").trim();
+    // 原文段落换行压成空格；但中文标点后面那个空格要去掉，否则读着别扭
+    const text = String(latest.content)
+        .replace(/\s+/g, " ")
+        .replace(/([　-〿＀-￯])\s+(?=[一-鿿])/g, "$1")
+        .trim();
     return wrap("📢 " + date + " " + text, ANNOUNCE_LINES);
 }
 
@@ -254,7 +258,10 @@ function formatAnnouncement(announcements) {
 // 超出的部分直接被截掉，所以必须自己断。续行缩进 2 格，便于和首行的 📢 对齐。
 function wrap(text, max) {
     const width = (ch) => (ch.charCodeAt(0) > 0x2e80 ? 1 : 0.5);
-    const INDENT = 2;                          // 续行缩进，也占行宽
+    // 续行缩进要与首行「📢 」等宽才能对齐 —— emoji 算 1 个全角单位、空格 0.5，
+    // 合计 1.5，所以缩进用 3 个半角空格（1.5 个全角单位）。第一版用 2 个空格
+    // （1 个单位），续行起点比首行文字靠左半个字，肉眼能看出来。
+    const INDENT = 3;
     const LIMIT = 19;                          // 19 全角单位 ≈ 窄屏一行
     const out = [];
     let cur = "", w = 0;
@@ -262,7 +269,9 @@ function wrap(text, max) {
         const cw = width(ch);
         const room = LIMIT - (out.length ? INDENT : 0);
         if (w + cw > room) {
-            out.push(cur);
+            // 行首行尾空格都剪掉：断行点常落在空格前后，留着会叠加到下一行的
+            // 缩进上，表现为某一行比别的多缩进一格（真机截图里见过）。
+            out.push(cur.replace(/^\s+|\s+$/g, ""));
             if (out.length === max) break;
             cur = ""; w = 0;
         }
