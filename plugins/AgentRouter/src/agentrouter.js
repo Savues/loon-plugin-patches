@@ -257,16 +257,14 @@ function formatAnnouncement(announcements) {
 // 按显示宽度断行：全角算 1、半角算 0.5，上限 max 行。iOS 通知正文不会自己折行，
 // 超出的部分直接被截掉，所以必须自己断。续行缩进 2 格，便于和首行的 📢 对齐。
 function wrap(text, max) {
-    const width = (ch) => (ch.charCodeAt(0) > 0x2e80 ? 1 : 0.5);
-    // 续行缩进要与首行「📢 」等宽才能对齐 —— emoji 算 1 个全角单位、空格 0.5，
-    // 合计 1.5，所以缩进用 3 个半角空格（1.5 个全角单位）。第一版用 2 个空格
-    // （1 个单位），续行起点比首行文字靠左半个字，肉眼能看出来。
+    // 缩进要与首行「📢 」等宽才能对齐 —— emoji 1 + 空格 0.5 = 1.5 个全角单位。
+    // 第一版用 2 个空格（1 个单位），续行起点比首行文字靠左半个字，肉眼能看出来。
     const INDENT = 3;
     const LIMIT = 19;                          // 19 全角单位 ≈ 窄屏一行
     const out = [];
     let cur = "", w = 0;
     for (const ch of text) {
-        const cw = width(ch);
+        const cw = ch.charCodeAt(0) > 0x2e80 ? 1 : 0.5;
         const room = LIMIT - (out.length ? INDENT : 0);
         if (w + cw > room) {
             // 行首行尾空格都剪掉：断行点常落在空格前后，留着会叠加到下一行的
@@ -285,19 +283,36 @@ function wrap(text, max) {
     return out.map((l, i) => (i ? " ".repeat(INDENT) + l : l)).join("\n");
 }
 
-// 通知顶栏（副标题）：站点名 · 用户 ID · 注册至今天数
+// 通知顶栏（副标题）：站点名 · 用户 ID · 注册至今天数。
+// ⚠️ 副标题右侧要留给时间戳，宽度随时间变化：「现在」2 字、
+// 「31分钟前」5 字、隔天的「昨天 20:05」7 字 —— 真机实测时间戳一变长，
+// 副标题就被截（截图里「第 20 天」变成了「第 2...」）。
+// 所以超过预算就砍掉站点名：ID 和天数每天都会变，站点名是静态的，先砍它。
 function formatTopbar(user, siteName) {
-    const parts = [siteName || "AgentRouter"];
+    const parts = [];
     if (Number.isInteger(user && user.id) && user.id > 0) parts.push(String(user.id));
     if (user && typeof user.created_at === "number" && user.created_at > 0) {
         const days = (Date.now() / 1000 - user.created_at) / 86400;
         // 注册当天算第 1 天，所以是 floor + 1。
         // 上界 36500 天：登录响应的 created_at 是 0，不设上界会算出几万天。
         if (Number.isFinite(days) && days >= 0 && days < 36500) {
-            parts.push("第 " + (Math.floor(days) + 1) + " 天");
+            parts.push("第" + (Math.floor(days) + 1) + "天");
         }
     }
-    return parts.join(" · ");
+    const tail = parts.join("·");
+    if (!siteName) return tail;
+    const full = siteName + "·" + tail;
+    // 10 个全角单位是实测余量：副标题右侧的时间戳最宽是隔天的「昨天 20:05」，
+    // 再宽就会把副标题截掉（「第 20 天」曾被截成「第 2...」）。
+    // 站点名超预算就整段砍掉 —— 它是静态的，ID 和天数每天都会变。
+    return width(full) <= 10 ? full : tail;
+}
+
+// 全角算 1、半角算 0.5 —— 断行与长度判断都用它
+function width(text) {
+    let w = 0;
+    for (const ch of String(text)) w += ch.charCodeAt(0) > 0x2e80 ? 1 : 0.5;
+    return w;
 }
 
 function formatCheckinReward(content) {
