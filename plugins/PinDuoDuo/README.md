@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.74** · 14 项配置 / 21 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-29T20:20`
+**v1.75** · 13 项配置 / 13 条生效规则 / 2 域名 · 抓包基线 PDD 8.26.0（iPad16,1） · 更新 `2026-09-30T18:55`
 
 | | 中文 | English |
 |---|---|---|
@@ -82,15 +82,30 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 |---|---|---|---|
 | `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
 | `chat_stub` | **关** | 4 条聊天/推荐端点 | 平时不用管；开着可能导致**聊天刷不出来**（已实测：关掉即恢复） |
-| `telemetry_stub` | **关** | 8 个埋点/监控/配置域名 | 平时不用管；怀疑被风控、或 App 行为异常时再开 |
 | `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 
-> **v1.7 变更**：`chat_stub` / `telemetry_stub` / `phantom_stub` 三项默认改为**关闭**。
-> 这三项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。
-> ⚠️ Loon 会**记住**你改过的开关值 —— 已经装过 v1.6 的人升级后，这三项仍是你上次的状态，
+> **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。
+> 这两项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。
+> ⚠️ Loon 会**记住**你改过的开关值 —— 已经装过 v1.6 的人升级后，这两项仍是你上次的状态，
 > 要改得自己去参数页拨一下。
+
+> 🔴 **v1.75：埋点/遥测拦截（`telemetry_stub` + 8 条 `[Rule]`）已整段删除。**
+> 原因不是它效果不好，而是**那个开关是假的**。这 8 条规则原本写成
+> `DOMAIN, meta.pinduoduo.com, REJECT, enable={telemetry_stub}`，
+> 但 Loon 的 `enable=` 是 `[Script]` 专用参数 —— 官方手册只有 `script.md` 记载它，
+> `rule.md` / `rewrite.md` / `plugin.md` / `general.md` 全文都没有。
+> **2026-09-30 真机实测**：用户参数页里 `telemetry_stub` 明确是「关」，
+> 同一时段的 Loon 抓包里 `meta.pinduoduo.com` 仍被这 8 条规则命中并 REJECT
+> （meta 5 次、apm + apm-a 24 次）。四份抓包、两个设备，无一例外。
+>
+> 写一个不生效的开关比不写更糟 —— 用户以为关掉了，实际一直在拦。
+> 这与 v1.5 在 `[Rewrite]` 上踩的是同一个坑（那次已迁到 `[Script]`），
+> 当时漏了 `[Rule]` 这一半。`manifest.test.mjs` 现在有断言守着。
+>
+> **想自己复验**：把 v1.75 装上后，如果 `meta.pinduoduo.com` 仍被拦，
+> 说明是**别的插件**在拦（你的插件列表里有 36 个插件），可以在 Loon 里逐个排查。
 
 > ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
 > `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`

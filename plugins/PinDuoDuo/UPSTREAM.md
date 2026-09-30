@@ -57,7 +57,7 @@ Only one line differs from the pristine upstream copy. Everything else is byte-f
 | # | 改动 | 依据 | 等级 |
 |---|---|---|---|
 | 1 | 新增 `[Argument]` 的 `chat_stub`，挂 4 条聊天/推荐端点 | 上游 0 个开关、28 条 `[Rewrite]` 全无 `enable=`，用户无从关闭 | 推导 |
-| 2 | 新增 `[Argument]` 的 `telemetry_stub`，挂 8 个上报/监控域名 | 同上；`meta` 实测返回 37900 B 真实配置，阻断有代价 | 实测 |
+| 2 | ~~新增 `[Argument]` 的 `telemetry_stub`，挂 8 个上报/监控域名~~ —— **v1.75 已整段删除**，见下方「已作废的改动」 | ~~同上；`meta` 实测返回 37900 B 真实配置，阻断有代价~~ | 已作废 |
 | 3 | 移除 `DOMAIN, xg.pinduoduo.com, REJECT` | 基线抓包：`xg.pinduoduo.com/ngrtt/zqog` 返回 **101 Switching Protocols**，是消息推送 WebSocket | 实测 |
 | 4 | 移除 `AND,((DOMAIN,api.pinduoduo.com),(PROTOCOL,QUIC)), REJECT` | `api` 的 ALPN 只协商 h2，服务端不提供 h3，该规则不触发却破坏传输指纹 | 实测 |
 | 5 | 移除 2 条裸 IP 明文 `/d1` `/d2` REJECT | 基线抓包中真实形态是 `http://[IPv6]/d5` 且**无 query**，而 IPv6 规则要求结尾 `\?`，正则不匹配 → 0 命中 | 实测 |
@@ -117,6 +117,44 @@ POST http://[240c:409f::3:0:163]/d5
 
 基线 HAR 本身（24 MB）不入库，仅摘取必要片段。
 The 24 MB baseline HAR is not vendored; only minimal excerpts are.
+
+---
+
+## 已作废的改动 · Retracted changes
+
+### `telemetry_stub`（v1.1 ~ v1.74）—— 一个假开关
+
+**做了什么**：新增 `[Argument]` 的 `telemetry_stub`（默认 `false`），并在 `[Rule]` 里
+挂 8 条 `DOMAIN, <埋点域名>, REJECT, enable={telemetry_stub}`。
+域名为 `apm` / `apm-a` / `meta` / `th` / `th-a` / `th-b` / `ta` / `ta-a`，全是 `.pinduoduo.com`。
+
+**为什么作废**：`enable=` 是 **Loon 的 `[Script]` 专用参数**。官方手册
+[LoonManual](https://github.com/Loon0x00/LoonManual) 里只有
+`docs/cn/script.md` 记载它；`rule.md`（1280 B）、`rewrite.md`（1386 B）、
+`plugin.md`（1368 B）、`general.md` 全文都没有这个参数。
+写在 `[Rule]` 行末的 `enable={...}` 会被忽略 —— **规则等同于无条件生效**。
+
+**实测证据**（2026-09-30，4 份 Loon HAR + 1 张参数页截图）：
+
+| 时间 | 证据 | `telemetry_stub` | `DOMAIN,meta.pinduoduo.com,REJECT` |
+|---|---|---|---|
+| 17:30 | 抓包 A | 关（用户口述） | 命中 18 次 |
+| 17:33–17:43 | 抓包 B | 关 | 命中 1 次 |
+| 18:08–18:18 | 抓包 C | 关 | 命中 18 次 |
+| 18:31 | 抓包 D | **关（截图确认，白色开关）** | 命中 5 次（apm+apm-a 另 24 次） |
+
+最后一行是关键：截图把「开关是关的」和「规则照样命中」放在同一分钟里对上了。
+
+**影响面**：全仓库有 25 条 `[Rule]` 行带 `enable=` ——
+本插件 8 条 + `AntiRevoke` 17 条。**`AntiRevoke` 的 `#!desc` 里其实已经写了
+「该 enable= 写法未经真机验证」**，现在有了硬证据，尚未处理。
+拼多多插件里另一处 `enable=` 的教训（第 12 条，`[Rewrite]` 上的 20 条）
+早在 v1.5 就修好了，**当时只迁走了 `[Rewrite]`，漏了 `[Rule]` 这一半**。
+
+**为什么整段删掉而不是修好**：埋点/遥测拦截没有任何正当理由留在一个
+开关失效的插件里；改成 `[Script]` 需要把 5 个新域名加进 `[MitM]`，
+用假响应去喂 `apm/pmm/defined` 这类上报接口，比直接放行更脏。
+想要这个能力的人应该用专门做这件事的插件。
 
 ---
 

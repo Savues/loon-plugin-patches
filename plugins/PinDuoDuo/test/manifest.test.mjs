@@ -66,13 +66,16 @@ console.log('\n【2】Argument 开关')
 const declared = [...lpx.matchAll(/^([\w.]+)\s*=\s*switch/gm)].map(m => m[1])
 const inputs = [...lpx.matchAll(/^([\w.]+)\s*=\s*input/gm)].map(m => m[1])
 // 开关有两条通路：enable={} 挂规则，或 argument=[{}] 传给脚本
-const viaEnable = [...new Set([...lpx.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1]))]
+// ⚠️ enable= 必须只从「活规则行」收集 —— 已注释的规则里还留着 enable={telemetry_stub}
+// 当反例说明，扫全文会把它当成一个真引用，制造一次假失败。
+const liveLines = lpx.split('\n').filter(l => !l.trim().startsWith('#'))
+const viaEnable = [...new Set(liveLines.flatMap(l => [...l.matchAll(/enable=\{(\w+)\}/g)].map(m => m[1])))]
 // argument 可能出现在多条 [Script] 规则上（stub / homepage 各一条），要全部收集
 const viaArg = [...lpx.matchAll(/argument=\[([^\]]+)\]/g)]
   .flatMap(mm => (mm[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)))
 const referenced = [...new Set(viaEnable.concat(viaArg))]
 
-t('声明 13 个开关 + 1 个输入', declared.length === 13 && inputs.length === 1,
+t('声明 12 个开关 + 1 个输入', declared.length === 12 && inputs.length === 1,
   `开关 ${declared.length} 个: ${declared.join(',')} / 输入 ${inputs.join(',')}`)
 t('每个声明项都被引用', declared.every(d => referenced.includes(d)),
   `未被引用: ${declared.filter(d => !referenced.includes(d)).join(',') || '无'}`)
@@ -80,13 +83,13 @@ t('输入项被引用', inputs.every(i => referenced.includes(i)),
   `未被引用: ${inputs.filter(i => !referenced.includes(i)).join(',') || '无'}`)
 t('引用项都已声明', referenced.every(r => declared.includes(r) || inputs.includes(r)),
   `未声明: ${referenced.filter(r => !declared.includes(r) && !inputs.includes(r)).join(',') || '无'}`)
-for (const s of ['api_stub', 'chat_stub', 'telemetry_stub', 'phantom_stub', 'order_stub', 'search_stub', 'bottom_custom']) {
+for (const s of ['api_stub', 'chat_stub', 'phantom_stub', 'order_stub', 'search_stub', 'bottom_custom']) {
   t(`${s} 存在`, declared.includes(s))
 }
-// v1.7 起，屏蔽聊天/埋点/phantom 三项改为默认关闭
+// v1.7 起，屏蔽聊天/phantom 两项改为默认关闭（埋点那项已于 v1.75 整段删除，见【3】）
 const DEFAULT_ON = ['api_stub', 'order_stub', 'search_stub']
-const DEFAULT_OFF = ['chat_stub', 'telemetry_stub', 'phantom_stub']
-t('三项默认 false（v1.7 起）',
+const DEFAULT_OFF = ['chat_stub', 'phantom_stub']
+t('两项默认 false（v1.7 起）',
   DEFAULT_OFF.every(s => new RegExp(s + '\\s*=\\s*switch,\\s*false').test(lpx)),
   DEFAULT_OFF.filter(s => !new RegExp(s + '\\s*=\\s*switch,\\s*false').test(lpx)).join(',') || '无')
 t('其余高危开关默认 true（保持原行为）',
@@ -96,6 +99,19 @@ t('Bot_custom 是 input 不是 switch', inputs.includes('Bot_custom'))
 const rwSec = section('REWRITE')
 t('不再有 [Rewrite] 上的 enable=',
   !/enable=\{/.test(rwSec.join('\n')), 'enable= 只能用于 [Script]')
+// enable= 只在 Loon 手册的 script.md 里有记载，rule.md / rewrite.md / plugin.md / general.md
+// 全文都没有这个参数。v1.75 真机实测：[Rule] 上挂 enable= 的 8 条埋点规则在开关关闭时
+// 照样命中（用户参数页截图 + 同一时段的抓包）。这条断言把那条教训钉死。
+t('不再有 [Rule] 上的 enable=',
+  !section('RULE').some(l => /enable=\{/.test(l)),
+  section('RULE').filter(l => /enable=\{/.test(l)).join(' | ') || 'ok')
+// 允许它只作为「已移除」的说明出现在注释里 —— [Rule] 段那 8 行注释正是为了留证据。
+// 要断言的是：既没有声明成开关，也没有任何一条活规则引用它。
+const telLive = lpx.split('\n').filter(l => !l.trim().startsWith('#'))
+t('telemetry_stub 不在任何活规则/声明里',
+  !telLive.some(l => /telemetry_stub/.test(l)),
+  telLive.filter(l => /telemetry_stub/.test(l)).join(' | ') || 'ok')
+t('但注释里留了退场说明', /# \[已移除-死开关\].*telemetry_stub/.test(lpx))
 
 // ── 3. 高风险 REJECT 确已移除 ───────────────────────────────
 console.log('\n【3】高风险规则不得生效')
@@ -135,8 +151,12 @@ t('[Rewrite] 里不再有 reject-dict', !rwSec.some(l => l.includes('reject-dict
 t('[Rewrite] 里不再有 search 的 expansion 删除', !rwSec.some(l => /json-del.*expansion/.test(l)))
 t('stub 脚本规则已挂上', section('SCRIPT').some(l => /stub\.response\.js/.test(l)))
 t('stub 规则指向本仓库', /Savues\/loon-plugin-patches[^\s]*stub\.response\.js/.test(lpx))
-const telStubs = active.filter(l => l.includes('enable={telemetry_stub}'))
-t('8 个域名挂上 telemetry_stub', telStubs.length === 8, `实际 ${telStubs.length} 个`)
+const telStubs = active.filter(l => /apm\.pinduoduo\.com|meta\.pinduoduo\.com/.test(l))
+t('埋点/遥测域名不再被拦截', telStubs.length === 0, `仍有 ${telStubs.length} 条：${telStubs.join(' | ')}`)
+// 这条是本次事故的正向断言：只要有人再把 enable= 挂回 [Rule]，[3] 会红，
+// 而红的原因必须指向「它在开关关闭时照样命中」这个真机结论，而不是「看起来不优雅」。
+t('telemetry_stub 不在任何 argument= 里',
+  !/argument=\[[^\]]*telemetry_stub/.test(lpx))
 
 // ── 5. homepage/hub 交给脚本 ───────────────────────────────
 console.log('\n【5】homepage/hub 已交给脚本处理')

@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.74
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】屏蔽聊天/埋点/phantom 三项改为默认关闭。
+#!name=拼多多去广告(修复版) v1.75
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词。【修复】埋点/遥测拦截已整段删除——它在 [Rule] 上挂的 enable= 是死开关。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,13 +8,12 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-09-29 20:20:00
+#!date=2026-09-30 18:55:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
 api_stub = switch,true,false,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
 chat_stub = switch,false,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
-telemetry_stub = switch,false,false,tag=[高危] 屏蔽埋点/遥测/配置下发域名(8 个),desc=默认关闭；打开后拦 apm(性能监控)/meta(AB实验+配置下发,实测返回28KB)/th+ta(埋点上报)
 phantom_stub = switch,false,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
 order_stub = switch,true,false,tag=[高危] 屏蔽订单列表,desc=关掉后订单页会显示真实订单;若不想在订单页看到列表可关
 search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
@@ -35,14 +34,24 @@ DOMAIN, titan.pinduoduo.com, REJECT
 DOMAIN, cdl-1.pddpic.com, REJECT
 DOMAIN, cdl-p2.pddpic.com, REJECT
 DOMAIN, cd-1.pddpic.com, REJECT
-DOMAIN, apm.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, th-b.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, ta.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, th.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, th-a.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, ta-a.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, meta.pinduoduo.com, REJECT, enable={telemetry_stub}
-DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] v1.75：以下 8 条原挂 enable={telemetry_stub}，真机实测该开关无效。
+#   2026-09-30 18:31 用户截图确认 telemetry_stub 在参数页是「关」，
+#   同一时段的 Loon 抓包里 meta/apm 仍被这 8 条规则 REJECT（meta 5 次、apm+apm-a 24 次）。
+#   根因：Loon 官方手册只有 script.md 记载 enable=（[Script] 专用），
+#   rule.md / rewrite.md / plugin.md / general.md 全文都没有这个参数。
+#   ⇒ [Rule] 上的 enable= 是死开关，规则等同于无条件生效。
+#   这与 v1.5 在 [Rewrite] 上踩的是同一个坑（见文末第 12 条），
+#   当时只迁走了 [Rewrite]，漏了 [Rule]。
+#   埋点/遥测拦截没有任何正当理由留在一个开关失效的插件里，整段删除。
+#   历史行见 git：a84dc22（v1.74 之前的版本）
+# [已移除-死开关] DOMAIN, apm.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th-b.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, ta.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, ta-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, meta.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
 
 [Rewrite]
 
@@ -74,6 +83,7 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # ─────────────────────────────────────────────
 # 修复说明（上游脚本仅改了 1 行远程依赖 URL；homepage.response.js 为本仓库自研）
 #  1. 新增 [Argument] 开关：chat_stub / telemetry_stub
+#     （telemetry_stub 已于 v1.75 删除 —— 它挂的是 [Rule]，enable= 在那里无效，见第 15 条）
 #  2. 4 条聊天与推荐端点改挂 enable={chat_stub}，可在插件参数页直接关闭以恢复聊天刷新
 #  3. homepage/hub 的 jq 有空值崩溃缺陷（? 不保护 map 迭代）——
 #     该表达式已在第 10 条随底栏自定义一并由自研脚本取代
@@ -106,11 +116,15 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # 10. 新增底栏自定义：[Argument] 7 个开关 + homepage.response.js（自研）
 #     两条 homepage/hub 的 json-del / json-jq 已由脚本取代
 #     顺带解决了「同一 URL 挂两条 [Rewrite] 谁先谁后」这个一直悬着的问题
-# 14. 新增 subsidy.response.js：清掉百亿补贴页搜索框的推广轮播词
+#  14. 新增 subsidy.response.js：清掉百亿补贴页搜索框的推广轮播词
 #     依据 2026-09-29 真机抓包：m.pinduoduo.net/brand_activity_subsidy.html
 #     是服务端渲染 HTML，轮播词内联在 window.rawData 的 store.searchStore，
 #     不经任何 API —— 所以首页那套 [Script] 碰不到它，必须单独挂一条。
 #     实测 10 个词里 5 个是推广（百事可乐 ×3、可口可乐、特价饮料）。
 #     沿用 search_stub 开关、不新增 [Argument]：这是同一批推广词的第三个来源。
+# 15. 【v1.75】删除 telemetry_stub 开关与其 8 条 [Rule] —— enable= 在 [Rule] 上是死开关。
+#     这与第 12 条是同一个根因（enable= 只在 script.md 有记载，rule.md 全文没有），
+#     v1.5 当时只迁走了 [Rewrite] 上的 20 条，漏了 [Rule] 上的 8 条。
+#     写一个不生效的开关比不写更糟：用户以为关掉了，实际一直在拦。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
