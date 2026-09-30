@@ -4,6 +4,11 @@
 
 > ⚠️ 这是绕过付费校验的破解脚本。服务端仍认为你未购买。
 > 仅供个人学习研究，请勿用于商业用途。
+>
+> **本插件 = 上游原版 + 托管，脚本逐字节未改。**
+> 曾有两版试图「修」上游的参数接线，结果真机证明那个 bug 不存在，
+> 而我的「修复」才是失效的原因 —— 已全部删除。教训见
+> [UPSTREAM.md](UPSTREAM.md#我走过的两轮弯路)。
 
 **🔴 这个插件的运行时依赖无法消除。** 你的收据会离开设备、发到作者的 Cloudflare Worker，
 由它生成伪造回包。本仓库做的是**托管 + 修复上游的参数 bug**，不是去依赖。
@@ -24,12 +29,13 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes
 | 文件 | 用途 | Purpose |
 |---|---|---|
 | [iTunes-Spoof.lpx](iTunes-Spoof.lpx) | 插件清单 | Plugin manifest |
-| [src/itunes-spoof.js](src/itunes-spoof.js) | **实际加载**的脚本（壳层 + 上游） | Script Loon loads |
-| [src/prelude.js](src/prelude.js) | 壳层，1.7 KB，本仓库自写 | Our prelude |
-| [src/loon-itunes.js](src/loon-itunes.js) | 上游混淆原件，374 KB，逐字节未改 | Upstream, untouched |
-| [test/itunes-spoof.test.mjs](test/itunes-spoof.test.mjs) | 主测试，53 个用例，秒级 | Main tests |
-| [test/e2e-real-upstream.mjs](test/e2e-real-upstream.mjs) | 与真上游的兼容性验证，**默认不跑** | E2E (manual) |
-| [UPSTREAM.md](UPSTREAM.md) | 上游出处、bug 根因、改动逐条依据 | Provenance |
+| [src/loon-itunes.js](src/loon-itunes.js) | **实际加载**的脚本，374 KB，**逐字节等于上游** | Script Loon loads |
+| [test/itunes-spoof.test.mjs](test/itunes-spoof.test.mjs) | 主测试，31 个用例，秒级 | Main tests |
+| [test/e2e-real-upstream.mjs](test/e2e-real-upstream.mjs) | 运行时验证，**默认不跑** | E2E (manual) |
+| [diag/ArgShape-Diag.lpx](ArgShape-Diag.lpx) | 参数形状诊断插件（真机取证留存） | Diagnostic plugin |
+| [UPSTREAM.md](UPSTREAM.md) | 出处、我走过的弯路与证据 | Provenance |
+
+> **本插件的脚本是上游原件，一个字节没改。** 托管只把「设备上跑谁家的代码」固定下来。
 
 ---
 
@@ -37,53 +43,28 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/iTunes
 
 | 参数 | 默认 | 作用 |
 |---|---|---|
-| **启用转发** | `true` | 填 `true` 转发到注入服务；**填任何其它值即直接放行不转发** |
+| **启用转发** | `true` | 填 `true` 转发到注入服务 |
 | **凭证到期日** | `2099-09-09` | 注入凭证会写上这个到期日 |
 | **App Store 国家** | `HK` | 查询内购商品用的区，填错可能导致注入的商品在该区不存在 |
 
 > ⚠️ 关闭后 **Loon 仍会解密 `buy.itunes.apple.com`**。`[Mitm]` 段不支持 `enable=`，
 > 这是 Loon 的限制。关掉的只是转发。
 
-### `启用转发` 只认小写 `true`
+### 参数是真的接通的（真机实测）
 
-填 `TRUE` / `1` / `yes` / 留空，**一律当关**。
-
-这是刻意收紧的：**宁可误关**（用户会发现没生效），**不可误开**（用户以为关了，
-其实还在把收据发给第三方）。
-
----
-
-## 原生脚本的上游 bug · 已修
-
-上游在参数页放了一个**关不掉的开关**。
-
-**根因**（实测，非推断）：
-
-| | 期望的形状 |
-|---|---|
-| 上游读的是 | `$argument.Enabled` / `.Expires` / `.Country` —— **驼峰对象** |
-| Loon 按 `argument=[{Enabled},{Expires},{Country}]` 传的是 | `"值1,值2,值3"` —— **逗号字符串** |
-
-类型不匹配 → 三个属性读到 `undefined` → 全部落回默认值 → **用户填 `false`，插件照样转发。**
-
-### 本仓库做了什么
-
-在上游运行**之前**插 1.7 KB 壳层：把字符串解析成它期待的对象。
-**上游那 374 KB 一个字节没改**（测试第 4 组逐字节校验）。
+一度以为开关失效。真机诊断插件回显：
 
 ```
-壳层 1.7 KB  +  上游 374259 B  =  合成脚本
-剥掉壳层后 == 上游原件（逐字节）
+TYPE=object
+KEYS=["Enabled","Expires","Country"]
+K=Enabled TYPE=string VAL="true"
+K=Expires TYPE=string VAL="2099-09-09"
+K=Country TYPE=string VAL="HK"
 ```
 
-### 实测对照
-
-| 参数页填的 | 上游原版 | 本仓库 |
-|---|---|---|
-| `true,2099-09-09,HK` | 转发，默认值 | 转发，默认值 |
-| **`false,...`** | **照样转发** 🔴 | **不转发，`$done({})` 放行** ✅ |
-| **`true,2027-01-01,CN`** | 落回默认值 🔴 | **`expires=2027-01-01&country=CN`** ✅ |
-| `TRUE,...` | 转发 | 不转发（只认小写） |
+**Loon 传的 `$argument` 就是对象，键名与上游读取的完全一致。**
+上游一直读得到参数 —— 之前「收不到参数」的判断来自 Node 沙盒（沙盒里我传的是字符串），
+真机与之相反。那个「修复」把插件弄坏了，已删除。
 
 ---
 

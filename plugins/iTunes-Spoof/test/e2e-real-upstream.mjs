@@ -24,7 +24,7 @@ import { fileURLToPath } from "url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dir = path.join(here, "..");
 const read = p => fs.readFileSync(p, "utf8");
-const built = read(path.join(dir, "src/itunes-spoof.js"));
+const built = read(path.join(dir, "src/loon-itunes.js"));
 
 const WORKER = "reven.lovebabyforever.workers.dev";
 

@@ -87,17 +87,12 @@ AdGuard-Spoof
 iTunes-Spoof
   插件为**绕过付费校验的破解脚本**，特此单独声明，请使用者自行判断：
   - 上游脚本 loon-itunes.js 版权归原作者 Jsforbaby 所有，**未见许可声明**。
-  - 本仓库的 src/loon-itunes.js 是该混淆脚本的**逐字节副本**（sha256 2fab4bf8…），
-    src/prelude.js 与 src/itunes-spoof.js 中除该副本以外的部分为本仓库自写。
-  - 本仓库的贡献：托管位置迁移；**新增壳层修复上游参数接线 bug**
-    （上游读驼峰对象 $argument.Enabled，Loon 传逗号字符串，导致用户侧的 Enabled=false
-    开关完全失效）。
-  - ⚠ v1.0 曾误将清单的 http-request 改为 http-response，导致插件失效。
-    v1.01 已改回上游写法 —— 真机对照证实：改成 http-response 后脚本被触发但不转发。
-    教训记录在 UPSTREAM.md「我改错的那一处」。
-  - **未增加任何上游不具备的绕过能力**，且**未修改上游 374 KB 混淆代码的任何一行**
-    —— 由 src/itunes-spoof.js 剥掉壳层后与上游逐字节相同这一事实保证（53 个用例）。
+  - 本仓库的 src/loon-itunes.js 是该脚本的**逐字节副本**（sha256 2fab4bf8…），
+    即设备上实际运行的代码 = 上游原件。v1.0/v1.01 曾加过一个自写壳层，v1.02 已删除。
+  - 清单层唯一的改动是把 script-path 从作者站点改指本仓库；MITM 域名、[Argument]、
+    URL 匹配正则、http-request/response 全部与上游一致。
+  - 附 diag/ 下的参数形状诊断插件（真机取证用），不参与运行。
   - 🔴 **运行时外部依赖未消除**：收据原样转发到作者的 Cloudflare Worker，
-    伪回包由该 Worker 生成。镜像只固定了设备上运行的代码，不等于去掉依赖。
-  - 出处与逐条依据见 plugins/iTunes-Spoof/UPSTREAM.md。
+    伪回包由该 Worker 生成。托管只固定了设备上运行的代码，不等于去掉依赖。
+  - 出处、我走过的两轮弯路与证据见 plugins/iTunes-Spoof/UPSTREAM.md。
 ────────────────────────────────────────────────────────────────────────

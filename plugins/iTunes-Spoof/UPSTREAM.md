@@ -34,104 +34,87 @@
 
 ---
 
-## 🔴 上游 bug：参数页的开关关不掉
+## 我走过的两轮弯路 · 两版都因为「不存在的 bug」而失效
 
-### 现象
+这一节是本文件最重要的部分。v1.0 与 v1.01 都建立在同一个错误前提上，
+而那个前提**真机证明是反的**。
 
-`#!desc` 写「可在设置中关闭」，`[Argument]` 声明了 `Enabled` 参数并接进 `argument=[{Enabled},{Expires},{Country}]`。
-但**用户在参数页把 `Enabled` 填 `false`，插件照样转发、照样生成伪造凭证。**
+### 错误前提
 
-### 根因（实测，非推断）
+我当时断定：
 
-| | 形状 |
-|---|---|
-| 上游读的是 | `$argument.Enabled` / `$argument.Expires` / `$argument.Country` —— **驼峰对象** |
-| Loon 按 `argument=[{A},{B},{C}]` 传的是 | `"值1,值2,值3"` —— **逗号分隔字符串** |
+> 上游读的是驼峰对象 `$argument.Enabled`，而 Loon 按 `argument=[{Enabled},{Expires},{Country}]`
+> 传的是逗号字符串 ⇒ 类型不匹配 ⇒ 参数全落默认 ⇒ 开关恒为 true。
 
-类型不匹配 → 三个属性读到 `undefined` → 全部落回默认值 → **开关恒为 `true`**。
+**并据此写了 1682 B 壳层「修复」，还收紧成「读不到 true 就当关」。**
 
-### 证据是怎么拿到的
+### 真机证据（诊断插件回显）
 
-上游是 374 KB 混淆代码，**字符串表里的条目本身还是二次编码**（`W7DyeCoPW7C` 这种
-自定义 Base64 变体，不是标准 Base64），配 wasm 风格的自解机。逐条解码不现实。
-
-改用**在 Node 沙盒里跑它，截获它对外的调用**：
-
-```js
-// 用 Proxy 当 $argument，记录脚本访问了哪些属性
-$argument → { Enabled, Expires, Country }   ← 实测访问记录
+```
+TYPE=object
+LEN=15
+RAW=[object Object]
+KEYS=["Enabled","Expires","Country"]
+K=Enabled TYPE=string VAL="true"
+K=Expires TYPE=string VAL="2099-09-09"
+K=Country TYPE=string VAL="HK"
 ```
 
-**对照验证**（同一份脚本，只改 `$argument` 的类型）：
+**Loon 传的 `$argument` 就是对象，键名与上游读取的完全一致，值也正确。**
 
-| 传入 | 脚本实际请求的 URL |
+⇒ 上游一直读得到参数，**从来没有 bug**。
+
+### 我错在哪
+
+| | |
 |---|---|
-| `'false,2027-01-01,CN'`（字符串） | `?enabled=true&expires=2099-09-09&country=HK` ← 全落默认 |
-| `{Enabled:'false',...}`（对象） | **完全不请求** ← 开关真的生效 |
-| `{Enabled:'true',Expires:'2027-01-01',Country:'CN'}` | `?enabled=true&expires=2027-01-01&country=CN` ✅ |
+| 证据来源 | Node 沙盒里我传的是**字符串** |
+| 得到的「现象」 | 上游读不到参数 |
+| 真机实际情况 | 传的是**对象**，上游读得到 |
+| 那个「现象」 | **在真机上根本不存在** |
 
-⇒ **类型不对，是唯一原因。** 不是逻辑写错。
+**拿沙盒结果当真机结论。** 这是本轮所有返工的根源。
 
-### 为什么修法这么小
+### 失效的真凶是我自己
 
-原计划是「改 374 KB 混淆代码，绕过那段数组假设」。
-查清之后这个计划**被推翻** —— 根本不需要改。
+壳层里这一行：
 
-**类型不对，在它运行前喂对就行。** 壳层 1.7 KB，一行上游代码都没碰。
+```js
+if (typeof $argument !== 'string') $argument = '';
+```
 
-> 这正是仓库原则 #2 的边界所在：**远程配置依赖**属于允许改动��范围。
-> 壳层是新增文件，不是改上游；上游 374 KB 逐字节未改，由测试第 4 组证明。
+真机传的是对象 ⇒ 条件成立 ⇒ 强制置空 ⇒ 切出的第一段是空 ⇒ 判为「关」
+⇒ `$done({})` 放行 ⇒ **不转发** ⇒ App 拿到 Apple 的原包（810 B，
+`download_id` 末位 `…897`，而上游伪造后是 `…900`）⇒ **App 读到「真实收据 = 无有效订阅」→ 订阅被下掉**。
 
----
+用户提供的对照实验也印证了这条因果：诊断插件返回 599（App 解析不了）时**订阅不掉**，
+本仓库的 v1.01（放行 Apple 原包）时**订阅掉**。
 
-## v1.0 逐条改动 · Change Map
+### v1.02 的处理
 
-| # | 改动 | 依据 | 等级 |
-|---|---|---|---|
-| 1 | `script-path` → 本仓库 `main` 分支 | 上游脚本挂在作者站点，可随时替换 | 实测 |
-| 2 | **新增壳层** `src/prelude.js`，修正参数类型 | 见上。壳层 + 上游合成 `src/itunes-spoof.js` | 实测 |
-| 3 | `tag=iTunes转发` → `iTunes收据转发` | 与上游同名 tag 区分，便于在 Loon 里分辨 | — |
-| 4 | `#!system` 显式写 `iOS, iPadOS` | 上游未写。仓库另 9 个插件都写，不写会在 iPad 上被判不兼容 | 推导 |
+**删掉壳层。** 脚本指回 `src/loon-itunes.js`（上游原件，逐字节）。
+实测纯上游在真机参数下转发正常：
 
-> **v1.01 的教训**：v1.0 曾把 `http-request` 改成 `http-response`，理由是
-> 「抓包显示 `modifiedResponse: true` 挂在响应侧」。**这是把因果读反了**，
-> 插件因此完全失效。真机对照见下。
+```
+真机参数对象 {Enabled:'true',Expires:'2099-09-09',Country:'HK'}
+  → enabled=true&expires=2099-09-09&country=HK   ✅
+带壳层的同一输入
+  → 放行 $done({})，不转发                        ❌
+```
 
-### 🔴 我改错的那一处，以及真机证据
+同时删除 `src/prelude.js`、`src/itunes-spoof.js`、`build.mjs`。
 
-用户装了 v1.0 后反馈**无效**，并提供了同一台设备、同一个 App 的对照抓包：
+### 另一处：我自己也标过疑，却还是发了
 
-| | v1.0（我的，`http-response`） | 上游原版（`http-request`） |
-|---|---|---|
-| Loon 日志 | `Trigger http-response(body) script:iTunes收据转发` | `Trigger http-request(body) script:iTunes转发` |
-| 转发动作 | **无** | `Forward fake response` |
-| `modifiedResponse` | **`false`** | `true` |
-| 回包长度 | 810 B（Apple 原始回包） | 2457 B（含伪凭证） |
-| `download_id` 末位 | `…885897`（原值） | `…885900`（已改写） |
+v1.0 那次改 `http-request`→`http-response` 时，我在 commit 里写了
+「⚠️ 这条**没有真机对照实验**」。**知道没验证，还是发了。**
+真机后果：脚本被触发但不转发，插件完全失效。v1.01 改回。
 
-⇒ **脚本被触发了，但什么都没做，直接放行。**
+### 留下的资产
 
-**根因**：上游脚本在**请求阶段**就把伪回包准备好，`$done()` 返回的响应直接顶替原响应，
-所以规则必须挂 `http-request`。我按 `_loon.modifiedResponse` 的字面意思改成了
-`http-response` —— **那个字段记的是「响应最终被替换了」，不是「规则该挂哪一侧」**。
-
-教训：**从日志字段的字面意思推因果，是最容易犯的错。**
-两个字段都在响应上，`modifiedResponse: true` 完全可以在 `http-request` 规则下产生。
-改回上游写法后行为逐字一致，这条差异根本不该由我来"修正"。
-
-### 关于第 4 条：`#!system`
-
-上游清单**根本没有 `#!system` 这一行**。本仓库显式补上 `iOS, iPadOS`，
-理由是仓库内 `AdGuard-Spoof v1.0` 曾因只写 `iOS` 导致 iPad 上无法加载。
-属于「按仓库惯例补齐」，非上游缺陷。
-
-### 没有做的三件事
-
-| 没做 | 为什么 |
-|---|---|
-| 改 `Expires` / `Country` 的默认值 | 上游默认就是 `2099-09-09` / `HK`，改了属擅自变更 |
-| 收紧 URL 匹配正则 | 与上游逐字相同。收窄属行为变更，不在等价托管范围 |
-| 去掉 `requires-body=1` | 脚本确实需要 `$request.body`（收据），去掉就跑不了 |
+- `ArgShape-Diag.lpx` + `diag/diag.js` —— 参数形状诊断插件，取证留存
+- `test/itunes-spoof.test.mjs` 第 1 组把真机实测的参数形状钉成断言，
+  防止有人再按「字符串」的假设改代码
 
 ---
 
