@@ -17,7 +17,7 @@ const $persistentStore = {
 const $ = { getdata: (k) => $persistentStore.read(k), setdata: (v, k) => $persistentStore.write(v, k) };
 
 const pick = (name) => {
-  const i = src.indexOf("function " + name);
+  const i = src.search("(?:async )?function " + name);
   if (i < 0) throw new Error("找不到 " + name);
   let d = 0;
   const j = src.indexOf("{", i);

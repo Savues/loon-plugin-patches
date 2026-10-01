@@ -28,14 +28,16 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | [upstream-agentrouter.lpx](upstream-agentrouter.lpx) | 上游清单原件 | Pristine upstream manifest |
 | [manifest.json](manifest.json) | sha256 登记（含 `based-on`） | sha256 registry |
 | [UPSTREAM.md](UPSTREAM.md) | 上游出处与逐条改动依据 | Provenance & per-change reasoning |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单与脚本结构回归，23 个用例 | Structure regression tests |
-| [test/stats.test.cjs](test/stats.test.cjs) | 通知排版函数单元测试，21 个用例（不联网） | Notification layout unit tests, offline |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单与脚本结构回归，24 个用例 | Structure regression tests |
+| [test/stats.test.cjs](test/stats.test.cjs) | 通知排版函数单元测试，26 个用例（不联网） | Notification layout unit tests, offline |
+| [test/retry.test.mjs](test/retry.test.mjs) | 签到判定的日志落库竞态，5 个用例 | Check-in detection race, 5 cases |
 | [test/probe.cjs](test/probe.cjs) | 接口探查：打印各接口返回的字段结构 | Endpoint field-shape probe |
 | [test/run-live.cjs](test/run-live.cjs) | 真机全流程测试（读环境变量） | Live end-to-end test |
 
 ```bash
-node test/manifest.test.mjs        # 离线，23 个用例
-node test/stats.test.cjs           # 离线，21 个用例
+node test/manifest.test.mjs        # 清单 + 脚本结构，24 个用例
+node test/stats.test.cjs           # 通知排版纯函数，26 个用例
+node test/retry.test.mjs           # 签到判定的日志竞态，5 个用例
 AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
 node test/probe.cjs                # 想看服务端还返回了什么，跑这个
 python3 tools/vendor-check.py --diff            # 上游是否更新

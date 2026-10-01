@@ -178,7 +178,35 @@ AgentRouter · 用户ID                ← 副标题：站点 · 用户ID
 | `group` | 恒为 `default`，无信息量 |
 | `quota_for_inviter` / `quota_for_invitee` | 邀请奖励 $50/人，但账号没在邀请 |
 
-### 0.4 原件另存
+### 0.4 修签到判定的竞态：日志还没落库就报「待确认」
+
+**真机现象（2026-10-01 09:00）**：通知报「⚠️ 签到待确认 / 签到奖励：待确认」，
+但同一条通知里余额是 **$696.57 = $671.57 + $25** —— 签到其实成功了，奖励也到了。
+25 分钟后再查，`/api/log/self` 里今日签到记录已经在了。
+
+**根因**：签到是在 `POST /api/user/login` 时由**服务端**完成的（登录响应里
+`checked_in` 直接变 true），但 `/api/log/self` 的记录是**异步写**的。
+脚本登录后立刻查日志，记录还没落库 → `findTodayCheckin` 找不到 → 判定「未确认」。
+
+不是分页问题：`page_size=20` 在 25 分钟后能查到，签到记录还是列表第一条。
+
+**修法两处**：
+
+1. 抽出 `fetchLogs(userHeaders, retryOnly)`：查不到今日记录时重试，最多 4 次、
+   间隔 2s/4s/6s。`retryOnly` 表示「只在服务端说已签到时才重试」——
+   确实没签到时不必干等。
+2. 兜底分支不再报假警。服务端 `checked_in === true` 时显示「✅ 今日已签到」，
+   只在正文注明「日志里暂无本次记录，金额未显示」。
+
+**测试**：新增 `test/retry.test.mjs`，用假 `$httpClient` 模拟三种时序
+（延迟出现 / 永远不出现 / 立刻可见 / 服务端说没签到）。
+反向验证：把重试次数从 4 改成 1 → 2 项失败；把兜底改回「待确认」→ 1 项失败。
+
+> 写这个测试时踩了个坑：`$httpClient.get(req)` 收的是 **options 对象**，
+> url 是 `req.url` 属性（见 `Env.send`）。mock 按字符串签名写会报
+> `url.includes is not a function`。
+
+### 0.5 原件另存
 
 `src/upstream-agentrouter.js` 是逐字节原件（16104 B，sha256 `f688ff55…`），`manifest.json` 里
 `origin: patched-upstream` + `based-on` 指向它，与 PinDuoDuo 的 `src/upstream/` 同一做法。
@@ -253,11 +281,12 @@ AgentRouter · 用户ID                ← 副标题：站点 · 用户ID
 
 ## 验证 · Verification
 
-`test/manifest.test.mjs`（23 个用例）+ `test/stats.test.cjs`（21 个用例，不联网）：
+`test/manifest.test.mjs`（24 个）+ `test/stats.test.cjs`（26 个）+ `test/retry.test.mjs`（5 个）：
 
 ```bash
 node test/manifest.test.mjs     # 清单 + 脚本结构
-node test/stats.test.cjs        # formatStats / wrap / formatTopbar / formatAnnouncement 纯函数
+node test/stats.test.cjs        # 通知排版纯函数
+node test/retry.test.mjs        # 签到判定的日志落库竞态
 AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
 python3 tools/vendor-check.py --diff             # 上游是否更新
 ```

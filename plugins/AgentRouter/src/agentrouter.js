@@ -166,27 +166,14 @@ async function checkin({ username, password }, quotaUnit, announcements, siteNam
         Cookie: cookie,
         "New-API-User": String(data.id),
     };
-    // 日志只拉一次，签到判定和用量统计共用这一页
-    let items = null;
-    let detail;
-    try {
-        const logs = await request("GET", "/api/log/self?p=1&page_size=20", {
-            ...userHeaders,
-            Referer: `${BASE_URL}/console/log`,
-        }, undefined, "签到记录查询");
-        if (logs.json.success !== true || !logs.json.data || !Array.isArray(logs.json.data.items)) {
-            throw new Error("签到记录查询未成功，请在网站使用日志中核对");
-        }
-        items = logs.json.data.items;
-        debug(`最近记录数=${items.length}`);
-    } catch (error) {
-        detail = error.message;
-    }
+    // 日志只拉一次，签到判定和用量统计共用这一页。
+    // ⚠️ 竞态：签到是在 POST /api/user/login 时由服务端完成的，但日志记录是
+    // 异步写的。登录后立刻查日志，记录往往还没落库 → 误判「未找到」（真机遇到：
+    // 余额已经 +$25、checked_in=true，却提示「签到待确认」）。
+    // 所以查不到时要等一下再查，给日志落库留时间。
+    const items = await fetchLogs(userHeaders, data.checked_in === true);
     const checkinRecord = items ? findTodayCheckin(items, Date.now()) : null;
-    if (items) {
-        debug(`今日签到记录=${!!checkinRecord}`);
-        if (!checkinRecord) detail = `最近 ${items.length} 条日志中未找到今日签到记录，请到网站核对`;
-    }
+    debug(`今日签到记录=${!!checkinRecord}`);
 
     // 账户信息用于顶栏（ID / 注册天数）与正文第 1 行（余额 / 已用 / 请求数）
     let user = data;
@@ -207,16 +194,24 @@ async function checkin({ username, password }, quotaUnit, announcements, siteNam
     const announce = formatAnnouncement(announcements);
     const body = announce ? `${stats}\n${announce}` : stats;
 
+    const day = accountDay(user);
+
     if (checkinRecord) {
-        const day = accountDay(user);
         return {
             topbar,
             title: "✅ 今日已签到" + formatCheckinReward(checkinRecord.content) + (day ? " · " + day : ""),
             content: body,
         };
+    } else if (data.checked_in === true) {
+        // 服务端说今天已签到，日志里却查不到 —— 多半是日志还没落库。
+        // 这时不该报「待确认」吓人：签到本身是成功的，只是拿不到金额。
+        return {
+            topbar,
+            title: "✅ 今日已签到" + (day ? " · " + day : ""),
+            content: body + "\n（服务端已确认签到，日志里暂无本次记录，金额未显示）",
+        };
     } else {
-        const state = data.checked_in === true ? "服务端返回已签到，但日志尚未确认" : "登录成功，签到状态尚未确认";
-        return { topbar, title: "⚠️ 签到待确认", content: `🎁 签到奖励：待确认\n${stats}\n\n${state}\n${detail}` };
+        return { topbar, title: "⚠️ 签到状态未确认", content: body + "\n\n服务端未返回已签到，请到网站核对" };
     }
 }
 
@@ -315,6 +310,37 @@ function formatCheckinReward(content) {
     if (!Number.isFinite(amount)) return "（金额未识别，请到网站核对）";
     // 整数不带小数点：$25 而不是 $25.00
     return ` +$${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`;
+}
+
+// 取日志页。查不到今日签到记录时重试几次 —— 日志是异步落库的，
+// 登录那一刻往往还查不到（真机 2026-10-01 09:00 遇到过：余额已 +$25、
+// checked_in=true，日志记录却在 25 分钟后才出现）。
+// retryOnly=true 表示只在「服务端说已签到」时才重试，避免无谓等待。
+async function fetchLogs(userHeaders, retryOnly) {
+    const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+    for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt > 0) {
+            if (retryOnly) await delay(2000 * attempt);
+            else break;
+        }
+        try {
+            const logs = await request("GET", "/api/log/self?p=1&page_size=20", {
+                ...userHeaders,
+                Referer: `${BASE_URL}/console/log`,
+            }, undefined, "签到记录查询");
+            if (logs.json.success !== true || !logs.json.data || !Array.isArray(logs.json.data.items)) {
+                throw new Error("签到记录查询未成功，请在网站使用日志中核对");
+            }
+            const items = logs.json.data.items;
+            debug(`最近记录数=${items.length}（第 ${attempt + 1} 次查询）`);
+            if (findTodayCheckin(items, Date.now())) return items;
+            if (!retryOnly) return items;          // 服务端说没签到，不用再等
+        } catch (error) {
+            debug(`签到记录查询失败：${error.message}`);
+            return null;
+        }
+    }
+    return null;
 }
 
 function findTodayCheckin(items, now) {

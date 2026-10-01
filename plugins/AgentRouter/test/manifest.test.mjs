@@ -111,7 +111,7 @@ t("副本相对原件：删掉的行都有出处，且该删的都删了", () =>
   // 上游有、本仓库没有的函数（整块删掉的）
   // 注意：formatCheckinReward 只是签名变了（去掉 isNew 参数），函数还在，
   // 所以判据是「函数名是否仍存在于副本」，不是「签名行是否逐字相同」。
-  const fnNames = (lines) => new Set(lines.map(l => (/^function (\w+)/.exec(l) || [])[1]).filter(Boolean));
+  const fnNames = (lines) => new Set(lines.map(l => (/^(?:async )?function (\w+)/.exec(l) || [])[1]).filter(Boolean));
   const gone = [...fnNames(a)].filter(n => !fnNames(b).has(n));
   assert.deepStrictEqual(gone.sort(), ["formatAmount", "maskAccount"],
     "删掉的函数清单变了: " + JSON.stringify(gone));
@@ -124,7 +124,7 @@ t("副本相对原件：删掉的行都有出处，且该删的都删了", () =>
   // 本仓库新增的函数
   const fresh = [...fnNames(b)].filter(n => !fnNames(a).has(n));
   assert.deepStrictEqual(fresh.sort(),
-    ["accountDay", "formatAnnouncement", "formatStats", "formatTopbar", "wrap"],
+    ["accountDay", "fetchLogs", "formatAnnouncement", "formatStats", "formatTopbar", "wrap"],
     "新增函数清单变了: " + JSON.stringify(fresh));
 
   // 关键行为在源码里确实在
@@ -147,6 +147,19 @@ assert.ok(src.includes("amount % 1 === 0 ? amount.toFixed(0)"), "整数不该带
   // 公告只在新公告时出现，且只占 3 行
 assert.ok(src.includes("const ANNOUNCE_LINES = 3;"), "公告应占 3 行");
 assert.ok(src.includes("$.setdata(String(latest.id), ANNOUNCE_KEY)"), "没记公告 id");
+});
+
+t("签到判定：日志查不到时重试，且重试用例覆盖", () => {
+  // 竞态修复的入口 —— 断言只钉住结构，行为由 test/retry.test.mjs 覆盖
+  assert.ok(src.includes("async function fetchLogs(userHeaders, retryOnly)"), "应有 fetchLogs");
+  assert.ok(/for \(let attempt = 0; attempt < 4/.test(src), "应有最多 4 次重试");
+  // 服务端说已签到时才重试 —— 否则无谓等待
+  assert.ok(src.includes("await fetchLogs(userHeaders, data.checked_in === true)"), "应按 checked_in 决定是否重试");
+  // 兜底不再报「待确认」假警。
+  // 注意：登录响应缺字段的两个早期返回仍是「待确认」—— 那是另一个场景，
+  // 确实需要人去看，不能一并去掉。
+  assert.ok(!/⚠️ 签到待确认", content: body/.test(src), "兜底分支不该再用「签到待确认」");
+  assert.ok(src.includes("服务端已确认签到，日志里暂无本次记录"), "应有兜底说明");
 });
 
 t("签到记录的 quota 字段为 0，奖励金额只能靠解析文案", () => {
