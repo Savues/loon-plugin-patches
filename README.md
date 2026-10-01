@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
-| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 信息流 + 搜索词投放 · 六份真机抓包逐条回放<br>Douban splash, feed and search ad-block, six real captures replayed | **v1.4** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 搜索页广告词 · 以 honue 原版为基线，只加一条脚本<br>Douban splash + search ad-block, honue baseline plus one script | **v2.0** |
 
 ### 托管了脚本的插件
 
@@ -156,53 +156,32 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-`Douban-Dedup` —— **以清单层为主，测试用真机抓包做全量回放，且被真机打脸过一次**。合并了
-[honue/rules](https://github.com/honue/rules)（480 B）与
-[shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock)（1552 B）两家，
-两家原件逐字节留存并用 SHA256 钉死。测试把两份 HAR（218 + 249 条）压成 URL 清单逐条喂规则，
-判「本地合成 vs 真实回包」靠**响应头数量**（真回包 10–16 条，本地合成 0–1 条）。
+`Douban-Dedup` —— **以 honue 原版为基线，只加一条脚本，并且这个「只加一条」是用测试钉死的**。
+原版 480 B、1 条 Rewrite、1 个域名；v2.0 只多了 1 条 `[Script]` 和 1 个 `[MITM]` 域名。
+测试里有反向断言：`[Rule]` 段必须为空、`[URL Rewrite]` 只能有 1 条、
+不许出现 `erebor` / `IP-CIDR` / `dale_ad`。
 
-🔴 **v1.0 的失败值得单独记**：我为了给信息流规则挂 `enable={}` 开关，把它们从
-`[URL Rewrite]` 挪到了 `[Rule]` 的 `URL-REGEX` 上。真机抓包证明**一条都没拦住** ——
-`feed_ad` 仍下发 60908 B 带 16 条真实响应头。根因是 **`[Rule]` 段的 `URL-REGEX`
-不参与 HTTPS 路径改写**。
+🔴 **v1.x 过度扩张后回退，这是本插件最重要的一段**。v1.0–v1.4 逐步加了很多规则
+（信息流、腾讯 HTTPDNS、`img*.doubanio.com`），结果用户报告**浏览几个个人主页/小组页后
+无法加载，重启 App 才能恢复**。我先后把原因归给 `img*.doubanio.com` 和 HTTPDNS 规则，
+**两次都被真机证伪** —— 移除后照样复现。抓包显示 21 并发时 5~6 张图片瞬时失败
+（`status=0`），但 10 ms 内全部重试成功，且豆瓣侧 62 个接口零失败。
 
-定位的关键在于**同段的 `IP-CIDR` 生效了**（15 次 HTTPDNS 全拦）。所以不是整段失效，
-是这一种规则类型不生效 —— 若只看「`[Rule]` 不工作」就会误改掉本来正确的 HTTPDNS 规则。
-代价是信息流挂不上开关，因此**直接删掉了那个开关**：宁可没有开关，
-也不要一个假装能关的开关。测试里有反向断言钉死「`[Rule]` 段零 `URL-REGEX`」。
+**关键事实是：honue 原版没有这个问题（用户实测），v1.x 有。** 我无法证明是插件造成的，
+但可以确定收益未经验证而风险已经出现 —— 所以 v2.0 直接放弃那些规则。
+剩下的唯一新增功能是搜索页广告剥离：一个自研脚本，按 `layout` / `search_type`
+删掉广告条目、保留真实热搜。
 
-第三份抓包还修正了 v1.0 一个过于保守的说法：README 原先写「必须完整删 App 重装」
-（依据是 `splash_preload` 的 POST 体里有 `preload_ads` 本地缓存），但实测**不必删** ——
-素材图被拦住后 SDK 就会走失败跳过。三份抓包也确认了两家上游都漏了
-`frodo.douban.com` 上的信息流广告（单条 59 KB），而 shengrui 那条「让 App 立即跳过」的
-`splash_show` 规则在 7.135.0 上**一次都没触发**。
+那段脚本踩过的两个坑都写进了插件注释：
+`[URL Rewrite]` **没有** `script-response-body` 语法（v1.2 写过，真机一次没跑），
+正确写法是 `[Script]` 的 `http-response` + `requires-body=true`
+（漏掉后者 `$response.body` 恒为 `undefined`）。两处都依据官方手册
+`docs/cn/rewrite.md` 与 `docs/cn/script.md` 核实。
 
-**v1.2 加了本仓库第一个「自研脚本」**（`src/douban-search-ad.js`，v1.3 改挂 `[Script]` 段）：搜索框滚动广告与
-「发现」横滚标签里的广告，都在 `search/found_words` 的 `words[]` 与 `search/hots` 的
-`roofs[]` 里，与真实热搜**混在同一个数组**，只能靠 `layout:"ad"` 区分。
-直接 reject 会让搜索联想报废，所以改用 `script-response-body` 只删广告条目。
-v1.2 把它挂在 `[URL Rewrite]` 的 `script-response-body=` 上，**真机实测一次都没执行**。
-查官方手册 `docs/cn/rewrite.md` 才发现 `[Rewrite]` 只支持 URL/Header 改写、302/307
-与 5 种 reject，**根本没有响应体改写**；正解是 `[Script]` 段的
-`http-response` + **`requires-body=true`**（漏掉它 `$response.body` 恒为 undefined）。
-改挂 `[Script]` 后 `enable={}` 也名正言顺了 —— 官方 `docs/cn/script.md` 的示例里就有。
-
-**v1.3 移除了 `img*.doubanio.com`**：它原本只为拦 5 张开屏广告素材图，
-但真机实测在个人主页/小组页引发**连接池排队** —— 17 并发时 5~6 张头像瞬时失败
-（`status=0`），33~42 ms 后重试全部成功，且失败时刻与 HTTPDNS 请求精确同刻。
-用户症状「前几次能开、后来不行、重启就好」正是连接池被填满的典型表现。
-代价是开屏素材图放行，但 `splash_preload` 接口仍被拒，App 拿不到新广告对象。
-
-🔴 **v1.4：`top_word` 整字段删除**。v1.2/v1.3 我都判定「`top_word` 标 `default` 所以是
-正常热搜」，真机证明那是「搜索词投放」广告（`《沙丘3》确认引进`、`女生独闯肯尼亚safari`）。
-跨 8 份抓包 12 个样本，**没有一个带广告标记**，而 `《Girls》主创Lena Dunham代孕`
-明显是真热搜 —— 协议层无法区分。三个判据全部失效：`layout`/`search_type` 无差别、
-URI 的话题 `#xxx#` 形式正常热搜也在用、含英文字母的反而是真热搜。
-
-🔴 **三次「凭印象写 Loon 语法」的教训**：本仓库已经栽了三次 ——
-`[Rule]` 的 `URL-REGEX` 不参与 HTTPS 改写、`[Rewrite]` 挂 `enable=` 静默失效、
-`[Rewrite]` 的 `script-response-body=` 根本不存在。**用没验证过的语法前先查官方手册。**
+另一个坑是 `top_word`（搜索框滚动词）—— v1.2 和 v1.3 我都判定「标 `default` 所以是正常热搜」，
+**两次都错了**。跨 8 份抓包 12 个样本无一带广告标记，其中 `《沙丘3》确认引进`、
+`女生独闯肯尼亚safari` 是广告，而 `《Girls》主创Lena Dunham代孕` 明显是真热搜。
+协议层无法区分，只能整字段删除。三次返工的共同教训：**看一个样本就下结论**。
 
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
@@ -240,68 +219,39 @@ broke the plugin — a diagnostic plugin showed the truth, that Loon passes `$ar
 and my "fix" was the only thing preventing the forward. The repo keeps the diagnostic plugin
 and pins the measured shape in tests, so nobody repeats the mistake.
 
-`Douban-Dedup` is manifest-first, replays real packet captures end to end —
-and the second one caught v1.0. It merges honue/rules (480 B) and
-shengrui123/douban-adblock (1552 B), both kept byte-for-byte and pinned by SHA256.
-The two HARs (218 + 249 requests) are compressed into URL fixtures and fed through the
-rules one at a time; "synthesised locally vs. real response" is decided by **response
-header count** — a real reply carries 10–16 headers, a local reject carries 0–1.
+`Douban-Dedup` takes **the honue original as its baseline and adds exactly one script** —
+and that "exactly one" is pinned by tests: the `[Rule]` section must stay empty, `[URL Rewrite]`
+must hold a single rule, and `erebor` / `IP-CIDR` / `dale_ad` must not appear anywhere.
+The original is 480 B with one rewrite and one hostname; v2.0 adds one `[Script]` rule and
+one MITM hostname.
 
-🔴 **The v1.0 failure is worth recording on its own**: so the feed-ad rules could carry an
-`enable={}` switch, I moved them out of `[URL Rewrite]` into `[Rule]` as `URL-REGEX`.
-The capture proved **not one of them fired** — `feed_ad` still delivered 60,908 bytes behind
-16 real response headers. The cause is that **`URL-REGEX` in `[Rule]` does not participate
-in HTTPS path rewriting**.
+🔴 **The v1.x line grew too big and was rolled back — this is the plugin's most important
+history.** v1.0–v1.4 accumulated feed-ad blocking, Tencent HTTPDNS interception and
+`img*.doubanio.com`, and users then reported that **after browsing a few profile or group
+pages the app stopped loading until restarted**. I blamed `img*.doubanio.com`, then the
+HTTPDNS rules; **both guesses were falsified on device** — the problem persisted after
+removing them. The capture shows five or six images failing instantly (`status=0`) under
+21 concurrent requests, all succeeding on retry within 10 ms, while all 62 Douban endpoints
+returned normally.
 
-The key to the diagnosis is that **`IP-CIDR` in that same section did work** (15 HTTPDNS
-requests all blocked). So the section wasn't dead — that one rule *type* was. Had I stopped
-at "`[Rule]` doesn't work" I would have broken the HTTPDNS rules that were already correct.
-Since the feed rules can no longer carry a switch, **the switch was deleted outright**: no
-switch beats a switch that pretends to work. A reverse assertion pins "`[Rule]` contains
-zero `URL-REGEX`".
+**The decisive fact: honue's original does not have this problem (user-tested), v1.x does.**
+I cannot prove the plugin caused it, but the benefit was unverified while the risk was
+demonstrated — so v2.0 drops those rules. What remains is the search-page ad script: a
+self-written one that removes ad entries by `layout` / `search_type` and keeps real hot
+searches.
 
-The same capture also corrected an over-cautious claim in v1.0: the README had said the app
-must be fully deleted and reinstalled, based on `preload_ads` cached in the POST body of
-`splash_preload`. Empirically **it needn't be** — once the asset image is blocked the SDK
-takes the load-failure path and skips. The captures also confirm that both upstreams miss
-the feed ads on `frodo.douban.com` (59 KB in a single response), and that shengrui's
-`splash_show` rule — the one that makes the app skip immediately — **never fires at all**
-on 7.135.0.
+Two traps in that script are documented in the plugin comments: `[URL Rewrite]` has **no**
+`script-response-body` syntax (v1.2 used it; it never ran), and the correct form is
+`http-response` in `[Script]` with **`requires-body=true`** — without it `$response.body` is
+permanently `undefined`. Both verified against the official `docs/cn/rewrite.md` and
+`docs/cn/script.md`.
 
-**v1.2 adds this repo's first self-written script** (`src/douban-search-ad.js`;
-rehomed into `[Script]` in v1.3). The
-scrolling ad in the search box and the ad tags in the horizontal strip both live inside
-`words[]` of `search/found_words` and `roofs[]` of `search/hots` — **mixed into the same
-arrays as the real hot searches**, separable only by `layout:"ad"`. Rejecting the endpoint
-would break search suggestions outright, so the script deletes just the ad entries via
-**v1.4 deletes `top_word` outright.** v1.2 and v1.3 both judged it a normal hot search
-because it carries `layout:"default"`; the device proved otherwise — it is where Douban's
-search-word advertising lands. Across 8 captures and 12 distinct `top_word` values **not one
-carries an ad marker**, while `《Girls》主创Lena Dunham代孕` is plainly a real hot search.
-Every heuristic fails: `layout`/`search_type` are identical across all samples; the
-`#topic#` URI form is used by genuine hot searches too; and the value containing Latin
-letters is the *real* one. v1.4 also adds the missing `group/<id>/ad` endpoint.
-
-v1.2 put the script on `[URL Rewrite]`, and **it never ran once** — the
-capture still showed a 13-header real reply with `ad_info` intact. The official manual
-(`docs/cn/rewrite.md`) settled it: `[Rewrite]` only does URL/Header rewrites, 302/307 and
-five reject variants — **there is no response-body rewrite at all**. The correct form is
-`http-response` in `[Script]` with **`requires-body=true`** (without it `$response.body` is
-permanently `undefined`). Rehomed into `[Script]`, the `enable={}` switch is legitimate too,
-since the official `docs/cn/script.md` examples use it.
-
-**v1.3 drops `img*.doubanio.com`** from `[MITM]`. It was only there to block five splash
-ad images, but on real devices it caused **connection-pool queuing** on profile and group
-pages: with 17 concurrent requests, five or six avatars fail instantly (`status=0`) and
-succeed on retry 33–42 ms later, at exactly the moment a HTTPDNS request lands. The user's
-own symptom — "works the first few times, then stops; restarting the app fixes it" — is the
-textbook signature of a saturated pool. The cost is that splash creatives are no longer
-blocked, but `splash_preload` still is, so the app gets no fresh ad object.
-
-🔴 **Three strikes for writing Loon syntax from memory**: `[Rule]`'s `URL-REGEX` does not
-participate in HTTPS rewriting; `enable=` on `[Rewrite]` fails silently; and
-`script-response-body=` on `[Rewrite]` does not exist. **Read the official manual before
-using syntax you have not verified.**
+The other trap is `top_word`, the rotating search-box word: in v1.2 and v1.3 I judged it a
+normal hot search because it carries `layout:"default"` — **wrong both times**. Across 8
+captures and 12 samples not one carries an ad marker, yet `《沙丘3》确认引进` and
+`女生独闯肯尼亚safari` are ads while `《Girls》主创Lena Dunham代孕` is plainly real. There is
+no way to tell them apart, so the field is deleted outright. The common thread across all
+three reworks: **drawing a conclusion from a single sample**.
 
 ---
 

@@ -1,86 +1,54 @@
 #!name=豆瓣去广告
-#!desc=去开屏 + 信息流/横幅 + 搜索页预制广告词。开屏素材图直接判失败以跳过本地倒计时；搜索页广告靠脚本只删广告条目、保留真实热搜。腾讯优量汇 HTTPDNS 拦截可关。基于 honue/rules 与 shengrui123/douban-adblock，按豆瓣 7.135.0 五份真机抓包重写。v1.4 删掉搜索框滚动词 top_word（搜索词投放广告）；v1.3 移除 img*.doubanio.com。
-#!author=honue, shengrui123, Savues
+#!desc=以 honue 原版为基线，仅追加「搜索页预制广告词」剥离脚本。开屏规则做了两处等价修正（见下）。真机验证：开屏照常去除，搜索框与「发现」标签不再出现广告词，真实热搜完整保留。
+#!author=honue, Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
 #!date=2026-10-01
-#!version=1.4
+#!version=2.0
 #!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
 #!tag=去广告
 
 [Argument]
-block_httpdns = switch,true,tag=去腾讯优量汇,desc=拦腾讯广告 HTTPDNS 旁路；会连带影响其它 App 的腾讯广告，可关
 block_search_ad = switch,true,tag=去搜索页预制广告词,desc=剥掉搜索框滚动广告与「发现」横滚标签里的广告条目；真实热搜不受影响
 
 [Rule]
-# ── 腾讯优量汇 HTTPDNS 旁路 ─────────────────────────────────
-# 把广告域名解析成 IP 以绕过域名规则。119.29.29.90 来自真机抓包实测
-# （两份抓包共 42 次请求）；.98/.99 为腾讯官方现行入口。
-# 只放 IP-CIDR / DOMAIN* —— 这两类在 [Rule] 里真机确认生效。
-IP-CIDR,119.29.29.90/32,REJECT,no-resolve,enable={block_httpdns}
-IP-CIDR,119.29.29.98/32,REJECT,no-resolve,enable={block_httpdns}
-IP-CIDR,119.29.29.99/32,REJECT,no-resolve,enable={block_httpdns}
 
-# 优量汇广告链：抓包中一次都没出现（HTTPDNS 已在更前面被拦），仅作兜底
-DOMAIN,sdk.e.qq.com,REJECT,enable={block_httpdns}
-DOMAIN-SUFFIX,gdt.qq.com,REJECT,enable={block_httpdns}
-DOMAIN-SUFFIX,gdtimg.com,REJECT,enable={block_httpdns}
-DOMAIN-SUFFIX,ugdtimg.com,REJECT,enable={block_httpdns}
-
+# ── 开屏规则：相对 honue 原版只有这一条，做了两处修正 ──────────
+# 原版： ^https?:\/\/api\.douban\.com\/v2\/app_ads.+ reject
+# 修正 1：v2 → v\d+         豆瓣升到 v3 即失效（跨版本）
+# 修正 2：reject → reject-dict  JSON 接口该返回 {}；原版返回空响应体，
+#         真机抓包看到 App 5 秒后原样重试（02:41:20 → 02:41:25 两次 splash_preload）
+# 其余信息流/横幅/腾讯 HTTPDNS 等规则一律不加 ——
+# 真机实测它们在个人主页/小组页高并发时引发连接池排队，
+# 而 honue 原版（只有 1 条 Rewrite + 1 个域名）无此问题。
 [URL Rewrite]
-# ── 信息流 / 横幅 / 影视页 / 剧集页广告 ──────────────────────
-# 🔴 v1.0 曾把这四条放在 [Rule] 的 URL-REGEX 上（为了挂 enable= 开关），
-#    真机实测全部不生效：feed_ad 仍完整下发 60908 B、16 条真实响应头。
-#    原因：[Rule] 段的 URL-REGEX 不参与 HTTPS 路径改写。
-#    代价是这四条挂不上开关 —— 宁可没开关，不要假装能关的开关。
-# erebor=首页信息流, movie/ad=影视页, tv/<id>/ad=剧集页,
-# group/<id>/ad=小组页, home_banner=首页横幅, home_ads=开屏聚合
-# group/<id>/ad 来自 2026-10-01 第四份真机抓包（/api/v2/group/736627/ad），
-# v1.3 之前漏了。⚠️ 别写成 /(?:movie|tv|group)\/…\/ad$ —— [URL Rewrite] 是
-#    整串正则，分段顺序不同，group 的是 /group/736627/ad（无第二段名字）。
-# ⚠️ 路径要逐个写全：Loon 的 [URL Rewrite] 是整串正则匹配，
-#    写成 /(?:movie|home)/(?:banner|ads) 那种「分段择一」的形式匹配不到
-#    /api/v2/movie/ad —— 分段顺序不同。
-^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/(?:feed_ad|special_ad)(?:[\/?].*)?$ reject-dict
-^https?:\/\/frodo\.douban\.com\/api\/v2\/(?:movie|tv|group)\/[\d\w-]+\/ad(?:[\/?].*)?$ reject-dict
-^https?:\/\/frodo\.douban\.com\/api\/v2\/movie\/ad(?:[\/?].*)?$ reject-dict
-^https?:\/\/frodo\.douban\.com\/api\/v2\/home_(?:ads|banner)(?:[\/?].*)?$ reject-dict
-
-# ── 开屏（无条件，这是插件的核心功能）──────────────────────
-# 展示阶段直接失败让 App 走跳过回调；预加载返回空 JSON 防止反复重试。
-# 抓包实测 7.135.0 只发 splash_preload、从不发 splash_show，后者为跨版本兜底。
-^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash_show(?:[\/?].*)?$ reject
-^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/splash(?:_preload)?(?:[\/?].*)?$ reject-dict
-
-# ⚠️ v1.3 移除了「开屏广告素材图」规则 —— 它需要 img*.doubanio.com 进 [MITM]，
-#    而真机实测代价远大于收益：
-#      · 打开小组/个人主页时 17 并发，同一时刻有 5~6 张头像/小组图
-#        瞬时失败（status=0），33~42 ms 后重试全部成功
-#      · 这些失败与 119.29.29.90 的 HTTPDNS 请求精确同刻（差 −17~+7 ms）
-#        ⇒ 连接池排队，不是拦截。用户症状是「前几次能开、后来不行、重启就好」
-#      · 根因是每个请求多一层 TLS 握手把连接池挤满
-#    移除后开屏素材图会放行，但 splash_preload 接口仍被 reject-dict，
-#    App 拿不到新广告对象，最坏是多停 1~2 秒，而不是显示广告。
-#    （原规则： ^https?:\/\/img\d+\.doubanio\.com\/view\/dale-online\/dale_ad\/public\/.*$ reject ）
-
-# ── 搜索页预制广告词 → 见 [Script] 段的 http-response ──────
-# 🔴 v1.2 曾把这条写成 [URL Rewrite] 的 script-response-body=，
-#    真机实测完全没执行（响应头 13 条真回包、ad_info 仍在）。
-#    查 Loon 官方文档 docs/cn/rewrite.md：[Rewrite] 只支持
-#    URL/Header 改写、302/307、以及 5 种 reject —— 根本没有响应体改写。
-#    响应体改写必须写在 [Script] 段，语法是 http-response + requires-body=true。
+^https?:\/\/api\.douban\.com\/v\d+\/app_ads\/(?:splash_)?(?:show|preload)(?:[\/?].*)?$ reject-dict
 
 [Script]
-# 剥离搜索框滚动广告与「发现」横滚标签里的预制广告词。
-# 抓包实测：广告与真实热搜混在同一数组，只能靠 layout / search_type 区分
-#   found_words.words[]  layout="ad" search_type="ad_link"
-#   hots.roofs[]         layout="ad"
-#   hots.ad_info         ad_type="fake" unit_name="dale_app_search_hots_page"
-# 例：words[1] "看视频抽立减金" → m.douban.com/cps-spu-page/.../daily-incentive-lottery
-# 而 words[0] "《复仇者联盟5》确认引进内地"、top_word "《沙丘3》确认引进" 是 layout="default"
-# ⇒ 不能 reject 这两个端点（会让搜索联想报废），只能删条目、保留其余。
-# 官方文档：http-response 的 $done({body}) 会自动重算 content-length 与 content-encoding，
-# 所以服务端原本的 gzip 不用管。
+# 搜索页预制广告词。这是相对原版的唯一新增功能。
+#
+# 抓包实测（豆瓣 7.135.0 / iPadOS 18.7.3，8 份 HAR）：
+#   /api/v2/search/found_words → { words:[...], top_word, cache_timeout }
+#   /api/v2/search/hots        → { roofs:[...], ..., ad_info:{...} }
+# 广告与真实热搜混在同一数组里：
+#   words[1] { layout:"ad", search_type:"ad_link", title:"看视频抽立减金",
+#              uri:"https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad" }
+#   roofs[0] { layout:"ad", title:"抽10元支付宝立减金" }
+#   ad_info  { ad_type:"fake", unit_name:"dale_app_search_hots_page" }
+# 正常条目 layout 是 "default"，不能删。
+#
+# ⚠️ 不能直接 reject 这两个端点 —— 真实热搜（真实词条）在里面，拦掉等于搜索联想报废。
+# ⚠️ top_word（搜索框滚动词）标的是 layout:"default"，与真实热搜无任何差别。
+#    跨 8 份抓包 12 个样本无一带广告标记，其中《沙丘3》确认引进、
+#    女生独闯肯尼亚safari 被用户确认为广告，而《Girls》主创Lena Dunham代孕
+#    明显是真热搜 ⇒ 协议层无法区分，只能整字段删除。
+#    代价：搜索框不再显示滚动词，搜索功能不受影响。
+#
+# 语法依据 Loon 官方手册 docs/cn/script.md：响应体改写只能走 [Script] 的
+# http-response，requires-body=true 是必需的（否则 $response.body 恒为 undefined）。
+# [URL Rewrite] 没有 script-response-body 这个语法（见 docs/cn/rewrite.md）。
 http-response ^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)(?:[\/?].*)?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js, tag=搜索页广告词, requires-body=true, timeout=10, enable={block_search_ad}
 
 [MITM]
+# api.douban.com 来自 honue 原版。frodo.douban.com 是脚本生效的前提：
+# 响应体改写必须解密该域名，缺了它 script 一行都不会跑。
 hostname = api.douban.com, frodo.douban.com
