@@ -25,7 +25,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
 | [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 百亿补贴搜索框无推广 · 拦截全可关<br>Ad-block · custom bottom bar · clean subsidy search box · all stubs switchable | **v1.75** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.1** |
-| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 通知三层重排 + 公告<br>AgentRouter check-in · cron off by default · 3-tier layout + announcements | **v1.9** |
+| [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修三处上游缺陷<br>AgentRouter check-in · cron off by default · three upstream bugs fixed | **v1.13** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
 | [Forward](plugins/Forward/) | 订阅凭据转发 · 零脚本一行 Rewrite<br>Credential forward · one-line rewrite | **1.3.13** |
 | [Reven-Mirror](plugins/Reven-Mirror/) | 订阅 SDK 劫持脚本托管 · 4 个开关默认全开<br>Subscription-SDK plugin, script hosted, 4 switches on by default | **v1.1** |
@@ -129,17 +129,24 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 与 Reven-Mirror 那种「把依赖从 A 挪到 B」不同，这里是真的没有 B。
 ✅ `status.html` 那个端点**没拦，实测也确认不用拦** —— 解锁正常。
 
-`AgentRouter` —— **脚本托管 + 修一个真机实测出来的 bug**。清单层只改了一处：cron 挂上默认关闭的开关
-（开关只拦自动调度，cron 本身仍可在插件页手动触发）。
-托管脚本的理由跟 Reven-Mirror 一样：作者的个人仓库不是长期承诺的 CDN。
-但脚本不是纯托管 —— 真机跑通后发现通知里奖励金额一直显示「金额未识别」，
-根因是服务端返回的金额符号是**全角 `＄`（U+FF04）**而上游正则只认半角 `$`，
-字符类改成 `[$＄]` 修掉了。个人自用，所以也去掉了 `maskAccount()` 账号打码
-（代价是通知里会出现完整邮箱，锁屏可见 —— 已在插件 README 写明）。
-通知按 iOS 的三层（副标题 / 标题 / 正文 4 行）重排过：顶栏放身份信息、
-标题把签到金额合并进去、正文首行挤下余额/已用/请求数、剩下 3 行留给公告
-（只在有新公告时占行，靠 persistentStore 记 id）。
-原件另存 `src/upstream-agentrouter.js`。23 个结构用例 + 21 个纯函数用例。逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
+`AgentRouter` —— **脚本托管 + 修了三个真机实测出来的 bug**。清单层只改一处：cron 挂上默认关闭的开关
+（开关只拦自动调度，cron 本身仍可在插件页手动触发）。托管脚本的理由跟 Reven-Mirror 一样：
+作者的个人仓库不是长期承诺的 CDN。
+
+脚本不是纯托管，三处改动都是真机跑出来的：
+
+| # | 症状 | 根因 |
+|---|---|---|
+| 1 | 奖励金额一直显示「金额未识别」 | 服务端返回**全角 `＄`（U+FF04）**，上游正则只认半角 `$` |
+| 2 | 明明签到了却报「签到待确认」 | 签到在 `POST /api/user/login` 时由服务端完成，但 `/api/log/self` 的记录**异步写**，登录后立刻查还查不到 |
+| 3 | 通知排版被 iOS 截断 | 副标题右侧被**时间戳**占位，宽度随通知新旧在 11~16 单位间波动 |
+
+连带把通知按 iOS 三层（副标题 / 标题 / 正文 4 行）重排：顶栏放站点名+ID、天数挪到标题
+（副标题会被时间戳挤掉）、正文首行放余额+已用、剩下 3 行留给公告（只在有新公告时占行）。
+个人自用所以去掉了 `maskAccount()` 账号打码 —— 代价是通知里会出现完整邮箱，锁屏可见，已在插件 README 写明。
+
+原件另存 `src/upstream-agentrouter.js`。24 个结构用例 + 26 个排版纯函数用例 + 5 个竞态用例。
+逐条依据见 [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md)。
 曾一度怀疑解锁不完整（收据端点已伪造，`status.html` 仍在报 `status: FREE`），
 真机实测排除：**AdGuard 4.5.23 的会员态由收据校验结果决定，不读那个端点**。
 这印证了当初不拦它是对的 —— 手上只有 `status: FREE` 一份样本，
@@ -213,16 +220,18 @@ capture, 2.3 KB, 24 tests, and no `[MITM]` at all.
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its
 real-world effectiveness is explicitly unverified.
-`AgentRouter` is vendored **and patched**: the live test showed the reward line always
-reading "amount not recognised", because the server returns a **full-width `＄` (U+FF04)**
-while the upstream regex only accepts a half-width `$`. The character class is now `[$＄]`.
-`maskAccount()` is dropped for personal use — the cost, a full e-mail visible on the
-lock screen, is stated in the plugin README. The notification was then rebuilt
-around iOS's three tiers (subtitle / title / 4 body lines): identity on top,
-the reward amount in the title, balance+spent+requests squeezed onto one body
-line, and the last three lines reserved for announcements (only when a new one
-exists, tracked via persistentStore). The pristine original is kept alongside;
-44 tests across two files cover structure and the pure layout functions.
+`AgentRouter` is vendored **and patched** — three bugs, all found by running it on a real device:
+the reward line always read "amount not recognised" because the server returns a **full-width
+`＄` (U+FF04)** while the upstream regex only accepts a half-width `$`; a successful check-in
+was reported as "unconfirmed" because the log record is written **asynchronously** and the script
+queried it immediately; and the notification layout was truncated because the **timestamp**
+eats into the subtitle's width, which swings between 11 and 16 units as the notification ages.
+The notification was rebuilt around iOS's three tiers (subtitle / title / 4 body lines): site + ID
+on top, the day count moved into the full-width title, balance+spent on the first body line,
+and the last three reserved for announcements. `maskAccount()` is dropped for personal use —
+the cost, a full e-mail visible on the lock screen, is stated in the plugin README.
+The pristine original is kept alongside; 55 tests across three files cover structure,
+the pure layout functions, and the log-write race.
 
 `iTunes-Spoof` is pure hosting: the 374 KB upstream script runs **byte-for-byte unchanged**.
 Two earlier versions tried to "fix" what I believed was a broken argument connection, and both
