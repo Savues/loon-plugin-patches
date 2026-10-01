@@ -1,0 +1,67 @@
+{
+ "words": [
+  {
+   "title": "《复仇者联盟5》确认引进内地",
+   "uri": "douban://douban.com/search/result?q=%23%E3%80%8A%E5%A4%8D%E4%BB%87%E8%80%85%E8%81%94%E7%9B%9F5%E3%80%8B%E7%A1%AE%E8%AE%A4%E5%BC%95%E8%BF%9B%E5%86%85%E5%9C%B0%23",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "uri": "https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad",
+   "icon": "",
+   "title": "看视频抽立减金",
+   "layout": "ad",
+   "search_type": "ad_link",
+   "monitor_urls": [
+    "https://erebor.douban.com/count/?aaid=%3CAAID%3E&abt_id=%3CABT_ID%3E&action=redirect&ad=%3CAD%3E&ad_type=%3CAD_TYPE%3E&al=%3CAL%3E&bid=%3CBID%3E&bid_type=__BID_TYPE__&brand=%3CBRAND%3E&caid=%3CCAID%3E&channel=&chicken=%3CCHICKEN%3E&creative=%3CCREATIVE%3E&crtr=%3CCRTR%3E&cwords=%3CCWORDS%3E&device=103&disable_creative=false&disable_third=false&fv=7.135.0&height=__HEIGHT__&high_value=true&hn=nob121&idfa=&imei=&imp_type=2&is_cache=false&is_cmp=false&is_core=false&is_ht=false&is_short=false&item_type=COMPLEMENT&lat=0.00000&layout=0&lon=0.00000&manu_ver=&mark=&md5_cid=576bb7d1adef1c47fddb9fa3fa06b6c5&model=iPad16%2C1&net=wifi&ns=1790798524773294328&oaid=&os=54&osv=18.7.3&p=3&posid=&price=%3CPRICE%3E&priority=2&punit=yuan&qword=&region=792b843eb1b97f0a&rexxar=0&screen_height=1488&screen_scale=0.00&screen_width=2266&sdk_rid=__SDK_REQ_ID__&sensor=&slide_sl=&sugar=%3CSUGAR%3E&t_mode=&third_cid=__THIRD_CID__&ts=__TIMESTAMP__&ts_ms=__TIMESTAMP_MS__&type=impression&uid=%3CUID%3E&unit=dale_app_hot_search&vendor=Apple&width=__WIDTH__"
+   ],
+   "click_track_urls": [
+    "https://erebor.douban.com/redirect/?aaid=%3CAAID%3E&abt_id=%3CABT_ID%3E&action=redirect&ad=%3CAD%3E&ad_type=%3CAD_TYPE%3E&al=%3CAL%3E&bid=%3CBID%3E&brand=%3CBRAND%3E&caid=%3CCAID%3E&channel=&chicken=%3CCHICKEN%3E&creative=%3CCREATIVE%3E&crtr=%3CCRTR%3E&device=103&disable_creative=false&disable_third=false&down_ts=__DOWN_TS__&down_x=__DOWN_X__&down_y=__DOWN_Y__&fv=7.135.0&height=__HEIGHT__&high_value=true&hn=nob121&idfa=&imei=&imp_type=2&is_cache=false&is_cmp=false&is_core=false&is_ht=false&is_short=false&item_type=COMPLEMENT&lat=0.00000&layout=0&lon=0.00000&manu_ver=&mark=&md5_cid=__MD5_CID__&model=iPad16%2C1&net=wifi&oaid=&os=54&osv=18.7.3&p=3&posid=&priority=2&qword=&re_down_x=__RE_DOWN_X__&re_down_y=__RE_DOWN_Y__&re_up_x=__RE_UP_X__&re_up_y=__RE_UP_Y__&region=792b843eb1b97f0a&rexxar=0&screen_height=1488&screen_scale=0.00&screen_width=2266&sdk_rid=__SDK_REQ_ID__&sensor=&sig=b5025c03efa55ee8278f331cf8988b49229d28b86f67e279c93961124f9a22e3&sigt=hmac&slide_sl=&sugar=%3CSUGAR%3E&t_mode=&target=&third_cid=__THIRD_CID__&ts=__TIMESTAMP__&ts_ms=__TIMESTAMP_MS__&uid=%3CUID%3E&unit=dale_app_hot_search&up_ts=__UP_TS__&up_x=__UP_X__&up_y=__UP_Y__&vendor=Apple&width=__WIDTH__"
+   ],
+   "deeplink_url": ""
+  },
+  {
+   "title": "余红旧事",
+   "uri": "douban://douban.com/search/result?q=%E4%BD%99%E7%BA%A2%E6%97%A7%E4%BA%8B",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "title": "时尚芭莎对李庚希好残忍",
+   "uri": "douban://douban.com/search/result?q=%23%E6%97%B6%E5%B0%9A%E8%8A%AD%E8%8E%8E%E5%AF%B9%E6%9D%8E%E5%BA%9A%E5%B8%8C%E5%A5%BD%E6%AE%8B%E5%BF%8D%23",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "title": "生化危机：爆发夜",
+   "uri": "douban://douban.com/search/result?q=%E7%94%9F%E5%8C%96%E5%8D%B1%E6%9C%BA%EF%BC%9A%E7%88%86%E5%8F%91%E5%A4%9C",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "title": "易洋千玺真的爱用生僻字",
+   "uri": "douban://douban.com/search/result?q=%23%E6%98%93%E6%B4%8B%E5%8D%83%E7%8E%BA%E7%9C%9F%E7%9A%84%E7%88%B1%E7%94%A8%E7%94%9F%E5%83%BB%E5%AD%97%23",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "title": "新海诚",
+   "uri": "douban://douban.com/search/result?q=%E6%96%B0%E6%B5%B7%E8%AF%9A",
+   "search_type": "all",
+   "layout": "default"
+  },
+  {
+   "title": "早春晴朗",
+   "uri": "douban://douban.com/search/result?q=%E6%97%A9%E6%98%A5%E6%99%B4%E6%9C%97",
+   "search_type": "all",
+   "layout": "default"
+  }
+ ],
+ "top_word": {
+  "title": "《沙丘3》确认引进",
+  "uri": "douban://douban.com/search/result?q=%23%E3%80%8A%E6%B2%99%E4%B8%983%E3%80%8B%E7%A1%AE%E8%AE%A4%E5%BC%95%E8%BF%9B%23",
+  "search_type": "all",
+  "layout": "default"
+ },
+ "cache_timeout": 30
+}

@@ -34,11 +34,12 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
+| [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
 
 ### 托管了脚本的插件
 
 > 各插件的具体清单见上方表格「脚本」列 —— **这个数字随插件增删变化，请勿手写**，
-> 由 `find plugins -name '*.js'` 得出（2026-09-30：12 个插件带 JS）。
+> 由 `find plugins -name '*.js'` 得出（2026-10-01：13 个插件带 JS）。
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -240,6 +241,26 @@ adding something back has to explain why the last attempt broke things.
 
 If search-ad stripping is ever wanted again, the precondition is to **fix the profile-loading
 problem first and establish causality with a controlled experiment**.
+
+---
+
+## Douban 两件套怎么选
+
+| | [Douban-Dedup](plugins/Douban-Dedup/) | [Douban-SearchAd](plugins/Douban-SearchAd/) |
+|---|---|---|
+| 开屏 | ✅ honue 原版规则 | ✅ 同一条，逐字相同 |
+| 搜索页广告词 | ❌ | ✅ |
+| MITM 域名 | 1 个（`api.douban.com`） | 2 个（+`frodo.douban.com`） |
+| 解密范围 | 最小 | 多解密整个豆瓣业务 API |
+
+⚠️ **不建议同时装**（开屏规则重复、MITM 叠加）。**二选一。**
+
+SearchAd 那个开关**不是绝对的**：Loon 的 `[MITM]` 段没有参数化机制
+（官方手册 `docs/cn/plugin.md` 只有 `hostname=` 和 `h2=`），
+`[Argument]` 的 `switch` 挂不到 `[MITM]`。所以 `block_search_ad` 关掉后
+**只是脚本不执行，`frodo.douban.com` 仍然会被解密** —— 省不下那份 TLS 开销。
+
+这也是为什么它被拆成独立插件：**想要「绝对干净」就用 Douban-Dedup 的纯移植版。**
 
 ---
 

@@ -1,0 +1,55 @@
+#!name=豆瓣搜索页广告词屏蔽
+#!desc=只剥离搜索框滚动广告与「发现」横滚标签里的预制广告词，真实热搜完整保留。⚠️需要解密 frodo.douban.com；若浏览个人主页/小组页出现加载失败，请改用 Douban-Dedup（honue 原版纯移植）。若主页加载正常，用本插件的开关关掉脚本即可退回纯开屏拦截。
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-SearchAd
+#!date=2026-10-01
+#!version=1.0
+#!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
+#!tag=去广告
+
+[Argument]
+block_search_ad = switch,true,tag=去搜索页预制广告词,desc=剥掉搜索框滚动广告与「发现」标签广告。⚠️关闭后 frodo.douban.com 仍会被解密（Loon 无法用开关控制 [MITM]），只是脚本不再运行
+
+[Rule]
+
+[URL Rewrite]
+# 来自 honue/rules 原版，逐字未改。
+# ⚠️ 这条刻意不挂 enable={}：本仓库已实测 [URL Rewrite] 尾部的 enable= 静默失效
+#    （PinDuoDuo 曾给 20 多条 [Rewrite] 批量挂上，真机实测全部无效）。
+#    挂上去只会让人以为开关管用。想去开屏请直接改注释掉本行。
+^https?:\/\/api\.douban\.com\/v2\/app_ads.+ reject
+
+[Script]
+# 搜索页预制广告词。本插件的唯一功能。
+#
+# 抓包实测（豆瓣 7.135.0 / iPadOS 18.7.3，8 份 HAR）：
+#   /api/v2/search/found_words → { words:[...], top_word, cache_timeout }
+#   /api/v2/search/hots        → { roofs:[...], ..., ad_info:{...} }
+# 广告与真实热搜混在同一数组里：
+#   words[1] { layout:"ad", search_type:"ad_link", title:"看视频抽立减金",
+#              uri:"https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad" }
+#   roofs[0] { layout:"ad", title:"抽10元支付宝立减金" }
+#   ad_info  { ad_type:"fake", unit_name:"dale_app_search_hots_page",
+#              sdk_list:[{sdk_type:"pangolinSDK"}] }   ← 穿山甲
+# 正常条目 layout 是 "default"，不能删。
+#
+# ⚠️ 不能直接 reject 这两个端点 —— 真实热搜在里面，拦掉等于搜索联想报废。
+# ⚠️ top_word（搜索框滚动词）标的是 layout:"default"，与真实热搜无任何差别。
+#    跨 8 份抓包 12 个样本无一带广告标记，其中《沙丘3》确认引进、
+#    女生独闯肯尼亚safari 被用户确认为广告，而《Girls》主创Lena Dunham代孕
+#    明显是真热搜 ⇒ 协议层无法区分，只能整字段删除。
+#    代价：搜索框不再显示滚动词，搜索功能不受影响。
+#
+# 语法依据 Loon 官方手册 docs/cn/script.md：响应体改写只能走 [Script] 的
+# http-response，requires-body=true 是必需的（否则 $response.body 恒为 undefined）。
+# [URL Rewrite] 没有 script-response-body 这个语法（见 docs/cn/rewrite.md）——
+# v1.x 写过，真机一次没跑。
+http-response ^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)(?:[\/?].*)?$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-SearchAd/src/douban-search-ad.js, tag=搜索页广告词, requires-body=true, timeout=10, enable={block_search_ad}
+
+[MITM]
+# api.douban.com 来自 honue 原版（开屏规则需要它）。
+# frodo.douban.com 是脚本生效的前提 —— 响应体改写必须解密该域名。
+# ⚠️ 这两个域名无论开关如何都会被解密：Loon 的 [MITM] 段没有参数化机制，
+#    [Argument] 的 switch 只能挂在规则行的 enable={} 上，挂不到 [MITM]。
+#    所以 block_search_ad 关掉后省下的只是脚本执行，省不下这份 TLS 开销。
+hostname = api.douban.com, frodo.douban.com
