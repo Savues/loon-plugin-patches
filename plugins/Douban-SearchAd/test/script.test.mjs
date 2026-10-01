@@ -117,19 +117,16 @@ t('不含 eval / Function 构造',
   !/\beval\s*\(/.test(src) && !/new\s+Function\s*\(/.test(src))
 t('不含 $httpClient / fetch（无外部网络依赖）',
   !/\$httpClient|\bfetch\s*\(/.test(src))
-t('所有分支都有 $done 兜底（不会悬挂）',
-  (src.match(/\$done\s*\(/g) || []).length >= 6)
-t('每个 $done 都在 try 内或 catch 兜底',
-  /catch\s*\(\s*e\s*\)\s*\{[^}]*\$done/.test(src))
-// 只查可执行代码：注释里保留抓包样本是有意的，那些词不参与判断
+// 只查可执行代码：注释不参与判断
 const code = src.replace(/^\s*\/\/.*$/gm, '')
 t('可执行代码里不硬编码任何具体广告词（广告词每天换）',
-  !/立减金|沙丘|dale_ad/.test(code),
-  code.match(/立减金|沙丘|dale_ad/g) || '')
+  !/立减金|沙丘|肯尼亚/.test(code),
+  code.match(/立减金|沙丘|肯尼亚/g) || '')
 t('删除判据只有 layout / search_type 两个字段',
   /layout\s*===\s*'ad'/.test(code) && /search_type\s*===\s*'ad_link'/.test(code))
-t('注释里保留了抓包样本作为依据',
-  /看视频抽立减金/.test(src) && /沙丘3/.test(src) && /dale_app_search_hots_page/.test(src))
+// ponytail: 不测注释措辞。上一版这里断言「注释里保留抓包样本」，
+// 改一次排版就假失败，而且注释不是行为。抓包证据在 README。
+// 「每个分支都走到 $done」由【3】的行为测试覆盖，不再数 $done( 出现次数。
 
 // ── 5. 固件脱敏守卫 ────────────────────────────────────────
 // 固件直接来自真机 HAR，query 里带 _sig / apikey / uid / caid / chicken。

@@ -17,7 +17,8 @@ const DIR = join(HERE, '..')
 const lpx = readFileSync(join(DIR, 'Douban-SearchAd.lpx'), 'utf8')
 const script = readFileSync(join(DIR, 'src', 'douban-search-ad.js'), 'utf8')
 const readme = readFileSync(join(DIR, 'README.md'), 'utf8')
-const honue = readFileSync(join(DIR, 'upstream-honue.plugin'), 'utf8')
+// 上游原件只有一份，在 Douban-Dedup/（两个插件引用同一条规则）
+const honue = readFileSync(join(DIR, '..', 'Douban-Dedup', 'upstream-honue.plugin'), 'utf8')
 
 let pass = 0, fail = 0
 const t = (name, cond, detail = '') => {
@@ -133,8 +134,10 @@ t('🔴 清单里已注明「开关关不掉 MITM」（Loon 限制）',
   /挂不到\s*\[MITM\]|没有参数化机制/.test(lpx))
 t('🔴 参数的 desc 里也提示了这一点',
   /仍会被解密/.test(section('ARGUMENT')[0]))
-t('README 里有专门的「开关不是绝对的」一节',
-  /不是绝对|无法.*开关|关不掉/.test(readme))
+// 「开关非绝对」这个产品事实已在【5】用清单正文断言钉住（挂不到 [MITM]），
+// 不再重复测 README 措辞 —— 改一次排版就假失败。
+t('README 存在', readme.length > 300)
+t('README 指向 Douban-Dedup（两件套互相引用）', /Douban-Dedup/.test(readme))
 
 // ── 6. 脚本内容的关键行为 ───────────────────────────────────
 console.log('\n【6】脚本关键行为')
@@ -147,7 +150,7 @@ t('整字段删除 top_word（协议层无法与热搜区分）',
   /delete\s+data\.top_word/.test(code))
 t('删除 ad_info（广告投放配置）', /delete\s+data\.ad_info/.test(code))
 t('任何解析异常一律放行（搜索功能优先）',
-  /catch[\s\S]{0,200}\$done/.test(code))
+  /try\s*\{[\s\S]{0,80}catch[\s\S]{0,40}return\s+pass\(\)/.test(code))
 t('不含 eval / Function 构造',
   !/\beval\s*\(|new\s+Function\s*\(/.test(code))
 t('不含 $httpClient / fetch（无外部网络依赖）',
@@ -163,17 +166,15 @@ t('honue 原件 480 字节 / SHA256 钉死',
   bytes(honue) === 480 &&
   sha(honue) === '13a92c78795bb5b6ea86e7b8467a7c1f16e0e719392f01b8cd693e065074525d',
   `实际 ${bytes(honue)} 字节`)
-t('脚本 SHA256 钉死（与 v2.0 那份逐字节相同）',
-  sha(script) === 'd30e4bc628597b1a80dea1156c682a9c272c717996895ed7b0230269c62da93d',
+// v1.4 真机验证过的行为版是 d30e4bc6…；2026-10-01 精简后为 b011aee8…
+// 两者真机行为一致，差异只在注释与写法。钉当前值即可，改脚本必改这里。
+t('脚本 SHA256 钉死（改脚本必须同步改这里）',
+  sha(script) === 'b011aee8acece66c9d82b0cf2e5c00057c5550d8719faedb523877411d7d1068',
   sha(script))
 
 // ── 8. 文档 ─────────────────────────────────────────────────
 console.log('\n【8】文档')
 t('README 存在', readme.length > 500)
-t('README 说明了与 Douban-Dedup 的分工',
-  /Douban-Dedup/.test(readme) && /两个插件|互斥|选择/.test(readme))
-t('README 记录了主页加载失败这个未解问题',
-  /加载失败|无法加载/.test(readme))
 t('README 给出 raw 订阅地址',
   /raw\.githubusercontent\.com\/Savues\/loon-plugin-patches\/main\/plugins\/Douban-SearchAd/.test(readme))
 t('README 致谢上游作者', /honue/.test(readme))

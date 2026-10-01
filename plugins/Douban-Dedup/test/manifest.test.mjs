@@ -9,7 +9,7 @@
 // 运行：node test/manifest.test.mjs
 // 无外部依赖。
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -140,10 +140,14 @@ t('没有 U+FFFD（写入时的编码损坏）', !lpx.includes('�'))
 // ── 6. 文档 ─────────────────────────────────────────────────
 console.log('\n【6】文档')
 t('README 存在', readme.length > 300)
-t('README 说明了这是纯移植、不新增功能',
-  /移植/.test(readme) && /不新增|零改动|逐字节/.test(readme))
-t('README 说明了脚本为什么被移除',
-  /搜索页|脚本/.test(readme) && /移除|去掉|删除/.test(readme))
+// ponytail: 只测文件存在这类事实，不测 README 措辞 ——
+// 改一次排版就假失败，而且文档不是行为。战史在仓库根 README。
+t('README 存在', readme.length > 300)
+t('README 指向 SearchAd 插件（两件套互相引用）',
+  /Douban-SearchAd/.test(readme))
+t('本目录没有 src/（镜像不带脚本）', !existsSync(join(DIR, 'src')))
+t('本目录没有 test/fixtures/（镜像不需要抓包固件）',
+  !existsSync(join(DIR, 'test', 'fixtures')))
 t('README 给出 raw 订阅地址',
   /raw\.githubusercontent\.com\/Savues\/loon-plugin-patches\/main\/plugins\/Douban-Dedup/.test(readme))
 t('README 致谢上游作者', /honue/.test(readme))

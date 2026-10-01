@@ -172,12 +172,13 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 `frodo.douban.com` 进 `[MITM]`，会解密豆瓣全部业务 API。**收益未经验证，风险已经出现，
 这不该继续叠加。**
 
-测试因此重写为「零差异校验」：剥离 `#!` 元信息后，正文 SHA256 必须与上游原件相同，
-且元信息只允许 `homepage` 一行不同。另有约 20 项反向断言钉住「没有新增功能」
-（无 `[Script]` / `[Argument]`、无 `enable=`、无 `IP-CIDR`、无 `erebor`、无 `frodo`、
-无 `doubanio`），以后想加东西得先说清楚为什么上次加了会出问题。
+测试因此重写为「零差异校验」：剥离 `#!` 元信息后，正文必须与上游原件逐字节相同，
+元信息只允许 `homepage` 一行不同，另有反向断言钉住「没有新增功能」。
 
-如果之后还想做搜索广告剥离，前置条件是**先解决主页加载问题**并用对照实验确认因果。
+⚠️ 该插件后来被明确要求**必须镜像**，所以保留 —— 它的价值正是这条字节比对。
+搜索广告功能拆到独立的 `Douban-SearchAd`，两个插件二选一（见下）。
+
+如果之后还想扩展，前置条件是**先解决主页加载问题**并用对照实验确认因果。
 
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
@@ -239,8 +240,12 @@ twenty further reverse assertions pin down "no new functionality" (no `[Script]`
 `[Argument]`, no `enable=`, no `IP-CIDR`, no `erebor`, no `frodo`, no `doubanio`) — anyone
 adding something back has to explain why the last attempt broke things.
 
-If search-ad stripping is ever wanted again, the precondition is to **fix the profile-loading
-problem first and establish causality with a controlled experiment**.
+The plugin was later explicitly required to stay a **mirror**, so it remains — its value is
+exactly that byte comparison. Search-ad stripping was split out into its own
+`Douban-SearchAd`; the two are mutually exclusive (see below).
+
+Any future extension is gated on **fixing the profile-loading problem first and establishing
+causality with a controlled experiment**.
 
 ---
 
