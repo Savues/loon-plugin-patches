@@ -171,7 +171,7 @@ t("主题·大会员：空间页也应是粉底（旧版硬编码绿色，此处
   assert.strictEqual(L.bg_color, "#FB7299");
   assert.strictEqual(L.text_color, "#FFFFFF");
   assert.strictEqual(L.label_theme, "vip");
-  assert.strictEqual(L.image, IMG + "/vip-basic-gray.png");
+  assert.strictEqual(L.image, IMG + "/vip-basic-pink.png");
 });
 
 t("主题·年度：带牌图且两页一致", () => {

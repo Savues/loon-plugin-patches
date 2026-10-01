@@ -49,6 +49,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-10-02T01:35` | — | **v7.24** `vip` 档换粉底大会员牌。上一版沿用官方灰底（理由是「该档权限等同非会员」），用户实测后要求换彩色，改用 `vip-basic-pink`，与另三个档位统一为粉底扁平。附带把「彩色昵称为何发灰」的抓包结论写进 README：`nickname_color` 字段已正确注入（`#FB7299`），但 App 端仍显示灰色 —— 28 个真实大会员样本中 27 个该字段为 `None`，说明彩色昵称是独立开通的功能、不随会员身份附带，**这是如实反映而非插件失灵**。功能零变化，`vip.js` 只改 1 个文件名 |
 | `2026-10-02T00:55` | — | **v7.23** 会员伪装换纯文字牌子图。用户实测「带图案的不好看」，十年/百年两档从火车版（`ten-cannon`）与 2023 活动带星版换成官方纯文字版 `vip-ten-pink` / `vip-hundred-pink`；`vip-assets/` 按官方 `label.image` 抓包补齐到 16 张并统一为 `vip-<档位>-<样式>.png` 命名，4 个旧名作废。**推翻一条旧结论**：此前记「App 走文字渲染、`image` 留空即可」，新抓包（1116 条）中 `x/v2/space` 触发 6 次 `/bfs/vip/` 图片请求，证明 `label.image` 确实生效。功能零变化，`vip.js` 只改 4 个文件名 |
 | `2026-09-29` | `—` | **v7.19**（本次为长期实验室迭代的合版）：会员伪装合并为单脚本 `vip.js`（226 → 139 行）；补上 `/x/v2/space/article` 专栏页与番剧首页 `/pgc/page/` 的去广告；`Search/DefaultWords` 与 `Teenagers/ModeStatus` 各补上一半未覆盖的主机；修空间页配色漂移、开关把字符串 `"false"` 当真、`[Script]` 漏 `https://` 前缀；删 7 条死规则与 7 张无引用牌子图。**全部经 12 份真机抓包 / 两台设备（国行 iPad + 国际版 iPhone）验证，累计 0 异常 0 误改** |
 | `2026-09-28T23:50` | `—` | **v7.18** 去广告改为强制生效：Loon 的 switch 参数无法可靠传入 bundle（DEBUG 日志显示 Settings=false 仍走「不去除」），删除全部 18 个开关，改为不声明即走 `default` 分支去除 |
@@ -126,13 +127,24 @@ Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, play
 
 | 档位 | 牌子图 | 尺寸 |
 |---|---|---|
-| `vip` | `vip-basic-gray.png`（灰底，如实反映该档权限等同非会员） | 144×60 |
+| `vip` | `vip-basic-pink.png`（粉底） | 144×60 |
 | `annual_vip` | `vip-annual-pink.png` | 207×60 |
 | `ten_annual_vip` | `vip-ten-pink.png` | 207×60 |
 | `hundred_annual_vip` | `vip-hundred-pink.png` | 207×60 |
 
-其余 12 张（`*-cannon` 火车版、`*-super-*` 超档位、`vip-mascot` 吉祥物等）
-作为**备用素材**保留，可通过 `vipImg` 参数手动指定。清单与 SHA256 见 `upstream/MANIFEST.json`。
+> ⚠️ **彩色昵称（`nickname_color`）是该字段已写入，App 端仍可能显示灰色 —— 这不是插件失灵。**
+> 抓包实证：28 个真实大会员样本中，只有 1 个的 `nickname_color` 非 `None`，
+> 且那个正是本插件注入的（`mid 14895065`）。`annual_vip` / `vip` / `hundred_annual_vip`
+> / `ten_annual_vip` 各档的**真实用户**该字段全部为 `None`。
+> 即 B 站的彩色昵称是独立开通的功能，不随大会员身份自动附带，
+> 服务端对未开通的账号直接不下发该字段。**`vip` 档昵称发灰是如实反映。**
+>
+> 另：`name_render`（新版「我的」页可能的渲染入口）在两份抓包里均为 `null`，
+> 尚无证据表明改它能改变昵称颜色，故未做尝试。
+
+其余 12 张（`*-cannon` 火车版、`*-super-*` 超档位、`vip-mascot` 吉祥物、
+`vip-basic-gray` 灰底大会员等）作为**备用素材**保留，可通过 `vipImg` 参数手动指定。
+清单与 SHA256 见 `upstream/MANIFEST.json`。
 
 **Personal profile (`x/v2/space`) uses a different schema** and needs its own switch:
 

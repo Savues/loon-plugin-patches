@@ -37,7 +37,7 @@ const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/p
 // 「火车版」(cannon) 和 2023 活动带星版，体积大 5–8 倍，本插件一律不用。
 // 图源与清单见 upstream/MANIFEST.json。
 const THEMES = {
-  vip:                          { text: "大会员",     role: 1,  type: 1, bg: "#FB7299", fg: "#FFFFFF", image: IMG + "/vip-basic-gray.png" },
+  vip:                          { text: "大会员",     role: 1,  type: 1, bg: "#FB7299", fg: "#FFFFFF", image: IMG + "/vip-basic-pink.png" },
   annual_vip:                   { text: "年度大会员", role: 3,  type: 2, bg: "#FB7299", fg: "#FFFFFF", image: IMG + "/vip-annual-pink.png" },
   ten_annual_vip:               { text: "十年大会员", role: 7,  type: 2, bg: "#FB7299", fg: "#FFFFFF", image: IMG + "/vip-ten-pink.png" },
   hundred_annual_vip:           { text: "百年大会员", role: 15, type: 2, bg: "#FB7299", fg: "#FFFFFF", image: IMG + "/vip-hundred-pink.png" },
