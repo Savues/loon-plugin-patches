@@ -1,14 +1,14 @@
-# Douban-Dedup · 豆瓣去广告
+# Douban-Dedup · 豆瓣开屏广告屏蔽
 
-> **以 honue 原版为基线**，只追加一个「搜索页预制广告词」剥离脚本。**v2.0**
->
-> 原版 480 B，1 条 Rewrite、1 个域名。本版只多了 1 条 `[Script]` 和 1 个域名。
+> [honue/rules](https://github.com/honue/rules) `Douban.plugin` 的**纯移植**。
+> 规则正文与上游**逐字节相同**，不新增任何功能。**v3.0**
 
 | | 中文 | English |
 |---|---|---|
-| 上游 | [honue/rules](https://github.com/honue/rules) · 480 B（原件逐字节留存于 `upstream-honue.plugin`） | honue/rules, 480 B, pristine copy kept |
-| 脚本 | `src/douban-search-ad.js` —— 自研，剥离搜索页预制广告词 | One self-written script |
-| 回归测试 | `test/manifest.test.mjs` 43 项 + `test/script.test.mjs` 46 项 | 89 assertions |
+| 上游 | [honue/rules](https://github.com/honue/rules) · `Loon/plugin/Douban.plugin` · 480 B | honue/rules, 480 B |
+| 改动 | **仅 `#!homepage` 一行**（指向本仓库） | Only the `#!homepage` line |
+| 脚本 | 无 | None |
+| 文件 | `Douban-Dedup.lpx`（526 B）+ `upstream-honue.plugin`（480 B 原件）+ 测试 | |
 
 ---
 
@@ -22,165 +22,95 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban
 
 ---
 
-## 相对原版改了什么 · Changes
+## 这个版本做了什么
 
-**只改了三处，其中两处是等价修正。**
+**把上游的插件搬进本仓库，仅此而已。**
 
-| # | 改动 | 依据 |
-|---|---|---|
-| 1 | `v2` → `v\d+` | 原版硬编码 `v2`，豆瓣升到 v3 即失效 |
-| 2 | `reject` → `reject-dict` | JSON 接口该返回 `{}`；原版返回空响应体，真机抓包看到 App 5 秒后原样重试 |
-| 3 | `[MITM]` 加 `frodo.douban.com` | 脚本生效的前提 —— 响应体改写必须解密该域名 |
+```
+#!homepage=https://github.com/honue/rules            ← 上游
+#!homepage=https://github.com/Savues/loon-plugin-patches/...  ← 本版
+```
 
-新增的唯一功能是那条 `[Script]` 规则。
+`[Rule]` / `[URL Rewrite]` / `[MITM]` 三段**一个字节都没动**，
+连上游那两条被注释掉的规则都原样留着。
 
-**没有加**：信息流/横幅拦截、腾讯优量汇 HTTPDNS、`img*.doubanio.com`、任何 `[Rule]`。
-这些在 v1.x 里都试过，详见下方「为什么回退到原版基线」。
+`test/manifest.test.mjs` 里有 34 项断言，其中一组专门校验这件事：
+剥离 `#!` 元信息后，本版正文与 `upstream-honue.plugin` 的
+**SHA256 必须完全相同**，且元信息只允许 `homepage` 一行不同。
 
 ---
 
-## 🆕 搜索页预制广告词（唯一新增功能）
-
-抓包（豆瓣 7.135.0 / iPadOS 18.7.3，8 份 HAR）显示搜索框滚动广告与「发现」横滚标签广告
-都来自搜索接口的响应体：
-
-```
-/api/v2/search/found_words → { words:[...], top_word, cache_timeout }
-/api/v2/search/hots        → { roofs:[...], ..., ad_info:{...} }
-```
-
-广告与真实热搜**混在同一个数组里**：
-
-| 位置 | 广告条目 | 正常条目 |
-|---|---|---|
-| `words[]` | `layout:"ad" search_type:"ad_link"` | `layout:"default" search_type:"all"` |
-| `roofs[]` | `layout:"ad"` | — |
-| `ad_info` | `ad_type:"fake"` `unit_name:"dale_app_search_hots_page"` `sdk_type:"pangolinSDK"` | — |
-
-实测样本：
-
-```jsonc
-// words 数组（8 条，只有 [1] 是广告）
-[0] {"layout":"default","search_type":"all","title":"《复仇者联盟5》确认引进内地"}
-[1] {"layout":"ad","search_type":"ad_link","title":"看视频抽立减金",
-     "uri":"https://m.douban.com/cps-spu-page/3/daily-incentive-lottery?source=ad"}
-[2] {"layout":"default","search_type":"all","title":"余红旧事"}
-```
-
-### 为什么不能直接 reject
-
-真实热搜和广告在同一个数组里。拦掉整个端点 = **搜索联想功能报废**。
-
-所以用 `script-response-body` 语义（实际挂 `[Script]` 的 `http-response`）
-**只删广告条目，其余原样返回**。
-
-### `top_word` 只能整字段删除
-
-它是搜索框里滚动的那个词，也是「搜索词投放」广告的落点。
-v1.2/v1.3 我都判定「它标 `default` 所以是正常热搜」，**真机证明那是错的**。
-
-跨 8 份抓包 12 个不同的 `top_word`，**没有一个带广告标记**：
-
-| `top_word` | 实际 |
-|---|---|
-| 《沙丘3》确认引进 | 🔴 广告 |
-| 女生独闯肯尼亚safari | 🔴 广告 |
-| **《Girls》主创Lena Dunham代孕** | ✅ **明显是真热搜** |
-
-三个判据全部失效：
-
-| 判据 | 失效原因 |
-|---|---|
-| `layout` / `search_type` | 12 个样本全是 `default`/`all` |
-| URI 是话题 `#xxx#` 还是裸词 | 正常热搜也用话题：`#林诗栋4:0击败王楚钦亚运夺冠#` |
-| 标题含英文字母 | `《Girls》主创Lena Dunham代孕` 含字母**却是真的** |
-
-⇒ 这是「搜索词投放」广告的固有做法：**刻意伪装成普通热搜**。
-协议层无解，只能整字段删除。代价是搜索框不再显示滚动词，**搜索功能不受影响**。
-
-### 脚本的三条保守原则
-
-1. **只按 `layout` / `search_type` 删**，不按标题关键词 —— 广告词每天换
-2. **任何解析异常一律放行原响应** —— 搜索功能比去广告重要
-3. **删空数组时补占位条目** —— 避免 App 拿到空列表渲染异常
-
-### ⚠️ 语法依据
-
-响应体改写只能写在 `[Script]` 段，语法来自 Loon 官方手册
-[`docs/cn/script.md`](https://github.com/Loon0x00/LoonManual/blob/master/docs/cn/script.md)：
+## 上游原版内容
 
 ```ini
-http-response ^...$ script-path=..., requires-body=true, timeout=10, enable={block_search_ad}
+[Rule]
+
+[URL Rewrite]
+^https?:\/\/api\.douban\.com\/v2\/app_ads.+ reject
+# ^https?:\/\/api\.douban\.com\/v2\/app_ads\/splash_preload reject
+# ^https?:\/\/api\.douban\.com\/v2\/app_ads\/splash_show reject
+
+[MITM]
+hostname = api.douban.com
 ```
 
-`requires-body=true` 是**硬性要求** —— 手册明确「如果响应带有 body，
-并且 `requires-body = true` 时此参数才有值」。漏掉它 `$response.body` 恒为 `undefined`，
-脚本永远走放行分支。
+上游作者自己写的说明：**「豆瓣开屏广告屏蔽，只能屏蔽开屏，后期还要改 duration」**。
 
-手册还保证 `$done({body})` 会**自动重算 `content-length` 与 `content-encoding`**，
-所以服务端的 gzip 不需要手动处理。真机验证：`content-encoding: gzip` 响应头在改写后消失。
+最后那半句是广告存在本地缓存导致的：`splash_preload` 是 POST，
+6423 B 表单体里带着 `preload_ads` —— 已缓存的开屏广告对象，
+含曝光标记与有效期。网络层拦接口拦不到它。
 
-`[URL Rewrite]` **没有** `script-response-body` 这个语法
-（见 [`docs/cn/rewrite.md`](https://github.com/Loon0x00/LoonManual/blob/master/docs/cn/rewrite.md)，
-它只支持 URL/Header 改写、302/307 与 5 种 reject）。v1.2 写过，真机一次没跑。
+⚠️ **网络层能做到的是**：让 `app_ads` 接口失败，App 拿不到新的广告配置。
+广告对象若已在本地，最坏情况是多停 1–2 秒，而不是完全跳过。
 
 ---
 
-## 为什么回退到原版基线
+## 为什么是纯移植版
 
-v1.0–v1.4 逐步加了很多规则，结果引入了用户报告的问题：
-**浏览几个个人主页/小组页后无法加载，重启 App 才能恢复。**
+前几个版本（v1.0–v2.0）在上游基础上加了：
 
-抓包里能看到并发下的瞬时排队（v1.4 那份，21 并发窗口）：
+- 信息流 / 横幅 / 影视页 / 剧集页 / 小组页广告拦截
+- 腾讯优量汇 HTTPDNS 旁路拦截
+- 开屏素材图规则（需 `img*.doubanio.com` 进 `[MITM]`）
+- 自研脚本剥离搜索页预制广告词
 
-```
-04:49:32.401  img3.doubanio.com/icon/…    🔴 status=0
-04:49:32.401  img9.doubanio.com/icon/…    🔴 status=0
-…
-04:49:32.431  ↑ 10 ms 后全部重试成功，hdr=14~20 真回包
-```
+结果用户报告：**浏览几个个人主页 / 小组页后无法加载，重启 App 才能恢复。**
 
-但同一份抓包里**豆瓣侧零失败** —— 8 个主页接口全部 `200`。
+我先后把原因归给 `img*.doubanio.com` 和 HTTPDNS 规则，**两次都被真机证伪** ——
+移除后照样复现。抓包显示 21 并发时 5–6 张图片瞬时失败（`status=0`），
+10 ms 内全部重试成功，豆瓣侧 62 个接口零失败。
 
-**我不能证明是本插件造成的** —— 移除 `img*.doubanio.com`（v1.3）后照样复现。
-怀疑过是连接池被挤满（每个解密请求多一次 TLS 握手），但那只是推测，没有证据。
-但可以确定的是：**honue 原版没有这个问题**（用户实测），而 v1.x 有。
+**无法证明是插件造成的，但可以确定：上游原版没有这个问题（用户实测），加了功能的版本有。**
 
-v2.0 的取舍因此很明确：**放弃未经充分验证的收益，换取已验证的稳定。**
+所以 v3.0 全部撤掉，只留上游原版。搜索页广告剥离那个脚本也一并移除了
+（它需要 `frodo.douban.com` 进 `[MITM]`，会解密豆瓣全部业务 API）。
 
-`test/manifest.test.mjs` 里有反向断言钉死这一点 ——
-`[Rule]` 段必须为空、`[URL Rewrite]` 只能有 1 条、不许出现 `erebor` / `IP-CIDR` / `dale_ad`。
-以后想加东西，得先想清楚为什么上次加了会出问题。
+> 如果之后还想做搜索广告剥离，正确的前置条件是**先解决主页加载问题**，
+> 并用对照实验确认因果 —— 而不是继续叠加规则。
 
 ---
 
-## 已知未解决
+## 已知限制 · Known limitations
 
-**「浏览几个个人主页后无法加载」在 v2.0 未做验证。**
-
-我此前把这个归因于 `img*.doubanio.com` 和 HTTPDNS 规则，两次都被真机证伪
-（移除后仍复现）。v2.0 已把这两个变量都去掉了，**但需要用户实测确认问题是否消失**。
-
-如果 v2.0 仍然复现，那说明原因在 Loon 本身或豆瓣侧，与本插件无关。
-
----
-
-## 误伤验证
-
-`test/script.test.mjs` 46 项断言，固件是真实抓包的响应体（已脱敏）：
-
-| 检查项 | 结果 |
+| 限制 | 说明 |
 |---|---|
-| 广告词「看视频抽立减金」被删 | ✅ |
-| 广告词「抽10元支付宝立减金」被删 | ✅ |
-| `ad_info` 整块删除 | ✅ |
-| `top_word` 整字段删除 | ✅ |
-| `roofs` 删空后补占位 | ✅ |
-| 真实热搜 7 条全部保留 | ✅ |
-| `hot_search_board` / `subjects` / `top_groups` 保留 | ✅ |
-| 幂等（再跑一次不重写） | ✅ |
-| 非 JSON / 空 body / 数组根 / null 全部放行 | ✅ |
-| 不含 eval / fetch / `$httpClient` | ✅ |
+| 只去开屏 | 信息流、横幅、影视页、剧集页、小组页广告都不拦（上游本来就这样） |
+| 搜索页广告词 | 不处理。脚本已随 v2.0 移除 |
+| 本地缓存的开屏 | 网络层无法清除，最多少停 1–2 秒 |
+| 作者的 TODO | 上游 `#!desc` 写着「后期还要改 duration」，尚未实现 |
+
+---
+
+## 卸载 · Uninstall
+
+如果你只是想用原版，也可以直接订阅上游，**不需要本仓库**：
+
+```
+https://raw.githubusercontent.com/honue/rules/master/Loon/plugin/Douban.plugin
+```
+
+本仓库这个版本唯一的价值是：**规则正文经测试证明与上游逐字节相同**，
+以及一份记录了「加了功能之后出了什么问题」的文档。
 
 ---
 
@@ -188,18 +118,12 @@ v2.0 的取舍因此很明确：**放弃未经充分验证的收益，换取已�
 
 | 文件 | 用途 |
 |---|---|
-| [Douban-Dedup.lpx](Douban-Dedup.lpx) | 插件清单 |
-| [src/douban-search-ad.js](src/douban-search-ad.js) | 搜索页广告剥离脚本 |
-| [upstream-honue.plugin](upstream-honue.plugin) | honue 原件，逐字节留存（SHA256 钉死） |
-| [upstream-shengrui.plugin](upstream-shengrui.plugin) | shengrui 原件留存（v1.x 的来源，v2.0 未使用） |
-| [test/manifest.test.mjs](test/manifest.test.mjs) | 清单回归 43 项 |
-| [test/script.test.mjs](test/script.test.mjs) | 脚本回归 46 项 |
-| [test/fixtures/found_words.json](test/fixtures/found_words.json) | 真机响应固件（已脱敏） |
-| [test/fixtures/search_hots.json](test/fixtures/search_hots.json) | 真机响应固件（已脱敏） |
+| [Douban-Dedup.lpx](Douban-Dedup.lpx) | 插件清单（526 B，与上游差 1 行 homepage） |
+| [upstream-honue.plugin](upstream-honue.plugin) | 上游原件逐字节留存，SHA256 已钉进测试 |
+| [test/manifest.test.mjs](test/manifest.test.mjs) | 零差异校验，34 项（`node test/manifest.test.mjs`） |
 
 ---
 
 ## 致谢 · Credits
 
-- [honue/rules](https://github.com/honue/rules) —— 基线，本版主体来自它
-- [shengrui123/douban-adblock](https://github.com/shengrui123/douban-adblock) —— v1.x 的另一来源，v2.0 未采用
+- [honue/rules](https://github.com/honue/rules) —— 全部规则内容的作者

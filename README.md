@@ -33,7 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
-| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣去开屏 + 搜索页广告词 · 以 honue 原版为基线，只加一条脚本<br>Douban splash + search ad-block, honue baseline plus one script | **v2.0** |
+| [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 
 ### 托管了脚本的插件
 
@@ -156,32 +156,27 @@ v1.2 起脚本不再是逐字节副本：2026-09-30 的真机抓包（86 秒 601
 > v5.2～v6.0 曾附带自研的 `src/feed-gaming.js`（清除首页「游戏大本营」）与一批清单改动，
 > 已于 2026-09-29 整体回退到 v5.1；代码仍留在 git 历史里，需要时可按提交取回。
 
-`Douban-Dedup` —— **以 honue 原版为基线，只加一条脚本，并且这个「只加一条」是用测试钉死的**。
-原版 480 B、1 条 Rewrite、1 个域名；v2.0 只多了 1 条 `[Script]` 和 1 个 `[MITM]` 域名。
-测试里有反向断言：`[Rule]` 段必须为空、`[URL Rewrite]` 只能有 1 条、
-不许出现 `erebor` / `IP-CIDR` / `dale_ad`。
+`Douban-Dedup` 是**纯移植版** —— [honue/rules](https://github.com/honue/rules) 的
+`Douban.plugin` 搬进本仓库，**规则正文逐字节相同**，唯一改动是 `#!homepage` 指向本仓库。
+这不是省事，而是**三次返工之后的结论**。
 
-🔴 **v1.x 过度扩张后回退，这是本插件最重要的一段**。v1.0–v1.4 逐步加了很多规则
-（信息流、腾讯 HTTPDNS、`img*.doubanio.com`），结果用户报告**浏览几个个人主页/小组页后
-无法加载，重启 App 才能恢复**。我先后把原因归给 `img*.doubanio.com` 和 HTTPDNS 规则，
-**两次都被真机证伪** —— 移除后照样复现。抓包显示 21 并发时 5~6 张图片瞬时失败
-（`status=0`），但 10 ms 内全部重试成功，且豆瓣侧 62 个接口零失败。
+🔴 **为什么退到纯移植**。v1.0–v2.0 逐步加了信息流/横幅/影视页/剧集页/小组页广告拦截、
+腾讯优量汇 HTTPDNS、开屏素材图规则，以及一个自研的搜索页广告剥离脚本。
+结果用户报告**浏览几个个人主页 / 小组页后无法加载，重启 App 才能恢复**。
+我先后把原因归给 `img*.doubanio.com` 和 HTTPDNS 规则，**两次都被真机证伪** ——
+移除后照样复现。抓包显示 21 并发时 5~6 张图片瞬时失败（`status=0`），10 ms 内全部重试成功，
+豆瓣侧 62 个接口零失败。**无法证明是插件造成的，但能确定：原版没这个问题，加了功能的版本有。**
 
-**关键事实是：honue 原版没有这个问题（用户实测），v1.x 有。** 我无法证明是插件造成的，
-但可以确定收益未经验证而风险已经出现 —— 所以 v2.0 直接放弃那些规则。
-剩下的唯一新增功能是搜索页广告剥离：一个自研脚本，按 `layout` / `search_type`
-删掉广告条目、保留真实热搜。
+所以 v3.0 全部撤掉，只留上游原版。搜索页广告那个脚本也删了 —— 它需要
+`frodo.douban.com` 进 `[MITM]`，会解密豆瓣全部业务 API。**收益未经验证，风险已经出现，
+这不该继续叠加。**
 
-那段脚本踩过的两个坑都写进了插件注释：
-`[URL Rewrite]` **没有** `script-response-body` 语法（v1.2 写过，真机一次没跑），
-正确写法是 `[Script]` 的 `http-response` + `requires-body=true`
-（漏掉后者 `$response.body` 恒为 `undefined`）。两处都依据官方手册
-`docs/cn/rewrite.md` 与 `docs/cn/script.md` 核实。
+测试因此重写为「零差异校验」：剥离 `#!` 元信息后，正文 SHA256 必须与上游原件相同，
+且元信息只允许 `homepage` 一行不同。另有约 20 项反向断言钉住「没有新增功能」
+（无 `[Script]` / `[Argument]`、无 `enable=`、无 `IP-CIDR`、无 `erebor`、无 `frodo`、
+无 `doubanio`），以后想加东西得先说清楚为什么上次加了会出问题。
 
-另一个坑是 `top_word`（搜索框滚动词）—— v1.2 和 v1.3 我都判定「标 `default` 所以是正常热搜」，
-**两次都错了**。跨 8 份抓包 12 个样本无一带广告标记，其中 `《沙丘3》确认引进`、
-`女生独闯肯尼亚safari` 是广告，而 `《Girls》主创Lena Dunham代孕` 明显是真热搜。
-协议层无法区分，只能整字段删除。三次返工的共同教训：**看一个样本就下结论**。
+如果之后还想做搜索广告剥离，前置条件是**先解决主页加载问题**并用对照实验确认因果。
 
 Several plugins ship scripts: `Bilibili-UI` changes argument parsing because the upstream
 accepts a single string. `GeoFix` changes nothing but hosting and strings: the upstream
@@ -219,39 +214,32 @@ broke the plugin — a diagnostic plugin showed the truth, that Loon passes `$ar
 and my "fix" was the only thing preventing the forward. The repo keeps the diagnostic plugin
 and pins the measured shape in tests, so nobody repeats the mistake.
 
-`Douban-Dedup` takes **the honue original as its baseline and adds exactly one script** —
-and that "exactly one" is pinned by tests: the `[Rule]` section must stay empty, `[URL Rewrite]`
-must hold a single rule, and `erebor` / `IP-CIDR` / `dale_ad` must not appear anywhere.
-The original is 480 B with one rewrite and one hostname; v2.0 adds one `[Script]` rule and
-one MITM hostname.
+`Douban-Dedup` is a **verbatim port** of honue/rules' `Douban.plugin` — the rule body is
+byte-for-byte identical, and the only change is the `#!homepage` line. That is not laziness
+but the conclusion of three failed revisions.
 
-🔴 **The v1.x line grew too big and was rolled back — this is the plugin's most important
-history.** v1.0–v1.4 accumulated feed-ad blocking, Tencent HTTPDNS interception and
-`img*.doubanio.com`, and users then reported that **after browsing a few profile or group
-pages the app stopped loading until restarted**. I blamed `img*.doubanio.com`, then the
-HTTPDNS rules; **both guesses were falsified on device** — the problem persisted after
-removing them. The capture shows five or six images failing instantly (`status=0`) under
-21 concurrent requests, all succeeding on retry within 10 ms, while all 62 Douban endpoints
-returned normally.
+🔴 **Why it fell back to a pure port.** v1.0–v1.9 grew feed/banner/movie/TV/group ad
+blocking, Tencent HTTPDNS interception, splash creative rules, and a self-written script for
+search-page ads. Users then reported that **after browsing a few profile or group pages the
+app stopped loading until restarted**. I blamed `img*.doubanio.com`, then the HTTPDNS rules;
+**both guesses were falsified on device** — the problem persisted after removing them. The
+capture shows five or six images failing instantly (`status=0`) under 21 concurrent requests,
+all succeeding on retry within 10 ms, with all 62 Douban endpoints returning normally.
+**I cannot prove the plugin caused it; I can prove the original doesn't have the problem and
+the feature-bearing versions do.**
 
-**The decisive fact: honue's original does not have this problem (user-tested), v1.x does.**
-I cannot prove the plugin caused it, but the benefit was unverified while the risk was
-demonstrated — so v2.0 drops those rules. What remains is the search-page ad script: a
-self-written one that removes ad entries by `layout` / `search_type` and keeps real hot
-searches.
+So v3.0 drops everything and keeps only the upstream original. The search-ad script went
+too — it needed `frodo.douban.com` in `[MITM]`, which decrypts Douban's entire business API.
+**The benefit was unverified while the risk was demonstrated; that should not keep compounding.**
 
-Two traps in that script are documented in the plugin comments: `[URL Rewrite]` has **no**
-`script-response-body` syntax (v1.2 used it; it never ran), and the correct form is
-`http-response` in `[Script]` with **`requires-body=true`** — without it `$response.body` is
-permanently `undefined`. Both verified against the official `docs/cn/rewrite.md` and
-`docs/cn/script.md`.
+The test was rewritten as a zero-diff check: strip the `#!` metadata and the body SHA256 must
+match the pristine upstream copy, with only the `homepage` line allowed to differ. Roughly
+twenty further reverse assertions pin down "no new functionality" (no `[Script]` /
+`[Argument]`, no `enable=`, no `IP-CIDR`, no `erebor`, no `frodo`, no `doubanio`) — anyone
+adding something back has to explain why the last attempt broke things.
 
-The other trap is `top_word`, the rotating search-box word: in v1.2 and v1.3 I judged it a
-normal hot search because it carries `layout:"default"` — **wrong both times**. Across 8
-captures and 12 samples not one carries an ad marker, yet `《沙丘3》确认引进` and
-`女生独闯肯尼亚safari` are ads while `《Girls》主创Lena Dunham代孕` is plainly real. There is
-no way to tell them apart, so the field is deleted outright. The common thread across all
-three reworks: **drawing a conclusion from a single sample**.
+If search-ad stripping is ever wanted again, the precondition is to **fix the profile-loading
+problem first and establish causality with a controlled experiment**.
 
 ---
 
