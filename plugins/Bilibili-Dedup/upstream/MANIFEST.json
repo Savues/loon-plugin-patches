@@ -62,36 +62,139 @@
     "sha256": "e96786591f4d8345577a379926377c5f21aac2d61df4cbe2a6fd7d1497ee4962",
     "mirrored_at": "2026-09-28"
   },
-  "vip-assets/hundred.png": {
-    "source": "https://i0.hdslb.com/bfs/activity-plat/static/20230907/e41bd47e5579cfff81770e41f5107ba2/WIOlCPa1Ch.png",
-    "bytes": 21187,
-    "sha256": "3d975192a6b6a15f0a828eee473e5800658f924348b856a7ab34e47d964287bd",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/annual.png": {
-    "source": "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
-    "bytes": 3803,
-    "sha256": "fa8fe17042bac09192f7465217b5c04bbaefa66f7178255b3fb084e02a51f739",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/ten-cannon.png": {
-    "source": "https://i1.hdslb.com/bfs/vip/b3d1836175ca2ff6032bef017b6e9115bcbaf4a9.png",
-    "bytes": 24569,
-    "sha256": "a1ed8c99c0ad10f4c5ecb6265fdbe997cea5615e24e0b1ba0abe0e8b8e5c3e0c",
-    "mirrored_at": "2026-09-28"
-  },
-  "vip-assets/gray-vip.png": {
-    "source": "https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png",
-    "note": "非会员态标识。仅 vip(普通大会员) 主题使用",
-    "bytes": 2664,
-    "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
-    "mirrored_at": "2026-09-28"
-  },
   "adblock-hotsearch.js": {
     "source": "本仓库自撰",
     "note": "搜索页下拉过滤 trending/recommend，保留 history。同端点双规则只有首条生效，故独立处理",
     "bytes": 817,
     "sha256": "75ef8fedba5086566c0a9978fd13adeec8a5bbbccedba4d846a17b22d914a70a",
     "authored": "2026-09-28"
+  },
+  "vip-assets/vip-annual-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
+    "note": "年度大会员 · 粉底扁平",
+    "bytes": 3803,
+    "sha256": "fa8fe17042bac09192f7465217b5c04bbaefa66f7178255b3fb084e02a51f739",
+    "size": "207x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-annual-super-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/10df1f7f4af1292f773489e36554a05177785143.png",
+    "note": "年度超大会员 · 火车版",
+    "bytes": 25518,
+    "sha256": "561e2ceae03a33ac11a8045259d3689a06c66ffbcf75673d773501680b933649",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-ten-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/b3d1836175ca2ff6032bef017b6e9115bcbaf4a9.png",
+    "note": "十年大会员 · 火车版",
+    "bytes": 24569,
+    "sha256": "a1ed8c99c0ad10f4c5ecb6265fdbe997cea5615e24e0b1ba0abe0e8b8e5c3e0c",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-ten-super-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/6ebc71d481dd3b84412dff9ac958bee7bae97122.png",
+    "note": "十年超大会员 · 火车版",
+    "bytes": 24905,
+    "sha256": "8268d1df0912bab896612ef5ec0c35ba399b02eab28c0db2915339b51669374c",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-annual-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/6234b05743730217bac0aa02d19ed98b49458b68.png",
+    "note": "年度大会员 · 火车版",
+    "bytes": 24904,
+    "sha256": "37049d4d2bff3d86a775cb769e772289d43a620c3c193b64f17789fcdc9ad800",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-super-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/491ee694ffc139a23e329cf0e4465e8f6b7583fa.png",
+    "note": "超大会员 · 火车版",
+    "bytes": 22441,
+    "sha256": "10e805f519ff8655e6d865b6597216e3835549a2a039d23780f63f6ed7c97a6c",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-basic-cannon.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/b10e2b207a8f23982d61c1e67a7802db8cc0770f.png",
+    "note": "大会员 · 火车版",
+    "bytes": 21519,
+    "sha256": "798ac7ec075a2b433549d2f82472ef89559aa3a79a6afd4818b1cd9c811e5517",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-hundred-2023.png": {
+    "source": "https://i0.hdslb.com/bfs/activity-plat/static/20230907/e41bd47e5579cfff81770e41f5107ba2/WIOlCPa1Ch.png",
+    "note": "超百年大会员 · 2023 活动版",
+    "bytes": 21187,
+    "sha256": "3d975192a6b6a15f0a828eee473e5800658f924348b856a7ab34e47d964287bd",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-mascot.png": {
+    "source": "https://i1.hdslb.com/bfs/vip/99f54078df2412394140aa5df4422bc0a1ca3d3e.png",
+    "note": "会员吉祥物（小电视人）180x102",
+    "bytes": 20525,
+    "sha256": "19f78a401b3e6365a8ab780b109b1a9f6d01e1014de2985537530168b3bb735b",
+    "size": "180x102",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-basic-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/3788b674c69072f1ee252b79a31ecc8c43af3039.png",
+    "note": "大会员 · 粉底扁平",
+    "bytes": 2900,
+    "sha256": "c489c798b23b102d196cb59b21c8a0fa16f4d3c1a0b1c729a3c7d5ccd38997b4",
+    "size": "144x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-super-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/0fc002285c87917efdece17dbe2204481dfe8f82.png",
+    "note": "超大会员 · 粉底扁平",
+    "bytes": 10927,
+    "sha256": "fed930d98e505bf58ba4a4bf1f9406a74432f059d63e06ac1c1e14f87c70f195",
+    "size": "183x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-ten-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/adb599797dd171e2d3d6d012f448b49679258344.png",
+    "note": "十年大会员 · 粉底扁平",
+    "bytes": 3400,
+    "sha256": "94aa40b30ce49823829225d33c490b6cfe4c10c5bf490d8f14c81d368635c98a",
+    "size": "207x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-ten-super-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/802418ff03911645648b63aa193ba67997b5a0bc.png",
+    "note": "超十年大会员 · 粉底扁平",
+    "bytes": 13490,
+    "sha256": "f3c583b9973aaa7db2a3ca9f7eb1d8e1894e1ea78724caec4bc40c7d8ab8a98e",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-hundred-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/c16005a5b39164b3536cbd45618a5edd597a1c51.png",
+    "note": "百年大会员 · 粉底扁平",
+    "bytes": 3560,
+    "sha256": "e2cf49114860967f95ee529d58529e643923919312317af8a14defdf28f50741",
+    "size": "207x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-hundred-super-pink.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/52f60c8bdae8d4440edbb96dad72916022adf126.png",
+    "note": "超百年大会员 · 粉底扁平",
+    "bytes": 13495,
+    "sha256": "dc6c07104680717f0a0ef8fc80abee46540a6491da6c42326c12d50e9d0bb6ba",
+    "size": "249x60",
+    "mirrored_at": "2026-10-02"
+  },
+  "vip-assets/vip-basic-gray.png": {
+    "source": "https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png",
+    "note": "大会员 · 灰底（非会员态标识）",
+    "bytes": 2664,
+    "sha256": "60fee4df67a6610ddea266b5ebb2f581851b4438d893f2cbda3fd7f57e48671d",
+    "size": "144x60",
+    "mirrored_at": "2026-10-02"
   }
 }

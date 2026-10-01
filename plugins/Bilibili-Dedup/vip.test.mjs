@@ -4,7 +4,8 @@
  * mock 忠实度：$argument/$request/$response/$done 四个都按真实签名注入，
  * 少注入一个就等于没测那条分支（去年 $notification.post 就是这么漏的）。
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
 import assert from "node:assert";
 
 const SRC = readFileSync(new URL("./vip.js", import.meta.url), "utf8");
@@ -170,20 +171,37 @@ t("主题·大会员：空间页也应是粉底（旧版硬编码绿色，此处
   assert.strictEqual(L.bg_color, "#FB7299");
   assert.strictEqual(L.text_color, "#FFFFFF");
   assert.strictEqual(L.label_theme, "vip");
-  assert.strictEqual(L.image, IMG + "/gray-vip.png");
+  assert.strictEqual(L.image, IMG + "/vip-basic-gray.png");
 });
 
 t("主题·年度：带牌图且两页一致", () => {
   const a = json(run({ body: mineNonMember(), url: URL_MINE, arg: { vipTheme: "annual_vip" } })).data.vip;
   const b = json(run({ body: spaceNonMember(), url: URL_SPACE, arg: { myMid: String(ME), vipTheme: "annual_vip" } })).data.vip;
   assert.strictEqual(a.role, 3); assert.strictEqual(b.vipType, 2);
-  assert.strictEqual(a.label.image, IMG + "/annual.png");
+  assert.strictEqual(a.label.image, IMG + "/vip-annual-pink.png");
   assert.strictEqual(b.label.image, a.label.image);
 });
 
 t("主题·非法值：回落绿鲤鱼且 label_theme 同步回落", () => {
   const r = run({ body: mineNonMember(), url: URL_MINE, arg: { vipTheme: "__nope__" } });
   assert.strictEqual(json(r).data.vip.label.label_theme, "fools_day_hundred_annual_vip");
+});
+
+// 牌子图统一用纯文字版。vip-assets 里另存了一整套带图案的（火车/2023 活动带星），
+// 体积大 5–8 倍，官方当年为活动期特别款，长期看会与新皮肤脱节——一律不引用。
+t("牌子图·四个档位全部是纯文字版，无 cannon / 2023 图案款", () => {
+  for (const k of ["vip", "annual_vip", "ten_annual_vip", "hundred_annual_vip"]) {
+    const L = json(run({ body: mineNonMember(), url: URL_MINE, arg: { vipTheme: k } })).data.vip.label;
+    assert.ok(L.image, k + " 缺牌子图");
+    assert.ok(!/cannon|2023|mascot/.test(L.image), k + " 引用了带图案的版式: " + L.image);
+  }
+});
+t("牌子图·引用的文件在 vip-assets 里真实存在（改名后不会静默 404）", () => {
+  const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "upstream", "vip-assets");
+  for (const k of ["vip", "annual_vip", "ten_annual_vip", "hundred_annual_vip"]) {
+    const L = json(run({ body: mineNonMember(), url: URL_MINE, arg: { vipTheme: k } })).data.vip.label;
+    assert.ok(existsSync(path.join(dir, path.basename(L.image))), "仓库里没有 " + L.image);
+  }
 });
 
 t("手动覆盖 vipBg/vipFg/vipText/vipImg 全部生效", () => {

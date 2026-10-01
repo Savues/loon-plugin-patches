@@ -49,6 +49,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-10-02T00:55` | — | **v7.23** 会员伪装换纯文字牌子图。用户实测「带图案的不好看」，十年/百年两档从火车版（`ten-cannon`）与 2023 活动带星版换成官方纯文字版 `vip-ten-pink` / `vip-hundred-pink`；`vip-assets/` 按官方 `label.image` 抓包补齐到 16 张并统一为 `vip-<档位>-<样式>.png` 命名，4 个旧名作废。**推翻一条旧结论**：此前记「App 走文字渲染、`image` 留空即可」，新抓包（1116 条）中 `x/v2/space` 触发 6 次 `/bfs/vip/` 图片请求，证明 `label.image` 确实生效。功能零变化，`vip.js` 只改 4 个文件名 |
 | `2026-09-29` | `—` | **v7.19**（本次为长期实验室迭代的合版）：会员伪装合并为单脚本 `vip.js`（226 → 139 行）；补上 `/x/v2/space/article` 专栏页与番剧首页 `/pgc/page/` 的去广告；`Search/DefaultWords` 与 `Teenagers/ModeStatus` 各补上一半未覆盖的主机；修空间页配色漂移、开关把字符串 `"false"` 当真、`[Script]` 漏 `https://` 前缀；删 7 条死规则与 7 张无引用牌子图。**全部经 12 份真机抓包 / 两台设备（国行 iPad + 国际版 iPhone）验证，累计 0 异常 0 误改** |
 | `2026-09-28T23:50` | `—` | **v7.18** 去广告改为强制生效：Loon 的 switch 参数无法可靠传入 bundle（DEBUG 日志显示 Settings=false 仍走「不去除」），删除全部 18 个开关，改为不声明即走 `default` 分支去除 |
 | `2026-09-28T23:20` | `—` | **v7.17** 修复 BiliUniverse 开关默认值反了：参数语义是「是否保留」，原写成 `true` 导致开屏/热搜/动态/番剧/评论广告全部不去除；同时补齐 18 个未声明参数 |
@@ -118,6 +119,20 @@ Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, play
 | `ten_annual_vip` | 十年大会员 | 7 | 粉底白字 |
 | `annual_vip` | 年度大会员 | 3 | 粉底白字 |
 | `vip` | 大会员 | 1 | 粉底白字 |
+
+牌子图统一用**纯文字版**（官方 hdslb 原图）。`vip-assets/` 存了 16 张，
+其中 4 张在用；带图案的「火车版」与 2023 活动带星版**一律不引用** ——
+体积大 5–8 倍，且是当年活动特别款，长期看会与官方新皮肤脱节。
+
+| 档位 | 牌子图 | 尺寸 |
+|---|---|---|
+| `vip` | `vip-basic-gray.png`（灰底，如实反映该档权限等同非会员） | 144×60 |
+| `annual_vip` | `vip-annual-pink.png` | 207×60 |
+| `ten_annual_vip` | `vip-ten-pink.png` | 207×60 |
+| `hundred_annual_vip` | `vip-hundred-pink.png` | 207×60 |
+
+其余 12 张（`*-cannon` 火车版、`*-super-*` 超档位、`vip-mascot` 吉祥物等）
+作为**备用素材**保留，可通过 `vipImg` 参数手动指定。清单与 SHA256 见 `upstream/MANIFEST.json`。
 
 **Personal profile (`x/v2/space`) uses a different schema** and needs its own switch:
 
@@ -201,8 +216,11 @@ Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, play
 
 墨鱼 `Module.sgmodule` 与原生一致（毫秒），可交叉印证。
 
-> 另：App 对空间页会员标**走文字渲染**（`text` + `bg_color`），
-> 抓包里一次 `/bfs/vip/` 图片请求都不发，故 `image` 留空即可。
+> ⚠️ **旧结论已被推翻**（2026-10-02）：曾记「App 对空间页会员标走文字渲染，
+> 抓包里一次 `/bfs/vip/` 图片请求都不发，故 `image` 留空即可」。
+> 新抓包（1116 条）中 `x/v2/space` 触发了 **6 次** `/bfs/vip/` 图片请求，
+> 证明 App **确实**按 `label.image` 拉图渲染。`image` 字段是有效的，
+> 本插件四个档位的牌子图能真正生效。
 
 **空降助手**结论来自一次完整抓包（164 条，含自动跳过全过程）：
 
@@ -235,7 +253,7 @@ plugins/Bilibili-Dedup/
 ├── Bilibili-Dedup.lpx
 ├── icon.png               17 KB  插件图标（256×256）
 ├── vip.js                  7.2 KB  会员伪装：我的页 + 个人主页（含专栏列表）
-├── vip.test.mjs             14 KB  回归测试，29 例（Node vm 模拟 Loon 运行时）
+├── vip.test.mjs             15 KB  回归测试，31 例（Node vm 模拟 Loon 运行时）
 ├── lpx-verify.mjs          9.8 KB  清单校验：与 baseline-v7.18.lpx 逐条比对 Rewrite/Rule/Mitm/Script
 └── baseline-v7.18.lpx      12 KB  上一版清单快照，只供上面的校验器做对照，不是可加载的插件
 
@@ -245,7 +263,7 @@ plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
     ├── adblock.bundle.js      842 KB
     ├── adblock-hotsearch.js   817 B
     ├── chronos/                5.6 MB  空降助手引擎包 ×6
-    ├── vip-assets/             52 KB  4 张牌子图（另有 7 张无引用已删）
+    ├── vip-assets/            288 KB  16 张官方牌子图（4 张在用，其余备用，见下）
     └── MANIFEST.json
 ```
 
