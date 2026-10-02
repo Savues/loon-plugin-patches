@@ -150,6 +150,19 @@ check(".lpx 脚本指向本仓库 raw 地址", () => {
 check(".lpx 用 enable= 受开关保护", () => {
   assert.match(LPX, /enable=\{swapOn\}/);
 });
+// 首版写的是 #!system=ios + #!loon_version=3.5.1(988)，在 iPad 上直接
+// 报「操作系统不支持」装不进去。system 必须列出 iPadOS；loon_version 不能
+// 卡在新语法门槛上（本插件用的是旧语法，3.x 全支持）。
+check(".lpx 声明覆盖 iPadOS（否则 iPad 报「操作系统不支持」）", () => {
+  const sys = LPX.match(/^#!system=(.*)$/m);
+  assert.ok(sys, "缺少 #!system 声明");
+  assert.match(sys[1], /iPadOS/i, "system 未包含 iPadOS: " + sys[1]);
+});
+check(".lpx 的 loon_version 不卡在新语法门槛", () => {
+  const v = LPX.match(/^#!loon_version=(.*)$/m);
+  assert.ok(v, "缺少 #!loon_version 声明");
+  assert.ok(!/988/.test(v[1]), "loon_version 卡在 3.5.1(988) 但本插件用旧语法: " + v[1]);
+});
 
 console.log(`\n${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);
