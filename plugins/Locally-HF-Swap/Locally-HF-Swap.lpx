@@ -1,8 +1,9 @@
 #!name=Locally 模型劫持
-#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id（如 mlx-community/Qwen3-4B-4bit），然后在 App 里点任意模型的下载。适合 App 列表里没有、但你想用的模型。
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.1 修参数解析】
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
 #!date=2026-10-03
+#!version=1.1
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=Locally,模型,HuggingFace
@@ -11,8 +12,11 @@
 targetRepo = input,"mlx-community/Qwen3-4B-4bit",tag=目标模型仓库,desc=填 HuggingFace 仓库 id，格式 owner/name。例：mlx-community/Qwen3-4B-4bit。留空则本插件不生效
 swapOn = switch,true,tag=启用劫持
 
+# script-path 钉到 commit SHA 而不是 main —— raw 的 CDN 缓存键是完整 URL，
+# 用 SHA 拼出的直链与任何已缓存的 main 直链都不同，因此永不命中旧缓存。
+# 改动脚本后请把下面的 SHA 一并更新。
 [Script]
-http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument="{targetRepo}", enable={swapOn}, timeout=15
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/936e7a176ff07bef0b847c4a41b5f6e62124001c/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument="{targetRepo}", enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co

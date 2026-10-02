@@ -178,7 +178,15 @@ check(".lpx 声明了 huggingface.co 的 MITM", () => {
   assert.match(LPX, /\[MITM\][\s\S]*huggingface\.co/);
 });
 check(".lpx 脚本指向本仓库 raw 地址", () => {
-  assert.match(LPX, /script-path=https:\/\/raw\.githubusercontent\.com\/Savues\/loon-plugin-patches\/main\/plugins\/Locally-HF-Swap\/src\.js/);
+  assert.match(LPX, /script-path=https:\/\/raw\.githubusercontent\.com\/Savues\/loon-plugin-patches\/[0-9a-f]{40}\/plugins\/Locally-HF-Swap\/src\.js/);
+});
+// script-path 必须钉到 commit SHA。用 main 会被 raw 的 CDN 缓存住，
+// 改完脚本真机上仍加载旧版 —— 2026-10-03 因此连续三轮测的都是旧代码。
+check(".lpx 的 script-path 钉到 SHA（避开 raw 的 CDN 缓存）", () => {
+  const sp = LPX.match(/script-path=(\S+)/);
+  assert.ok(sp, "缺少 script-path");
+  assert.ok(/[0-9a-f]{40}\//.test(sp[1]),
+    "script-path 用了 main 分支，会被 CDN 缓存: " + sp[1]);
 });
 check(".lpx 用 enable= 受开关保护", () => {
   assert.match(LPX, /enable=\{swapOn\}/);
