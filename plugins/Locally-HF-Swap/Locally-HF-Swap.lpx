@@ -12,7 +12,7 @@ targetRepo = input,"mlx-community/Qwen3-4B-4bit",tag=目标模型仓库,desc=填
 swapOn = switch,true,tag=启用劫持
 
 [Script]
-http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument="{targetRepo}", enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co

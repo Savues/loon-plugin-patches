@@ -14,12 +14,53 @@
  参数：$argument.repo = "owner/name"（HF 仓库 id）
 */
 
-var TARGET = (($argument && $argument.repo) || "").trim();
 var HOST = "https://huggingface.co";
 var CACHE_PREFIX = "/api/resolve-cache/models/";
 
+// 解析 $argument: Loon 在不同版本/不同写法下会把参数传成
+//   "key=value" 字符串 / "[a,b]" 数组字符串 / 纯字符串 / 对象
+// 四种形态。只认对象的话，参数一旦以字符串传来就变 undefined，
+// 脚本会静默走「原样放行」分支 —— 表现为插件装了却毫无效果。
+// 参考本仓库 Reven-Mirror/src/loon-redirect.js 的已验证写法。
+var TARGET = "";
+(function () {
+  var a = (typeof $argument === "undefined") ? null : $argument;
+  if (a === null || a === "") return;
+
+  if (typeof a === "string") {
+    var s = a.trim();
+    // "repo=owner/name" 或 "targetRepo=owner/name"
+    var kv = s.match(/(?:^|[?&,;])(?:repo|targetRepo)=([^&;]+)/i);
+    if (kv) { TARGET = decodeURIComponent(kv[1]).trim(); return; }
+    // "[owner/name]" —— 去掉方括号
+    if (s.charAt(0) === "[" && s.charAt(s.length - 1) === "]") {
+      s = s.slice(1, -1);
+    }
+    // "owner/name" 纯字符串，或 "a,b" 逗号分隔（取第一段）
+    TARGET = s.split(",")[0].trim();
+    return;
+  }
+
+  if (typeof a === "object") {
+    if (Array.isArray(a)) {
+      // 数组：取第一项；若首项仍是 "k=v" 形式则再解一层
+      if (a.length > 0) {
+        var first = (typeof a[0] === "string") ? a[0] : ((a[0] && (a[0].repo || a[0].targetRepo)) || "");
+        if (typeof first === "string") {
+          var kv2 = first.match(/(?:^|[?&,;])(?:repo|targetRepo)=([^&;]+)/i);
+          TARGET = kv2 ? decodeURIComponent(kv2[1]).trim() : first.trim();
+        }
+      }
+      return;
+    }
+    var v = a.repo !== undefined ? a.repo : a.targetRepo;
+    if (v !== undefined && v !== null) TARGET = String(v).trim();
+  }
+})();
+
 if (!/^[\w.\-]+\/[\w.\-]+$/.test(TARGET)) {
-  // 参数没填好 / 不是合法 repo id → 原样放行，绝不挡路
+  // 参数没传进来 / 不是合法 repo id → 原样放行，绝不挡路。
+  // 注意：这种情况插件等于没开，若目标仓库明明填了却没生效，先查这里。
   $done({});
 } else {
   var url = $request.url;

@@ -38,9 +38,20 @@ const REAL = {
 const store = Object.create(null);
 
 // 返回 { out, fetchUrl } —— out 是 $done({url}) 里的 url，(unchanged) 表示原样放行
-function run(url, repo = TGT, apiSha = TGT_SHA) {
+// argMode: "object" | "kv" | "bracketed" | "plain" | "array" | "empty"
+// 默认 object；其余用于验证 $argument 的各种传法都能解析出目标仓库
+function run(url, repo = TGT, apiSha = TGT_SHA, argMode = "object") {
   let out = null, done = false, fetchUrl = null;
-  const $argument = { repo };
+  let $argument;
+  switch (argMode) {
+    case "object":    $argument = { repo }; break;
+    case "kv":        $argument = `repo=${repo}`; break;
+    case "bracketed": $argument = `[${repo}]`; break;
+    case "plain":     $argument = repo; break;
+    case "array":     $argument = [repo]; break;
+    case "empty":     $argument = ""; break;
+    default:          $argument = repo; break;
+  }
   const $request = { url };
   const $done = (o) => { done = true; out = (o && o.url) || "(unchanged)"; };
   const $persistentStore = {
@@ -114,6 +125,28 @@ check("API 失败时降级用 main，不挂住请求", () => {
   assert.ok(done, "API 失败时没有调用 $done");
   assert.ok(out.endsWith("/tokenizer.json"), "降级 URL 不完整: " + out);
   delete store[k];
+});
+
+// 真机事故：插件装上了、开关是绿的、MITM 也在，但抓包显示 URL 一条都没改写。
+// 根因是脚本只认 $argument.repo（对象形态），而 Loon 实际把参数传成了字符串，
+// 于是 TARGET 为空 → 静默走「原样放行」。参数传法必须全部兼容。
+group("$argument 的各种传法都要能解析出目标仓库");
+for (const mode of ["object", "kv", "bracketed", "plain", "array"]) {
+  check(`形态 ${mode} → 正确改写`, () => {
+    assert.equal(
+      run(REAL.metadata, TGT, TGT_SHA, mode).out,
+      `${HOST}/api/models/${TGT}/revision/main`,
+      `形态 ${mode} 未能解析出目标仓库`
+    );
+  });
+}
+check("resolve-cache 分支在各形态下也正确", () => {
+  for (const mode of ["object", "kv", "bracketed", "plain", "array"]) {
+    const k = "hf_sha_" + TGT;
+    delete store[k];
+    const { out } = run(REAL.resolveCache, TGT, TGT_SHA, mode);
+    assert.ok(out.includes(TGT), `形态 ${mode} 的 resolve-cache 未改写: ${out}`);
+  }
 });
 
 group("安全网 —— 任何情况下都不能把下载搞挂");
