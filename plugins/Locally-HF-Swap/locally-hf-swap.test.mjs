@@ -152,20 +152,8 @@ check("resolve-cache 分支在各形态下也正确", () => {
   }
 });
 
-// 真机抓包显示 14 条请求全部 modifiedRequest=False，但 Loon 日志明确有
-// 「Trigger http-request script」——脚本跑了却没改写，说明走了放行分支。
-// 需要一个能在真机日志里自证「参数到底解析成什么」的诊断输出。
-group("诊断输出（真机日志自证用）");
-check("版本标记在参数解析之前打印（参数挂了也能自证）", () => {
-  // v1.2 的教训：诊断输出混在参数解析之后，若参数解析抛异常就什么都没有。
-  // v1.3 把版本标记提到函数体第一句，与参数完全解耦。
-  const { logs } = run(REAL.metadata, "", TGT_SHA, "empty");
-  assert.ok(logs.length >= 1, "没有任何日志输出");
-  assert.match(logs[0], /\[Locally-HF-Swap\] v1\.3 loaded/,
-    "第一行必须是版本标记，实际: " + logs[0]);
-  assert.ok(logs[0].includes("url="), logs[0]);
-});
-// 真机实测：写 argument="{targetRepo}" 时参数传不进去。
+// 真机实测：写 argument="{targetRepo}" 时参数传不进去，改成数组形式后
+// 一次通过（2026-10-03 04:56 抓包，14 条请求全部指向目标仓库）。
 // 引号形式里必须是完整 JSON（argument="{""k"":""v""}"），裸变量名是无效语法。
 // 数组形式不需要引号，是成熟插件（如 iRingo WeatherKit，14 个参数）的通行写法。
 check(".lpx 的 argument 用数组形式，不给裸变量名加引号", () => {
@@ -176,21 +164,6 @@ check(".lpx 的 argument 用数组形式，不给裸变量名加引号", () => {
   assert.ok(!/argument="\{/.test(LPX),
     'argument 用了引号包裹裸变量名，这是无效语法（引号内须为完整 JSON）');
 });
-check("每次执行都打印 [Locally-HF-Swap] 诊断行", () => {
-  const { logs } = run(REAL.metadata);
-  assert.ok(logs.length > 0, "没有任何 console.log 输出，真机无法定位");
-  assert.ok(logs.some(l => /\[Locally-HF-Swap\]/.test(l)), "无标记行");
-  assert.ok(logs.some(l => /type=/.test(l)), "无 type 行");
-  assert.ok(logs.some(l => /TARGET=/.test(l)), "无 TARGET 行");
-});
-check("诊断行里能看到解析出的目标仓库", () => {
-  const { logs } = run(REAL.metadata, TGT, TGT_SHA, "plain");
-  assert.ok(logs.some((l) => l.includes("TARGET=" + TGT)), logs.join(" | "));
-});
-check("参数为空时诊断行标出 (空!)", () => {
-  const { logs } = run(REAL.metadata, "", TGT_SHA, "empty");
-  assert.ok(logs.some((l) => /TARGET=\(空!\)/.test(l)), logs.join(" | "));
-});
 check("$persistentStore 兜底能读到 targetRepo", () => {
   store["targetRepo"] = TGT;
   // argument 为空，但 persistentStore 里有值 —— 应仍能改写
@@ -200,9 +173,8 @@ check("$persistentStore 兜底能读到 targetRepo", () => {
   delete store["targetRepo"];
 });
 check("参数与 persistentStore 都为空时仍安全放行", () => {
-  const { out, logs } = run(REAL.metadata, "", TGT_SHA, "empty");
+  const { out } = run(REAL.metadata, "", TGT_SHA, "empty");
   assert.equal(out, "(unchanged)");
-  assert.ok(logs.some((l) => /TARGET=\(空!\)/.test(l)), logs.join(" | "));
 });
 
 group("安全网 —— 任何情况下都不能把下载搞挂");

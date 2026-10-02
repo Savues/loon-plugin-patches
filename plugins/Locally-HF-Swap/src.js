@@ -14,7 +14,7 @@
  参数来源按可靠性排序依次尝试，任何一种解析成功即停：
    1. $argument（对象 / 字符串 / 数组，各写法都试）
    2. $persistentStore.read("targetRepo")
- 解析结果会 console.log 到 Loon 请求日志，出问题时看那几行即可定位。
+ 参数兼容对象 / 数组 / "k=v" 字符串三种写法，不依赖具体传参形态。
 */
 
 var HOST = "https://huggingface.co";
@@ -22,11 +22,6 @@ var CACHE_PREFIX = "/api/resolve-cache/models/";
 var REPO_RE = /^[\w.\-]+\/[\w.\-]+$/;
 
 var TARGET = "";
-
-// 版本标记：函数体内第一句就打印，与后面的参数解析完全解耦。
-// 这样即便参数一个都没传进来，真机日志里也一定能看到这一行 ——
-// 用来判断「加载的是不是新脚本」，不依赖任何其他逻辑。
-console.log("[Locally-HF-Swap] v1.3 loaded, url=" + $request.url);
 
 // 从一个值里尽最大努力抠出 repo id；抠不出返回空串
 function pick(a) {
@@ -84,21 +79,10 @@ function pick(a) {
       if (TARGET && !REPO_RE.test(TARGET)) TARGET = "";
     } catch (e2) { /* 忽略 */ }
   }
-
-  // 诊断：把实际收到的参数形态打进 Loon 请求日志
-  try {
-    var desc;
-    var a2 = (typeof $argument === "undefined") ? null : $argument;
-    desc = "type=" + (a2 === null ? "undefined" : (Array.isArray(a2) ? "array" : typeof a2));
-    desc += " raw=" + JSON.stringify(a2);
-    desc += " -> TARGET=" + (TARGET || "(空!)");
-    console.log("[Locally-HF-Swap] v1.3 " + desc);
-  } catch (e3) { /* 忽略 */ }
 })();
 
 if (!REPO_RE.test(TARGET)) {
-  // 参数没传进来 → 原样放行，绝不挡路。
-  // 插件详情页顶部应显示 v1.2；若不生效且日志里 TARGET=(空!)，就是这里。
+  // 参数没传进来 / 不是合法 repo id → 原样放行，绝不挡路。
   $done({});
 } else {
   var url = $request.url;
