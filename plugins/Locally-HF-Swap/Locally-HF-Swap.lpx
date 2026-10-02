@@ -16,7 +16,7 @@ swapOn = switch,true,tag=启用劫持
 # 用 SHA 拼出的直链与任何已缓存的 main 直链都不同，因此永不命中旧缓存。
 # 改动脚本后请把下面的 SHA 一并更新。
 [Script]
-http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/dfb1143bcab3a4a3ce8002c93c67318901a8420c/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/235babeb7d140206a0cc548401d3bf780af57f16/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co
