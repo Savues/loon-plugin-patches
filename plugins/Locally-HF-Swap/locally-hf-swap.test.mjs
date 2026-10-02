@@ -42,6 +42,7 @@ const store = Object.create(null);
 // 默认 object；其余用于验证 $argument 的各种传法都能解析出目标仓库
 function run(url, repo = TGT, apiSha = TGT_SHA, argMode = "object") {
   let out = null, done = false, fetchUrl = null;
+  const logs = [];
   let $argument;
   switch (argMode) {
     case "object":    $argument = { repo }; break;
@@ -61,12 +62,13 @@ function run(url, repo = TGT, apiSha = TGT_SHA, argMode = "object") {
   const $httpClient = {
     get(p, cb) { fetchUrl = p.url; cb(null, { status: 200 }, JSON.stringify({ sha: apiSha })); },
   };
+  const console = { log: (...a) => logs.push(a.join(" ")) };
   // eslint-disable-next-line no-new-func
-  new Function("$argument", "$request", "$done", "$persistentStore", "$httpClient", SRC)(
-    $argument, $request, $done, $persistentStore, $httpClient
+  new Function("$argument", "$request", "$done", "$persistentStore", "$httpClient", "console", SRC)(
+    $argument, $request, $done, $persistentStore, $httpClient, console
   );
   assert.ok(done, "脚本没有调用 $done —— 会挂住整个请求");
-  return { out, fetchUrl };
+  return { out, fetchUrl, logs };
 }
 
 let pass = 0, fail = 0;
@@ -118,9 +120,10 @@ check("API 失败时降级用 main，不挂住请求", () => {
   const $done = (o) => { done = true; out = (o && o.url) || "(unchanged)"; };
   const $persistentStore = { read: () => null, write: () => true };
   const $httpClient = { get(p, cb) { cb("timeout", null, null); } };
+  const console = { log: () => {} };
   // eslint-disable-next-line no-new-func
-  new Function("$argument", "$request", "$done", "$persistentStore", "$httpClient", SRC)(
-    $argument, $request, $done, $persistentStore, $httpClient
+  new Function("$argument", "$request", "$done", "$persistentStore", "$httpClient", "console", SRC)(
+    $argument, $request, $done, $persistentStore, $httpClient, console
   );
   assert.ok(done, "API 失败时没有调用 $done");
   assert.ok(out.endsWith("/tokenizer.json"), "降级 URL 不完整: " + out);
@@ -147,6 +150,39 @@ check("resolve-cache 分支在各形态下也正确", () => {
     const { out } = run(REAL.resolveCache, TGT, TGT_SHA, mode);
     assert.ok(out.includes(TGT), `形态 ${mode} 的 resolve-cache 未改写: ${out}`);
   }
+});
+
+// 真机抓包显示 14 条请求全部 modifiedRequest=False，但 Loon 日志明确有
+// 「Trigger http-request script」——脚本跑了却没改写，说明走了放行分支。
+// 需要一个能在真机日志里自证「参数到底解析成什么」的诊断输出。
+group("诊断输出（真机日志自证用）");
+check("每次执行都打印 [Locally-HF-Swap] 诊断行", () => {
+  const { logs } = run(REAL.metadata);
+  assert.ok(logs.length > 0, "没有任何 console.log 输出，真机无法定位");
+  assert.match(logs[0], /\[Locally-HF-Swap\]/);
+  assert.match(logs[0], /type=/);
+  assert.match(logs[0], /TARGET=/);
+});
+check("诊断行里能看到解析出的目标仓库", () => {
+  const { logs } = run(REAL.metadata, TGT, TGT_SHA, "plain");
+  assert.ok(logs[0].includes("TARGET=" + TGT), logs[0]);
+});
+check("参数为空时诊断行标出 (空!)", () => {
+  const { logs } = run(REAL.metadata, "", TGT_SHA, "empty");
+  assert.match(logs[0], /TARGET=\(空!\)/);
+});
+check("$persistentStore 兜底能读到 targetRepo", () => {
+  store["targetRepo"] = TGT;
+  // argument 为空，但 persistentStore 里有值 —— 应仍能改写
+  const { out } = run(REAL.metadata, "", TGT_SHA, "empty");
+  assert.equal(out, `${HOST}/api/models/${TGT}/revision/main`,
+    "persistentStore 兜底未生效");
+  delete store["targetRepo"];
+});
+check("参数与 persistentStore 都为空时仍安全放行", () => {
+  const { out, logs } = run(REAL.metadata, "", TGT_SHA, "empty");
+  assert.equal(out, "(unchanged)");
+  assert.match(logs[0], /TARGET=\(空!\)/);
 });
 
 group("安全网 —— 任何情况下都不能把下载搞挂");
