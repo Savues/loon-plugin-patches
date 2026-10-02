@@ -35,11 +35,12 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
+| [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 完全自研<br>Locally model swap · URL rewrite · fully self-contained | **v1.0** |
 
 ### 托管了脚本的插件
 
 > 各插件的具体清单见上方表格「脚本」列 —— **这个数字随插件增删变化，请勿手写**，
-> 由 `find plugins -name '*.js'` 得出（2026-10-01：13 个插件带 JS）。
+> 由 `find plugins -name '*.js'` 得出（2026-10-03：14 个插件带 JS）。
 
 `Bilibili-UI` —— 上游 Enhanced 的脚本只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入，
 因此真开关必须改取参逻辑。改动仅两处 IIFE + 四处去 BoxJS，**业务逻辑逐字节未动**。
@@ -69,6 +70,12 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 `QuarkCheckIn` —— 第四种情况：**完全自研，无任何上游代码**。脚本从真机抓包逆向得到，
 2.3 KB 单文件，24 个回归用例（含 7 条清单结构断言）。它只用 `$httpClient` 主动发请求，不涉及 `[MITM]`，
 因此不用装根证书、与其他插件零冲突。
+
+`Locally-HF-Swap` —— 同样是完全自研，脚本从一次完整下载的 15 条抓包逆向得到。
+与 `QuarkCheckIn` 不同的是它要改写 App 自己的请求 URL（`$done({url})`），
+因此需要 `[MITM] huggingface.co`。17 个回归用例覆盖 3 种 URL 形态、sha 缓存，
+以及三层安全网（幂等跳过 / 参数校验 / 路径白名单）。
+哪些 URL 形态在真网可达属实测结论而非推断，已连同踩过的两个坑记在插件 README 里。
 
 `Reven-Mirror` —— **只托管，不改一个字**。上游脚本 98 行全是 `$httpClient` 透明转发，
 伪造的订阅回包在作者自己的 Cloudflare Worker 里生成，客户端没有逻辑可改。
@@ -192,6 +199,14 @@ nothing to change — only a URL to relocate. The README says so plainly rather 
 implying the author's domain is now gone.
 `QuarkCheckIn` is a further case still: written entirely from scratch off a real packet
 capture, 2.3 KB, 24 tests, and no `[MITM]` at all.
+
+`Locally-HF-Swap` is also written from scratch, from a 15-request capture of one complete
+model download. Unlike `QuarkCheckIn` it rewrites the app's **own** request URLs via
+`$done({url})`, so it does need `[MITM] huggingface.co`. 17 tests cover the three URL shapes,
+the sha cache, and three layers of safety net (idempotent skip / argument validation / path
+allowlist). Which shapes actually work on the live hub was **measured with curl, not assumed** —
+notably `resolve-cache` rejects a borrowed `sha` with `400`, so that branch has to look up the
+real one; both mistakes hit during development and are written up in the plugin README.
 `AdGuard-Spoof` is the one plugin whose script was **deobfuscated and rewritten**: equivalence
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its
@@ -334,6 +349,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
+| [Locally-HF-Swap/README.md](plugins/Locally-HF-Swap/README.md) | Locally 换模型插件：3 种 URL 形态的实测结论 + 两个正则坑 · Model-swap plugin: measured URL shapes & two regex traps |
 | [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md) | AgentRouter 签到的开关改造依据 · Why the cron is now off by default |
 | [AntiRevoke/README.md](plugins/AntiRevoke/README.md) | 证书吊销屏蔽插件：ppq 域名查证 + MITM 为何无必要 · Revocation-block plugin: ppq findings & why MITM is pointless |
 | [Reven-Mirror/UPSTREAM.md](plugins/Reven-Mirror/UPSTREAM.md) | 托管脚本的出处、外部资源审计与实测记录 · Provenance, resource audit & measurements |

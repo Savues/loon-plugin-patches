@@ -1,0 +1,18 @@
+#!name=Locally 模型劫持
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id（如 mlx-community/Qwen3-4B-4bit），然后在 App 里点任意模型的下载。适合 App 列表里没有、但你想用的模型。
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
+#!date=2026-10-03
+#!system=ios
+#!loon_version=3.5.1(988)
+#!tag=Locally,模型,HuggingFace
+
+[Argument]
+targetRepo = input,"mlx-community/Qwen3-4B-4bit",tag=目标模型仓库,desc=填 HuggingFace 仓库 id，格式 owner/name。例：mlx-community/Qwen3-4B-4bit。留空则本插件不生效
+swapOn = switch,true,tag=启用劫持
+
+[Script]
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
+
+[MITM]
+hostname = huggingface.co
