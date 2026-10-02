@@ -35,7 +35,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
-| [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 完全自研<br>Locally model swap · URL rewrite · fully self-contained | **v1.0** |
+| [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 真机已验证<br>Locally model swap · URL rewrite · verified on device | **v1.4** ✅ |
 
 ### 托管了脚本的插件
 
@@ -73,9 +73,16 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 `Locally-HF-Swap` —— 同样是完全自研，脚本从一次完整下载的 15 条抓包逆向得到。
 与 `QuarkCheckIn` 不同的是它要改写 App 自己的请求 URL（`$done({url})`），
-因此需要 `[MITM] huggingface.co`。17 个回归用例覆盖 3 种 URL 形态、sha 缓存，
+因此需要 `[MITM] huggingface.co`。29 个回归用例覆盖 3 种 URL 形态、sha 缓存，
 以及三层安全网（幂等跳过 / 参数校验 / 路径白名单）。
-哪些 URL 形态在真网可达属实测结论而非推断，已连同踩过的两个坑记在插件 README 里。
+**真机调试了六轮才跑通**，三个坑叠在一起且**全都是静默失效**（装得上、开是绿的、
+请求正常、日志无报错，就是不生效）：`#!system=ios` 在 iPad 上装不进去；
+`raw.githubusercontent.com` 按完整 URL 缓存，导致改了脚本真机仍跑旧代码
+（`script-path` 钉 commit SHA 才根治）；`argument="{xxx}"` 是无效语法，
+引号内须为完整 JSON，正确写法是数组形式 `[{xxx}]`。
+最后一条是翻了 GitHub 上 1316 个 `.lpx` 才对上的 —— 在此之前连续三轮
+都在错误的方向上加补丁（参数形态兼容、持久化兜底、诊断日志），
+详见插件 README 的「真机排障记录」。
 
 `Reven-Mirror` —— **只托管，不改一个字**。上游脚本 98 行全是 `$httpClient` 透明转发，
 伪造的订阅回包在作者自己的 Cloudflare Worker 里生成，客户端没有逻辑可改。
@@ -202,11 +209,21 @@ capture, 2.3 KB, 24 tests, and no `[MITM]` at all.
 
 `Locally-HF-Swap` is also written from scratch, from a 15-request capture of one complete
 model download. Unlike `QuarkCheckIn` it rewrites the app's **own** request URLs via
-`$done({url})`, so it does need `[MITM] huggingface.co`. 17 tests cover the three URL shapes,
+`$done({url})`, so it does need `[MITM] huggingface.co`. 29 tests cover the three URL shapes,
 the sha cache, and three layers of safety net (idempotent skip / argument validation / path
-allowlist). Which shapes actually work on the live hub was **measured with curl, not assumed** —
-notably `resolve-cache` rejects a borrowed `sha` with `400`, so that branch has to look up the
-real one; both mistakes hit during development and are written up in the plugin README.
+allowlist). **It took six rounds of on-device debugging**, because three separate traps stacked
+up and every one of them **fails silently** — the plugin loads, the switch is on, requests
+succeed, nothing logs, and the feature simply does nothing: `#!system=ios` won't install on
+iPad; `raw.githubusercontent.com` caches by full URL, so a fixed script still ran stale code on
+device (pinning `script-path` to a commit SHA is the actual cure); and `argument="{xxx}"` is
+invalid syntax — the quoted form must contain complete JSON, while the array form `[{xxx}]` is
+what everyone actually uses. That last one only became clear after reading 1316 `.lpx` files on
+GitHub. Before that I spent three rounds patching the wrong thing — argument-shape fallbacks,
+a persistent-store fallback, diagnostic logging. Two notes worth keeping: **Loon's HAR export
+carries a `_loon` field with `script` / `modifiedRequest` / `mitmHost`**, which is what finally
+separated "the script never ran" from "it ran and took the pass-through branch"; and
+**`console.log` output does not appear in that HAR**, so the diagnostic layer I added was
+unobservable — wrong channel entirely.
 `AdGuard-Spoof` is the one plugin whose script was **deobfuscated and rewritten**: equivalence
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its
