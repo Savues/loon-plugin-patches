@@ -1,9 +1,9 @@
 #!name=Locally 模型劫持
-#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.2 加诊断日志】
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.3 修 argument 语法】
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
 #!date=2026-10-03
-#!version=1.2
+#!version=1.3
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=Locally,模型,HuggingFace
@@ -16,7 +16,7 @@ swapOn = switch,true,tag=启用劫持
 # 用 SHA 拼出的直链与任何已缓存的 main 直链都不同，因此永不命中旧缓存。
 # 改动脚本后请把下面的 SHA 一并更新。
 [Script]
-http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/dfb1143bcab3a4a3ce8002c93c67318901a8420c/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument="{targetRepo}", enable={swapOn}, timeout=15
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/dfb1143bcab3a4a3ce8002c93c67318901a8420c/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co

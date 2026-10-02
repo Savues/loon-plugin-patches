@@ -23,6 +23,11 @@ var REPO_RE = /^[\w.\-]+\/[\w.\-]+$/;
 
 var TARGET = "";
 
+// 版本标记：函数体内第一句就打印，与后面的参数解析完全解耦。
+// 这样即便参数一个都没传进来，真机日志里也一定能看到这一行 ——
+// 用来判断「加载的是不是新脚本」，不依赖任何其他逻辑。
+console.log("[Locally-HF-Swap] v1.3 loaded, url=" + $request.url);
+
 // 从一个值里尽最大努力抠出 repo id；抠不出返回空串
 function pick(a) {
   if (a === null || a === undefined || a === "") return "";
@@ -87,7 +92,7 @@ function pick(a) {
     desc = "type=" + (a2 === null ? "undefined" : (Array.isArray(a2) ? "array" : typeof a2));
     desc += " raw=" + JSON.stringify(a2);
     desc += " -> TARGET=" + (TARGET || "(空!)");
-    console.log("[Locally-HF-Swap] " + desc);
+    console.log("[Locally-HF-Swap] v1.3 " + desc);
   } catch (e3) { /* 忽略 */ }
 })();
 
