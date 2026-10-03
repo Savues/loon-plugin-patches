@@ -1,9 +1,9 @@
 #!name=Locally 模型劫持
-#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.5 修元数据身份】
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.6 修 usedStorage】
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
 #!date=2026-10-03
-#!version=1.5
+#!version=1.6
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=Locally,模型,HuggingFace

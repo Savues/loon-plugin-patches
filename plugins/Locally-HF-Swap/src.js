@@ -100,8 +100,10 @@ if (!REPO_RE.test(TARGET)) {
       //
       // 但 App 会用元数据里的 id 决定落盘目录，而它只认白名单里的目录名
       // —— 目标仓库名不在白名单，文件下完也用不了（2026-10-03 实测）。
-      // 所以把原仓库名记下来，供响应阶段（meta-fix.js）把身份字段改回去。
+      // 所以把原仓库名记下来，供响应阶段（meta-fix.js）把身份字段改回去；
+      // 同时记下目标仓库名，响应阶段要靠它查 ?blobs=true 取真实文件大小。
       $persistentStore.write(m[1], "origRepo");
+      try { $persistentStore.write(TARGET, "targetRepo"); } catch (e) {}
       $done({ url: HOST + "/api/models/" + TARGET + "/revision/main" });
 
     } else if ((m = path.match(/^\/[^/]+\/[^/]+\/resolve\/[^/]+\/(.+)$/))) {
