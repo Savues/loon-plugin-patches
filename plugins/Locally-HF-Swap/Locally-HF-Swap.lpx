@@ -16,11 +16,11 @@ swapOn = switch,true,tag=启用劫持
 # 用 SHA 拼出的直链与任何已缓存的 main 直链都不同，因此永不命中旧缓存。
 # 改动脚本后请把下面的 SHA 一并更新。
 [Script]
-http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/4fbecc1746bbf16096c2ac6df5f1a190fa3c8516/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
+http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/e8167c1bc9898e07e20a30d736419834eb8eac21/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
 
 # 响应阶段：把元数据的 id/modelId 改回 App 原本点的模型。
 # Locally 只认白名单里的目录名，不改的话文件下完也读不到（2026-10-03 实测）。
-http-response ^https:\/\/huggingface\.co\/api\/models\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/4fbecc1746bbf16096c2ac6df5f1a190fa3c8516/plugins/Locally-HF-Swap/meta-fix.js, tag=Locally元数据修正, requires-body=true, enable={swapOn}, timeout=15
+http-response ^https:\/\/huggingface\.co\/api\/models\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/e8167c1bc9898e07e20a30d736419834eb8eac21/plugins/Locally-HF-Swap/meta-fix.js, tag=Locally元数据修正, requires-body=true, enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co
