@@ -29,6 +29,10 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Locall
 > 💡 订阅地址用 `main` 即可。本插件内部的 `script-path` 已钉到 commit SHA，
 > 不受 CDN 缓存影响 —— 详见「真机排障记录」的坑 2。
 
+> ⚠️ **网络层改写已完整验证，但 App 端加载仍报「请求超时」。**
+> 完整实验记录见 **[EXPERIMENT.md](EXPERIMENT.md)** —— 含四个坑、两处误判、
+> 判读 Loon HAR 的方法，以及为什么这条路到此为止。
+
 ---
 
 ## 用法 · Usage
@@ -92,9 +96,13 @@ CDN 上的签名 URL 是服务端生成的，改写反而会失效。
 
 ## 已知限制 · Known limitations
 
-- ✅ **真机已验证**：2026-10-03 在 iPadOS 18.7.3 / iPad16,1 上跑通 ——
-  14/14 请求命中脚本，URL 全部改写到目标仓库 `bumblebuttpow/MiniCPM5-2B-heretic-abliterated-MLX-8bit`，
-  三种 URL 形态均返回正常（详见下方「真机排障记录」）。
+- ✅ **网络层改写已完整验证**：2026-10-03 在 iPadOS 18.7.3 / iPad16,1 上，
+  三种 URL 形态全部正确改写（真机抓包 14/14 命中脚本）；
+  v1.6 交付给 App 的元数据与其期望**逐字节对齐**（`usedStorage` 与原模型一字不差）；
+  文件曾实测完整下载 337,886,921 字节。
+- ❌ **但 App 端加载仍报「出了点问题 请求超时」** —— 详见 [EXPERIMENT.md](EXPERIMENT.md)。
+  三项网络层指标全部达标而 App 依然失败，说明其校验还有 HTTP 层观测不到的部分
+  （历史下载记录 / 目录哈希 / 未抓到的请求）。这不是本插件能解决的。
 - **App 内显示的模型名 / 大小 / 量化标签仍会是原模型的元数据**（来自被劫持前已缓存的列表），
   实际权重是目标仓库的。加载后看输出是否正常来判断有没有生效。
 - **换仓库 ≠ 换架构。** 若目标模型的 `architectures` 与 App 运行时预期不符，可能加载失败。

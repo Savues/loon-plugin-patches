@@ -35,7 +35,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
-| [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 真机已验证<br>Locally model swap · URL rewrite · verified on device | **v1.4** ✅ |
+| [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 网络层已验证，App 端加载未解决<br>Locally model swap · URL rewrite · network layer verified, App-side load unresolved | **v1.6** ⚠️ |
 
 ### 托管了脚本的插件
 
@@ -71,18 +71,23 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 2.3 KB 单文件，24 个回归用例（含 7 条清单结构断言）。它只用 `$httpClient` 主动发请求，不涉及 `[MITM]`，
 因此不用装根证书、与其他插件零冲突。
 
-`Locally-HF-Swap` —— 同样是完全自研，脚本从一次完整下载的 15 条抓包逆向得到。
-与 `QuarkCheckIn` 不同的是它要改写 App 自己的请求 URL（`$done({url})`），
-因此需要 `[MITM] huggingface.co`。29 个回归用例覆盖 3 种 URL 形态、sha 缓存，
-以及三层安全网（幂等跳过 / 参数校验 / 路径白名单）。
-**真机调试了六轮才跑通**，三个坑叠在一起且**全都是静默失效**（装得上、开是绿的、
-请求正常、日志无报错，就是不生效）：`#!system=ios` 在 iPad 上装不进去；
-`raw.githubusercontent.com` 按完整 URL 缓存，导致改了脚本真机仍跑旧代码
-（`script-path` 钉 commit SHA 才根治）；`argument="{xxx}"` 是无效语法，
-引号内须为完整 JSON，正确写法是数组形式 `[{xxx}]`。
-最后一条是翻了 GitHub 上 1316 个 `.lpx` 才对上的 —— 在此之前连续三轮
-都在错误的方向上加补丁（参数形态兼容、持久化兜底、诊断日志），
-详见插件 README 的「真机排障记录」。
+`Locally-HF-Swap` —— 同样完全自研，脚本从一次完整下载的 15 条抓包逆向得到。
+与 `QuarkCheckIn` 不同的是它要改写 App 自己的请求 URL（`$done({url})`），因此需要 `[MITM] huggingface.co`。
+**53 个回归用例**覆盖 3 种 URL 形态、sha 缓存、身份字段改回、`usedStorage` 修正，
+以及多层安全网。
+
+**网络层已完整验证，App 端加载仍未解决** —— 这是个诚实的结论，不是一个能吹的成果：
+真机 14/14 命中脚本，v1.6 交付给 App 的元数据与其期望**逐字节对齐**
+（`usedStorage` 与原模型一字不差），文件曾实测完整下载 337,886,921 字节，
+**但 App 始终报「请求超时」**。三项网络层指标全部达标而 App 依然失败，
+说明其校验还有 HTTP 层观测不到的部分。
+
+真机调试了六轮才把网络层做对，四个坑叠在一起且**全都静默失效**（装得上、开是绿的、
+请求正常、日志无报错，就是不生效）。最贵的一条是 `argument="{xxx}"` 语法无效——
+我连续三轮在错误方向上加补丁（参数形态兼容、持久化兜底、诊断日志），
+**是用户要求「去搜别的插件看规则怎么写」才对上**，GitHub 1316 个 `.lpx` 对照后一次通过。
+完整过程见 [EXPERIMENT.md](plugins/Locally-HF-Swap/EXPERIMENT.md)，
+其中「判读 Loon HAR 的方法」一节对任何 Loon 排障都适用。
 
 `Reven-Mirror` —— **只托管，不改一个字**。上游脚本 98 行全是 `$httpClient` 透明转发，
 伪造的订阅回包在作者自己的 Cloudflare Worker 里生成，客户端没有逻辑可改。
@@ -209,21 +214,24 @@ capture, 2.3 KB, 24 tests, and no `[MITM]` at all.
 
 `Locally-HF-Swap` is also written from scratch, from a 15-request capture of one complete
 model download. Unlike `QuarkCheckIn` it rewrites the app's **own** request URLs via
-`$done({url})`, so it does need `[MITM] huggingface.co`. 29 tests cover the three URL shapes,
-the sha cache, and three layers of safety net (idempotent skip / argument validation / path
-allowlist). **It took six rounds of on-device debugging**, because three separate traps stacked
-up and every one of them **fails silently** — the plugin loads, the switch is on, requests
-succeed, nothing logs, and the feature simply does nothing: `#!system=ios` won't install on
-iPad; `raw.githubusercontent.com` caches by full URL, so a fixed script still ran stale code on
-device (pinning `script-path` to a commit SHA is the actual cure); and `argument="{xxx}"` is
-invalid syntax — the quoted form must contain complete JSON, while the array form `[{xxx}]` is
-what everyone actually uses. That last one only became clear after reading 1316 `.lpx` files on
-GitHub. Before that I spent three rounds patching the wrong thing — argument-shape fallbacks,
-a persistent-store fallback, diagnostic logging. Two notes worth keeping: **Loon's HAR export
-carries a `_loon` field with `script` / `modifiedRequest` / `mitmHost`**, which is what finally
-separated "the script never ran" from "it ran and took the pass-through branch"; and
-**`console.log` output does not appear in that HAR**, so the diagnostic layer I added was
-unobservable — wrong channel entirely.
+`$done({url})`, so it does need `[MITM] huggingface.co`. 53 tests cover the three URL shapes,
+the sha cache, identity-field restoration and `usedStorage` correction, plus several layers of
+safety net.
+
+**The network layer is fully verified; the App-side load is not resolved** — stated plainly
+because it is the truth, not a boast. On device: 14/14 requests hit the script, the metadata
+v1.6 hands the App matches its expectation **byte for byte** (`usedStorage` identical to the
+original model), and the weights once downloaded in full at 337,886,921 bytes — **and the App
+still reports a request timeout**. All three network-layer metrics pass, so whatever the App
+checks must live somewhere HTTP cannot see.
+
+It took six rounds of on-device debugging to get the network layer right, against four traps
+that all **fail silently**. The most expensive one: `argument="{xxx}"` is invalid syntax, and
+I spent three consecutive rounds patching the wrong thing — argument-shape fallbacks, a
+persistent-store fallback, diagnostic logging — until the user said "go look at how other
+plugins write it"; 1316 `.lpx` files answered it immediately. The full account is in
+[EXPERIMENT.md](plugins/Locally-HF-Swap/EXPERIMENT.md); its section on **reading a Loon HAR**
+applies to any Loon troubleshooting, not just this plugin.
 `AdGuard-Spoof` is the one plugin whose script was **deobfuscated and rewritten**: equivalence
 is proved by feeding the upstream original and the rewrite the same 10 inputs and diffing
 `$done` byte for byte. It also has **zero runtime external dependencies** — though its
@@ -367,6 +375,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [Locally-HF-Swap/README.md](plugins/Locally-HF-Swap/README.md) | Locally 换模型插件：3 种 URL 形态的实测结论 + 两个正则坑 · Model-swap plugin: measured URL shapes & two regex traps |
+| [Locally-HF-Swap/EXPERIMENT.md](plugins/Locally-HF-Swap/EXPERIMENT.md) | **完整实验记录**：四个坑、两处 mock 误判、判读 Loon HAR 的方法，以及为何到此为止<br>Full post-mortem: four traps, two mock mistakes, how to read a Loon HAR, why it stops here |
 | [AgentRouter/UPSTREAM.md](plugins/AgentRouter/UPSTREAM.md) | AgentRouter 签到的开关改造依据 · Why the cron is now off by default |
 | [AntiRevoke/README.md](plugins/AntiRevoke/README.md) | 证书吊销屏蔽插件：ppq 域名查证 + MITM 为何无必要 · Revocation-block plugin: ppq findings & why MITM is pointless |
 | [Reven-Mirror/UPSTREAM.md](plugins/Reven-Mirror/UPSTREAM.md) | 托管脚本的出处、外部资源审计与实测记录 · Provenance, resource audit & measurements |
