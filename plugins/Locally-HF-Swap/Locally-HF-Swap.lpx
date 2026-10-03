@@ -1,9 +1,9 @@
 #!name=Locally 模型劫持
-#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【真机已验证通过】
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.5 修元数据身份】
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
 #!date=2026-10-03
-#!version=1.4
+#!version=1.5
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=Locally,模型,HuggingFace
@@ -17,6 +17,10 @@ swapOn = switch,true,tag=启用劫持
 # 改动脚本后请把下面的 SHA 一并更新。
 [Script]
 http-request ^https:\/\/huggingface\.co\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/4fbecc1746bbf16096c2ac6df5f1a190fa3c8516/plugins/Locally-HF-Swap/src.js, tag=Locally模型劫持, argument=[{targetRepo}], enable={swapOn}, timeout=15
+
+# 响应阶段：把元数据的 id/modelId 改回 App 原本点的模型。
+# Locally 只认白名单里的目录名，不改的话文件下完也读不到（2026-10-03 实测）。
+http-response ^https:\/\/huggingface\.co\/api\/models\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/4fbecc1746bbf16096c2ac6df5f1a190fa3c8516/plugins/Locally-HF-Swap/meta-fix.js, tag=Locally元数据修正, requires-body=true, enable={swapOn}, timeout=15
 
 [MITM]
 hostname = huggingface.co

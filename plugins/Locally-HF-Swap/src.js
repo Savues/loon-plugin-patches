@@ -94,9 +94,14 @@ if (!REPO_RE.test(TARGET)) {
     var path = qs < 0 ? url.substring(HOST.length) : url.substring(HOST.length, qs);
     var m;
 
-    if ((m = path.match(/^\/api\/models\/[^/]+\/[^/]+\/revision\/[^/]+$/))) {
+    if ((m = path.match(/^\/api\/models\/([^/]+\/[^/]+)\/revision\/[^/]+$/))) {
       // 形态 1：元数据。换成目标仓库后，App 会从响应里读到目标仓库
       // 真实的 sha 与文件清单，后续 URL 它自己就拼对了。
+      //
+      // 但 App 会用元数据里的 id 决定落盘目录，而它只认白名单里的目录名
+      // —— 目标仓库名不在白名单，文件下完也用不了（2026-10-03 实测）。
+      // 所以把原仓库名记下来，供响应阶段（meta-fix.js）把身份字段改回去。
+      $persistentStore.write(m[1], "origRepo");
       $done({ url: HOST + "/api/models/" + TARGET + "/revision/main" });
 
     } else if ((m = path.match(/^\/[^/]+\/[^/]+\/resolve\/[^/]+\/(.+)$/))) {
