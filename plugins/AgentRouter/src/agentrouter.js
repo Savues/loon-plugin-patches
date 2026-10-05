@@ -365,7 +365,32 @@ function sessionCookie(headers) {
     return match ? match[1] : "";
 }
 
-function request(method, path, headers, body, label) {
+// 网络层重试。真机 cron 每天 09:00 跑时「登录成功、之后所有请求都失败」，
+// 手动触发却正常 —— 像是 Loon 刚启动时隧道/DNS 还没就绪。
+// 只重试传输层错误与 5xx/429；4xx 不重试（重试也不会变）。
+// POST 也重试：/api/user/login 幂等（已签到时服务端直接返回 checked_in=true）。
+const RETRYABLE_STATUS = (s) => s === 429 || s >= 500;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function request(method, path, headers, body, label) {
+    let last;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+            debug(`${label} 第 ${attempt + 1} 次尝试，先等 ${attempt}s`);
+            await sleep(1000 * attempt);
+        }
+        try {
+            return await requestOnce(method, path, headers, body, label);
+        } catch (error) {
+            last = error;
+            if (!error.retryable) throw error;
+            debug(`${label} 可重试：${error.message}`);
+        }
+    }
+    throw last;
+}
+
+function requestOnce(method, path, headers, body, label) {
     return new Promise((resolve, reject) => {
         const options = { url: BASE_URL + path, headers };
         if (body !== undefined) options.body = body;
@@ -378,13 +403,21 @@ function request(method, path, headers, body, label) {
         }
         $.send(options, method, (error, response, text) => {
             if (error) {
-                reject(new Error(`${label}网络请求失败，请检查该网站的 Loon 分流或稍后重试`));
+                // 把底层错误带出去 —— 上游只写「网络请求失败」，看不出是 DNS、TLS
+                // 还是超时（真机 cron 每天失败却查不出原因，就是这么漏掉的）
+                const raw = (error && (error.message || error.error || String(error))) || String(error);
+                debug(`${label} 网络错误：${raw}`);
+                const e = new Error(`${label}网络请求失败（${raw}）`);
+                e.retryable = true;
+                reject(e);
                 return;
             }
             const status = Number(response && (response.status || response.statusCode));
             debug(`${label} HTTP ${status}`);
             if (status < 200 || status >= 300 || !status) {
-                reject(new Error(`${label}返回 HTTP ${status || "未知"}，请在浏览器确认网站是否可访问或需要验证`));
+                const e = new Error(`${label}返回 HTTP ${status || "未知"}，请在浏览器确认网站是否可访问或需要验证`);
+                e.retryable = !status || RETRYABLE_STATUS(status);
+                reject(e);
                 return;
             }
             let json;

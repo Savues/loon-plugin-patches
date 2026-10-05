@@ -12,7 +12,7 @@
 | 清单改动 | 1 个开关 + cron 挂 `enable={auto}` | One switch, `enable={auto}` on cron |
 | 脚本改动 | 奖励正则 + 去打码 + 通知三层重排 + 签到判定重试 | Reward regex, unmasking, 3-tier layout, retry on log race |
 | 依据 | 多设备重复签到；三处真机实测缺陷 | Duplicate check-ins; three bugs found on device |
-| 测试 | 55 个用例（24 结构 + 26 排版 + 5 竞态） | 55 cases (24 structure, 26 layout, 5 race) |
+| 测试 | 60 个用例（24 结构 + 26 排版 + 5 日志竞态 + 5 网络重试） | 60 cases (24 structure, 26 layout, 5 log race, 5 net retry) |
 
 ---
 
@@ -35,6 +35,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 | [test/manifest.test.mjs](test/manifest.test.mjs) | 清单与脚本结构回归，24 个用例 | Structure regression tests |
 | [test/stats.test.cjs](test/stats.test.cjs) | 通知排版函数单元测试，26 个用例（不联网） | Notification layout unit tests, offline |
 | [test/retry.test.mjs](test/retry.test.mjs) | 签到判定的日志落库竞态，5 个用例 | Check-in detection race, 5 cases |
+| [test/net.test.mjs](test/net.test.mjs) | 网络层重试，5 个用例 | Network-layer retry, 5 cases |
 | [test/probe.cjs](test/probe.cjs) | 接口探查：打印各接口返回的字段结构 | Endpoint field-shape probe |
 | [test/run-live.cjs](test/run-live.cjs) | 真机全流程测试（读环境变量） | Live end-to-end test |
 
@@ -42,6 +43,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AgentR
 node test/manifest.test.mjs        # 清单 + 脚本结构，24 个用例
 node test/stats.test.cjs           # 通知排版纯函数，26 个用例
 node test/retry.test.mjs           # 签到判定的日志竞态，5 个用例
+node test/net.test.mjs             # 网络层重试，5 个用例
 AGENTROUTER='用户#密码' node test/run-live.cjs   # 真实网络
 node test/probe.cjs                # 想看服务端还返回了什么，跑这个
 python3 tools/vendor-check.py --diff            # 上游是否更新
@@ -106,6 +108,7 @@ python3 tools/vendor-check.py --diff            # 上游是否更新
 | 1 | 奖励金额一直显示「金额未识别」 | 服务端返回**全角 `＄`（U+FF04）**，上游正则只认半角 `$` | 字符类改成 `[$＄]` |
 | 2 | 明明签到了却报「⚠️ 签到待确认」 | 签到在 `POST /api/user/login` 时由服务端完成，但 `/api/log/self` 的记录**异步写**，登录后立刻查还查不到 | 查不到时重试（最多 4 次，间隔 2s/4s/6s）；重试仍失败但 `checked_in=true` 时不再报假警 |
 | 3 | 通知排版被 iOS 截断 | 副标题右侧被**时间戳**占位，宽度随通知新旧在 11~16 单位间波动 | 天数挪到全宽的标题层；站点名去空格 |
+| 4 | cron 每天 09:00 都报「余额查询网络请求失败」，手动触发却正常 | `request()` **吞掉了底层错误**（只写「网络请求失败」），且**完全没有重试** —— 登录成功之后所有请求都失败 | 错误原文带进日志；所有请求加传输层重试（3 次，间隔 1s/2s），只重试网络错误与 5xx/429 |
 
 外加两处个人向调整：去掉 `maskAccount()` 账号打码、通知按 iOS 三层重排（见上）。
 

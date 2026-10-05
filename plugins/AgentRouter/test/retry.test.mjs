@@ -13,6 +13,15 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert";
 
+// 天数会随时间变（真机那天是第 21 天，今天已经 25 天了），不能硬编码期望值。
+// 用假 created_at 按 src/agentrouter.js 里 accountDay() 的同一公式现算。
+const FAKE_CREATED = 1789048067;
+const EXPECTED_DAY = (() => {
+  const days = (Date.now() / 1000 - FAKE_CREATED) / 86400;
+  return `第 ${Math.floor(days) + 1} 天`;
+})();
+const EXPECTED_TITLE = `✅ 今日已签到 +$25 · ${EXPECTED_DAY}`;
+
 const SRC = readFileSync(new URL("../src/agentrouter.js", import.meta.url), "utf8");
 
 const CHECKIN_LOG = {
@@ -100,7 +109,7 @@ console.log("=== 签到判定：日志落库竞态 ===\n");
 await t("日志第 3 次查询才出现 → 重试后拿到金额（真机那天的时序）", async () => {
   const r = await scenario({ logVisibleAt: 3, checkedIn: true });
   assert.ok(r.logCalls >= 3, "应重试到第 3 次，实际 " + r.logCalls + " 次");
-  assert.strictEqual(r.notification.s, "✅ 今日已签到 +$25 · 第 21 天", r.notification.s);
+  assert.strictEqual(r.notification.s, EXPECTED_TITLE, r.notification.s);
 });
 
 await t("日志始终查不到但服务端说已签到 → 显示已签到，不报假警", async () => {
@@ -122,7 +131,7 @@ await t("日志立刻可见 → 一次就拿到，不浪费时间（哪怕 check
   // 有今日签到记录就以它为准 —— 记录比 login 响应的 checked_in 更权威
   const r = await scenario({ logVisibleAt: 1, checkedIn: true });
   assert.strictEqual(r.logCalls, 1, "不该重试");
-  assert.strictEqual(r.notification.s, "✅ 今日已签到 +$25 · 第 21 天");
+  assert.strictEqual(r.notification.s, EXPECTED_TITLE);
 });
 
 await t("重试上限为 4 次（不是无限等）", async () => {
