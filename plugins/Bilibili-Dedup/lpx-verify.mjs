@@ -32,6 +32,8 @@ const EXPECTED_REWRITE_DELTA = [
   "grpc-status 0",             // lab6：mock 删掉后，header 规则里对应的 TFInfo/EndPage 分支也一并摘除
   "result.modules",            // lab6 加：番剧首页 /pgc/page/ 此前零覆盖，实测漏 1 个 banner 广告。
                                // 不用 bundle 是因为它内部 switch(gC.pathname) 只认 bangumi / cinema-tab
+  "push\\/popup\\/setting",     // v7.25 加：屏蔽「打开推送通知」弹窗。整条响应就是弹窗素材
+                               //（data.notices/contents/banner 全给客户端渲染），置空 data 即可
 ];
 const allowed = (line) => EXPECTED_REWRITE_DELTA.some((k) => line.includes(k));
 const ro = sec(OLD, "Rewrite"), rn = sec(NEW, "Rewrite");
@@ -159,4 +161,17 @@ if (dedup) console.log("（" + dedup + " 条新清单少跑了重复脚本，属
 if (addedFor.length) {
   console.log("\n⚠️ 以下端点**新增**了脚本（每条都需人确认：v7.18 漏 https:// 前缀从未命中 / lab2 新增专栏页覆盖）：");
   addedFor.forEach((s) => console.log("   + " + s));
+}
+
+// 推送弹窗规则：正则必须命中真实请求，且不误伤同族的 report/config 上报接口
+// （白名单只做子串比对，匹错端点它一样放行 —— 这里补上真正跑正则的那一步）
+{
+  // [Rewrite] 行没有 http-response 前缀，正则就是第 1 个 token（[Script] 才是 [1]）
+  const rx = new RegExp(rn.find((l) => l.includes("push\\/popup\\/setting")).split(" ")[0]);
+  const hit = rx.test("https://api.bilibili.com/x/push/popup/setting?access_key=k&ts=1");
+  const miss = ["https://api.bilibili.com/x/push/popup/report",
+                "https://api.bilibili.com/x/push/popup/config?a=1",
+                "https://app.bilibili.com/x/v2/notice?access_key=k"].filter((u) => rx.test(u));
+  console.log("弹窗规则 " + (hit && !miss.length ? "命中 setting 且不误伤同族 ✓" : "✗ " + (hit ? "" : "未命中 ") + miss.join(",")));
+  if (!hit || miss.length) process.exitCode = 1;
 }

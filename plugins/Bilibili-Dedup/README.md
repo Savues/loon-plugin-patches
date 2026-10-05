@@ -3,7 +3,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.19** · 18 参数 / 5 Rule / 13 Rewrite / 7 Script / 5 MITM 域名 · 更新 `2026-09-29`
+**v7.25** · 18 参数 / 5 Rule / 14 Rewrite / 7 Script / 5 MITM 域名 · 更新 `2026-10-06`
 
 | | 中文 | English |
 |---|---|---|
@@ -108,6 +108,9 @@ The other 700+ apps are byte-for-byte untouched; Actions re-syncs every 6 hours.
 ### 去广告 · Ad removal
 推荐流 / 动态 / 搜索 / 番剧 / 直播 / 评论 / 播放页 / 开屏 / 短视频流 / 视频内插广告
 Feed, dynamic, search, PGC（首页/详情/电影频道）, live, comments, playback, splash, shorts, in-video ads.
+
+推送通知授权弹窗（`/x/push/popup/setting` 响应置空）。
+Push-notification permission popup.
 
 ### 本地会员伪装 · Local VIP
 
