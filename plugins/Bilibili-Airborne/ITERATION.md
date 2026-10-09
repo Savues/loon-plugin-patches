@@ -12,6 +12,56 @@
 
 ---
 
+## ⚡ 改动这个插件前必读
+
+**先读这一节，再看后面的复盘。** 下面每条都是在这个插件上真的栽过的。
+
+### 硬性流程（按顺序，不许跳）
+
+1. **确认在对的目录里**：`git -C /var/minis/shared/lpp-work rev-parse --is-inside-work-tree`
+   （`/var/minis/shared/loon-plugin-patches` 那个同名目录**不是仓库**，是过期副本）
+2. **改 `patches/patch-airborne.py`（不要改产物）**，然后 `python3 patches/patch-airborne.py`
+   重新生成 `plugins/Bilibili-Airborne/bilibili.airborne.js`——**产物是构建物，勿手改**
+3. **五个测试全跑过**：
+   ```bash
+   node patches/test-airborne.js && node patches/test-airborne-proto.js \
+   && node patches/test-airborne-fuzz.js && node patches/test-chronos.js \
+   && python3 patches/check-airborne-lpx.py
+   ```
+4. **改了 `[Argument]` 就必须**跑 `check-airborne-lpx.py`，**它不过就不许 commit**
+5. 改完核对一遍 `grep` 你以为改了的地方真的变了
+
+### 代码层面的硬约束
+
+| # | 约束 | 原因 |
+|---|---|---|
+| 1 | **注入块里禁止出现任何单字母变量名**（`k`、`e`、`i`…），用 `kk`/`seg`/`idx` | 漏写 `var` 就会污染压缩 bundle 的顶层同名变量（顶层 `k` 是 protobuf 的 sfixed64 类），污染后 `toBinary` 全线抛错，**插件对所有视频失效** |
+| 2 | 新加辅助函数一律用 `__air` 前缀 | 同上，避免撞名 |
+| 3 | 补丁锚点必须**精确命中一次**，命中 0 次或多次就 `sys.exit` | 宁可同步失败，也不要静默产出「参数不生效」的脚本 |
+| 4 | 改 `chronos.js` 必须同时看未知字段 | `ViewProgress` 里有**上游 schema 没声明的字段**：字段 #4（重复 N 次）是**进度条章节按钮**（`#2` 起始秒 / `#3` 结束秒 / `#4` 章节名 / `#5` 封面）。拆开再拼回顶层消息时必须原样保留，`test-chronos.js` 有夹具盯着 |
+| 5 | 新参数的名字要和脚本里读的 key **完全一致** | Loon 的 `argument=[{X}]` 是把**声明名原样**当 JSON key，大小写不同 → 用户改参数完全没反应 |
+| 6 | 涉及「产物里某个函数行为」的断言，放 `test-airborne-proto.js` | `test-airborne.js` 里的 `nn` 是桩，测不到真弹幕 |
+
+### 定位「不工作」类问题的顺序
+
+这类问题在 HAR 里**大部分看不见**，顺序错了会绕很久：
+
+1. 先问一句「是不是**设置**问题」——我曾把「弹幕显示区域设太小把顶部裁掉了」误判成「App 丢弃了弹幕」，白改两个版本
+2. HAR 里 response body 是 **base64 + gzip**，先解开再 grep
+3. 判「这条响应被脚本改写过没有」：**帧头首字节 `0x00` = 改写过（未压缩），`0x01` = 原始（gzip）**
+4. 记住**伪造的响应不上网**（请求阶段脚本自己 `s.fetch` 重取上游再改写），所以「App 实际收到的那份」和「HAR 里记的那份」可能不是同一份
+5. 拿不准就**做减法消融**：从 Dedup 真文件程序化派生出只保留一条规则的变体，逐层二分（本文第三节的九层消融就是这么做的）
+
+### 发布相关
+
+- 上游每 6 小时由 `sync-airborne.yml` 重打补丁；**锚点失效会让 Actions 红着失败**，这是设计
+- 推完核对线上内容**不要用 `raw.githubusercontent.com`**（CDN 缓存会骗你，可能忽略 `?cb=`），用
+  `https://api.github.com/repos/Savues/loon-plugin-patches/contents/<path>?ref=main`
+- 本机拉 `raw.githubusercontent.com` 偶尔会撞上中间人证书错误（`CERTIFICATE_VERIFY_FAILED`），
+  此时用本地缓存的上游副本重建，产物一致（锚点命中数不变）
+
+---
+
 ## 零、起点
 
 用户要求：把 `Bilibili-Dedup` 里的「空降助手」拆成独立插件，并让用户能**自己选
@@ -234,17 +284,66 @@ HAR 里两次会话 ViewProgress 响应的**唯一**差异：
 
 ---
 
+## 四之三、v1.3 ~ v1.21：功能长出来的一轮
+
+这十几个版本没有再翻车，但踩到了两类**流程坑**（第 11–16 条），先记功能。
+
+| 版本 | 做了什么 |
+|---|---|
+| v1.3 | 类别分「自动跳 / 只提醒」两档；自动跳扩到 `sponsor,intro,outro,padding` |
+| v1.4 | `selfpromo` 进自动跳；弹幕类别名中文化（`{cat}` 渲染中文，新增 `{catid}` 取原始 id） |
+| v1.5 | `interaction` 进自动跳；只提醒档默认留空 |
+| v1.6 | 整篇软广（`actionType=full`）独立成档 `airFullMode`，默认 `notice`（片头提醒不跳） |
+| v1.7 / v1.8 | **错误的两版**：把提醒档降级成普通滚动弹幕、加 8 秒延后。已在 v1.9 回退 |
+| v1.9 | 回退样式改动；顺带发现「提醒档在两个列表里都出现时，自动档优先」这个语义 bug，改成提醒档优先 |
+| v1.10 | 只提醒档默认填满所有非自动跳类别（两档并集 = 全部 11 类，杜绝「两档都空 = 静默失效」） |
+| v1.11 | 修：片头汇总文案渲染成 `⚠️  00:00→00:00`（模板算了却没传给渲染函数） |
+| v1.12 | `chronos.js` 从 `ViewProgress` 抠出来独立成文件（自带通用 protobuf 改写） |
+| v1.14 | 片头汇总：开头列出本视频所有会被处理的片段 |
+| v1.15 | 修汇总文案（同 v1.11 的教训） |
+| v1.16 | 汇总支持换行（`airSummaryWrap`） |
+| v1.17 | 汇总加「本视频包括：」标题行 + 按类别上色 |
+| v1.19 | 删掉整篇软广的独立提醒（汇总里已有一行，两条说的是同一件事） |
+| v1.20 | 标题改「⚠️本视频包含⚠️」；整篇恰饭置顶「全片恰饭软广」；`sponsor` → 恰饭硬广 |
+| v1.21 | `interaction`→三连提醒、`intro`→开场动画、`preview`→往期回顾（依据解包扩展的官方文案）；汇总改红色；修错别字「软告→软广」 |
+
+### 类别命名的依据：解包浏览器扩展
+
+**不要只看 GitHub 源码**——把扩展 CRX 解开，里面有更完整的文案（`_short` 短名 + `guideline1/2/3` 提交判定标准）：
+
+```bash
+# CRX3 = "Cr24" + 版本 + 头长 + zip，从第 12+头长 字节开始就是 zip
+curl -skL -o c.crx "https://clients2.google.com/service/update2/crx?response=redirect\
+&acceptformat=crx2,crx3&prodversion=130.0.0\
+&x=id%3Deaoelafamejbnggahofapllmfhlhajdd%26installsource%3Dondemand%26uc"
+# 注意 prodversion=0.0 会返回 204 空包，随便填个大的版本号即可
+```
+
+解出来 96 个文件，`v0.16.0`。两个关键位置：
+- `_locales/zh_CN/messages.json` —— `category_*` 系列的名称 / `_short` / `_description` / `_guideline1..3`
+- `js/background.js` —— `categorySelections` 是**真实生效的默认档位**（`AutoSkip / ManualSkip / ShowOverlay / Disabled`），比读源码可靠
+
+同文件里还有两个可复用的字符串：`full` = 「整个视频」；`AutoSkipDanmakuSkip`（自动跳过弹幕）默认 `false`。
+
+### 这一轮的三个真 bug
+
+1. **v1.14 推了坏清单**：`argument` 里引用了 `airSummary`，`[Argument]` 里漏了声明行（字符串替换漏了换行符，两行挤成一行）。`check-airborne-lpx.py` 当时就报了，但我没停就 commit+push 了。
+2. **v1.20 差点推出去一个致命 bug**：把 `var synth, head, k;` 改成 `var synth, head;`，但循环里还有三处 `for (k = ...)`。漏写 `var` 会让 `k` 解析到**压缩后 bundle 的顶层 `k`——protobuf 的 sfixed64 类**，被赋成数字后 `k.from` 变 undefined，之后**任何 `toBinary` 都抛**，插件对**所有视频**彻底失效。是 proto 测试先抓到的。
+3. **UPSTREAM.md 的编辑静默失败**：锚点字符串对不上，`str.replace` 不报错，我却在提交信息里写"已加入"。
+
+---
+
 ## 五、测试体系
 
 全部离线，不联网，CI 逐个跑：
 
 | 文件 | 覆盖 | 用例 |
 |---|---|---|
-| `test-airborne.js` | 参数解析、类别/动作/时长过滤、文案占位符、幂等 | 22 |
-| `test-airborne-proto.js` | 整份产物在 Loon 式全局下能否加载；注入弹幕真 protobuf 往返；**走真实调用点 `$t`**；两档样式一致性 | 22 |
-| `test-airborne-fuzz.js` | 18 种畸形/边界响应 × 17 组参数 | 311 |
-| `test-chronos.js` | 用真实抓包夹具验证与 Dedup 实测**逐字节一致** | 9 |
-| `check-airborne-lpx.py` | 清单结构、regex 正反例、**参数名↔脚本 key 一一对应**、Mitm 覆盖 | 44 |
+| `test-airborne.js` | 参数解析、类别/动作/时长过滤、两档分组、文案占位符与改名、幂等 | 56 |
+| `test-airborne-proto.js` | 整份产物在 Loon 式全局下能否加载；注入弹幕真 protobuf 往返；**走真实调用点 `$t`**；**顶层变量未被污染** | 45 |
+| `test-airborne-fuzz.js` | 18 种畸形/边界响应 × 17 组参数 | 311 组 |
+| `test-chronos.js` | 与 Dedup 实测**逐字节一致**；gzip 帧；幂等；**未知字段（进度条章节）逐字段保留** | 17 |
+| `check-airborne-lpx.py` | 清单结构、regex 正反例、**参数名↔脚本 key 一一对应**、Mitm 覆盖 | 78 |
 
 `check-airborne-lpx.py` 里「参数名 ↔ 脚本 key」这一条，是 v1.0 阶段踩坑之后加的：
 清单里写 `AirborneCategories`（大写 A），脚本读 `airborne`（小写 a），而
@@ -280,3 +379,9 @@ HAR 里两次会话 ViewProgress 响应的**唯一**差异：
 | 8 | 隐式依赖从代码里看不出来 | chronos 是自动跳的前置条件，却没写在任何参数名或 UI 上 |
 | 9 | 「HAR 里有、屏幕上没有」≠「被 App 丢弃」 | 中间隔着客户端设置层，要先排除设置再下结论 |
 | 10 | 断言写在有桩的测试文件里 | `test-airborne.js` 的 `nn` 是桩，涉及 `nn` 真实行为的断言必须放 `test-airborne-proto.js` |
+| 11 | **注入块里的循环变量漏写 `var`** | 会解析到压缩后 bundle 的顶层同名变量（`k` = protobuf 的 sfixed64 类），污染后 `k.from is not a function`，插件对**所有视频**失效。注入块里**不要用任何单字母变量名** |
+| 12 | `str.replace` 没匹配上却照样往下走 | 字符串替换静默失败。写完必须 `grep` 核对文件真的变了，提交信息里不许写没验证过的"已加入" |
+| 13 | 校验报警告了仍然 commit + push | v1.14 就是这么把坏清单推上线的。**清单改完、校验没过 = 不许提交** |
+| 14 | 收到"帮我查一下"就直接改代码 | 查询类请求只读不改；要改先把要改的东西列出来等确认 |
+| 15 | 拿 `raw.githubusercontent.com` 核对线上内容 | 它有 CDN 缓存，**可能忽略查询参数**。核对线上真实内容用 GitHub API：`contents/<path>?ref=main` |
+| 16 | 只在真机观察里找 bug | 第 11 条那种致命错误真机表现为"静默不工作"，定位极慢；而 Node 里跑一遍 `toBinary` 立刻炸出来 |

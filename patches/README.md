@@ -201,3 +201,66 @@ python3 patches/test-patch-blockads.py
 - **001ProMax** <https://github.com/001ProMax> — Spotify Protobuf 脚本作者
 
 上游版权与许可全部适用。
+
+---
+
+# 空降助手补丁器 · Bilibili-Airborne Patch
+
+> 另一个补丁器：把 `kokoryh/Sparkle` 的 `bilibili.protobuf.request.js` 改成
+> 「跳过类型 / 动作 / 时长 / 文案」全部可配置。详细复盘见
+> [Bilibili-Airborne/ITERATION.md](../plugins/Bilibili-Airborne/ITERATION.md)。
+
+## 为什么需要补丁
+
+上游把查询类别和过滤条件写死在代码里，清单层传多少 `[Argument]` 都不起作用：
+
+```ts
+// kokoryh/Sparkle  src/service/sponsor-block.service.ts
+url: `https://bsbsb.top/api/skipSegments?videoID=..&cid=..&category=sponsor`
+过滤: actionType === "skip" && (end - start) >= 8
+```
+
+所以只能在**构建期**改，而不是手改产物。
+
+## 本地运行 · Local usage
+
+```bash
+# 拉上游最新版 → 打 9 处锚点 → 写出产物（同时做 node --check 语法体检）
+python3 patches/patch-airborne.py
+
+# 对已下载的上游文件打补丁
+python3 patches/patch-airborne.py /path/to/upstream.js -o out.js
+
+# 任何一处锚点没精确命中一次 → 直接 exit，不产出文件
+```
+
+产物：`plugins/Bilibili-Airborne/bilibili.airborne.js`（**构建物，勿手改**）
+上游：`https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.request.js`
+
+## 回归测试 · Regression tests
+
+全部离线，CI（`.github/workflows/sync-airborne.yml`）逐个跑：
+
+```bash
+node patches/test-airborne.js          # 56 例：参数解析、两档分组、文案占位符、幂等
+node patches/test-airborne-proto.js    # 45 例：整份产物能否加载、真 protobuf 往返、走真实调用点 $t
+node patches/test-airborne-fuzz.js     # 311 组：畸形/边界响应 × 参数组合
+node patches/test-chronos.js           # 17 例：chronos 重签，含未知字段（进度条章节）保留
+python3 patches/check-airborne-lpx.py # 78 项：清单结构、regex、参数名↔脚本 key、Mitm 覆盖
+```
+
+夹具在 `patches/fixtures/`，都来自**真实抓包**：
+
+| 文件 | 用途 |
+|---|---|
+| `viewprogress-raw.bin` | 服务端原始的 `ViewProgress` 响应 |
+| `viewprogress-resigned.bin` | Dedup 重签后的样子（chronos.js 必须与之逐字节一致） |
+| `viewprogress-chapters.bin` | 带**进度条章节字段**（未知字段）的响应，验证不被拆拼弄丢 |
+
+## 三条最容易踩的
+
+1. **注入块里禁止用单字母变量名**。压缩后的 bundle 顶层全是单字母，
+   漏写 `var` 就会污染到 protobuf 的运行时类（`k` = sfixed64），
+   之后 `toBinary` 全线抛错，**插件对所有视频失效**。见 ITERATION.md 踩坑 #11。
+2. **改 `[Argument]` 后 `check-airborne-lpx.py` 不过就不许 commit**。踩坑 #13 就是这么推了坏清单上线的。
+3. **不要手改 `bilibili.airborne.js`**，它每次同步都会被覆盖。

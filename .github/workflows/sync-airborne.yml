@@ -46,7 +46,7 @@ jobs:
             python3 patches/patch-airborne.py -o plugins/Bilibili-Airborne/bilibili.airborne.js
           fi
 
-      - name: 逻辑单测（22 例）
+      - name: 逻辑单测
         run: node patches/test-airborne.js plugins/Bilibili-Airborne/bilibili.airborne.js
 
       - name: 加载 + protobuf 往返
@@ -57,6 +57,9 @@ jobs:
 
       - name: 清单结构校验
         run: python3 patches/check-airborne-lpx.py
+
+      - name: chronos 重签（含未知字段保留）
+        run: node patches/test-chronos.js
 
       - name: 校验补丁确实落进产物
         run: |
