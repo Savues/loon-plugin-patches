@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.14
-#!desc=v1.14 新增「片头汇总」：视频一开头就把本视频里会被处理的片段（类别 + 时间段）列出来，single=挤成一条（默认）；stagger=每段一条错开 4 秒；off=不列。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.15
+#!desc=v1.15 修 v1.14 的片头汇总：文案渲染成了「⚠️  00:00→00:00」。根因是汇总弹幕复用了「只提醒的文案」模板却没把模板传进渲染函数，{list} 被丢掉，只留下模板里的 {cat}{start}{end} 在假片段上渲染出的 00:00。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-10 00:40:00
+#!date=2026-10-10 02:10:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕

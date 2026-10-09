@@ -110,17 +110,21 @@ var __airNames = {
     interaction: "一键三连", poi_highlight: "精彩时刻", intro: "片头", outro: "片尾",
     preview: "回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
-function __airText(a, seg, list) {
-    var e = __airEnd(seg), c = seg[2] || "";
-    var tpl = __airVal(a, seg[5] ? "airNotice" : "airInfo",
-                      seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
-    return String(tpl)
-        .replace(/\{list\}/g, list == null ? "" : list)
-        .replace(/\{cat\}/g, __airNames[c] || c)
-        .replace(/\{catid\}/g, c)
-        .replace(/\{start\}/g, __airFmt(seg[0]))
-        .replace(/\{end\}/g, __airFmt(e))
-        .replace(/\{dur\}/g, Math.round(e - seg[0]));
+function __airText(a, seg, list, tpl) {
+    // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，
+    // 只保留 {list}（以及模板里本来就有的文字）。tpl 可显式指定模板。
+    var sum = list != null, e = __airEnd(seg), c = seg[2] || "";
+    var t = tpl != null ? tpl
+            : __airVal(a, seg[5] ? "airNotice" : "airInfo",
+                       seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
+    var s = String(t)
+        .replace(/\{list\}/g, sum ? list : "")
+        .replace(/\{catid\}/g, sum ? "" : c)
+        .replace(/\{cat\}/g, sum ? "" : (__airNames[c] || c))
+        .replace(/\{start\}/g, sum ? "" : __airFmt(seg[0]))
+        .replace(/\{end\}/g, sum ? "" : __airFmt(e))
+        .replace(/\{dur\}/g, sum ? "" : Math.round(e - seg[0]));
+    return sum ? s.replace(/[ \t]*→[ \t]*/g, " ").trim() : s;
 }
 function __airAction(a, seg, l) {
     if (!seg[5]) return "";                                                    // 只提醒档：只出文字
@@ -170,13 +174,15 @@ function __airInject(msg, segs, a) {
             synth = [[0, 0, "", "skip", 0, 0]];
             head = nn(synth, a);
             head[0].content = __airText(a, synth[0],
-                shown.map(__airSegText).join(" · ") + more).replace(/\{cat\}[^·\n]*?→\d\d:\d\d/g, "").trim();
+                shown.map(__airSegText).join(" · ") + more, tpl);
             head[0].progress = delay;
         } else {
             synth = shown.map(function () { return [0, 0, "", "skip", 0, 0]; });
             head = nn(synth, a);
             for (k = 0; k < head.length; k++) {
-                head[k].content = __airText(a, synth[k], __airSegText(shown[k]) + more);
+                head[k].content = __airText(a, synth[k], __airSegText(shown[k]) + more,
+                    String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
+                        ? String(__airVal(a, "airInfo", "")) : "{list}");
                 head[k].progress = delay + k * 4000;
             }
         }
