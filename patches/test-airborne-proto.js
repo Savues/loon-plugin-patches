@@ -36,7 +36,7 @@ const arg = { airNotice: '跳过{cat} {start}→{end} 省{dur}s', airMode: 'jump
 
 const injected = nn(segs, arg);
 ck('nn 生成 3 条弹幕', injected.length === 3);
-ck('文案模板已渲染', injected[1].content === '跳过intro 01:03→01:45 省42s', injected[1].content);
+ck('文案模板已渲染', injected[1].content === '跳过片头 01:03→01:45 省42s', injected[1].content);
 
 const after = _e.fromBinary(beforeBytes);
 inject(after.elems, segs, arg);
@@ -46,7 +46,7 @@ const rt = _e.fromBinary(_e.toBinary(after));
 ck('序列化→反序列化后仍是 5 条', rt.elems.length === 5, String(rt.elems.length));
 const fake = rt.elems.filter(x => x.midHash === '1948dd5d');
 ck('假弹幕往返后仍可按 midHash 认出', fake.length === 3, String(fake.length));
-ck('文案往返无损', fake[0].content === '跳过sponsor 00:00→00:42 省43s', fake[0].content);
+ck('文案往返无损', fake[0].content === '跳过恰饭 00:00→00:42 省43s', fake[0].content);
 ck('action 往返无损', fake[0].action === 'airborne:42900', fake[0].action);
 ck('progress 往返无损', fake[1].progress === 65500, String(fake[1].progress));
 ck('原弹幕未被破坏', rt.elems.slice(0, 2).map(x => x.content).join(',') === '原弹幕A,原弹幕B',

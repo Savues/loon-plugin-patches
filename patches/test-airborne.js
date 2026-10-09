@@ -19,20 +19,21 @@ const eq = (name, got, want) => {
 const ok = (arg, t, c, d, vd) => __airOK(arg, t, c, d, vd);
 
 // 类别解析
-eq('默认自动跳类别', __airCats({}, 0), ['sponsor', 'intro', 'outro', 'padding']);
-eq('默认只提醒类别', __airCats({}, 1), ['selfpromo', 'interaction']);
-eq('两档合并去重', __airAny({}), ['sponsor','intro','outro','padding','selfpromo','interaction']);
+eq('默认自动跳类别', __airCats({}, 0), ['sponsor', 'selfpromo', 'intro', 'outro', 'padding']);
+eq('默认只提醒类别', __airCats({}, 1), ['interaction']);
+eq('两档合并去重', __airAny({}), ['sponsor','selfpromo','intro','outro','padding','interaction']);
 eq('off 关闭', __airCats({ airCategories: 'off' }, 0), []);
 eq('参数名大小写容错', __airCats({ AirCategories: 'intro' }, 0), ['intro']);
 eq('逗号+空格+中文逗号', __airCats({ airCategories: 'sponsor, intro，outro' }), ['sponsor', 'intro', 'outro']);
-eq('查询串用两档并集', decodeURIComponent(__airQS({})), 'categories=["sponsor","intro","outro","padding","selfpromo","interaction"]');
+eq('查询串用两档并集', decodeURIComponent(__airQS({})), 'categories=["sponsor","selfpromo","intro","outro","padding","interaction"]');
 eq('查询串只发自定义并集', decodeURIComponent(__airQS({ airCategories: 'intro', airNoticeCategories: 'outro' })), 'categories=["intro","outro"]');
 
 // 过滤：类别 / 动作 / 时长
 eq('sponsor+skip+42.9s 自动档通过', ok({}, 'skip', 'sponsor', 42.9), true);
 eq('intro 现在默认就在自动档', ok({}, 'skip', 'intro', 42.9), true);
 eq('padding 默认也在自动档', ok({}, 'skip', 'padding', 42.9), true);
-eq('selfpromo 默认在只提醒档也通过', ok({}, 'skip', 'selfpromo', 24), true);
+eq('selfpromo 现在默认在自动档', ok({}, 'skip', 'selfpromo', 24), true);
+eq('interaction 默认在只提醒档', ok({}, 'skip', 'interaction', 20), true);
 eq('filler 两档都没有→拒', ok({}, 'skip', 'filler', 40), false);
 eq('mute 默认被拒', ok({}, 'mute', 'sponsor', 60), false);
 eq('提醒档不受动作白名单约束', ok({ airActions: 'skip' }, 'skip', 'interaction', 20), true);
@@ -47,9 +48,12 @@ eq('类别关掉后全拒', ok({ airCategories: 'off', airNoticeCategories: 'off
 // 文案占位符
 const seg = [75.073, 113.139, 'sponsor', 'skip', 161, 1];
 eq('默认文案（自动档）', __airText({}, seg), '空指部已就位');
-eq('默认文案（提醒档）', __airText({}, [0, 42.9, 'selfpromo', 'skip', 300, 0]), '⚠️ selfpromo 00:00→00:42');
-eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), 'interaction@00:00');
-eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过sponsor 01:15→01:53 省38s');
+eq('默认文案（提醒档）', __airText({}, [0, 42.9, 'interaction', 'skip', 300, 0]), '⚠️ 一键三连 00:00→00:42');
+eq('{cat} 渲染成中文名', __airText({ airInfo: '{cat}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), '自我推广');
+eq('{catid} 拿到原始 id', __airText({ airInfo: '{catid}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), 'selfpromo');
+eq('未知类别原样输出', __airText({ airInfo: '{cat}' }, [0, 42.9, 'brand_new', 'skip', 300, 0]), 'brand_new');
+eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), '一键三连@00:00');
+eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过恰饭 01:15→01:53 省38s');
 eq('自定义文案', __airText({ airNotice: 'AD' }, seg), 'AD');
 
 // 动作
@@ -69,6 +73,7 @@ eq('poi 加进自动档后通过（不受 8s 影响）', ok({ airCategories: 'po
 eq('poi 落点就是那个时间点', __airEnd(poi), 183);
 eq('skip 仍受 8s 约束', ok({ airActions: 'skip,full' }, 'skip', 'sponsor', 5, 300), false);
 eq('full 的文案 end 是片尾', __airText({ airNotice: '{start}→{end} 省{dur}s' }, full), '00:00→16:56 省1016s');
+eq('full 的 {cat} 是独家体验', __airText({ airNotice: '{cat}' }, full), '独家体验');
 
 // 幂等守卫：同一个响应注入两次，只应有一条
 const elems = [];

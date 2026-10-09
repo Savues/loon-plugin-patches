@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.3** · 8 参数 / 2 Script / 3 MitM
+**v1.4** · 8 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v13`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v14`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -50,18 +50,18 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | 参数 | 默认 | 说明 |
 |---|---|---|
 | `空降助手` | 开 | 总开关 |
-| `自动跳的类型` | `sponsor,intro,outro,padding` | 这些类别的片段带空降动作，**自动跳**（点一下也能跳） |
-| `只提醒的类型` | `selfpromo,interaction` | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
+| `自动跳的类型` | `sponsor,selfpromo,intro,outro,padding` | 这些类别的片段带空降动作，**自动跳**（点一下也能跳） |
+| `只提醒的类型` | `interaction` | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
 | `允许哪些动作` | `skip` | 只约束自动跳那一档；`full` 空降到片尾、`poi` 空降到时间点、`mute` 无效 |
 | `片段最小时长(秒)` | `8` | 只管 `skip`；`full`/`poi` 的片段长度天然是 0，不受此限制 |
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
-| `自动跳的文案` | `空指部已就位` | 支持 `{cat}` `{start}` `{end}` `{dur}` 占位符 |
-| `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 同样的占位符 |
+| `自动跳的文案` | `空指部已就位` | 占位符：`{cat}` 中文类别名、`{catid}` 原始 id、`{start}` `{end}` `{dur}` |
+| `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 渲染成 `⚠️ 一键三连 00:56→01:07` |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
 > ⚠️ **老用户升级注意**：Loon 会保留你之前设过的参数值，所以你的 `自动跳的类型`
 > 可能还是老的 `sponsor`。想要新默认值请手动改成
-> `sponsor,intro,outro,padding`，或者删掉插件重新添加。
+> `sponsor,selfpromo,intro,outro,padding`，或者删掉插件重新添加。
 
 ### 为什么只有「自动跳」和「只提醒」两档
 
@@ -99,6 +99,21 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 > 拿不到校验文件时 App 会进入降级状态：弹幕照常渲染、**点了也能跳**，但**不会自动跳**。
 > 本插件自带 `chronos.js` 完成重签（复用仓库里已有的 chronos zip），不再依赖 Bilibili-Dedup。
 > 关掉这个开关就退化成"只提示不自动跳"。
+
+### 类别中文化
+
+弹幕文案里的 `{cat}` 渲染成中文短名：
+
+| id | 中文 | id | 中文 |
+|---|---|---|---|
+| `sponsor` | 恰饭 | `poi_highlight` | 精彩时刻 |
+| `selfpromo` | 自我推广 | `intro` | 片头 |
+| `exclusive_access` | 独家体验 | `outro` | 片尾 |
+| `interaction` | 一键三连 | `preview` | 回顾 |
+| `padding` | 前黑后黑 | `filler` | 离题闲聊 |
+| `music_offtopic` | 非音乐片段 | 未知 id | 原样输出 |
+
+需要原始英文 id 时用 `{catid}`。
 
 ### 可选类别
 

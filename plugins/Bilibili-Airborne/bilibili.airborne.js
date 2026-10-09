@@ -12,8 +12,8 @@ var __airVal = (a, k, d) => {
 var __airSplit = v => String(v).split(/[,，、\s]+/).filter(Boolean);
 /** __airCats(a,0)=自动跳列表（airCategories）；__airCats(a,1)=只提醒列表（airNoticeCategories） */
 var __airCats = function (a, which) {
-    var v = which === 1 ? __airVal(a, "airNoticeCategories", "selfpromo,interaction")
-                        : __airVal(a, "airCategories", "sponsor,intro,outro,padding");
+    var v = which === 1 ? __airVal(a, "airNoticeCategories", "interaction")
+                        : __airVal(a, "airCategories", "sponsor,selfpromo,intro,outro,padding");
     return __airSplit(v).filter(function (x) { return x !== "off" && x !== "none" && x !== "none"; });
 };
 var __airAny = function (a) {
@@ -42,12 +42,18 @@ function __airFmt(t) {
     var m = (t / 60) | 0, s = t % 60;
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
 }
+var __airNames = {
+    sponsor: "恰饭", selfpromo: "自我推广", exclusive_access: "独家体验",
+    interaction: "一键三连", poi_highlight: "精彩时刻", intro: "片头", outro: "片尾",
+    preview: "回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
+};
 function __airText(a, seg) {
-    var e = __airEnd(seg);
+    var e = __airEnd(seg), c = seg[2] || "";
     var tpl = __airVal(a, seg[5] ? "airNotice" : "airInfo",
                       seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
     return String(tpl)
-        .replace(/\{cat\}/g, seg[2] || "")
+        .replace(/\{cat\}/g, __airNames[c] || c)
+        .replace(/\{catid\}/g, c)
         .replace(/\{start\}/g, __airFmt(seg[0]))
         .replace(/\{end\}/g, __airFmt(e))
         .replace(/\{dur\}/g, Math.round(e - seg[0]));
