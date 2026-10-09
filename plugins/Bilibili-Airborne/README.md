@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.13** · 11 参数 / 2 Script / 3 MitM
+**v1.14** · 12 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v23`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v24`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -58,7 +58,8 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `自动跳的文案` | `空指部已就位` | 占位符：`{cat}` 中文类别名、`{catid}` 原始 id、`{start}` `{end}` `{dur}` |
 | `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 渲染成 `⚠️ 一键三连 00:56→01:07` |
 | `提醒延后秒数` | `3` |
-| `提醒弹幕样式` | `5`（顶部） | 停留时长由它决定 | 只影响提醒档；自动跳固定 +2 秒 |
+| `提醒弹幕样式` | `5`（顶部） | 停留时长由它决定 |
+| `片头汇总` | `single` | 开头列出本视频所有会被处理的片段 | 只影响提醒档；自动跳固定 +2 秒 |
 | `整篇软广的处理` | `notice` | 整篇标记默认只出文字提醒；`jump` 直接跳片尾；`off` 不处理 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
@@ -137,6 +138,25 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 > 并且**延后到第 8 秒**出现（第 2 秒太早，用户根本来不及看），由 `提醒延后秒数` 调整。
 >
 > 自动跳的时机**不受**这个参数影响：它必须在片段开始时就位，否则来不及跳。
+
+### 片头汇总：开头就知道这个视频有什么
+
+`片头汇总` 默认 `single`：视频开头（`提醒延后秒数` 那个时刻）出现一条
+
+```
+📍 本视频：恰饭 整篇 · 恰饭 02:30–02:46 · 一键三连 02:39–03:15
+```
+
+| 值 | 效果 |
+|---|---|
+| `single`（默认） | 挤成一条，最多列 5 段，超出显示「等 N 处」 |
+| `stagger` | 每段一条、错开 4 秒依次出现，单条更短更易读 |
+| `off` | 不列 |
+
+只列**会被实际处理**的片段（自动跳 + 只提醒两档的并集），所以不会出现
+"提醒里说有广告、结果没跳"的情况。整篇标记显示成 `恰饭 整篇`。
+
+文案复用 `只提醒的文案` 那一项：模板里含 `{list}` 就用你的，否则用内置文案。
 
 ### 提醒弹幕能停留多久
 

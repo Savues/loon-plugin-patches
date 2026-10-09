@@ -47,6 +47,11 @@ function __airIsAuto(a, t, r) {
 function __airEnd(seg) {   // 空降目标（秒）
     return seg[3] === "full" ? Number(seg[4]) : seg[1];
 }
+function __airSegText(seg) {
+    var n = __airNames[seg[2]] || seg[2] || "";
+    if (seg[3] === "full") return n + " 整篇";                       // 整篇即此类：没有起止时间
+    return n + " " + __airFmt(seg[0]) + "–" + __airFmt(__airEnd(seg));
+}
 function __airFmt(t) {
     t = Math.max(0, Math.floor(t));
     var m = (t / 60) | 0, s = t % 60;
@@ -57,11 +62,12 @@ var __airNames = {
     interaction: "一键三连", poi_highlight: "精彩时刻", intro: "片头", outro: "片尾",
     preview: "回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
-function __airText(a, seg) {
+function __airText(a, seg, list) {
     var e = __airEnd(seg), c = seg[2] || "";
     var tpl = __airVal(a, seg[5] ? "airNotice" : "airInfo",
                       seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
     return String(tpl)
+        .replace(/\{list\}/g, list == null ? "" : list)
         .replace(/\{cat\}/g, __airNames[c] || c)
         .replace(/\{catid\}/g, c)
         .replace(/\{start\}/g, __airFmt(seg[0]))
@@ -99,6 +105,38 @@ function __airInject(msg, segs, a) {
         built[i].mode = Number(want) || 5;
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
+    }
+
+    // 片头汇总：把这个视频里「会被处理」的所有片段在开头依次列出来。
+    // stagger=每段一条错开 4 秒（单条不会太长显示得下）；single=挤成一条；off=不列。
+    var sum = String(__airVal(a, "airSummary", "single"));
+    if (sum !== "off") {
+        var cap = 5;                                            // 一条弹幕装不下太多，硬性截断
+        var shown = segs.slice(0, cap);
+        var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
+        var synth, head, k;
+        if (sum === "single") {
+            // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
+            var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
+                ? String(__airVal(a, "airInfo", "")) : "📍 本视频：{list}";
+            synth = [[0, 0, "", "skip", 0, 0]];
+            head = nn(synth, a);
+            head[0].content = __airText(a, synth[0],
+                shown.map(__airSegText).join(" · ") + more).replace(/\{cat\}[^·\n]*?→\d\d:\d\d/g, "").trim();
+            head[0].progress = delay;
+        } else {
+            synth = shown.map(function () { return [0, 0, "", "skip", 0, 0]; });
+            head = nn(synth, a);
+            for (k = 0; k < head.length; k++) {
+                head[k].content = __airText(a, synth[k], __airSegText(shown[k]) + more);
+                head[k].progress = delay + k * 4000;
+            }
+        }
+        for (k = 0; k < head.length; k++) {
+            head[k].mode = Number(want) || 5;
+            if (donor) { head[k].midHash = donor[0]; head[k].attr = donor[1]; }
+        }
+        built = head.concat(built);
     }
     elems.push.apply(elems, built);
 }

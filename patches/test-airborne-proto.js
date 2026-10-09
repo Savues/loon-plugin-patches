@@ -39,16 +39,16 @@ ck('nn 生成 3 条弹幕', injected.length === 3);
 ck('文案模板已渲染', injected[1].content === '跳过片头 01:03→01:45 省42s', injected[1].content);
 
 const after = _e.fromBinary(beforeBytes);
-inject(after.elems, segs, arg);
+inject(after.elems, segs, Object.assign({ airSummary: 'off' }, arg));
 ck('注入后 elems 从 2 条变 5 条', after.elems.length === 5, String(after.elems.length));
 
 const rt = _e.fromBinary(_e.toBinary(after));
-ck('序列化→反序列化后仍是 5 条', rt.elems.length === 5, String(rt.elems.length));
+ck('序列化→反序列化后条数不变', rt.elems.length === after.elems.length, String(rt.elems.length));
 const fake = rt.elems.filter(x => x.midHash === '1948dd5d');
 ck('假弹幕往返后仍可按 midHash 认出', fake.length === 3, String(fake.length));
-ck('文案往返无损', fake[0].content === '跳过恰饭 00:00→00:42 省43s', fake[0].content);
-ck('action 往返无损', fake[0].action === 'airborne:42900', fake[0].action);
-ck('progress 往返无损', fake[1].progress === 65500, String(fake[1].progress));
+ck('文案往返无损', fake.some(x => x.content === '跳过恰饭 00:00→00:42 省43s'), fake.map(x=>x.content).join('|'));
+ck('action 往返无损', fake.some(x => x.action === 'airborne:42900'), fake.map(x=>x.action).join('|'));
+ck('progress 往返无损', fake.some(x => x.progress === 65500), fake.map(x=>x.progress).join('/'));
 ck('原弹幕未被破坏', rt.elems.slice(0, 2).map(x => x.content).join(',') === '原弹幕A,原弹幕B',
    rt.elems.slice(0, 2).map(x => x.content).join(','));
 
@@ -71,7 +71,7 @@ const mkCtx = (bytes) => ({
   request: { bodyBytes: Buffer.alloc(0) },
   response: { bodyBytes: bytes },
   state: { segments: [[0, 42.9, 'sponsor', 'skip', 376.697, 1]] },
-  argument: { airCategories: 'sponsor', airActions: 'skip', airMinDuration: 8, airMode: 'jump', airNotice: '空指部已就位' },
+  argument: { airSummary: 'off', airCategories: 'sponsor', airActions: 'skip', airMinDuration: 8, airMode: 'jump', airNotice: '空指部已就位' },
 });
 const ctx = mkCtx(base());
 let nexted = false, threw = null;
@@ -92,7 +92,7 @@ const styleMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 ]})));
 inject(styleMsg.elems,
   [[0, 42.9, 'sponsor', 'skip', 191, 1], [0, 0, 'sponsor', 'full', 191, 0]],
-  { airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
+  { airSummary: 'off', airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
 const sAuto = styleMsg.elems[1], sNote = styleMsg.elems[2];
 ck('自动档是顶部大字 + 有 action',
   sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 50 && !!sAuto.action,
@@ -103,25 +103,63 @@ ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
 ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
 ck('提醒档默认延后到 +3 秒', sNote.progress === 3000, String(sNote.progress));
+// 片头汇总
+const sumArg = { airInfoDelay: 3, airCategories: 'sponsor', airNoticeCategories: 'interaction,exclusive_access',
+                  airActions: 'skip', airFullMode: 'notice', airInfo: '{list}', airInfoDelay: 3 };
+const sumSegs = [
+  [0, 0, 'sponsor', 'full', 191, 0],
+  [150, 166, 'sponsor', 'skip', 191, 1],
+  [159, 195, 'interaction', 'skip', 191, 0],
+  [300, 330, 'exclusive_access', 'full', 191, 0],
+];
+const sumMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+inject(sumMsg.elems, sumSegs, Object.assign({ airSummary: 'off' }, sumArg));
+ck('airSummary=off 时不产生汇总', sumMsg.elems.length === 5, String(sumMsg.elems.length));
+
+const sumMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg));
+ck('stagger：每段一条，共 4 条汇总 + 4 条原弹幕',
+  sumMsg2.elems.length === 9, String(sumMsg2.elems.length));
+// elems[0] 是那条真实弹幕，汇总从 index 1 开始
+const H2 = sumMsg2.elems.slice(1, 5);
+ck('stagger：汇总错开 4 秒',
+  H2.map(x => x.progress).join('/') === '3000/7000/11000/15000', H2.map(x => x.progress).join('/'));
+ck('stagger：文案带中文类别与时间段',
+  H2.map(x => x.content).join(' | ') === '恰饭 整篇 | 恰饭 02:30–02:46 | 一键三连 02:39–03:15 | 独家体验 整篇',
+  H2.map(x => x.content).join(' | '));
+ck('汇总弹幕都不带 action（不会被跳走）', H2.every(x => !x.action));
+
+const many = sumSegs.concat([[400, 420, 'filler', 'skip', 191, 0], [500, 530, 'preview', 'skip', 191, 0]]);
+const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
+ck('single：6 段只产生一条汇总（原弹幕1 + 汇总1 + 逐段6）', sumMsg3.elems.length === 8, String(sumMsg3.elems.length));
+ck('single：超过 5 条会截断并标注总数',
+  sumMsg3.elems[1].content === '恰饭 整篇 · 恰饭 02:30–02:46 · 一键三连 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处',
+  sumMsg3.elems[1].content);
+ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
+
 ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
 ck('提醒可改成滚动弹幕（停留更久、暂停也保留）', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1], [150, 190, 'filler', 'skip', 191, 0]],
-    { airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoMode: '1' });
+    { airSummary: 'off', airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoMode: '1' });
   return m.elems[1].mode === 5 && m.elems[2].mode === 1 && m.elems[2].midHash === '741886e';
 })());
 ck('提醒可改成底部弹幕', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]], { airNoticeCategories: 'filler', airInfoMode: '4' });
+  inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]], { airSummary: 'off', airNoticeCategories: 'filler', airInfoMode: '4' });
   return m.elems[1].mode === 4;
 })());
 ck('提醒延后可配置', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1], [150, 190, 'filler', 'skip', 191, 0]],
-    { airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoDelay: 20 });
+    { airSummary: 'off', airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoDelay: 20 });
   return m.elems[1].progress === 152000 && m.elems[2].progress === 170000;
 })());
 

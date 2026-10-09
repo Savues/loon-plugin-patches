@@ -58,7 +58,9 @@ for (const [name, body] of CASES) {
       const elems = [];
       __airInject(elems, segs, arg);
       __airInject(elems, segs, arg);   // 幂等：两次
-      if (elems.length > segs.length && segs.length) { console.log(`✗ ${name} ${JSON.stringify(arg)} 注入数异常 ${elems.length}`); fail++; }
+      const first = elems.length;
+      __airInject(elems, segs, arg);
+      if (elems.length !== first) { console.log(`✗ ${name} ${JSON.stringify(arg)} 重复注入多加了 ${elems.length - first} 条`); fail++; }
     } catch (e) {
       fail++;
       console.log(`✗ ${name} ${JSON.stringify(arg)} → ${e.constructor.name}: ${e.message}`);

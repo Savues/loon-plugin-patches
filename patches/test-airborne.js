@@ -91,8 +91,9 @@ eq('full 的 {cat} 是独家体验', __airText({ airNotice: '{cat}' }, full), '�
 // 幂等守卫：同一个响应注入两次，只应有一条
 const elems = [];
 __airInject(elems, [seg], {});
+const once = elems.length;
 __airInject(elems, [seg], {});
-eq('重复注入只留一条', elems.length, 1);
+eq('重复注入不再增加（幂等）', elems.length, once);
 eq('空片段不注入', (() => { const e = []; __airInject(e, [], {}); return e.length; })(), 0);
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
