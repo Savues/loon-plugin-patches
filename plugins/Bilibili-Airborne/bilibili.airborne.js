@@ -86,7 +86,7 @@ function __airInject(msg, segs, a) {
     // 但「整篇软广」那条的片段起点是 0，按上游的 +2 秒就落在第 2 秒——那时人眼
     // 还没落到屏幕上。实测其它提醒（片段在视频中段）都能正常看到，只有它不行。
     // 所以提醒档统一改成「片段起点 + airInfoDelay 秒」，让两档的出现时机一致且看得见。
-    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 8))) * 1000;
+    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 3))) * 1000;
     for (var i = 0; i < built.length; i++) {
         if (!built[i].action) built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
     }

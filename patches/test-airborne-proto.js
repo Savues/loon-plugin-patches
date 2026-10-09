@@ -102,7 +102,7 @@ ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode 
 ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
 ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
-ck('提醒档默认延后到 +8 秒', sNote.progress === 8000, String(sNote.progress));
+ck('提醒档默认延后到 +3 秒', sNote.progress === 3000, String(sNote.progress));
 ck('提醒延后可配置', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));

@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.11** · 10 参数 / 2 Script / 3 MitM
+**v1.12** · 10 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v21`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v22`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -57,7 +57,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
 | `自动跳的文案` | `空指部已就位` | 占位符：`{cat}` 中文类别名、`{catid}` 原始 id、`{start}` `{end}` `{dur}` |
 | `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 渲染成 `⚠️ 一键三连 00:56→01:07` |
-| `提醒延后秒数` | `8` | 只影响提醒档；自动跳固定 +2 秒 |
+| `提醒延后秒数` | `3` | 只影响提醒档；自动跳固定 +2 秒 |
 | `整篇软广的处理` | `notice` | 整篇标记默认只出文字提醒；`jump` 直接跳片尾；`off` 不处理 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
