@@ -20,12 +20,14 @@ const ok = (arg, t, c, d, vd) => __airOK(arg, t, c, d, vd);
 
 // 类别解析
 eq('默认自动跳类别', __airCats({}, 0), ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'padding']);
-eq('默认只提醒类别为空', __airCats({}, 1), []);
-eq('两档合并去重', __airAny({}), ['sponsor','selfpromo','interaction','intro','outro','padding']);
+eq('默认只提醒类别=其余全部', __airCats({}, 1), ['exclusive_access', 'poi_highlight', 'preview', 'filler', 'music_offtopic']);
+eq('两档并集正好是全部 11 类', __airAny({}).sort(),
+   ['exclusive_access','filler','interaction','intro','music_offtopic','outro','padding','poi_highlight','preview','selfpromo','sponsor'].sort());
+eq('两档没有重叠', __airAny({}).length, 11);
 eq('off 关闭', __airCats({ airCategories: 'off' }, 0), []);
 eq('参数名大小写容错', __airCats({ AirCategories: 'intro' }, 0), ['intro']);
 eq('逗号+空格+中文逗号', __airCats({ airCategories: 'sponsor, intro，outro' }), ['sponsor', 'intro', 'outro']);
-eq('查询串用两档并集', decodeURIComponent(__airQS({})), 'categories=["sponsor","selfpromo","interaction","intro","outro","padding"]');
+eq('查询串覆盖全部 11 类', JSON.parse(decodeURIComponent(__airQS({}).slice('categories='.length))).length, 11);
 eq('查询串只发自定义并集', decodeURIComponent(__airQS({ airCategories: 'intro', airNoticeCategories: 'outro' })), 'categories=["intro","outro"]');
 
 // 过滤：类别 / 动作 / 时长
@@ -34,7 +36,8 @@ eq('intro 现在默认就在自动档', ok({}, 'skip', 'intro', 42.9), true);
 eq('padding 默认也在自动档', ok({}, 'skip', 'padding', 42.9), true);
 eq('selfpromo 现在默认在自动档', ok({}, 'skip', 'selfpromo', 24), true);
 eq('interaction 现在默认在自动档', ok({}, 'skip', 'interaction', 20), true);
-eq('filler 两档都没有→拒', ok({}, 'skip', 'filler', 40), false);
+eq('filler 现在在只提醒档', ok({}, 'skip', 'filler', 40), true);
+eq('exclusive_access 现在在只提醒档', ok({}, 'full', 'exclusive_access', 0, 890), true);
 eq('mute 默认被拒', ok({}, 'mute', 'sponsor', 60), false);
 eq('提醒档不受动作白名单约束', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 20), true);
 eq('提醒档也要过最小时长', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 3), false);

@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.9** · 9 参数 / 2 Script / 3 MitM
+**v1.10** · 9 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v19`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v20`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -51,7 +51,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 |---|---|---|
 | `空降助手` | 开 | 总开关 |
 | `自动跳的类型` | `sponsor,selfpromo,interaction,intro,outro,padding` | 这些类别的片段带空降动作，**自动跳**（点一下也能跳） |
-| `只提醒的类型` | `off`（空） | 默认不启用；需要哪类只提醒就从上面挪进来 | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
+| `只提醒的类型` | `exclusive_access,poi_highlight,preview,filler,music_offtopic` | 默认是**所有不在自动跳里的类别** | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
 | `允许哪些动作` | `skip` | 只约束自动跳那一档；`full` 空降到片尾、`poi` 空降到时间点、`mute` 无效 |
 | `片段最小时长(秒)` | `8` | 只管 `skip`；`full`/`poi` 的片段长度天然是 0，不受此限制 |
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
@@ -60,6 +60,10 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `整篇软广的处理` | `notice` | 整篇标记默认只出文字提醒；`jump` 直接跳片尾；`off` 不处理 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
+> 📌 **两档并集 = bsbsb 全部 11 类**，所以只要有一档不是空的，就一定会有东西被注入。
+> v1.5 短暂出现过"两档默认全空"的情况，用户把两档都设成 `off` 后插件一条弹幕都不出，
+> 排查了很久才定位到——所以现在默认把非自动跳的类别都放进了只提醒档。
+>
 > ⚠️ **老用户升级注意**：Loon 会保留你之前设过的参数值，所以你的 `自动跳的类型`
 > 可能还是老的 `sponsor`。想要新默认值请手动改成
 > `sponsor,selfpromo,interaction,intro,outro,padding`，或者删掉插件重新添加。
