@@ -38,8 +38,7 @@ eq('filler 两档都没有→拒', ok({}, 'skip', 'filler', 40), false);
 eq('mute 默认被拒', ok({}, 'mute', 'sponsor', 60), false);
 eq('提醒档不受动作白名单约束', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 20), true);
 eq('提醒档也要过最小时长', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 3), false);
-eq('加 full 后：有总时长才通过', ok({ airActions: 'skip,full' }, 'full', 'sponsor', 0, 60), true);
-eq('加 full 后：无总时长仍拒', ok({ airActions: 'skip,full' }, 'full', 'sponsor', 0, 0), false);
+
 eq('7.9s 被时长滤掉', ok({}, 'skip', 'sponsor', 7.9), false);
 eq('时长可调到 3s', ok({ airMinDuration: 3 }, 'skip', 'sponsor', 2.9), false);
 eq('时长 0 = 不限', ok({ airMinDuration: 0 }, 'skip', 'sponsor', 0.1), true);
@@ -65,11 +64,21 @@ eq('提醒档永远不带动作', __airAction({ airMode: 'jump' }, [0, 42.9, 'se
 // full / poi：片段长度天然为 0，不能被最小时长误杀
 const full = [0, 0, 'exclusive_access', 'full', 1016.469, 1];
 const poi = [183, 183, 'poi_highlight', 'poi', 876.113, 1];
-eq('full 默认动作白名单下被拒', ok({}, 'full', 'exclusive_access', 0, 1016.469), false);
-eq('full 放提醒档可只出文字', __airOK({ airNoticeCategories: 'exclusive_access' }, 'full', 'exclusive_access', 0, 1016), true);
-eq('full 加进自动档后通过', ok({ airCategories: 'exclusive_access', airActions: 'skip,full' }, 'full', 'exclusive_access', 0, 1016.469), true);
-eq('full 缺总时长则不放行', ok({ airCategories: 'exclusive_access', airActions: 'full' }, 'full', 'exclusive_access', 0, 0), false);
+eq('full 默认是 notice（放行）', ok({}, 'full', 'exclusive_access', 0, 1016.469), true);
+eq('full 的 off 档不处理', ok({ airFullMode: 'off' }, 'full', 'exclusive_access', 0, 1016), false);
+eq('full 缺总时长不放行（任何档位）', ok({}, 'full', 'sponsor', 0, 0), false);
+eq('full 不受动作白名单约束', ok({ airActions: 'skip' }, 'full', 'sponsor', 0, 191), true);
+eq('full 不受类别列表约束', ok({ airCategories: 'off', airNoticeCategories: 'off' }, 'full', 'exclusive_access', 0, 890), true);
+
+eq('full 默认 notice → 不带动作', __airIsAuto({}, 'full', 'exclusive_access'), false);
+eq('full jump 档 → 带动作', __airIsAuto({ airFullMode: 'jump' }, 'full', 'exclusive_access'), true);
+eq('full off 档 → 不带动作（但已被过滤）', __airIsAuto({ airFullMode: 'off' }, 'full', 'sponsor'), false);
+eq('普通段仍按类别列表决定', __airIsAuto({}, 'skip', 'sponsor'), true);
+eq('普通段在只提醒档不带动作', __airIsAuto({ airNoticeCategories: 'sponsor' }, 'skip', 'sponsor'), false);
+
 eq('full 跳到整段末尾', __airEnd(full), 1016.469);
+eq('full 提醒文案含全片时长', __airText({ airInfo: '{cat} 全长{end}' }, [0, 0, 'sponsor', 'full', 1016.469, 0]), '恰饭 全长16:56');
+eq('full 提醒出现在第 2 秒', __airText({ airInfo: '{start}' }, [0, 0, 'sponsor', 'full', 191, 0]), '00:00');
 eq('poi 加进自动档后通过（不受 8s 影响）', ok({ airCategories: 'poi_highlight', airActions: 'poi' }, 'poi', 'poi_highlight', 0, 876), true);
 eq('poi 落点就是那个时间点', __airEnd(poi), 183);
 eq('skip 仍受 8s 约束', ok({ airActions: 'skip,full' }, 'skip', 'sponsor', 5, 300), false);

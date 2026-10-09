@@ -69,18 +69,27 @@ var __airAny = function (a) {
 };
 var __airQS = a => "categories=" + encodeURIComponent(JSON.stringify(__airAny(a)));
 function __airOK(a, t, r, n, d) {
+    // 整篇即此类（segment 是 [0,0]，全靠 videoDuration 定位）：独立于类别列表，由 airFullMode 决定
+    if (t === "full") {
+        var fm = String(__airVal(a, "airFullMode", "notice"));
+        return fm !== "off" && Number(d) > 0;
+    }
     var auto = __airCats(a, 0).indexOf(String(r)) >= 0;   // 自动跳列表
     var info = __airCats(a, 1).indexOf(String(r)) >= 0;   // 只提醒列表
     if (!auto && !info) return false;                      // 两个列表都没收录
     if (info) {                                             // 只提醒档：不跳，动作对它没有意义
-        if (t === "full") return Number(d) > 0;
         if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 8))) return false;
         return true;
     }
     if (__airSplit(__airVal(a, "airActions", "skip")).indexOf(String(t)) < 0) return false;
-    if (t === "full") return Number(d) > 0;                // 整段即此类：片段是 [0,0]
     if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
     return n >= Number(__airVal(a, "airMinDuration", 8));
+}
+/** 这条片段要不要带空降动作 */
+function __airIsAuto(a, t, r) {
+    if (t === "full") return String(__airVal(a, "airFullMode", "notice")) === "jump";
+    if (__airCats(a, 1).indexOf(String(r)) >= 0) return false;   // 提醒档优先：同一类在两档时以提醒为准
+    return __airCats(a, 0).indexOf(String(r)) >= 0;
 }
 function __airEnd(seg) {   // 空降目标（秒）
     return seg[3] === "full" ? Number(seg[4]) : seg[1];
@@ -139,7 +148,7 @@ PATCHES = [
      'function tn(s){return JSON.parse(s).reduce((e,{actionType:t,segment:n})'
      '=>(t==="skip"&&n[1]-n[0]>=8&&e.push(n),e),[])}',
      'function tn(s,a){return JSON.parse(s).reduce((e,{actionType:t,category:r,segment:n,videoDuration:o})'
-     '=>(n&&__airOK(a,t,r,n[1]-n[0],o)&&e.push([n[0],n[1],r,t,o,__airCats(a,0).indexOf(String(r))>=0?1:0]),e),[])}'),
+     '=>(n&&__airOK(a,t,r,n[1]-n[0],o)&&e.push([n[0],n[1],r,t,o,__airIsAuto(a,t,r)?1:0]),e),[])}'),
 
     ('注入入口',
      't.elems.push(...nn(s.state.segments))',

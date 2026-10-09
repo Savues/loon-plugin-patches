@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.5** · 8 参数 / 2 Script / 3 MitM
+**v1.6** · 9 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v15`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v16`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -57,6 +57,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
 | `自动跳的文案` | `空指部已就位` | 占位符：`{cat}` 中文类别名、`{catid}` 原始 id、`{start}` `{end}` `{dur}` |
 | `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 渲染成 `⚠️ 一键三连 00:56→01:07` |
+| `整篇软广的处理` | `notice` | 整篇标记默认只出文字提醒；`jump` 直接跳片尾；`off` 不处理 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
 > ⚠️ **老用户升级注意**：Loon 会保留你之前设过的参数值，所以你的 `自动跳的类型`
@@ -103,6 +104,25 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 > 拿不到校验文件时 App 会进入降级状态：弹幕照常渲染、**点了也能跳**，但**不会自动跳**。
 > 本插件自带 `chronos.js` 完成重签（复用仓库里已有的 chronos zip），不再依赖 Bilibili-Dedup。
 > 关掉这个开关就退化成"只提示不自动跳"。
+
+### 整篇软广（`full`）
+
+社区允许标记「**整个视频都属于某一类**」，这种片段是**零长度**的（`[0,0]`），
+全靠 `videoDuration` 定位。全站有 **8306 条 `exclusive_access`** + **15 条左右整篇 `sponsor`**，
+它在网页端的**跳过次数是 0**——扩展只给它显示标签，从不让它跳。
+
+原因很实在：独家首发里很多是**有真内容**的。比如 `BV1WA411v7nS`《天气之子》（112 分钟）
+就被标成 `exclusive_access` 整篇——那是独家首发的正常电影，不是广告。
+
+所以本插件给这一类**单独一档**，默认只提醒：
+
+| `整篇软广的处理` | 行为 |
+|---|---|
+| `notice`（默认） | 片头约 2 秒出 `⚠️ 恰饭 全长16:56`，**不跳转** |
+| `jump` | 直接空降到片尾 |
+| `off` | 完全不处理 |
+
+它**独立于上面的类别列表**——不管某类写没写进 `自动跳的类型`，只要社区标了整篇就会提醒。
 
 ### 类别中文化
 
