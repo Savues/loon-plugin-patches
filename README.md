@@ -19,6 +19,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | 插件 Plugin | 用途 Purpose | 状态 Status |
 |---|---|---|
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
+| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配**<br>SponsorBlock standalone · fully configurable | **v1.0** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
@@ -335,12 +336,25 @@ and to #5 (upstream product name kept in the directory and `#!name`).
 
 ---
 
+## ⚠️ 原则 2 的一处例外 · One documented exception
+
+`Bilibili-Airborne` 把上游脚本里**写死的常量**（查询类别 `category=sponsor`、最短 8 秒、
+动作白名单 `skip`、提示文案）改成了 `[Argument]` 可配置项，因此触及了原则 2 的边界。
+改动全是「常量 → 参数」，没有新增业务逻辑；唯二的行为增量（空类别短路、注入幂等守卫）
+都是防御性的。逐条对照见 [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Airborne/UPSTREAM.md)。
+
+This plugin turns the upstream's hard-coded constants into `[Argument]` options.
+That crosses the line drawn by principle 2, deliberately and with full disclosure.
+
+---
+
 ## 🔄 自动同步 · Auto Sync
 
-`BlockAds-Patched` 由 GitHub Actions **每 6 小时同步上游并重施退场补丁**（B 站 + YouTube + Spotify + 拼多多）
+`BlockAds-Patched` 与 `Bilibili-Airborne` 由 GitHub Actions **每 6 小时同步上游并重施补丁**（B 站 + YouTube + Spotify + 拼多多）
 Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo removal patch re-applied.
+`Bilibili-Airborne` 的脚本每6 小时从 Sparkle 上游重拉并重打 9 处补丁，锚点失配时 **Actions 报错终止**，不会产出「参数不生效」的脚本。
 
-[`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)
+[`.github/workflows/sync-blockads.yml`](.github/workflows/sync-blockads.yml)　[`.github/workflows/sync-airborne.yml`](.github/workflows/sync-airborne.yml)
 
 | 特性 | Feature |
 |---|---|
@@ -370,6 +384,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [patches/README.md](patches/README.md) | 退场范围与判定依据 · Removal scope and detection rules |
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
+| [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Airborne/UPSTREAM.md) | 空降助手的出处、9 处锚点逐条对照 · Provenance & patch diff |
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |

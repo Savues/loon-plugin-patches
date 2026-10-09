@@ -1,0 +1,115 @@
+name: Sync Bilibili-Airborne
+
+on:
+  schedule:
+    # 每 6 小时一次，与 sync-blockads 错开 13 分钟
+    - cron: '30 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      only_local:
+        description: '用仓库里已有的脚本重打补丁（不联网，用于手工验证补丁器）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-airborne
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 检出后确认补丁器存在
+        run: |
+          test -f patches/patch-airborne.py || {
+            echo "::error::patches/patch-airborne.py 不存在"
+            exit 1
+          }
+
+      - name: 拉取上游并施加补丁
+        run: |
+          mkdir -p plugins/Bilibili-Airborne
+          if [ "${{ inputs.only_local }}" = "true" ]; then
+            curl -fsSL -o /tmp/upstream.js \
+              https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.request.js
+            python3 patches/patch-airborne.py /tmp/upstream.js -o plugins/Bilibili-Airborne/bilibili.airborne.js
+          else
+            python3 patches/patch-airborne.py -o plugins/Bilibili-Airborne/bilibili.airborne.js
+          fi
+
+      - name: 逻辑单测（22 例）
+        run: node patches/test-airborne.js plugins/Bilibili-Airborne/bilibili.airborne.js
+
+      - name: 加载 + protobuf 往返
+        run: node patches/test-airborne-proto.js
+
+      - name: 畸形响应健壮性
+        run: node patches/test-airborne-fuzz.js
+
+      - name: 清单结构校验
+        run: python3 patches/check-airborne-lpx.py
+
+      - name: 校验补丁确实落进产物
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, sys
+          p = pathlib.Path('plugins/Bilibili-Airborne/bilibili.airborne.js')
+          s = p.read_text(encoding='utf-8', errors='ignore')
+          must = ['__airQS(s.argument)', '__airOK(a,t,r', '__airInject(t,', '__airText(a,t)',
+                  '__airAction(a,l)', 'categories=sponsor']
+          bad = [x for x in must if x not in s]
+          for x in bad:
+              print(f"::error::产物里没有找到 {x} —— 补丁可能没打上")
+          # 上游硬编码必须已经消失，否则说明锚点失效了
+          if '__airQS(s.argument)' in s and '&category=sponsor`' in s:
+              print('::error::上游的 category=sponsor 仍在，说明查询参数锚点没命中')
+              sys.exit(1)
+          if bad:
+              sys.exit(1)
+          print(f'::notice::产物校验通过，{len(s)} 字节')
+          PYEOF
+
+      - name: 生成差异报告
+        id: diff
+        run: |
+          echo "### 空降助手同步报告" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          head -1 plugins/Bilibili-Airborne/bilibili.airborne.js >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- plugins/Bilibili-Airborne/; then
+            echo "上游无变化，产物与上次一致。" >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "上游有更新：" >> "$GITHUB_STEP_SUMMARY"
+            echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+            git diff --stat -- plugins/Bilibili-Airborne/ | head -20 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 提交并推送
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/Bilibili-Airborne/bilibili.airborne.js
+          git commit -m "chore: 同步 Sparkle 上游并重打空降助手补丁
+
+          由 .github/workflows/sync-airborne.yml 自动生成
+          补丁器: patches/patch-airborne.py"
+          git push
+
+      - name: 无变化时结束
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "上游无更新，无需提交。"
