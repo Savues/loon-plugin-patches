@@ -87,8 +87,18 @@ function __airInject(msg, segs, a) {
     // 还没落到屏幕上。实测其它提醒（片段在视频中段）都能正常看到，只有它不行。
     // 所以提醒档统一改成「片段起点 + airInfoDelay 秒」，让两档的出现时机一致且看得见。
     var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 3))) * 1000;
+    var want = String(__airVal(a, "airInfoMode", "5"));
+    var donor = null;
+    for (var j = 0; j < elems.length && want !== "5"; j++) {
+        var e = elems[j];
+        if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr]; break; }
+    }
     for (var i = 0; i < built.length; i++) {
-        if (!built[i].action) built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
+        if (built[i].action) continue;                       // 自动跳那条不动
+        built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
+        built[i].mode = Number(want) || 5;
+        // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
+        if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
     }
     elems.push.apply(elems, built);
 }

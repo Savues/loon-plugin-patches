@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.12
-#!desc=v1.12 提醒延后秒数默认从 8 改成 3。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.13
+#!desc=v1.13 提醒弹幕的样式可配：顶部（默认，停留最短但最显眼）/ 滚动（停留更久、暂停视频也会保留，但容易混进弹幕堆）/ 底部。停留时长由 mode 决定，顶部与底部是固定时长，滚动按屏宽与字号动态计算。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-09 23:30:00
+#!date=2026-10-10 00:10:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
@@ -18,12 +18,12 @@ airNoticeCategories = input,"exclusive_access,poi_highlight,preview,filler,music
 airFullMode = select,"notice","jump","off",tag=整篇软广的处理,desc=社区把整个视频标记为某一类时（片段是零长度的整篇标记，官方有 8306 条独家/整篇恰饭）。notice：在片头约 2 秒出一行文字提醒（如「⚠️ 恰饭 全长16:56」），不跳转；jump：直接空降到片尾；off：完全不处理。默认 notice 最安全——独家首发类（如电影）常常有真内容
 airNotice = input,"空指部已就位",tag=自动跳的文案,desc=支持占位符 {cat}=类别中文名 {catid}=类别原始id {start}=起点 {end}=终点 {dur}=时长(秒)。例：跳过{cat} {start}→{end}
 airInfoDelay = input,"3",tag=提醒延后秒数,desc=「只提醒」的弹幕比它所标注片段的起点晚几秒出现。默认 3 秒。整篇软广的片段起点是 0 秒，不延后的话弹幕落在第 2 秒，实测来不及看；只影响提醒档，自动跳固定在片段起点 +2 秒（它必须一开始就位才能跳）。填 0 = 回到 +2 秒
-airInfo = input,"⚠️ {cat} {start}→{end}",tag=只提醒的文案,desc=占位符同上，{cat} 会渲染成中文（如「一键三连」「自我推广」）。例：这里有 {dur}s {cat}，想看就自己拖
+airInfoMode = select,"5","1","4",tag=提醒弹幕样式,desc=5=顶部：最显眼，但停留时间最短（固定时长，约几秒）；1=滚动：停留最久，暂停视频也保留，但容易混进一堆弹幕里；4=底部。默认 5。自动跳的那条不受此项影响，始终是顶部空降弹幕airInfo = input,"⚠️ {cat} {start}→{end}",tag=只提醒的文案,desc=占位符同上，{cat} 会渲染成中文（如「一键三连」「自我推广」）。例：这里有 {dur}s {cat}，想看就自己拖
 chronos = switch,true,tag=chronos 重签,desc=让 App 能加载到校验文件，空降弹幕才会自动跳。关掉后弹幕仍会显示、点了也能跳，只是不会自动跳
 logLevel = select,"off","error","warn","info","debug",tag=脚本日志等级,desc=排查时选 debug，Loon 日志里会出现 [SponsorBlock]
 
 [Script]
-http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/bilibili.airborne.js, argument=[{airFullMode},{airInfoDelay},{airCategories},{airNoticeCategories},{airActions},{airMinDuration},{airMode},{airNotice},{airInfo},{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={Airborne}, tag=空降助手
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/bilibili.airborne.js, argument=[{airFullMode},{airInfoDelay},{airInfoMode},{airCategories},{airNoticeCategories},{airActions},{airMinDuration},{airMode},{airNotice},{airInfo},{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={Airborne}, tag=空降助手
 
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.view\.v1\.View\/ViewProgress$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos.js, requires-body=1, binary-body-mode=1, timeout=5, enable={chronos}, tag=chronos重签
 

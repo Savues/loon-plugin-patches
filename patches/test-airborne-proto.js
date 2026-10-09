@@ -103,6 +103,20 @@ ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
 ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
 ck('提醒档默认延后到 +3 秒', sNote.progress === 3000, String(sNote.progress));
+ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
+ck('提醒可改成滚动弹幕（停留更久、暂停也保留）', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1], [150, 190, 'filler', 'skip', 191, 0]],
+    { airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoMode: '1' });
+  return m.elems[1].mode === 5 && m.elems[2].mode === 1 && m.elems[2].midHash === '741886e';
+})());
+ck('提醒可改成底部弹幕', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]], { airNoticeCategories: 'filler', airInfoMode: '4' });
+  return m.elems[1].mode === 4;
+})());
 ck('提醒延后可配置', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
