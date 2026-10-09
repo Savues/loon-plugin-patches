@@ -124,7 +124,8 @@ function __airText(a, seg, list, tpl) {
         .replace(/\{start\}/g, sum ? "" : __airFmt(seg[0]))
         .replace(/\{end\}/g, sum ? "" : __airFmt(e))
         .replace(/\{dur\}/g, sum ? "" : Math.round(e - seg[0]));
-    return sum ? s.replace(/[ \t]*→[ \t]*/g, " ").trim() : s;
+    return sum ? s.replace(/[ \t]*→[ \t]*/g, " ").split("\n")
+                    .map(function (x) { return x.trim(); }).filter(Boolean).join("\n") : s;
 }
 function __airAction(a, seg, l) {
     if (!seg[5]) return "";                                                    // 只提醒档：只出文字
@@ -166,6 +167,8 @@ function __airInject(msg, segs, a) {
         var cap = 5;                                            // 一条弹幕装不下太多，硬性截断
         var shown = segs.slice(0, cap);
         var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
+        // 段与段之间怎么排：line=每段一行（\n），same=挤一行用 · 分隔
+        var join = String(__airVal(a, "airSummaryWrap", "line")) === "same" ? " · " : "\n";
         var synth, head, k;
         if (sum === "single") {
             // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
@@ -174,7 +177,7 @@ function __airInject(msg, segs, a) {
             synth = [[0, 0, "", "skip", 0, 0]];
             head = nn(synth, a);
             head[0].content = __airText(a, synth[0],
-                shown.map(__airSegText).join(" · ") + more, tpl);
+                shown.map(__airSegText).join(join) + more, tpl);
             head[0].progress = delay;
         } else {
             synth = shown.map(function () { return [0, 0, "", "skip", 0, 0]; });

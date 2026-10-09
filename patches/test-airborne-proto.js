@@ -136,9 +136,15 @@ const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('single：6 段只产生一条汇总（原弹幕1 + 汇总1 + 逐段6）', sumMsg3.elems.length === 8, String(sumMsg3.elems.length));
-ck('single：超过 5 条会截断并标注总数',
-  sumMsg3.elems[1].content === '恰饭 整篇 · 恰饭 02:30–02:46 · 一键三连 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处',
-  sumMsg3.elems[1].content);
+ck('single：默认每段一行（换行符分隔）',
+  sumMsg3.elems[1].content === '恰饭 整篇\n恰饭 02:30–02:46\n一键三连 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
+  JSON.stringify(sumMsg3.elems[1].content));
+ck('single：可改成挤一行用 · 分隔', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, many, Object.assign({ airSummary: 'single', airSummaryWrap: 'same' }, sumArg));
+  return m.elems[1].content.indexOf('\n') < 0 && m.elems[1].content.slice(0, 10) === '恰饭 整篇 · 恰饭';
+})(), '挤一行');
 ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 
 ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
