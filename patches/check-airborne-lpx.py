@@ -19,6 +19,24 @@ for sec in ['[Argument]', '[Script]', '[Mitm]']:
     ck(f'有 {sec} 段', s.count(sec) == 1)
 ck('没有多余的段', len(re.findall(r'^\[[A-Za-z]+\]', s, re.M)) == 3)
 
+# ---- 清单文本卫生 ------------------------------------------------------------
+# 曾经踩过：两行 [Argument] 被粘成一行，于是 airSummary 定义了两次、
+# airInfoMode 的 desc 里混进一整段垃圾文本，而下面的所有校验全绿。
+arg_sec = re.search(r'^\[Argument\](.*?)(?=^\[|\Z)', s, re.M | re.S).group(1)
+names = re.findall(r'^([A-Za-z][A-Za-z0-9]*)\s*=\s*(?:switch|select|input)\s*,', arg_sec, re.M)
+ck('[Argument] 没有重复的 key', len(names) == len(set(names)),
+   sorted({n for n in names if names.count(n) > 1}))
+for ln in arg_sec.splitlines():
+    t = ln.strip()
+    if not t or t.startswith('#'):
+        continue
+    ck(f'[Argument] 行首即定义：{t[:22]}…', bool(re.match(r'^[A-Za-z][A-Za-z0-9]*\s*=\s*(?:switch|select|input)\s*,', t)),
+       t[:70])
+    ck(f'[Argument] 一行只有一个定义：{t[:22]}…',
+       len(re.findall(r'([A-Za-z][A-Za-z0-9]*)\s*=\s*(?:switch|select|input)\s*,', t)) <= 1)
+ck('清单里没有乱码字符 U+FFFD', '�' not in s)
+ck('清单里没有裸换行符写进 desc', '\\n' not in arg_sec)
+
 decl = {m.group(1): m.group(2) for m in
         re.finditer(r'^([A-Za-z][A-Za-z0-9]*)\s*=\s*(switch|select|input)\s*,', s, re.M)}
 argline = re.search(r'argument=\[([^\]]*)\]', s).group(1)

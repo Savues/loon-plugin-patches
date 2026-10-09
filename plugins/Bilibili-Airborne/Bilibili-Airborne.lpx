@@ -11,14 +11,14 @@
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
 airCategories = input,"sponsor,selfpromo,interaction,intro,outro,padding",tag=自动跳的类型,desc=英文逗号分隔。这些类别的片段会带空降动作（自动执行，点一下也能跳）。可选：sponsor(恰饭) selfpromo(自我推广) exclusive_access interaction poi_highlight intro(片头) outro(片尾) preview filler padding(前黑后黑) music_offtopic。填 off = 全关
-airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，所以只有 skip / full / poi 有实际效果。full=整段即此类，会直接空降到片尾；poi=精彩时刻，空降��那个时间点；mute 填了无效
+airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，所以只有 skip / full / poi 有实际效果。full=整段即此类，会直接空降到片尾；poi=精彩时刻，空降到那个时间点；mute 填了无效。
 airMinDuration = input,"8",tag=片段最小时长(秒),desc=比这个短的片段不跳。填 0 = 不限（一键三连提示只有 2-3 秒，想跳它就调到 3）
 airMode = select,"jump","mark",tag=空降方式,desc=jump：自动跳的类型带空降动作（需 chronos 重签）；mark：全部降级为只显示文字，一律不跳
 airNoticeCategories = input,"exclusive_access,poi_highlight,preview,filler,music_offtopic",tag=只提醒的类型,desc=这些类别的片段只在弹幕栏显示一行文字提醒，**不会跳转**，跳不跳你自己拖进度条。默认填的是所有**不在自动跳列表里**的类别，两档并集正好是 bsbsb 全部 11 类。把某类从这里删掉（并加进上面那档）就改成自动跳；反过来就变成只提醒
 airFullMode = select,"notice","jump","off",tag=整篇软广的处理,desc=社区把整个视频标记为某一类时（片段是零长度的整篇标记，官方有 8306 条独家/整篇恰饭）。notice：不再单独出提醒，整篇信息由「片头汇总」里那一行「XX 整篇」表达；关掉汇总时才会单独提醒；jump：直接空降到片尾；off：完全不处理。默认 notice 最安全——独家首发类（如电影）常常有真内容
 airNotice = input,"空指部已就位",tag=自动跳的文案,desc=支持占位符 {cat}=类别中文名 {catid}=类别原始id {start}=起点 {end}=终点 {dur}=时长(秒)。例：跳过{cat} {start}→{end}
 airInfoDelay = input,"3",tag=提醒延后秒数,desc=「只提醒」的弹幕比它所标注片段的起点晚几秒出现。默认 3 秒。整篇软广的片段起点是 0 秒，不延后的话弹幕落在第 2 秒，实测来不及看；只影响提醒档，自动跳固定在片段起点 +2 秒（它必须一开始就位才能跳）。填 0 = 回到 +2 秒
-airInfoMode = select,"5","1","4",tag=提醒弹幕样式,desc=5=顶部：最显眼，但停留时间最短（固定时长，约几秒）；1=滚动：停留最久，暂停视频也保留，但容易混进一堆弹幕里；4=底部。默认 5。自动跳的那条不受此项影响，始终是顶部空降弹幕airSummary = select,"single","stagger","off",tag=片头汇总,desc=视频开头列出本视频里会被处理的所有片段（类别 + 时间段）。single：挤成一条，如「📍 本视频：恰饭 整篇 · 恰饭 02:30–02:46」；stagger：每段一条、错开 4 秒依次出现；off：不列。最多列 5 段，超出会标注总数。文案复用上面的「只提醒的文案」——模板里写 {list} 就用你的，否则用内置文案
+airInfoMode = select,"5","1","4",tag=提醒弹幕样式,desc=5=顶部：最显眼，但停留时间最短（固定时长，约几秒）；1=滚动：停留最久，暂停视频也保留，但容易混进一堆弹幕里；4=底部。默认 5。自动跳的那条不受此项影响，始终是顶部空降弹幕。
 airInfo = input,"⚠️ {cat} {start}→{end}",tag=只提醒的文案,desc=占位符同上，{cat} 会渲染成中文（如「一键三连」「自我推广」）。例：这里有 {dur}s {cat}，想看就自己拖
 airSummary = select,"single","stagger","off",tag=片头汇总,desc=视频开头列出本视频里会被处理的所有片段（类别 + 时间段）。single：挤成一条，如「📍 本视频：恰饭 整篇 · 恰饭 02:30–02:46」；stagger：每段一条、错开 4 秒依次出现（单条更短更易读）；off：不列。最多列 5 段，超出会标注「等 N 处」。文案复用下面的「只提醒的文案」——模板里写了 {list} 就用你的，否则用内置文案
 airSummaryWrap = select,"line","same",tag=汇总的排版,desc=line：每个片段单独一行（用换行符分隔），段落多时不会被挤成一大条；same：全部挤在一行、用 · 分隔。默认 line

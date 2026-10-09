@@ -96,5 +96,37 @@ if (chapOut && chapOut.response) {
     !(gb[2] || []).every((p, i) => p.equals((ga[2] || [])[i])));
 }
 
+// 🔴 回归（2026-10-09 代码审查新增）：解析不完整时必须**整条原样放行**。
+// 旧实现 split() 遇到不认识的 wire type 就 `return out`（返回"已解析的那几个"），
+// 主流程拿它去 join() 重新序列化 —— 末尾字段被静默丢弃，App 收到一个
+// "合法但字段残缺"的响应：不报错、不空屏、$done({response}) 还让重签报成功。
+const mkVarint = (n) => { const o = []; do { let x = n % 128; n = Math.floor(n / 128); if (n) x |= 128; o.push(x); } while (n); return Buffer.from(o); };
+const chronosField = splitPb(raw.subarray(5)).find(x => x.no === 2);
+ck('夹具里能取出 chronos(#2) 字段', !!chronosField);
+if (chronosField) {
+  const withUnknownTail = Buffer.concat([
+    Buffer.from(mkVarint((2 << 3) | 2)), mkVarint(chronosField.payload.length), chronosField.payload,
+    Buffer.from(mkVarint((5 << 3) | 3)), Buffer.from([0xff, 0xff, 0xff])   // wire type 3：解析器不认识
+  ]);
+  ck('末尾是未知 wire type 时整条原样放行', run(mkFrame(withUnknownTail)) === null);
+
+  const withChapterTail = Buffer.concat([
+    Buffer.from(mkVarint((2 << 3) | 2)), mkVarint(chronosField.payload.length), chronosField.payload,
+    Buffer.from(mkVarint((4 << 3) | 2)), mkVarint(200), Buffer.from([0xff, 0xff, 0xff])  // 声称 200 字节，实际只剩 3
+  ]);
+  ck('末尾字段声明的长度超出实际时整条原样放行', run(mkFrame(withChapterTail)) === null);
+
+  const zeroLen = Buffer.concat([
+    Buffer.from(mkVarint((2 << 3) | 2)), mkVarint(chronosField.payload.length), chronosField.payload,
+    Buffer.from(mkVarint((6 << 3) | 0)), Buffer.from([0x80])   // varint 未写完就到底
+  ]);
+  ck('varint 截断时整条原样放行', run(mkFrame(zeroLen)) === null);
+}
+
+// 不完整的数据不得被"改坏"：只要解析器放弃过，输出就必须与输入完全一致
+const halves = [raw.subarray(5).subarray(0, 20), raw.subarray(5).subarray(0, 37)];
+ck('任意前缀的残缺 payload 都不会产出 response',
+   halves.every(h => run(mkFrame(h)) === null));
+
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);

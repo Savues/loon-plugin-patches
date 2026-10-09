@@ -67,16 +67,18 @@ jobs:
           import pathlib, sys
           p = pathlib.Path('plugins/Bilibili-Airborne/bilibili.airborne.js')
           s = p.read_text(encoding='utf-8', errors='ignore')
+          # 必须出现：每条都对应 patch-airborne.py 里的一处锚点替换结果
           must = ['__airQS(s.argument)', '__airOK(a,t,r', '__airInject(t,', '__airText(a,t)',
-                  '__airAction(a,l)', 'categories=sponsor']
-          bad = [x for x in must if x not in s]
+                  '__airAction(a,t,l)']
+          # 必须消失：上游硬编码的痕迹，留着就说明对应锚点失效了
+          gone = ['&category=sponsor`', 'category=sponsor`']
+          bad  = [x for x in must if x not in s]
+          left = [x for x in gone if x in s]
           for x in bad:
-              print(f"::error::产物里没有找到 {x} —— 补丁可能没打上")
-          # 上游硬编码必须已经消失，否则说明锚点失效了
-          if '__airQS(s.argument)' in s and '&category=sponsor`' in s:
-              print('::error::上游的 category=sponsor 仍在，说明查询参数锚点没命中')
-              sys.exit(1)
-          if bad:
+              print(f'::error::产物里没有找到 {x} —— 补丁可能没打上')
+          for x in left:
+              print(f'::error::上游的 {x} 仍在 —— 对应锚点没命中')
+          if bad or left:
               sys.exit(1)
           print(f'::notice::产物校验通过，{len(s)} 字节')
           PYEOF

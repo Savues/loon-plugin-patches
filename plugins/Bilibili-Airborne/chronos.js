@@ -59,6 +59,14 @@
     do { x = n % 128; n = Math.floor(n / 128); if (n) x |= 128; out.push(x); } while (n);
     return out;
   }
+  /**
+   * 解析一层 protobuf 字段。**解析不完整时返回 null**（而不是「已解析的那几个」）。
+   *
+   * ⚠️ 这里曾经写成 `return out`（返回部分结果），主流程拿它去 join() 重新序列化，
+   * 末尾所有字段就被静默丢弃 —— App 收到一个"合法但字段残缺"的响应，不报错、
+   * 不空屏，只是某些字段悄悄变默认值，而 $done({response}) 还让重签"成功"。
+   * 宁可完全不改，也不能改坏：任何一处解析不确定，整个脚本一律原样放行。
+   */
   function split(b) {
     var out = [], p = 0, k, n, start;
     while (p < b.length) {
@@ -70,9 +78,9 @@
         if (wt === 0) p = readVarint(b, p)[1];
         else if (wt === 1) p += 8;
         else if (wt === 5) p += 4;
-        else return out;                    // 未知 wire type：停止，不做破坏性改写
+        else return null;                    // 未知 wire type：无法确定剩余字段的范围
       }
-      if (p > b.length) return out;
+      if (!(p > start) || p > b.length) return null;   // 长度越界 / varint 读出 NaN
       out.push({ no: no, wt: wt, raw: b.subarray(start, p) });
     }
     return out;
@@ -113,13 +121,16 @@
   }
 
   var fields = split(payload);
+  if (!fields) { $done({}); return; }        // 解析未完成 → 原样放行，绝不半截改写
   var idx = -1, i, j, k;
   for (i = 0; i < fields.length; i++) {
     if (fields[i].no === 2 && fields[i].wt === 2) { idx = i; break; }
   }
   if (idx < 0) { $done({}); return; }
 
-  var inner = split(fields[idx].raw), md5 = '';
+  var inner = split(fields[idx].raw);
+  if (!inner) { $done({}); return; }
+  var md5 = '';
   for (j = 0; j < inner.length; j++) {
     if (inner[j].no === 1 && inner[j].wt === 2) md5 = ascii(inner[j].raw);
   }
