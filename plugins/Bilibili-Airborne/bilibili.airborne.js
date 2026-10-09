@@ -12,8 +12,8 @@ var __airVal = (a, k, d) => {
 var __airSplit = v => String(v).split(/[,，、\s]+/).filter(Boolean);
 /** __airCats(a,0)=自动跳列表（airCategories）；__airCats(a,1)=只提醒列表（airNoticeCategories） */
 var __airCats = function (a, which) {
-    var v = which === 1 ? __airVal(a, "airNoticeCategories", "interaction")
-                        : __airVal(a, "airCategories", "sponsor,selfpromo,intro,outro,padding");
+    var v = which === 1 ? __airVal(a, "airNoticeCategories", "off")
+                        : __airVal(a, "airCategories", "sponsor,selfpromo,interaction,intro,outro,padding");
     return __airSplit(v).filter(function (x) { return x !== "off" && x !== "none" && x !== "none"; });
 };
 var __airAny = function (a) {

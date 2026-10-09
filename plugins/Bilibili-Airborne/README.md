@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.4** · 8 参数 / 2 Script / 3 MitM
+**v1.5** · 8 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v14`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v15`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -50,8 +50,8 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | 参数 | 默认 | 说明 |
 |---|---|---|
 | `空降助手` | 开 | 总开关 |
-| `自动跳的类型` | `sponsor,selfpromo,intro,outro,padding` | 这些类别的片段带空降动作，**自动跳**（点一下也能跳） |
-| `只提醒的类型` | `interaction` | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
+| `自动跳的类型` | `sponsor,selfpromo,interaction,intro,outro,padding` | 这些类别的片段带空降动作，**自动跳**（点一下也能跳） |
+| `只提醒的类型` | `off`（空） | 默认不启用；需要哪类只提醒就从上面挪进来 | 这些类别的片段**只在弹幕栏显示一行文字，不跳转**，跳不跳你自己拖进度条 |
 | `允许哪些动作` | `skip` | 只约束自动跳那一档；`full` 空降到片尾、`poi` 空降到时间点、`mute` 无效 |
 | `片段最小时长(秒)` | `8` | 只管 `skip`；`full`/`poi` 的片段长度天然是 0，不受此限制 |
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
@@ -61,7 +61,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 
 > ⚠️ **老用户升级注意**：Loon 会保留你之前设过的参数值，所以你的 `自动跳的类型`
 > 可能还是老的 `sponsor`。想要新默认值请手动改成
-> `sponsor,selfpromo,intro,outro,padding`，或者删掉插件重新添加。
+> `sponsor,selfpromo,interaction,intro,outro,padding`，或者删掉插件重新添加。
 
 ### 为什么只有「自动跳」和「只提醒」两档
 
@@ -84,6 +84,10 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 | **ManualSkip** | 弹跳过按钮 | `只提醒的类型`（降级为纯文字） |
 | ShowOverlay | 只显示标签 | 同上 |
 | Disabled | 关闭 | 不写进任何列表 |
+
+默认自动跳的六类是官方定义里"不含任何有意义的内容"或明确属广告的那几类。
+`interaction`（一键三连提醒）按用户要求也并入了，但它**多数只有 2–3 秒**，
+会被 `片段最小时长`（默认 8 秒）滤掉大半——想连它一起跳，把该值调到 3。
 
 > 🔴 **为什么需要 chronos 重签**
 >
