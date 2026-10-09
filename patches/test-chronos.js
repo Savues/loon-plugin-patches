@@ -50,5 +50,51 @@ const outGz = run(framed);
 ck('gzip 帧也能重签且结果与未压缩时相同', outGz && outGz.equals(expect),
    outGz ? '长度 ' + outGz.length : '无输出');
 
+// 🔴 未知字段必须逐字节保留：ViewProgress 的章节按钮（原理解析/正片/中插/结尾）
+// 存在字段 #4（重复 4 次），而上游 Sparkle 的 schema 只声明了 #1 video_guide 和 #2 chronos，
+// 也就是说章节属于 protobuf 的未知字段。chronos.js 要拆开再拼回顶层消息，
+// 一旦处理不当章节就会消失 —— 这个测试就是防这个的。
+const chap = fs.readFileSync(path.join(DIR, 'viewprogress-chapters.bin'));
+const splitPb = (buf) => {
+  const rd = (b, i) => { let r = 0, s = 0, x; do { x = b[i++]; r += (x & 0x7f) * Math.pow(2, s); s += 7; } while (x & 0x80); return [r, i]; };
+  const out = []; let i = 0;
+  while (i < buf.length) {
+    const [k, p] = rd(buf, i); i = p;
+    const no = Math.floor(k / 8), wt = k % 8; let st = i;
+    if (wt === 0) i = rd(buf, i)[1];
+    else if (wt === 2) { const [n, q] = rd(buf, i); st = q; i = q + n; }
+    else if (wt === 1) i += 8;
+    else if (wt === 5) i += 4;
+    else break;
+    out.push({ no, payload: buf.subarray(st, i) });
+  }
+  return out;
+};
+const mkFrame = (payload) => { const b = Buffer.concat([Buffer.from([0, 0, 0, 0, 0]), payload]); b.writeUInt32BE(payload.length, 1); return b; };
+let chapOut = null;
+global.$done = (o) => { chapOut = o; };
+global.$response = { body: new Uint8Array(mkFrame(chap)) };
+global.$request = { headers: {} };
+(0, eval)(fs.readFileSync(path.resolve(__dirname, '../plugins/Bilibili-Airborne/chronos.js'), 'utf8'));
+ck('含章节的响应确实被处理了', !!(chapOut && chapOut.response));
+if (chapOut && chapOut.response) {
+  const before = splitPb(chap);
+  const after = splitPb(Buffer.from(chapOut.response.body).subarray(5));
+  ck('字段数量不变', before.length === after.length,
+    before.map(x => x.no).join(',') + ' → ' + after.map(x => x.no).join(','));
+  const group = (arr) => arr.reduce((g, x) => ((g[x.no] = g[x.no] || []).push(x.payload), g), {});
+  const gb = group(before), ga = group(after);
+  ck('未知字段 #4（章节）逐字节保留',
+    (gb[4] || []).length === (ga[4] || []).length &&
+    (gb[4] || []).every((p, i) => p.equals(ga[4][i])),
+    '章节条数 ' + (ga[4] || []).length);
+  ck('其它未知字段 #1/#3/#6 也逐字节保留',
+    [1, 3, 6].every(f => (gb[f] || []).length === (ga[f] || []).length &&
+      (gb[f] || []).every((p, i) => p.equals(ga[f][i]))));
+  ck('章节名还在', Buffer.concat(after.map(x => x.payload)).includes(Buffer.from('正片', 'utf8')));
+  ck('只有 chronos(#2) 被改写',
+    !(gb[2] || []).every((p, i) => p.equals((ga[2] || [])[i])));
+}
+
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);
