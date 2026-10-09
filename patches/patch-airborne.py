@@ -58,15 +58,29 @@ var __airVal = (a, k, d) => {
     return (v == null || v === "") ? d : v;
 };
 var __airSplit = v => String(v).split(/[,，、\s]+/).filter(Boolean);
-var __airCats = a => __airSplit(__airVal(a, "airCategories", "sponsor"))
-    .filter(x => x !== "off" && x !== "none");
-var __airQS = a => "categories=" + encodeURIComponent(JSON.stringify(__airCats(a)));
+/** __airCats(a,0)=自动跳列表（airCategories）；__airCats(a,1)=只提醒列表（airNoticeCategories） */
+var __airCats = function (a, which) {
+    var v = which === 1 ? __airVal(a, "airNoticeCategories", "selfpromo,interaction")
+                        : __airVal(a, "airCategories", "sponsor,intro,outro,padding");
+    return __airSplit(v).filter(function (x) { return x !== "off" && x !== "none" && x !== "none"; });
+};
+var __airAny = function (a) {
+    return __airCats(a, 0).concat(__airCats(a, 1)).filter(function (x, i, s) { return s.indexOf(x) === i; });
+};
+var __airQS = a => "categories=" + encodeURIComponent(JSON.stringify(__airAny(a)));
 function __airOK(a, t, r, n, d) {
-    if (__airCats(a).indexOf(String(r)) < 0) return false;                        // 类别白名单
-    if (__airSplit(__airVal(a, "airActions", "skip")).indexOf(String(t)) < 0) return false; // 动作白名单
-    if (t === "full") return Number(d) > 0;   // 整段即此类：片段是 [0,0]，要拿总时长当跳到点
-    if (t !== "skip") return true;             // poi 等时间点：片段是 [t,t]，长度天然为 0
-    return n >= Number(__airVal(a, "airMinDuration", 8));                        // 最小时长只管 skip
+    var auto = __airCats(a, 0).indexOf(String(r)) >= 0;   // 自动跳列表
+    var info = __airCats(a, 1).indexOf(String(r)) >= 0;   // 只提醒列表
+    if (!auto && !info) return false;                      // 两个列表都没收录
+    if (info) {                                             // 只提醒档：不跳，动作对它没有意义
+        if (t === "full") return Number(d) > 0;
+        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 8))) return false;
+        return true;
+    }
+    if (__airSplit(__airVal(a, "airActions", "skip")).indexOf(String(t)) < 0) return false;
+    if (t === "full") return Number(d) > 0;                // 整段即此类：片段是 [0,0]
+    if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
+    return n >= Number(__airVal(a, "airMinDuration", 8));
 }
 function __airEnd(seg) {   // 空降目标（秒）
     return seg[3] === "full" ? Number(seg[4]) : seg[1];
@@ -78,14 +92,18 @@ function __airFmt(t) {
 }
 function __airText(a, seg) {
     var e = __airEnd(seg);
-    return String(__airVal(a, "airNotice", "空指部已就位"))
+    var tpl = __airVal(a, seg[5] ? "airNotice" : "airInfo",
+                      seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
+    return String(tpl)
         .replace(/\{cat\}/g, seg[2] || "")
         .replace(/\{start\}/g, __airFmt(seg[0]))
         .replace(/\{end\}/g, __airFmt(e))
         .replace(/\{dur\}/g, Math.round(e - seg[0]));
 }
-function __airAction(a, l) {
-    return String(__airVal(a, "airMode", "jump")) === "mark" ? "" : "airborne:" + l;
+function __airAction(a, seg, l) {
+    if (!seg[5]) return "";                                                    // 只提醒档：只出文字
+    if (String(__airVal(a, "airMode", "jump")) === "mark") return "";          // 全局降级为只提醒
+    return "airborne:" + l;
 }
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
@@ -105,7 +123,7 @@ PATCHES = [
 
     ('空类别短路',
      'async function en(s,e,t){try{',
-     'async function en(s,e,t){if(!__airCats(s.argument).length)return[];try{'),
+     'async function en(s,e,t){if(!__airAny(s.argument).length)return[];try{'),
 
     ('过滤函数调用',
      'n!==200||!i||i==="[]"?[]:tn(i)',
@@ -115,7 +133,7 @@ PATCHES = [
      'function tn(s){return JSON.parse(s).reduce((e,{actionType:t,segment:n})'
      '=>(t==="skip"&&n[1]-n[0]>=8&&e.push(n),e),[])}',
      'function tn(s,a){return JSON.parse(s).reduce((e,{actionType:t,category:r,segment:n,videoDuration:o})'
-     '=>(n&&__airOK(a,t,r,n[1]-n[0],o)&&e.push([n[0],n[1],r,t,o]),e),[])}'),
+     '=>(n&&__airOK(a,t,r,n[1]-n[0],o)&&e.push([n[0],n[1],r,t,o,__airCats(a,0).indexOf(String(r))>=0?1:0]),e),[])}'),
 
     ('注入入口',
      't.elems.push(...nn(s.state.segments))',
@@ -136,7 +154,7 @@ PATCHES = [
 
     ('空降动作',
      'action:`airborne:${l}`',
-     'action:__airAction(a,l)'),
+     'action:__airAction(a,t,l)'),
 ]
 
 

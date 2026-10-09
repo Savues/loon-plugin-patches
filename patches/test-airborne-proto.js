@@ -31,7 +31,7 @@ const orig = _e.create({ elems: [
   { id: 222, progress: 2000, midHash: '00000000', content: '原弹幕B', mode: 1, ctime: '1700000000', dmFrom: 2 },
 ]});
 const beforeBytes = _e.toBinary(orig);
-const segs = [[0, 42.9, 'sponsor'], [63.5, 105.733, 'intro'], [63.5, 105.733, 'intro']];
+const segs = [[0, 42.9, 'sponsor', 'skip', 377, 1], [63.5, 105.733, 'intro', 'skip', 377, 1], [63.5, 105.733, 'intro', 'skip', 377, 1]];
 const arg = { airNotice: '跳过{cat} {start}→{end} 省{dur}s', airMode: 'jump' };
 
 const injected = nn(segs, arg);
@@ -70,7 +70,7 @@ const base = () => _e.toBinary(_e.create({ elems: [
 const mkCtx = (bytes) => ({
   request: { bodyBytes: Buffer.alloc(0) },
   response: { bodyBytes: bytes },
-  state: { segments: [[0, 42.9, 'sponsor', 'skip', 376.697]] },
+  state: { segments: [[0, 42.9, 'sponsor', 'skip', 376.697, 1]] },
   argument: { airCategories: 'sponsor', airActions: 'skip', airMinDuration: 8, airMode: 'jump', airNotice: '空指部已就位' },
 });
 const ctx = mkCtx(base());

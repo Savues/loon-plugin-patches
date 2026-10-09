@@ -32,14 +32,14 @@ url: `https://bsbsb.top/api/skipSegments?videoID=${e}&cid=${t}&category=sponsor`
 | # | 锚点 | 原文 | 改后 | 性质 |
 |---|---|---|---|---|
 | 1 | 查询参数 | `` `…skipSegments?videoID=${e}&cid=${t}&category=sponsor` `` | `` `…&`+__airQS(s.argument) `` | 常量 → 参数 |
-| 2 | 空类别短路 | `async function en(s,e,t){try{` | `…if(!__airCats(s.argument).length)return[];try{` | 新增短路，避免 `categories=[]` 被服务端当成"全部" |
+| 2 | 空类别短路（v1.3 起判定两档并集） | `async function en(s,e,t){try{` | `…if(!__airCats(s.argument).length)return[];try{` | 新增短路，避免 `categories=[]` 被服务端当成"全部" |
 | 3 | 过滤调用 | `…?[]:tn(i)` | `…?[]:tn(i,s.argument)` | 传参 |
 | 4 | 过滤本体 | `t==="skip"&&n[1]-n[0]>=8` | `n&&__airOK(a,t,r,n[1]-n[0])` | 三处常量（动作/时长/类别）→ 参数 |
 | 5 | 注入入口 | `t.elems.push(...nn(s.state.segments))` | `__airInject(t,s.state.segments,s.argument)` | 换成带幂等守卫的入口 |
 | 6 | 弹幕构造 | `function nn(s)` | `function nn(s,a)` | 传参 |
 | 7 | 提示文案 | `content:"空指部已就位"` | `content:__airText(a,t)` | 常量 → 参数（支持占位符） |
 | 8 | 空降落点 | `,l=Math.floor(t[1]*1e3)` | `,l=Math.floor(__airEnd(t)*1e3)` | `full` 段是 `[0,0]`，落点必须换成整段总时长 |
-| 9 | 空降动作 | `` action:`airborne:${l}` `` | `action:__airAction(a,l)` | 常量 → 参数（`jump`/`mark`） |
+| 9 | 空降动作（v1.3 起多收一个 seg，用于判断是否只提醒） | `` action:`airborne:${l}` `` | `action:__airAction(a,l)` | 常量 → 参数（`jump`/`mark`） |
 
 头部另注入 1.5 KB 工具代码（`__airVal` / `__airCats` / `__airQS` / `__airOK` / `__airFmt` / `__airText` / `__airAction` / `__airInject`），全部以 `__air` 前缀命名，不与上游压缩后的单字母变量冲突。
 
