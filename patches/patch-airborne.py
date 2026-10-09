@@ -125,31 +125,11 @@ function __airInject(msg, segs, a) {
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
     if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
-    var built = nn(segs, a);
-    // 只提醒的那几条不冒充空降弹幕：实测 midHash=1948dd5d + 空 action 会被 App 整条丢弃。
-    // 借一条真实弹幕的 midHash/attr/mode/fontsize，保证按普通弹幕渲染；优先借「顶部」样式，
-    // 因为滚动样式混在几百条弹幕里根本看不见。
-    var donor = null, fallback = ["46813211", 1048576, 5, 25], i, e;
-    for (i = 0; i < elems.length; i++) {
-        e = elems[i];
-        if (e && e.midHash && e.midHash !== "1948dd5d" && e.mode === 5) { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
-    }
-    if (!donor) {
-        for (i = 0; i < elems.length; i++) {
-            e = elems[i];
-            if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
-        }
-    }
-    var plain = donor || fallback;
-    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 8))) * 1000;   // 提醒比自动跳晚出现
-    for (var j = 0; j < built.length; j++) {
-        if (!built[j].action) {
-            built[j].midHash = plain[0]; built[j].attr = plain[1];
-            built[j].mode = plain[2]; built[j].fontsize = plain[3];
-            built[j].progress = Math.floor(segs[j][0] * 1000) + delay;      // 2 秒太早，看不见
-        }
-    }
-    elems.push.apply(elems, built);
+    // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），
+    // 提醒档只是不带 action —— 实测那样会渲染成顶部大字，最显眼。
+    // ⚠️ 曾把提醒档降级成普通滚动弹幕，结论是错的：用户看不到的原因是
+    //    App 的「弹幕显示区域」设得太小把顶部裁掉了，不是被 App 丢弃。
+    elems.push.apply(elems, nn(segs, a));
 }
 '''
 

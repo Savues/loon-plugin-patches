@@ -85,51 +85,24 @@ ck('$t 注入的那条带空降动作', out.elems[1] && out.elems[1].action === 
 ck('$t 注入的那条文案是默认「空指部已就位」', out.elems[1] && out.elems[1].content === '空指部已就位',
    out.elems[1] && out.elems[1].content);
 
-// 🔴 只提醒档必须「借用真实弹幕的样式」：实测 App 会丢弃
-// midHash=1948dd5d（空降标志）但 action 为空的弹幕，整条不显示。
-const donorMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+// 两档都用上游的顶部大字样式；区别只在 action 有没有
+const styleMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 9, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
     content: '真实弹幕', ctime: '1700000000', dmFrom: 2 },
 ]})));
-inject(donorMsg.elems,
+inject(styleMsg.elems,
   [[0, 42.9, 'sponsor', 'skip', 191, 1], [0, 0, 'sponsor', 'full', 191, 0]],
   { airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
-const dAuto = donorMsg.elems[1], dNote = donorMsg.elems[2];
-ck('借用样式：自动档仍是空降 midHash', dAuto.midHash === '1948dd5d', dAuto.midHash);
-ck('借用样式：自动档保留 action', dAuto.action === 'airborne:42900', dAuto.action);
-ck('借用样式：只提醒档用真实 midHash', dNote.midHash === '741886e', dNote.midHash);
-ck('借用样式：只提醒档用真实 mode', dNote.mode === 1, String(dNote.mode));
-ck('借用样式：只提醒档用真实 fontsize', dNote.fontsize === 25, String(dNote.fontsize));
-ck('借用样式：只提醒档没有 action', !dNote.action, dNote.action);
-
-// 没有可借的真实弹幕时退回普通样式
-const bareMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-  { id: 9, progress: 10, midHash: '1948dd5d', attr: 1310724, mode: 5, fontsize: 50,
-    content: 'x', ctime: '1700000000', dmFrom: 2 },
-]})));
-inject(bareMsg.elems, [[0, 0, 'sponsor', 'full', 191, 0]], {});
-ck('借不到样本时退回普通样式', bareMsg.elems[1].midHash === '46813211', bareMsg.elems[1].midHash);
-
-// 优先借「顶部」样式的真实弹幕（滚动样式混在几百条里看不见）
-const topMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-  { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 1, fontsize: 25, content: '滚动', ctime: '1700000000', dmFrom: 2 },
-  { id: 2, progress: 20, midHash: 'bbb222', attr: 1048576, mode: 5, fontsize: 25, content: '顶部', ctime: '1700000000', dmFrom: 2 },
-]})));
-inject(topMsg.elems, [[0, 0, 'sponsor', 'full', 191, 0]], { airFullMode: 'notice' });
-ck('优先借顶部样式的真实弹幕', topMsg.elems[2].midHash === 'bbb222', topMsg.elems[2].midHash);
-ck('提醒默认延后到第 8 秒', topMsg.elems[2].progress === 8000, String(topMsg.elems[2].progress));
-ck('提醒时机可配', (() => {
-  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-    { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, [[30, 0, 'sponsor', 'full', 191, 0]], { airFullMode: 'notice', airInfoDelay: 20 });
-  return m.elems[1].progress === 50000;
-})());
-ck('自动档时机不受提醒延后影响', (() => {
-  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-    { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1]], { airInfoDelay: 20 });
-  return m.elems[1].progress === 152000;
-})());
+const sAuto = styleMsg.elems[1], sNote = styleMsg.elems[2];
+ck('自动档是顶部大字 + 有 action',
+  sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 50 && !!sAuto.action,
+  JSON.stringify({ m: sAuto.midHash, mode: sAuto.mode, fs: sAuto.fontsize, a: sAuto.action }));
+ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
+  JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
+ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
+// 两条的片段起点都是 0 秒，所以 progress 都是 0+2000
+ck('两档都是片段起点 + 2 秒', sAuto.progress === 2000 && sNote.progress === 2000,
+  sAuto.progress + '/' + sNote.progress);
 
 // 同样走真实调用点，但响应里已经有本脚本注入过的弹幕 → 幂等
 const ctx2 = mkCtx(_e.toBinary(after));
