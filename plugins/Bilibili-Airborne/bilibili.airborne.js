@@ -52,7 +52,7 @@ var __airColors = {
     outro: 0xB4B4B4, exclusive_access: 0xC08CFF, poi_highlight: 0xFFD100, preview: 0xFF8FC7,
     filler: 0x6EE7C8, padding: 0x8C8C8C, music_offtopic: 0x9BE15D
 };
-var AIR_SUMMARY_COLOR = 0xFFD100;   // 片头汇总用金色，和各条目的类别色区分开
+var AIR_SUMMARY_COLOR = 0xFF5C5C;   // 片头汇总用红色
 function __airColor(cat) {
     return __airColors[cat] == null ? 0xFFFFFF : __airColors[cat];
 }
@@ -68,8 +68,8 @@ function __airFmt(t) {
 }
 var __airNames = {
     sponsor: "恰饭硬广", selfpromo: "自我推广", exclusive_access: "独家体验",
-    interaction: "一键三连", poi_highlight: "精彩时刻", intro: "片头", outro: "片尾",
-    preview: "回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
+    interaction: "三连提醒", poi_highlight: "精彩时刻", intro: "开场动画", outro: "片尾",
+    preview: "往期回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
 function __airText(a, seg, list, tpl) {
     // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，
@@ -134,7 +134,7 @@ function __airInject(msg, segs, a) {
         // 整篇就是恰饭 → 置顶一行明确提示，并从条目里去掉重复的「XX 整篇」
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
         var labels = [];
-        if (hasFullAd) labels.push("全片恰饭软告");
+        if (hasFullAd) labels.push("全片恰饭软广");
         for (var kk = 0; kk < shown.length; kk++) {
             if (shown[kk][2] === "sponsor" && shown[kk][3] === "full") continue;
             labels.push(__airSegText(shown[kk]));
@@ -160,7 +160,7 @@ function __airInject(msg, segs, a) {
         }
         for (var kk = 0; kk < head.length; kk++) {
             head[kk].mode = Number(want) || 5;
-            head[kk].color = sum === "single" || labels[kk] === "全片恰饭软告"
+            head[kk].color = sum === "single" || labels[kk] === "全片恰饭软广"
                 ? AIR_SUMMARY_COLOR : __airColor(shown[kk][2]);
             if (donor) { head[kk].midHash = donor[0]; head[kk].attr = donor[1]; }
         }

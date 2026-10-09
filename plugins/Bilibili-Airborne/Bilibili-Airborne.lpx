@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.20
-#!desc=v1.20 汇总标题改为「⚠️本视频包含⚠️」；整篇恰饭时置顶「全片恰饭软告」一行；sponsor 的中文名改为「恰饭硬广」（与自我推广区分）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.21
+#!desc=v1.21 类别改名：interaction→三连提醒、intro→开场动画、preview→往期回顾（依据是解包后的浏览器扩展 v0.16.0 自带的官方描述与 guideline）；片头汇总从金色改为红色；修正错别字「软告」→「软广」。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-10 07:30:00
+#!date=2026-10-10 08:20:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕

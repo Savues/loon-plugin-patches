@@ -50,12 +50,17 @@ eq('类别关掉后全拒', ok({ airCategories: 'off', airNoticeCategories: 'off
 // 文案占位符
 const seg = [75.073, 113.139, 'sponsor', 'skip', 161, 1];
 eq('默认文案（自动档）', __airText({}, seg), '空指部已就位');
-eq('默认文案（提醒档）', __airText({}, [0, 42.9, 'interaction', 'skip', 300, 0]), '⚠️ 一键三连 00:00→00:42');
+eq('默认文案（提醒档）', __airText({}, [0, 42.9, 'interaction', 'skip', 300, 0]), '⚠️ 三连提醒 00:00→00:42');
 eq('提醒档需显式开启才走 mark', __airAction({ airNoticeCategories: 'interaction' }, [0, 42.9, 'interaction', 'skip', 300, 0], 42900), '');
 eq('{cat} 渲染成中文名', __airText({ airInfo: '{cat}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), '自我推广');
+eq('interaction→三连提醒 / intro→开场动画 / preview→往期回顾',
+  [__airText({airInfo:'{cat}'},[0,42.9,'interaction','skip',300,0]),
+   __airText({airInfo:'{cat}'},[0,42.9,'intro','skip',300,0]),
+   __airText({airInfo:'{cat}'},[0,42.9,'preview','skip',300,0])].join('/'),
+  '三连提醒/开场动画/往期回顾');
 eq('{catid} 拿到原始 id', __airText({ airInfo: '{catid}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), 'selfpromo');
 eq('未知类别原样输出', __airText({ airInfo: '{cat}' }, [0, 42.9, 'brand_new', 'skip', 300, 0]), 'brand_new');
-eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), '一键三连@00:00');
+eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), '三连提醒@00:00');
 eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过恰饭硬广 01:15→01:53 省38s');
 eq('自定义文案', __airText({ airNotice: 'AD' }, seg), 'AD');
 
