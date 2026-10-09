@@ -105,7 +105,8 @@ ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.pro
 ck('提醒档默认延后到 +3 秒', sNote.progress === 3000, String(sNote.progress));
 // 片头汇总
 const sumArg = { airInfoDelay: 3, airCategories: 'sponsor', airNoticeCategories: 'interaction,exclusive_access',
-                  airActions: 'skip', airFullMode: 'notice', airInfo: '{list}', airInfoDelay: 3 };
+                  airActions: 'skip', airFullMode: 'notice',
+                  airInfo: '⚠️ {cat} {start}→{end}', airInfoDelay: 3 };
 const sumSegs = [
   [0, 0, 'sponsor', 'full', 191, 0],
   [150, 166, 'sponsor', 'skip', 191, 1],
@@ -136,14 +137,36 @@ const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('single：6 段只产生一条汇总（原弹幕1 + 汇总1 + 逐段6）', sumMsg3.elems.length === 8, String(sumMsg3.elems.length));
-ck('single：默认每段一行（换行符分隔）',
-  sumMsg3.elems[1].content === '恰饭 整篇\n恰饭 02:30–02:46\n一键三连 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
+ck('single：标题行 + 每段一行',
+  sumMsg3.elems[1].content === '📍 本视频包括：\n恰饭 整篇\n恰饭 02:30–02:46\n一键三连 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
   JSON.stringify(sumMsg3.elems[1].content));
+ck('single：汇总整条用金色', sumMsg3.elems[1].color === 0xFFD100, String(sumMsg3.elems[1].color));
+ck('提醒档按类别上色', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1], [150, 190, 'filler', 'skip', 191, 0]],
+    { airSummary: 'off', airCategories: 'sponsor', airNoticeCategories: 'filler' });
+  return m.elems[1].color === 0xFFFFFF && m.elems[2].color === 0x6EE7C8;   // 自动跳仍白色，提醒按类色
+})(), '按类别上色');
+ck('stagger：每条汇总按自身类别上色', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg));
+  return m.elems[1].color === 0xFF5C5C && m.elems[3].color === 0x5CC8FF;
+})(), 'stagger 上色');
+ck('用户自定义含 {list} 的模板时优先用它', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]],
+    { airSummary: 'single', airNoticeCategories: 'filler', airInfo: '共 {list}' });
+  return m.elems[1].content === '共 离题闲聊 02:30–03:10';
+})(), '自定义模板');
 ck('single：可改成挤一行用 · 分隔', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, many, Object.assign({ airSummary: 'single', airSummaryWrap: 'same' }, sumArg));
-  return m.elems[1].content.indexOf('\n') < 0 && m.elems[1].content.slice(0, 10) === '恰饭 整篇 · 恰饭';
+  // 标题行永远独占一行（内置模板写死了换行），same 只影响条目之间的分隔
+  return m.elems[1].content === '📍 本视频包括：\n恰饭 整篇 · 恰饭 02:30–02:46 · 一键三连 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处';
 })(), '挤一行');
 ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 

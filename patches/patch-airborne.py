@@ -95,6 +95,15 @@ function __airIsAuto(a, t, r) {
 function __airEnd(seg) {   // 空降目标（秒）
     return seg[3] === "full" ? Number(seg[4]) : seg[1];
 }
+var __airColors = {
+    sponsor: 0xFF5C5C, selfpromo: 0xFFB400, interaction: 0x5CC8FF, intro: 0xB4B4B4,
+    outro: 0xB4B4B4, exclusive_access: 0xC08CFF, poi_highlight: 0xFFD100, preview: 0xFF8FC7,
+    filler: 0x6EE7C8, padding: 0x8C8C8C, music_offtopic: 0x9BE15D
+};
+var AIR_SUMMARY_COLOR = 0xFFD100;   // 片头汇总用金色，和各条目的类别色区分开
+function __airColor(cat) {
+    return __airColors[cat] == null ? 0xFFFFFF : __airColors[cat];
+}
 function __airSegText(seg) {
     var n = __airNames[seg[2]] || seg[2] || "";
     if (seg[3] === "full") return n + " 整篇";                       // 整篇即此类：没有起止时间
@@ -156,6 +165,7 @@ function __airInject(msg, segs, a) {
         if (built[i].action) continue;                       // 自动跳那条不动
         built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
         built[i].mode = Number(want) || 5;
+        built[i].color = __airColor(segs[i][2]);        // 按类别上色
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
     }
@@ -173,7 +183,7 @@ function __airInject(msg, segs, a) {
         if (sum === "single") {
             // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
             var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-                ? String(__airVal(a, "airInfo", "")) : "📍 本视频：{list}";
+                ? String(__airVal(a, "airInfo", "")) : "📍 本视频包括：\n{list}";
             synth = [[0, 0, "", "skip", 0, 0]];
             head = nn(synth, a);
             head[0].content = __airText(a, synth[0],
@@ -191,6 +201,7 @@ function __airInject(msg, segs, a) {
         }
         for (k = 0; k < head.length; k++) {
             head[k].mode = Number(want) || 5;
+            head[k].color = sum === "single" ? AIR_SUMMARY_COLOR : __airColor(shown[k][2]);
             if (donor) { head[k].midHash = donor[0]; head[k].attr = donor[1]; }
         }
         built = head.concat(built);

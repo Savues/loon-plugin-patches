@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.16
-#!desc=v1.16 片头汇总支持换行：段落多时默认每段一行（\n），可切成挤一行用 · 分隔。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.17
+#!desc=v1.17 片头汇总加「本视频包括：」标题行，并按类别给弹幕上色（一条弹幕只能有一个颜色，所以 single 模式整条金色；想让每段不同颜色请用 stagger）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-10 03:05:00
+#!date=2026-10-10 03:40:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
