@@ -1,0 +1,83 @@
+#!desc=【消融 U1】= S2（已验证能跳），把「Protobuf处理」的正则收窄到只剩两个 ViewProgress 端点，其余端点全部不匹配。 
+#!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!tag=去广告,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
+#!date=2026-10-09 15:40:00
+
+[Argument]
+# ---- 会员伪装 ----
+localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
+vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）
+vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
+vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
+localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
+myMid = input,"",tag=我的UID,desc=个人主页伪装只作用于该 UID；留空则不生效。「我的」页伪装不受此项影响
+vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有用户的个人主页都按上面的设置显示（含真会员）。仅影响个人主页，「我的」页不变
+vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的个人主页按上面的设置显示。可与「我的UID」叠加；同时开「全员」时全员优先
+vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「bilibili UP主认证：xxx」文字。⚠️头像角标改不动（App 本地渲染，不读 icon）
+vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」
+vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
+vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+# ---- kokoryh 参数 ----
+displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
+purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=移除评论区置顶的电商广告
+optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=优化评论区加载速度
+sponsorBlock=switch,true,tag=空降助手,desc=播放视频时自动跳过内插广告
+logLevel=select,"off","error","warn","info","debug",tag=脚本日志等级(kokoryh),desc=与上方 LogLevel(BiliUniverse) 是两个不同参数名
+
+[Rule]
+DOMAIN,api.biliapi.com,REJECT
+DOMAIN,app.biliapi.com,REJECT
+DOMAIN,api.biliapi.net,REJECT
+DOMAIN,app.biliapi.net,REJECT
+AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYWORD,tracker), (DOMAIN-KEYWORD,p2p)))),REJECT
+
+[Rewrite]
+# 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
+# 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
+# /pgc/page/bangumi 与 /pgc/page/cinema/tab，裸路径它即使被路由到也处理不了。
+# [dropped-by-test] ^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
+# [dropped-by-test] ^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
+# [dropped-by-test] ^https:\/\/api\.bilibili\.com\/x\/push\/popup\/setting\? mock-response-body data-type=text status-code=200 data="{"code":0,"message":"OK","ttl":1,"data":{}}"
+# [dropped-by-test] ^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
+# [dropped-by-test] ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
+# [dropped-by-test] ^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
+# [dropped-by-test] ^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAABQfiwgAAAAAAAIDAwAAAAAAAAAAAA==" mock-data-is-base64=true
+# [dropped-by-test] ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
+# [dropped-by-test] ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
+# [dropped-by-test] ^https:\/\/api\.bilibili\.com\/pgc\/view\/v2\/app\/season\? response-body-json-jq 'del(.data.payment)'
+# [dropped-by-test] ^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
+# [dropped-by-test] ^https:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/?\? response-body-json-jq '.result.modules |= map(if (.style // "") | startswith("banner") then .items |= map(select((.link // "") | contains("play"))) elif (.style // "") | startswith("function") then .items |= map(select((.blink // "") | startswith("bilibili"))) elif .module_id | IN(241, 1283, 1284, 1441) then .items = [] elif (.style // "") | startswith("tip") then .items = [] else . end)'
+# [dropped-by-test] ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
+# [dropped-by-test] ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
+
+[Script]
+# 本地会员伪装（enable 只对 [Script] 生效，故不放 [Rewrite]）。
+# 只管「我的」页，不挂 grpc 的 View/View 与 Reply/MainList：那两个端点的响应里
+# 一个 vip 字段都没有（12 份抓包 22 个样本），留着只是每开一个评论列表白跑一次
+# requires-body + JSON.parse（最大 59KB/次）。注意它们**不是**「没被请求过」——
+# 国际版 bili-inter 正走 viewunite 变体。
+# [dropped-by-test] http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=724, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText}], tag=会员伪装, enable={localVIP}
+# [dropped-by-test] http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=724, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+# kokoryh protobuf（完整参数，补回 blockAds 降级项）
+# [dropped-by-test] http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js?v=722, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.view(unite)?\.v1\.View\/ViewProgress$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js?v=722, argument=[{displayUpList}, {purifyComment}, {sponsorBlock}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js?v=722, argument=[{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={sponsorBlock}, tag=空降助手
+# BiliUniverse bundle，仅 blockAds 未覆盖的 3 个端点，4 条合并为 1 条。
+# 不含 splash 分支：同一端点上 [Rewrite] 与 [Script] 同时命中时
+# Loon 只执行 Rewrite（抓包实证：bundle 会删 account/event_list/preload/show，
+# 而抓包里这些键全都还在，是 jq 置空的）。splash 交给上面的 jq 规则；
+# brand/list 上 bundle 本来就是零改动（那 4 个键不在该载荷里）。
+# [dropped-by-test] http-response ^https?:\/\/(api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?)|api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\?|api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock.bundle.js?v=722, requires-body=1, argument=[{LogLevel}], tag=BiliUniverse去广告
+# [dropped-by-test] http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/adblock-hotsearch.js?v=722, requires-body=1, timeout=10, tag=去除搜索推荐
+
+[Mitm]
+# 不变量：这里每个域名都要有 [Rewrite]/[Script] 规则作用于它，否则等于白解密一份 TLS。
+# api.vc.bilibili.com 已移出（那 3 条 reject-dict 规则随死规则删除后变成零覆盖）。
+hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com
+h2 = true
