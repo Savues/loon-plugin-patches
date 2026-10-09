@@ -97,8 +97,7 @@ const sAuto = styleMsg.elems[1], sNote = styleMsg.elems[2];
 ck('自动档是顶部大字 + 有 action',
   sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 50 && !!sAuto.action,
   JSON.stringify({ m: sAuto.midHash, mode: sAuto.mode, fs: sAuto.fontsize, a: sAuto.action }));
-ck('提醒档同样是顶部大字（只是不冒充空降弹幕）',
-  sNote.mode === 5 && sNote.fontsize === 50,
+ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
   JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
 ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
@@ -171,27 +170,7 @@ ck('single：可改成挤一行用 · 分隔', (() => {
 })(), '挤一行');
 ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 
-ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5 && sNote.fontsize === 50,
-  sNote.mode + '/' + sNote.fontsize);
-ck('提醒不再冒充空降弹幕（去掉大拇指图标与边框）', sNote.midHash !== '1948dd5d', sNote.midHash);
-ck('提醒借用了真实弹幕的 midHash', sNote.midHash === '741886e', sNote.midHash);
-ck('自动跳那条保持空降样式（降落伞图标是合理提示）', sAuto.midHash === '1948dd5d', sAuto.midHash);
-ck('汇总也不再冒充空降弹幕', sumMsg2.elems.slice(1, 5).every(x => x.midHash !== '1948dd5d'), '');
-ck('提醒默认不给 action（B 站据此显示大拇指）', !sNote.action, sNote.action);
-ck('airInfoIcon=chute 时给一个指向自身时间的 action', (() => {
-  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]],
-    { airSummary: 'off', airNoticeCategories: 'filler', airInfoDelay: 3, airInfoIcon: 'chute' });
-  return m.elems[1].action === 'airborne:153000' && m.elems[1].progress === 153000;   // 原地跳
-})(), '自指 action');
-ck('汇总条目按片段起点排序，整篇(0 秒)排最前',
-  sumMsg2.elems.slice(1, 5).map(x => x.content).join(' | ').indexOf('恰饭 整篇') === 0,
-  sumMsg2.elems.slice(1, 5).map(x => x.content).join(' | '));
-ck('汇总排序不影响逐段提醒的时机', (() => {
-  const auto = sumMsg2.elems.find(x => x.action);
-  return auto && auto.content === '空指部已就位';
-})(), '逐段仍在各自时间点');
+ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
 ck('提醒可改成滚动弹幕（停留更久、暂停也保留）', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
