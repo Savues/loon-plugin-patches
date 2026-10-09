@@ -156,7 +156,9 @@ function __airInject(msg, segs, a) {
             head[k].color = sum === "single" ? AIR_SUMMARY_COLOR : __airColor(shown[k][2]);
             if (donor) { head[k].midHash = donor[0]; head[k].attr = donor[1]; }
         }
-        built = head.concat(built);
+        built = head.concat(built.filter(function (x, i) {
+            return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
+        }));
     }
     elems.push.apply(elems, built);
 }

@@ -117,12 +117,19 @@ const sumMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg.elems, sumSegs, Object.assign({ airSummary: 'off' }, sumArg));
 ck('airSummary=off 时不产生汇总', sumMsg.elems.length === 5, String(sumMsg.elems.length));
+ck('airSummary=off 时，整篇的独立提醒仍然保留（兜底，避免信息全丢）',
+  sumMsg.elems.some(x => x.content === '⚠️ 恰饭 00:00→03:11'),
+  sumMsg.elems.map(x => x.content).join(' | '));
 
 const sumMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg));
-ck('stagger：每段一条，共 4 条汇总 + 4 条原弹幕',
-  sumMsg2.elems.length === 9, String(sumMsg2.elems.length));
+ck('stagger：4 条汇总 + 2 条逐段提醒（原弹幕 1）',
+  sumMsg2.elems.length === 7, String(sumMsg2.elems.length));
+ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行「XX 整篇」）',
+  sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭 00:00→03:11').length === 0 &&
+  sumMsg2.elems.some(x => x.content === '恰饭 整篇' || x.content === '独家体验 整篇'),
+  sumMsg2.elems.map(x => x.content).join(' | '));
 // elems[0] 是那条真实弹幕，汇总从 index 1 开始
 const H2 = sumMsg2.elems.slice(1, 5);
 ck('stagger：汇总错开 4 秒',
@@ -136,7 +143,8 @@ const many = sumSegs.concat([[400, 420, 'filler', 'skip', 191, 0], [500, 530, 'p
 const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
-ck('single：6 段只产生一条汇总（原弹幕1 + 汇总1 + 逐段6）', sumMsg3.elems.length === 8, String(sumMsg3.elems.length));
+ck('single：6 段 → 原弹幕1 + 汇总1 + 逐段提醒4（2 个整篇让位给汇总）',
+  sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('single：标题行 + 每段一行',
   sumMsg3.elems[1].content === '📍 本视频包括：\n恰饭 整篇\n恰饭 02:30–02:46\n一键三连 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
   JSON.stringify(sumMsg3.elems[1].content));
