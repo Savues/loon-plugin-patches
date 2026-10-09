@@ -39,7 +39,7 @@
     '325e7073ffc6fb5263682fecdcd1058f': '932002070dc1b51241198a074d2279fc',
     '3a14beddd23328eaddfe9f0eb048d713': '8c3feda2e92bf60e8a7aeade1a231586'
   };
-  var BASE = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/';
+  var BASE = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/';
 
   function variant(ua) {
     ua = ua || '';

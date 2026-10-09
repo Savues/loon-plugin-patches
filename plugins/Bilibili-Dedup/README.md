@@ -3,20 +3,20 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.25** · 18 参数 / 5 Rule / 14 Rewrite / 7 Script / 5 MITM 域名 · 更新 `2026-10-06`
+**v7.26** · 17 参数 / 5 Rule / 14 Rewrite / 6 Script / 5 MITM 域名 · 更新 `2026-10-10`
 
 | | 中文 | English |
 |---|---|---|
 | 端点 | `myinfo`、`account/mine`、`account/mine/ipad`、`x/v2/space`、`x/v2/space/archive/cursor`、`x/v2/space/article` | same |
-| 脚本 | 会员伪装 1 个自撰 + 3 个上游镜像 + 6 个引擎包 5.6 MB | 1 in-house + 3 mirrored + 6 engine bundles |
-| 外部依赖 | 仅剩 `bsbsb.top`（广告时间库，无法镜像），见[第七章](#七空降助手机制--sponsorblock-mechanism) | only `bsbsb.top` remains |
+| 脚本 | 会员伪装 1 个自撰 + 3 个上游镜像（空降助手的 6 个引擎包已移出） | 1 in-house + 3 mirrored |
+| 外部依赖 | **无** | no external dependency |
 | 开关 | `localVIP`、`localVIPSpace` 独立可控 | independently toggleable |
-| 客户端 | 已在 **国行 iPad（`bili-hd2`）与 国际版 iPhone（`bili-inter`）** 两台设备上实测：后者走 `viewunite` 变体端点、chronos 走 `inter` 兜底包，两者响应均无广告泄漏 | tested on two client builds |
+| 客户端 | 已在 **国行 iPad（`bili-hd2`）与 国际版 iPhone（`bili-inter`）** 两台设备上实测 | tested on two clients |
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
-> 本文描述**当前状态**；第六、七章共 269 行是**上游脚本的机制档案**（镜像 provenance + 空降助手逆向），
-> 不属于本插件说明，只是恰好放在这里 —— 要压缩文档先搬它们，别动前面的内容。
+> ⚠️ **v7.26 起「空降助手」已移出本插件**（参数 `sponsorBlock` 与 `DM/DmSegMobile` 规则均已删除，chronos 引擎包 ×6 已迁至 `plugins/Bilibili-Airborne/chronos/`）。需要跳广告请装 [Bilibili-Airborne](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-Airborne)，**两个插件不要同时开**（会重复注入空降弹幕）。本文第六、七章保留为历史机制档案。
 > 踩坑过程 → [迭代记录](../../BILIBILI-ITERATION.md)。
+
 
 ### v7.19 相对 v7.18 的变更
 
@@ -57,6 +57,7 @@
 | `2026-09-28T21:50` | `—` | `vip`（普通大会员）主题改用官方灰版 `gray-vip.png`——该档位权限与非会员相同，灰底如实反映 |
 | `2026-09-28T21:30` | `—` | 新增参数 `myMid`：空间页伪装改为只作用于该 UID 的主页，**留空即关闭**（此前硬编码） |
 | `2026-09-28T21:05` | `—` | **v7.16** 修空间页误改他人资料：`x/v2/space` 加 mid 判定，只改自己的主页；同时修掉 try 块顶层 `return` 的语法错误 |
+| `2026-10-10` | **v7.26** | 移除「空降助手」：删 `sponsorBlock` 参数与 `DM/DmSegMobile` 规则；chronos 引擎包 ×6（5.5 MB）迁至 `plugins/Bilibili-Airborne/chronos/`，本插件不再有外部依赖 |
 | `2026-09-28T15:40` | — | 空降助手引擎包（chronos）镜像至 `upstream/chronos/`；`protobuf.response.js` 中 1 处 URL 改指本仓库，其余字节不变 |
 | `2026-09-28T14:32` | `7ca3ac3` | `#!desc` 版本号 v6.0 → v7.15；修正重复标点；删除 v4 时代失效的「搜 PLUGIN_VERSION」说明（该常量在 5 个脚本中均不存在）；构建时间戳同步为实际提交时间 |
 | `2026-09-28T14:25` | `b2b1c0d` | README 新增[第六章](#六上游脚本镜像--upstream-script-mirror)：目录结构、上游对应关系、SHA256 校验方法 |
@@ -198,7 +199,7 @@ Push-notification permission popup.
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
-| `sponsorBlock` | 开 | 空降助手（自动跳过视频内插广告），依赖两个外部服务，见[第七章](#七空降助手机制--sponsorblock-mechanism) |
+
 | `optimizeRequest` | 开 | 优化评论区加载 |
 | `purifyComment` | 开 | 移除评论区置顶商品广告 |
 | `displayUpList` | `show` | 最常访问：`show`/`hide`/`auto` |
@@ -251,7 +252,7 @@ Push-notification permission popup.
 
 | 观察项 | 证据 |
 |---|---|
-| 改写生效 | `ViewProgress` 响应 `chronos.f2` = `raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/8c3feda2….zip` |
+| 改写生效 | `ViewProgress` 响应 `chronos.f2` = `raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/8c3feda2….zip` |
 | 弹幕注入 | `DmSegMobile` 响应中确认含 `空指部已就位`（同批另一条请求不含） |
 | 无重复下载 | 全程无 chronos zip 请求 → App 命中 MD5 缓存（镜像包与原包字节相同） |
 | 兜底路径 | UA `bili-inter/82300200` → `inter` 档 → `8c3feda2…`，与表一致 |
@@ -272,12 +273,12 @@ plugins/Bilibili-Dedup/
 ├── lpx-verify.mjs          9.8 KB  清单校验：与 baseline-v7.18.lpx 逐条比对 Rewrite/Rule/Mitm/Script
 └── baseline-v7.18.lpx      12 KB  上一版清单快照，只供上面的校验器做对照，不是可加载的插件
 
-plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
+plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本
     ├── protobuf.request.js     62 KB
-    ├── protobuf.response.js    95 KB  ⚠️ 已改 URL，见下
+    ├── protobuf.response.js    95 KB  ⚠️ chronos URL 已改指 Bilibili-Airborne/chronos（保留兼容，本插件不再传 sponsorBlock）
     ├── adblock.bundle.js      842 KB
     ├── adblock-hotsearch.js   817 B
-    ├── chronos/                5.6 MB  空降助手引擎包 ×6
+
     ├── vip-assets/            288 KB  16 张官方牌子图（4 张在用，其余备用，见下）
     └── MANIFEST.json
 ```
@@ -286,7 +287,7 @@ plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
 
 | 本地文件 | 上游来源 | 用途 |
 |---|---|---|
-| `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化、空降助手 |
+| `upstream/protobuf.request.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.request.js` | 评论请求优化 |
 | `upstream/protobuf.response.js` | [kokoryh/Sparkle](https://github.com/kokoryh/Sparkle) `master/dist/bilibili.protobuf.response.js` | protobuf 响应处理 |
 | `upstream/adblock.bundle.js` | [BiliUniverse/ADBlock](https://github.com/BiliUniverse/ADBlock) `releases/download/v0.6.24/response.bundle.js` | 去广告主逻辑（19 项参数）。**现只用于番剧页 / 网页端推荐 / 直播房间 3 个端点**；splash 由 `[Rewrite]` 的 jq 负责 |
 | `icon.png` | BiliUniverse `src/assets/icon_rounded.png` | 插件图标；**原图 1024×1024 缩放至 256×256**（67 KB → 17 KB） |
@@ -304,7 +305,7 @@ plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本 + 6 个引擎包
 // 改前（镜像前）
 a.file = `https://raw.githubusercontent.com/kokoryh/chronos/refs/heads/master/${n}.zip`
 // 改后
-a.file = `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/${n}.zip`
+a.file = `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/${n}.zip`
 ```
 
 **全文仅此一处**（`${n}` 保持原样，映射表 6 个键不变），文件其余 97357−38 字节与上游完全一致。
@@ -471,7 +472,7 @@ Automatically seeks past in-video ads ~2s in, offering a 5-second "撤销空降"
 
 ③ protobuf.response.js  ii()   （ViewProgress 端点，共两处调用）
    改写响应里的 chronos 字段：
-     file → raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/chronos/<md5>.zip
+     file → raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/<md5>.zip（**资源已随空降助手功能移出本插件**，见下文）
      sign → 清空
 
 ④ App 加载该 chronos 包（弹幕焰火引擎），到点识别 content 匹配
@@ -544,3 +545,8 @@ entries and parameter declarations reorganized. Two in-house scripts added.
 | **zirawell** | 年度大会员实现参考 |
 
 上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
+
+
+
+
+

@@ -55,6 +55,16 @@ url: `https://bsbsb.top/api/skipSegments?videoID=${e}&cid=${t}&category=sponsor`
   同时开启时同一视频跳两次；
 - 回归测试覆盖 21 个用例，另有一次真实 API 响应的端到端验证。
 
+## 资源归属 · Asset ownership
+
+`chronos/` 目录（6 个引擎包，5.5 MB）**归属本插件**，2026-10-10 从
+`Bilibili-Dedup/upstream/chronos/` 迁入。原因：Dedup 的「空降助手」已移出，
+资源留在那里会造成跨插件依赖（Airborne 依赖 Dedup 的目录结构）。
+
+`Bilibili-Dedup/upstream/protobuf.response.js` 里那处硬编码 URL 同步改指到这里，
+保留是为了不破坏它自身的其它功能——Dedup 已不再传 `sponsorBlock`，
+所以那段 `ii()` 实际不会被调用，只是留着不出错。
+
 ## 同步方式 · Auto sync
 
 [`.github/workflows/sync-airborne.yml`](../../.github/workflows/sync-airborne.yml)　每 6 小时：

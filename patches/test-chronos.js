@@ -29,7 +29,7 @@ ck('输出与 Dedup 实测结果逐字节一致', got.equals(expect),
 const text = Buffer.from(got.subarray(5)).toString('latin1');
 ck('chronos#1 已改写为表里的 md5', text.includes('932002070dc1b51241198a074d2279fc'));
 ck('chronos#2 指向本仓库 zip',
-   text.includes('/plugins/Bilibili-Dedup/upstream/chronos/932002070dc1b51241198a074d2279fc.zip'));
+   text.includes('/plugins/Bilibili-Airborne/chronos/932002070dc1b51241198a074d2279fc.zip'));
 ck('chronos#3 sign 已删除', !text.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDbULF5yrEbrmhi2vsa97QXFvkq0rK'));
 ck('帧头改成未压缩(0x00)', got[0] === 0x00, String(got[0]));
 ck('长度字段正确', got.readUInt32BE(1) === got.length - 5);
