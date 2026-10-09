@@ -28,7 +28,7 @@ logLevel = select,"off","error","warn","info","debug",tag=脚本日志等级,des
 [Script]
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/bilibili.airborne.js, argument=[{airFullMode},{airInfoDelay},{airInfoMode},{airSummary},{airSummaryWrap},{airCategories},{airNoticeCategories},{airActions},{airMinDuration},{airMode},{airNotice},{airInfo},{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={Airborne}, tag=空降助手
 
-http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.view\.v1\.View\/ViewProgress$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos.js, requires-body=1, binary-body-mode=1, timeout=5, enable={chronos}, tag=chronos重签
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.view\.v1\.View\/ViewProgress$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos.js, argument=[{logLevel}], requires-body=1, binary-body-mode=1, timeout=5, enable={chronos}, tag=chronos重签
 
 [Mitm]
 hostname = grpc.biliapi.net, app.bilibili.com, app.biliapi.net

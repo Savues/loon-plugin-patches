@@ -25,6 +25,15 @@ eq('两档并集正好是全部 11 类', __airAny({}).sort(),
    ['exclusive_access','filler','interaction','intro','music_offtopic','outro','padding','poi_highlight','preview','selfpromo','sponsor'].sort());
 eq('两档没有重叠', __airAny({}).length, 11);
 eq('off 关闭', __airCats({ airCategories: 'off' }, 0), []);
+eq('关档写法大小写不敏感（OFF/None/no/0）',
+   ['OFF', 'None', 'no', '0'].map(v => __airCats({ airCategories: v }, 0).length), [0, 0, 0, 0]);
+eq('类别大小写不敏感：填 Sponsor 也能命中',
+   ok({ airCategories: 'Sponsor' }, 'skip', 'sponsor', 60), true);
+eq('动作大小写不敏感：填 FULL 也能命中',
+   ok({ airCategories: 'sponsor,exclusive_access', airActions: 'FULL' }, 'full', 'exclusive_access', 0, 191), true);
+eq('查询串一律发小写（bsbsb 的 id 就是小写）',
+   decodeURIComponent(__airQS({ airCategories: 'Sponsor,Intro', airNoticeCategories: 'off' })),
+   'categories=["sponsor","intro"]');
 eq('参数名大小写容错', __airCats({ AirCategories: 'intro' }, 0), ['intro']);
 eq('逗号+空格+中文逗号', __airCats({ airCategories: 'sponsor, intro，outro' }), ['sponsor', 'intro', 'outro']);
 eq('查询串覆盖全部 11 类', JSON.parse(decodeURIComponent(__airQS({}).slice('categories='.length))).length, 11);

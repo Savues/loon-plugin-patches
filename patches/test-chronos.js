@@ -128,5 +128,47 @@ const halves = [raw.subarray(5).subarray(0, 20), raw.subarray(5).subarray(0, 37)
 ck('任意前缀的残缺 payload 都不会产出 response',
    halves.every(h => run(mkFrame(h)) === null));
 
+// 🔴 http-response 脚本不保证有 $request，直接 $request.headers 会抛 TypeError
+let noReqOut = null, threw = null;
+try {
+  global.$done = (o) => { noReqOut = o; };
+  global.$response = { body: new Uint8Array(raw) };
+  delete global.$request;
+  (0, eval)(fs.readFileSync(SRC, 'utf8'));
+} catch (e) { threw = e; }
+ck('$request 缺失时不抛异常', !threw, threw && threw.message);
+ck('$request 缺失时仍能重签（退回 universal）', !!(noReqOut && noReqOut.response));
+global.$request = { headers: { 'user-agent': 'Mozilla/5.0 bili-android' } };
+
+// 服务端换了 chronos zip、表里没有这条映射 → 退回按 UA 取默认值，并打出 warn。
+// 日志是这条链路唯一的可观测信号（改 MAP 补映射就靠它），必须有。
+const mkStr = (no, s) => {
+  const b = Buffer.from(s, 'latin1');
+  return Buffer.concat([Buffer.from(mkVarint((no << 3) | 2)), mkVarint(b.length), b]);
+};
+const inner2 = Buffer.concat([
+  mkStr(1, 'deadbeefdeadbeefdeadbeefdeadbeef'), mkStr(2, 'http://i0.hdslb.com/bfs/x.zip'), mkStr(3, 'SIGNTOKEN')
+]);
+const logged = [];
+const realLog = console.log;
+console.log = (m) => logged.push(String(m));
+global.$argument = { logLevel: 'warn' };
+const fallbackOut = run(mkFrame(Buffer.concat([mkStr(2, inner2.toString('latin1'))])));
+console.log = realLog;
+global.$argument = undefined;
+ck('表里没有的 md5 仍会重签（退回 universal）', !!fallbackOut);
+ck('退回时恰好打一条 warn（debug 行不能顶替它）',
+   logged.length === 1 && logged[0].includes('不在映射表'), logged.join(' / ') || '一条日志都没有');
+global.$argument = undefined;
+
+// logLevel=off 时必须安静
+const logged2 = [];
+console.log = (m) => logged2.push(String(m));
+global.$argument = { logLevel: 'off' };
+run(raw);
+console.log = realLog;
+global.$argument = undefined;
+ck('logLevel=off 时不打任何日志', logged2.length === 0, logged2.join(' / '));
+
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);

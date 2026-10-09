@@ -41,6 +41,18 @@
   };
   var BASE = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/';
 
+  // ---- 日志：跟主脚本共用清单里那个 logLevel 开关（chronos 规则也传 argument=[{logLevel}]）----
+  var LEVELS = { off: 0, error: 1, warn: 2, info: 3, debug: 4 };
+  var ARG = {};
+  try { ARG = (typeof $argument === 'string' ? JSON.parse($argument || '{}') : $argument) || {}; }
+  catch (e) { ARG = {}; }
+  var LEVEL = LEVELS[String(ARG.logLevel || 'off')] || 0;
+  // 阈值 t 必须 > 0：logLevel=off 时 LEVEL=0 一律沉默，误传 log('off', ...) 也一样
+  function log(lvl, msg) {
+    var t = LEVELS[lvl] || 0;
+    if (t > 0 && LEVEL >= t) console.log('[chronos] ' + msg);
+  }
+
   function variant(ua) {
     ua = ua || '';
     if (ua.indexOf('bili-hd') === 0) return 'hd';
@@ -136,11 +148,23 @@
   }
   if (!/^[0-9a-f]{32}$/.test(md5)) { $done({}); return; }
 
-  var target = MAP[md5] || MAP[variant(($request.headers || {})['user-agent'])];
-  if (!target) { $done({}); return; }
   var isOurs = false;
   for (var key in MAP) { if (MAP[key] === md5) { isOurs = true; break; } }
   if (isOurs) { $done({}); return; }           // 已经指向本仓库的 zip，幂等放行
+
+  // http-response 脚本里 $request 不一定存在，直接 $request.headers 会抛 TypeError
+  var ua = (typeof $request !== 'undefined' && $request && $request.headers) || {};
+  ua = ua['user-agent'] || '';
+  var hit = MAP[md5];
+  if (!hit) {
+    // 服务端换了 chronos zip、表里没有这条映射：退回按 UA 取默认值，功能还在但可能版本不对
+    log('warn', 'chronos md5 ' + md5 + ' 不在映射表里（当前 ' +
+        Object.keys(MAP).length + ' 条），已按 UA 回退到 ' + variant(ua) +
+        '；需要在 chronos.js 的 MAP 里补一条新映射');
+  }
+  var target = hit || MAP[variant(ua)];
+  if (!target) { $done({}); return; }
+  log('debug', md5 + ' → ' + target + '（' + variant(ua) + '）');
 
   var rewritten = [];
   for (k = 0; k < inner.length; k++) {

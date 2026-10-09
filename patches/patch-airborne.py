@@ -63,7 +63,9 @@ var __airCats = function (a, which) {
     var v = which === 1
         ? __airVal(a, "airNoticeCategories", "exclusive_access,poi_highlight,preview,filler,music_offtopic")
         : __airVal(a, "airCategories", "sponsor,selfpromo,interaction,intro,outro,padding");
-    return __airSplit(v).filter(function (x) { return x !== "off" && x !== "none" && x !== "none"; });
+    // 关掉这一档的写法：off / none / no / 0 / 空（大小写不敏感，填 "OFF" 也认）
+    return __airSplit(v).map(function (x) { return x.toLowerCase(); })
+        .filter(function (x) { return x && x !== "off" && x !== "none" && x !== "no" && x !== "0"; });
 };
 var __airAny = function (a) {
     return __airCats(a, 0).concat(__airCats(a, 1)).filter(function (x, i, s) { return s.indexOf(x) === i; });
@@ -75,22 +77,25 @@ function __airOK(a, t, r, n, d) {
         var fm = String(__airVal(a, "airFullMode", "notice"));
         return fm !== "off" && Number(d) > 0;
     }
-    var auto = __airCats(a, 0).indexOf(String(r)) >= 0;   // 自动跳列表
-    var info = __airCats(a, 1).indexOf(String(r)) >= 0;   // 只提醒列表
+    r = String(r).toLowerCase();          // 与 __airCats 的归一化保持一致
+    t = String(t).toLowerCase();
+    var auto = __airCats(a, 0).indexOf(r) >= 0;   // 自动跳列表
+    var info = __airCats(a, 1).indexOf(r) >= 0;   // 只提醒列表
     if (!auto && !info) return false;                      // 两个列表都没收录
     if (info) {                                             // 只提醒档：不跳，动作对它没有意义
         if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 8))) return false;
         return true;
     }
-    if (__airSplit(__airVal(a, "airActions", "skip")).indexOf(String(t)) < 0) return false;
+    if (__airSplit(__airVal(a, "airActions", "skip")).map(function (x) { return x.toLowerCase(); })
+        .indexOf(t) < 0) return false;
     if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
     return n >= Number(__airVal(a, "airMinDuration", 8));
 }
 /** 这条片段要不要带空降动作 */
 function __airIsAuto(a, t, r) {
     if (t === "full") return String(__airVal(a, "airFullMode", "notice")) === "jump";
-    if (__airCats(a, 1).indexOf(String(r)) >= 0) return false;   // 提醒档优先：同一类在两档时以提醒为准
-    return __airCats(a, 0).indexOf(String(r)) >= 0;
+    if (__airCats(a, 1).indexOf(String(r).toLowerCase()) >= 0) return false;   // 提醒档优先：同一类在两档时以提醒为准
+    return __airCats(a, 0).indexOf(String(r).toLowerCase()) >= 0;
 }
 function __airEnd(seg) {   // 空降目标（秒）
     return seg[3] === "full" ? Number(seg[4]) : seg[1];
@@ -206,11 +211,13 @@ function __airInject(msg, segs, a) {
                 head[ki].progress = delay + ki * 4000;
             }
         }
-        for (var kk = 0; kk < head.length; kk++) {
-            head[kk].mode = Number(want) || 5;
-            head[kk].color = sum === "single" || labels[kk] === "全片恰饭软广"
-                ? AIR_SUMMARY_COLOR : __airColor(shown[kk][2]);
-            if (donor) { head[kk].midHash = donor[0]; head[kk].attr = donor[1]; }
+        for (var kc = 0; kc < head.length; kc++) {
+            head[kc].mode = Number(want) || 5;
+            // labels[kc] 与 shown[kc] 从 kc>=1 起一一对应（kc=0 是插在最前的「全片恰饭软广」，
+            // shown[0] 恰好就是那条整篇恰饭，被上面那个 continue 跳过但没从 shown 里移除）
+            head[kc].color = sum === "single" || labels[kc] === "全片恰饭软广"
+                ? AIR_SUMMARY_COLOR : __airColor(shown[kc][2]);
+            if (donor) { head[kc].midHash = donor[0]; head[kc].attr = donor[1]; }
         }
         built = head.concat(built.filter(function (x, i) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
