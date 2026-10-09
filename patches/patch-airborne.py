@@ -124,8 +124,23 @@ function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
-    if (elems.some(x => x && x.ctime === "1735660800" && x.dmFrom === 1)) return;
-    elems.push.apply(elems, nn(segs, a));
+    if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
+    var built = nn(segs, a);
+    // 只提醒的那几条不冒充空降弹幕：实测 midHash=1948dd5d + 空 action 会被 App 整条丢弃。
+    // 借一条真实弹幕的 midHash/attr/mode/fontsize，保证按普通弹幕渲染。
+    var donor = null, fallback = ["741886e", 1048576, 1, 25];
+    for (var i = 0; i < elems.length; i++) {
+        var e = elems[i];
+        if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
+    }
+    var plain = donor || fallback;
+    for (var j = 0; j < built.length; j++) {
+        if (!built[j].action) {
+            built[j].midHash = plain[0]; built[j].attr = plain[1];
+            built[j].mode = plain[2]; built[j].fontsize = plain[3];
+        }
+    }
+    elems.push.apply(elems, built);
 }
 '''
 

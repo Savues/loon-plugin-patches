@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.6
-#!desc=v1.6 整篇软广（社区标记「整个视频都属于某类」，如独家首发、整篇恰饭）新增独立处理：默认在片头约 2 秒出一行文字提醒，**不跳转**，要不要看完自己决定；也可切成直接空降到片尾。空降自动跳依赖 chronos 重签（本插件自带 chronos.js）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.7
+#!desc=v1.7 修「只提醒」的弹幕显示不出来：实测 App 会丢弃「带空降标志但没有跳转动作」的弹幕，现在只提醒的那几条会借用一条真实弹幕的样式（midHash/attr/mode/字号），按普通弹幕渲染，保证显示。v1.6 整篇软广独立成档，默认片头只提醒不跳转。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-09 19:05:00
+#!date=2026-10-09 20:30:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕

@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.6** · 9 参数 / 2 Script / 3 MitM
+**v1.7** · 9 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v16`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v17`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -123,6 +123,11 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 | `off` | 完全不处理 |
 
 它**独立于上面的类别列表**——不管某类写没写进 `自动跳的类型`，只要社区标了整篇就会提醒。
+
+> 🔴 **「只提醒」的弹幕长什么样**：它不带跳转动作，而且**不会冒充空降弹幕**——
+> 会借用视频里一条真实弹幕的样式（`midHash`/`attr`/模式/字号）来渲染。
+> 实测带空降标志（`midHash=1948dd5d`）却没动作的弹幕，App 会整条丢弃、屏幕上什么都不出现。
+> 所以提醒档看起来就是一条普通的白色弹幕，从屏幕下方（默认）或顶部飘过。
 
 ### 类别中文化
 

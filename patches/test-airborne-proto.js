@@ -85,6 +85,31 @@ ck('$t 注入的那条带空降动作', out.elems[1] && out.elems[1].action === 
 ck('$t 注入的那条文案是默认「空指部已就位」', out.elems[1] && out.elems[1].content === '空指部已就位',
    out.elems[1] && out.elems[1].content);
 
+// 🔴 只提醒档必须「借用真实弹幕的样式」：实测 App 会丢弃
+// midHash=1948dd5d（空降标志）但 action 为空的弹幕，整条不显示。
+const donorMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 9, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+    content: '真实弹幕', ctime: '1700000000', dmFrom: 2 },
+]})));
+inject(donorMsg.elems,
+  [[0, 42.9, 'sponsor', 'skip', 191, 1], [0, 0, 'sponsor', 'full', 191, 0]],
+  { airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
+const dAuto = donorMsg.elems[1], dNote = donorMsg.elems[2];
+ck('借用样式：自动档仍是空降 midHash', dAuto.midHash === '1948dd5d', dAuto.midHash);
+ck('借用样式：自动档保留 action', dAuto.action === 'airborne:42900', dAuto.action);
+ck('借用样式：只提醒档用真实 midHash', dNote.midHash === '741886e', dNote.midHash);
+ck('借用样式：只提醒档用真实 mode', dNote.mode === 1, String(dNote.mode));
+ck('借用样式：只提醒档用真实 fontsize', dNote.fontsize === 25, String(dNote.fontsize));
+ck('借用样式：只提醒档没有 action', !dNote.action, dNote.action);
+
+// 没有可借的真实弹幕时退回普通样式
+const bareMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 9, progress: 10, midHash: '1948dd5d', attr: 1310724, mode: 5, fontsize: 50,
+    content: 'x', ctime: '1700000000', dmFrom: 2 },
+]})));
+inject(bareMsg.elems, [[0, 0, 'sponsor', 'full', 191, 0]], {});
+ck('借不到样本时退回普通样式', bareMsg.elems[1].midHash === '741886e', bareMsg.elems[1].midHash);
+
 // 同样走真实调用点，但响应里已经有本脚本注入过的弹幕 → 幂等
 const ctx2 = mkCtx(_e.toBinary(after));
 try { $t(ctx2, () => {}); } catch (e) { ck('幂等路径不抛异常', false, e.message); }
