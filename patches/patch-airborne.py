@@ -146,12 +146,45 @@ function __airAction(a, seg, l) {
     if (String(__airVal(a, "airMode", "jump")) === "mark") return "";          // 全局降级为只提醒
     return "airborne:" + l;
 }
+/**
+ * 顺着「开头的自动跳」往后爬，返回用户实际会落到的位置（秒）。
+ *
+ * 为什么需要：视频一开头就有片头/恰饭时，App 会在片段起点+2 秒执行空降动作直接
+ * seek 走（实测 BV1PyHi6vEpA：intro[0,32.005]，2 秒跳到 32 秒）。而汇总弹幕原本
+ * 钉在第 3 秒，正好落在被跳过的那 29 秒里 —— 用户永远看不到。实测那个视频的
+ * 响应里就是 progress=3000 的汇总 + progress=2000 的空降动作。
+ *
+ * 只跟"真的会带动作"的片段走（提醒档不 seek、airMode=mark 全局降级后也不 seek），
+ * 所以关掉自动跳时锚点仍是 0，行为与以前完全一致。
+ */
+function __airLand(a, segs) {
+    // 容差 2 秒 = 空降动作的触发偏移（片段起点 +2s 才 seek）。落到 10s 时 [12,20]
+    // 这段仍会在 14s 把人再拽走，所以 10 <= 12 <= 10+2 也要跟着爬。
+    var EPS = 2, t = 0, n = 0, q, moved;
+    do {
+        moved = false;
+        for (q = 0; q < segs.length; q++) {
+            if (__airAction(a, segs[q], 0) === "") continue;      // 不会 seek 的片段不用管
+            var e = __airEnd(segs[q]);
+            if (segs[q][0] <= t + EPS && e > t) { t = e; moved = true; break; }
+        }
+    } while (moved && ++n < 20);                                   // 防重叠片段造成的死循环
+    return t;
+}
+/** 落点已经越过片尾（典型是"整篇即此类"且开了空降）→ 汇总钉哪儿都看不见干脆不注入 */
+function __airLandPast(a, segs) {
+    var dur = Number(segs[0] && segs[0][4]) || 0;
+    if (!dur) return false;
+    return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
+}
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
     if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
     var built = nn(segs, a);
+    // 落点之后的「地板」：汇总与提醒都不该出现在会被跳过的区间里
+    var floorMs = __airLand(a, segs) * 1000 + 2000;
     // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），提醒档只是不带 action。
     // ⚠️ 曾把提醒档降级成普通滚动弹幕，结论是错的：用户看不到的原因是
     //    App 的「弹幕显示区域」设得太小把顶部裁掉了，不是被 App 丢弃。
@@ -168,7 +201,9 @@ function __airInject(msg, segs, a) {
     }
     for (var i = 0; i < built.length; i++) {
         if (built[i].action) continue;                       // 自动跳那条不动
-        built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
+        // 原本是"片段起点 + delay"；若这个起点落在开头的跳过区间里，一起挪到落点之后，
+        // 否则这条提醒也和汇总一样看不见（同一族的洞）
+        built[i].progress = Math.max(Math.floor(segs[i][0] * 1000) + delay, floorMs);
         built[i].mode = Number(want) || 5;
         built[i].color = __airColor(segs[i][2]);        // 按类别上色
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
@@ -178,7 +213,7 @@ function __airInject(msg, segs, a) {
     // 片头汇总：把这个视频里「会被处理」的所有片段在开头依次列出来。
     // stagger=每段一条错开 4 秒（单条不会太长显示得下）；single=挤成一条；off=不列。
     var sum = String(__airVal(a, "airSummary", "single"));
-    if (sum !== "off") {
+    if (sum !== "off" && !__airLandPast(a, segs)) {
         var cap = 5;                                            // 一条弹幕装不下太多，硬性截断
         var shown = segs.slice(0, cap);
         var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
@@ -192,6 +227,8 @@ function __airInject(msg, segs, a) {
             if (shown[kk][2] === "sponsor" && shown[kk][3] === "full") continue;
             labels.push(__airSegText(shown[kk]));
         }
+        var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
+            ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         var synth, head;
         if (sum === "single") {
             // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
@@ -200,7 +237,7 @@ function __airInject(msg, segs, a) {
             synth = [[0, 0, "", "skip", 0, 0]];
             head = nn(synth, a);
             head[0].content = __airText(a, synth[0], labels.join(join) + more, tpl);
-            head[0].progress = delay;
+            head[0].progress = sumAt;
         } else {
             synth = labels.map(function () { return [0, 0, "", "skip", 0, 0]; });
             head = nn(synth, a);
@@ -208,7 +245,7 @@ function __airInject(msg, segs, a) {
                 ? String(__airVal(a, "airInfo", "")) : "{list}";
             for (var ki = 0; ki < head.length; ki++) {
                 head[ki].content = __airText(a, synth[ki], labels[ki] + (ki === 0 ? more : ""), lbl);
-                head[ki].progress = delay + ki * 4000;
+                head[ki].progress = sumAt + ki * 4000;
             }
         }
         for (var kc = 0; kc < head.length; kc++) {

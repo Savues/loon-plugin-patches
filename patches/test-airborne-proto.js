@@ -102,7 +102,18 @@ ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode 
 ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
 ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
-ck('提醒档默认延后到 +3 秒', sNote.progress === 3000, String(sNote.progress));
+// 开头有自动跳 [0,42.9]：用户 2 秒就被 seek 到 42.9s，整篇提醒若钉在 3 秒就看不见了，
+// 现在一并下移到落点之后 2 秒（44.9s）。这是 2026-10-10 修的洞。
+ck('开头有自动跳时，提醒被挪到落点之后（42.9+2=44.9s）', sNote.progress === 44900, String(sNote.progress));
+// 对照：没有开头自动跳时，提醒仍是「片段起点 + airInfoDelay」
+const styleMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 9, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+    content: '真实弹幕', ctime: '1700000000', dmFrom: 2 },
+]})));
+inject(styleMsg2.elems, [[600, 640, 'filler', 'skip', 191, 0]],
+  { airSummary: 'off', airCategories: 'sponsor', airNoticeCategories: 'filler' });
+ck('没有开头自动跳时，提醒仍是片段起点 + airInfoDelay',
+   styleMsg2.elems[1].progress === 603000, String(styleMsg2.elems[1].progress));
 // 片头汇总
 const sumArg = { airInfoDelay: 3, airCategories: 'sponsor', airNoticeCategories: 'interaction,exclusive_access',
                   airActions: 'skip', airFullMode: 'notice',
@@ -227,6 +238,51 @@ ck('响应里已有本脚本弹幕时不再重复注入',
     }
   } catch (e) { broke = e; }
   ck('跑完 inject 后 protobuf 运行时仍完好（无顶层变量被污染）', !broke, broke && broke.message);
+}
+
+// ---- 汇总锚点：开头有自动跳时，汇总不能钉在被跳过的区间里（2026-10-10 用户实测反馈）----
+// 真实案例 BV1PyHi6vEpA：bsbsb 只有 intro[0,32.005]，自动跳在第 2 秒 seek 到 32 秒，
+// 老行为把汇总钉在 progress=3000，正好落在被跳过的 29 秒里，用户永远看不到。
+const mkReal = () => _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+    content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+const HAR_SEGS = [[0, 32.005, 'intro', 'skip', 1784, 1]];
+const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategories: 'off', airActions: 'skip' };
+{
+  const m = mkReal();
+  inject(m.elems, HAR_SEGS, HAR_ARG);
+  ck('开头有自动跳：汇总钉在落点之后（32.005+2=34.005s）',
+     m.elems[1].progress === 34005, String(m.elems[1].progress));
+  ck('汇总文案仍然完整', m.elems[1].content.includes('开场动画 00:00–00:32'), m.elems[1].content);
+  ck('自动跳那条本身仍在片段起点 +2 秒',
+     m.elems.some(x => x.progress === 2000 && !!x.action), JSON.stringify(m.elems.map(x => x.progress)));
+}
+{
+  const m = mkReal();
+  inject(m.elems, HAR_SEGS, Object.assign({ airSummaryAnchor: 'start' }, HAR_ARG));
+  ck('airSummaryAnchor=start 可退回旧行为（钉在 3 秒）',
+     m.elems[1].progress === 3000, String(m.elems[1].progress));
+}
+{
+  const m = mkReal();
+  inject(m.elems, [[600, 640, 'intro', 'skip', 1784, 1]], HAR_ARG);
+  ck('开头没有自动跳时汇总仍在 airInfoDelay（行为不变）',
+     m.elems[1].progress === 3000, String(m.elems[1].progress));
+}
+{
+  const m = mkReal();
+  inject(m.elems, HAR_SEGS, Object.assign({ airSummary: 'stagger' }, HAR_ARG));
+  ck('stagger 同样整体后移并保持 4 秒错开',
+     m.elems.slice(1, 2).map(x => x.progress).join('/') === '34005', m.elems.map(x => x.progress).join('/'));
+}
+{
+  // 整篇即此类 + 开空降：用户被直接送到片尾，汇总钉哪儿都看不见 → 干脆不注入
+  const m = mkReal();
+  inject(m.elems, [[0, 0, 'sponsor', 'full', 120, 1]],
+    { airSummary: 'single', airCategories: 'sponsor', airFullMode: 'jump', airActions: 'skip' });
+  ck('落点越过片尾时不注入汇总',
+     m.elems.filter(x => x.content.includes('本视频')).length === 0,
+     m.elems.map(x => x.content).join(' | '));
 }
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');

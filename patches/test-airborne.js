@@ -39,6 +39,35 @@ eq('逗号+空格+中文逗号', __airCats({ airCategories: 'sponsor, intro，ou
 eq('查询串覆盖全部 11 类', JSON.parse(decodeURIComponent(__airQS({}).slice('categories='.length))).length, 11);
 eq('查询串只发自定义并集', decodeURIComponent(__airQS({ airCategories: 'intro', airNoticeCategories: 'outro' })), 'categories=["intro","outro"]');
 
+// ---- 汇总锚点：用户实测「开头有自动跳就看不到片头汇总」----
+const land = (segs, a) => __airLand(Object.assign({ airMode: 'jump' }, a), segs);
+// 真实案例 BV1PyHi6vEpA：bsbsb 返回 intro[0,32.005]，自动跳在第 2 秒 seek 到 32 秒，
+// 汇总若钉在第 3 秒就落在被跳过的 29 秒里（用户 HAR 实测：注入的汇总 progress=3000）
+eq('真实案例：落点 = 片段终点 32.005', land([[0, 32.005, 'intro', 'skip', 1784, 1]]), 32.005);
+eq('开头没有片段 → 落点 0（行为与以前完全一致）',
+   land([[600, 640, 'sponsor', 'skip', 1784, 1]]), 0);
+eq('连锁：落在 10s 时 [12,20] 仍会在 14s 拽走，要跟到 20',
+   land([[0, 10, 'intro', 'skip', 600, 1], [12, 20, 'sponsor', 'skip', 600, 1]]), 20);
+eq('相距太远的片段不跟（[60,70] 不会影响 10s 的落点）',
+   land([[0, 10, 'intro', 'skip', 600, 1], [60, 70, 'sponsor', 'skip', 600, 1]]), 10);
+eq('重叠片段不会死循环', land([[0, 50, 'intro', 'skip', 600, 1],
+                              [10, 30, 'sponsor', 'skip', 600, 1],
+                              [20, 90, 'outro', 'skip', 600, 1]]), 90);
+eq('只提醒档不触发 seek，落点仍是 0', land([[0, 30, 'intro', 'skip', 600, 0]]), 0);
+eq('airMode=mark 全局不跳 → 落点 0', land([[0, 32.005, 'intro', 'skip', 1784, 1]], { airMode: 'mark' }), 0);
+eq('整篇即同类 + 开空降 → 落点 = 片长',
+   land([[0, 0, 'sponsor', 'full', 100, 1]], { airFullMode: 'jump' }), 100);
+// seg[5] 在生产里是 __airIsAuto() 推导出来的（见 tn()），夹具也走同一条路，
+// 否则手写 seg[5]=1 却传 airFullMode=notice 是自相矛盾的输入
+const seg5 = (a, t, r) => (__airIsAuto(a, t, r) ? 1 : 0);
+eq('整篇 notice（不跳）→ 落点 0',
+   land([[0, 0, 'sponsor', 'full', 100, seg5({ airFullMode: 'notice' }, 'full', 'sponsor')]],
+        { airFullMode: 'notice' }), 0);
+eq('落点越过片尾 → 汇总不注入',
+   __airLandPast({ airMode: 'jump', airFullMode: 'jump' }, [[0, 0, 'sponsor', 'full', 100, 1]]), true);
+eq('正常情况不算越过片尾',
+   __airLandPast({ airMode: 'jump' }, [[0, 32.005, 'intro', 'skip', 1784, 1]]), false);
+
 // 过滤：类别 / 动作 / 时长
 eq('sponsor+skip+42.9s 自动档通过', ok({}, 'skip', 'sponsor', 42.9), true);
 eq('intro 现在默认就在自动档', ok({}, 'skip', 'intro', 42.9), true);
