@@ -126,11 +126,19 @@ function __airInject(msg, segs, a) {
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
     if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
-    // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），
-    // 提醒档只是不带 action —— 实测那样会渲染成顶部大字，最显眼。
+    var built = nn(segs, a);
+    // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），提醒档只是不带 action。
     // ⚠️ 曾把提醒档降级成普通滚动弹幕，结论是错的：用户看不到的原因是
     //    App 的「弹幕显示区域」设得太小把顶部裁掉了，不是被 App 丢弃。
-    elems.push.apply(elems, nn(segs, a));
+    //
+    // 但「整篇软广」那条的片段起点是 0，按上游的 +2 秒就落在第 2 秒——那时人眼
+    // 还没落到屏幕上。实测其它提醒（片段在视频中段）都能正常看到，只有它不行。
+    // 所以提醒档统一改成「片段起点 + airInfoDelay 秒」，让两档的出现时机一致且看得见。
+    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 8))) * 1000;
+    for (var i = 0; i < built.length; i++) {
+        if (!built[i].action) built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
+    }
+    elems.push.apply(elems, built);
 }
 '''
 

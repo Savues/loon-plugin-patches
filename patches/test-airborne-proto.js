@@ -100,9 +100,16 @@ ck('自动档是顶部大字 + 有 action',
 ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
   JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
 ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
-// 两条的片段起点都是 0 秒，所以 progress 都是 0+2000
-ck('两档都是片段起点 + 2 秒', sAuto.progress === 2000 && sNote.progress === 2000,
-  sAuto.progress + '/' + sNote.progress);
+// 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
+ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
+ck('提醒档默认延后到 +8 秒', sNote.progress === 8000, String(sNote.progress));
+ck('提醒延后可配置', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1], [150, 190, 'filler', 'skip', 191, 0]],
+    { airCategories: 'sponsor', airNoticeCategories: 'filler', airInfoDelay: 20 });
+  return m.elems[1].progress === 152000 && m.elems[2].progress === 170000;
+})());
 
 // 同样走真实调用点，但响应里已经有本脚本注入过的弹幕 → 幂等
 const ctx2 = mkCtx(_e.toBinary(after));
