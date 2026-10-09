@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.0
-#!desc=把 B 站去广告插件里的「空降助手」拆出来做成独立插件，并把**跳过类型和跳过方式交给用户自己定**。上游 kokoryh/Sparkle 的脚本把查询类别硬编码成 category=sponsor、最短 8 秒，这里用构建期补丁（patches/patch-airborne.py）把这几处改成可配置，产物每 6 小时随上游自动重打。数据源：bsbsb.top（社区标注，共 11 类）。同时装了 Bilibili-Dedup 的话，请把那边的「空降助手」开关关掉，否则两边的类别设置会打架。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.1
+#!desc=把 B 站去广告插件里的「空降助手」拆出来做成独立插件，并把**跳过类型和跳过方式交给用户自己定**。上游 kokoryh/Sparkle 的脚本把查询类别硬编码成 category=sponsor、最短 8 秒，这里用构建期补丁（patches/patch-airborne.py）把这几处改成可配置，产物每 6 小时随上游自动重打。数据源：bsbsb.top（社区标注，共 11 类）。同时装了 Bilibili-Dedup 的话，请把那边的「空降助手」开关关掉，否则两边的类别设置会打架。v1.1 修复：注入函数误把 protobuf 消息对象当数组用，导致脚本每次抛异常并静默退化成原样放行（查 API 正常但永远没有弹幕）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-09 01:20:00
+#!date=2026-10-09 13:10:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕

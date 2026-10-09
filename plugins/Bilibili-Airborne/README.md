@@ -112,6 +112,7 @@ url: `https://bsbsb.top/api/skipSegments?videoID=..&cid=..&category=sponsor`
 | 特性 | Feature | 说明 |
 |---|---|---|
 | 锚点找不到 / 命中多次 | **Actions 报错终止** | 上游改了这几行就会失败，绝不产出"参数不生效"的脚本 |
+| 响应处理器 `$t` 有专项回归 | `test-airborne-proto.js` | **v1.1 实机翻车记**：注入函数按数组写、调用点传的是 protobuf 消息对象，TypeError 被框架 catch 吞掉，退化成原样放行。HAR 里完全看不出问题（脚本查了 API、也重取了上游，就是没有弹幕） |
 | 上游无变化 | 不提交，避免刷屏 | |
 | 手动触发 | Actions → Run workflow | |
 | 与 Dedup 共存 | 注入幂等守卫 | 同一响应里已有本脚本注入的弹幕就不再注入 |

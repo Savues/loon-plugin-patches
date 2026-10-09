@@ -1,6 +1,7 @@
 // test-airborne-fuzz.js —— 畸形/边界响应 × 参数组合，确认没有异常能逃出 handler
 const fs = require('fs');
-const ART = require('path').resolve(__dirname, '../plugins/Bilibili-Airborne/bilibili.airborne.js');
+// 可传 argv[2] 指定别的产物（变异测试用）
+const ART = process.argv[2] || require('path').resolve(__dirname, '../plugins/Bilibili-Airborne/bilibili.airborne.js');
 const src = fs.readFileSync(ART, 'utf8');
 const a = src.indexOf('/* ==== Savues'), b = src.indexOf('var C=');
 eval(src.slice(a, b));

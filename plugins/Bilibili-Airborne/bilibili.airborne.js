@@ -39,8 +39,9 @@ function __airText(a, seg) {
 function __airAction(a, l) {
     return String(__airVal(a, "airMode", "jump")) === "mark" ? "" : "airborne:" + l;
 }
-function __airInject(elems, segs, a) {
-    if (!segs || !segs.length) return;
+function __airInject(msg, segs, a) {
+    var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
+    if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
     if (elems.some(x => x && x.ctime === "1735660800" && x.dmFrom === 1)) return;
     elems.push.apply(elems, nn(segs, a));

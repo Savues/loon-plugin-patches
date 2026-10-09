@@ -1,6 +1,7 @@
 // test-airborne-proto.js —— 整份产物能否在 Loon 式全局下加载；注入的弹幕能否 protobuf 往返
 const fs = require('fs');
-const ART = require('path').resolve(__dirname, '../plugins/Bilibili-Airborne/bilibili.airborne.js');
+// 可传 argv[2] 指定别的产物（变异测试用）
+const ART = process.argv[2] || require('path').resolve(__dirname, '../plugins/Bilibili-Airborne/bilibili.airborne.js');
 let fail = 0;
 const ck = (n, c, x = '') => { console.log((c ? '✓ ' : '✗ ') + n + (c ? '' : '  → ' + x)); if (!c) fail++; };
 
@@ -16,7 +17,8 @@ const src = fs.readFileSync(ART, 'utf8');
 let loaded = true, err = '';
 // 追加一行把内部符号挂到 globalThis（bundle 里是 let/const 声明，模块作用域取不到）
 const EXPORT = '\n;globalThis.__X={St:(typeof St==="undefined"?null:St),_e:(typeof _e==="undefined"?null:_e),' +
-               'nn:(typeof nn==="undefined"?null:nn),inject:(typeof __airInject==="undefined"?null:__airInject)};';
+               'nn:(typeof nn==="undefined"?null:nn),inject:(typeof __airInject==="undefined"?null:__airInject),' +
+  't:(typeof $t==="undefined"?null:$t)};';
 try { (0, eval)(src + EXPORT); } catch (e) { loaded = false; err = e.message; }
 ck('整份产物在 Loon 式全局下加载无异常', loaded, err.slice(0, 200));
 if (!loaded) process.exit(1);
@@ -56,6 +58,39 @@ ck('mark 模式往返后没有 action', marked.elems.every(x => !x.action));
 const again = _e.fromBinary(_e.toBinary(after));
 inject(again.elems, segs, arg);
 ck('往返后再注入仍是 5 条（幂等守卫在真 protobuf 上生效）', again.elems.length === 5, String(again.elems.length));
+
+// 🔴 回归：必须走**真实调用点** $t，而不是直接调 __airInject。
+// 之前 __airInject 按数组写、调用点传的是消息对象，TypeError 被框架吞掉，
+// 表现为「脚本跑了、API 也查了，但永远没有弹幕」——HAR 里完全看不出问题。
+const $t = globalThis.__X.t;
+ck('产物里能取到响应处理器 $t', typeof $t === 'function');
+
+const base = () => _e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 100, midHash: '0', content: '原弹幕', mode: 1, ctime: '1700000000', dmFrom: 2 }] }));
+const mkCtx = (bytes) => ({
+  request: { bodyBytes: Buffer.alloc(0) },
+  response: { bodyBytes: bytes },
+  state: { segments: [[0, 42.9, 'sponsor', 'skip', 376.697]] },
+  argument: { airCategories: 'sponsor', airActions: 'skip', airMinDuration: 8, airMode: 'jump', airNotice: '空指部已就位' },
+});
+const ctx = mkCtx(base());
+let nexted = false, threw = null;
+try { $t(ctx, () => { nexted = true; }); } catch (e) { threw = e; }
+ck('$t 不抛异常', !threw, threw && threw.message);
+ck('$t 会继续后面的中间件', nexted);
+const out = _e.fromBinary(ctx.response.bodyBytes);
+ck('$t 走完后弹幕从 1 条变 2 条', out.elems.length === 2, String(out.elems.length));
+ck('$t 注入的那条带空降动作', out.elems[1] && out.elems[1].action === 'airborne:42900',
+   out.elems[1] && out.elems[1].action);
+ck('$t 注入的那条文案是默认「空指部已就位」', out.elems[1] && out.elems[1].content === '空指部已就位',
+   out.elems[1] && out.elems[1].content);
+
+// 同样走真实调用点，但响应里已经有本脚本注入过的弹幕 → 幂等
+const ctx2 = mkCtx(_e.toBinary(after));
+try { $t(ctx2, () => {}); } catch (e) { ck('幂等路径不抛异常', false, e.message); }
+ck('响应里已有本脚本弹幕时不再重复注入',
+   _e.fromBinary(ctx2.response.bodyBytes).elems.length === 5,
+   String(_e.fromBinary(ctx2.response.bodyBytes).elems.length));
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);
