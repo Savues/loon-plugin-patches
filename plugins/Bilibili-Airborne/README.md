@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.0** · 6 参数 / 1 Script / 3 MitM
+**v1.2** · 7 参数 / 2 Script / 3 MitM
 
 ---
 
@@ -52,6 +52,22 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `片段最小时长(秒)` | `8` | 只管 `skip`；`full`/`poi` 的片段长度天然是 0，不受此限制 |
 | `空降方式` | `jump` | `jump` 自动跳 / `mark` 只提示 |
 | `提示文案` | `空指部已就位` | 支持 `{cat}` `{start}` `{end}` `{dur}` 占位符 |
+| `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
+
+> 🔴 **为什么需要 chronos 重签**
+>
+> 消融实验实测（D1/D2/S1/S2/U1/U2/V1 六层定位）：自动跳与注入的弹幕字节**完全无关**
+> ——两次会话 App 收到的伪造响应 md5 一模一样（`6bc9feb4` / `19cdaca0`）。
+> 真正的开关是 `bilibili.app.view.v1.View/ViewProgress` 响应里的 chronos：
+>
+> | | chronos#1 | chronos#2 | chronos#3 |
+> |---|---|---|---|
+> | 服务端原始 | `325e7073…` | `i0.hdslb.com/….zip` | 80 字符 token |
+> | 重签后 | `932002070d…` | 本仓库 `chronos/<md5>.zip` | **删除** |
+>
+> 拿不到校验文件时 App 会进入降级状态：弹幕照常渲染、**点了也能跳**，但**不会自动跳**。
+> 本插件自带 `chronos.js` 完成重签（复用仓库里已有的 chronos zip），不再依赖 Bilibili-Dedup。
+> 关掉这个开关就退化成"只提示不自动跳"。
 
 ### 可选类别
 

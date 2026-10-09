@@ -23,12 +23,12 @@ decl = {m.group(1): m.group(2) for m in
         re.finditer(r'^([A-Za-z][A-Za-z0-9]*)\s*=\s*(switch|select|input)\s*,', s, re.M)}
 argline = re.search(r'argument=\[([^\]]*)\]', s).group(1)
 sent = re.findall(r'\{([A-Za-z][A-Za-z0-9]*)\}', argline)
-enable = re.search(r'enable=\{([A-Za-z][A-Za-z0-9]*)\}', s)
+enables = re.findall(r'enable=\{([A-Za-z][A-Za-z0-9]*)\}', s)
 print(f'\n声明 {len(decl)} 个: {sorted(decl)}\nargument 传 {len(sent)} 个: {sent}\n')
 for n in sent:
     ck(f'argument 里的 {n} 有声明', n in decl)
 for n in decl:
-    ck(f'{n} 被用上', n in sent or (enable and n == enable.group(1)))
+    ck(f'{n} 被用上', n in sent or n in enables)
 
 keys = set(re.findall(r'"(air[A-Z]\w*)"', ART.read_text(encoding='utf-8'))) | {'logLevel'}
 for n in sent:

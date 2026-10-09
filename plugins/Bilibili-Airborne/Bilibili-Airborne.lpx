@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.1
-#!desc=把 B 站去广告插件里的「空降助手」拆出来做成独立插件，并把**跳过类型和跳过方式交给用户自己定**。上游 kokoryh/Sparkle 的脚本把查询类别硬编码成 category=sponsor、最短 8 秒，这里用构建期补丁（patches/patch-airborne.py）把这几处改成可配置，产物每 6 小时随上游自动重打。数据源：bsbsb.top（社区标注，共 11 类）。同时装了 Bilibili-Dedup 的话，请把那边的「空降助手」开关关掉，否则两边的类别设置会打架。v1.1 修复：注入函数误把 protobuf 消息对象当数组用，导致脚本每次抛异常并静默退化成原样放行（查 API 正常但永远没有弹幕）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.2
+#!desc=v1.2 补上「chronos 重签」，空降弹幕这才真的会**自动**跳。消融实验定位：自动跳与否与注入的弹幕字节无关（两次会话伪造响应 md5 完全相同），真正的开关是 bilibili.app.view.v1.View/ViewProgress 响应里的 chronos 有没有被重签——拿不到校验文件时 App 会降级，弹幕只渲染不执行。本插件自带 chronos.js 完成重签（复用仓库已有的 chronos zip），不再依赖 Bilibili-Dedup。v1.1 修复：注入函数误把 protobuf 消息对象当数组用，导致脚本静默退化。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-09 13:10:00
+#!date=2026-10-09 16:40:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
@@ -15,10 +15,13 @@ airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，�
 airMinDuration = input,"8",tag=片段最小时长(秒),desc=比这个短的片段不跳。填 0 = 不限（一键三连提示只有 2-3 秒，想跳它就调到 3）
 airMode = select,"jump","mark",tag=空降方式,desc=jump：到点自动跳到片段末尾；mark：只在弹幕栏显示提示，不跳转
 airNotice = input,"空指部已就位",tag=提示文案,desc=支持占位符 {cat}=类别 {start}=起点 {end}=终点 {dur}=时长(秒)。例：跳过{cat} {start}→{end}
+chronos = switch,true,tag=chronos 重签,desc=让 App 能加载到校验文件，空降弹幕才会自动跳。关掉后弹幕仍会显示、点了也能跳，只是不会自动跳
 logLevel = select,"off","error","warn","info","debug",tag=脚本日志等级,desc=排查时选 debug，Loon 日志里会出现 [SponsorBlock]
 
 [Script]
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/bilibili.airborne.js, argument=[{airCategories},{airActions},{airMinDuration},{airMode},{airNotice},{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={Airborne}, tag=空降助手
+
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.view\.v1\.View\/ViewProgress$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos.js, requires-body=1, binary-body-mode=1, timeout=5, enable={chronos}, tag=chronos重签
 
 [Mitm]
 hostname = grpc.biliapi.net, app.bilibili.com, app.biliapi.net
