@@ -108,18 +108,26 @@ function __airInject(msg, segs, a) {
     // 所以提醒档统一改成「片段起点 + airInfoDelay 秒」，让两档的出现时机一致且看得见。
     var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 3))) * 1000;
     var want = String(__airVal(a, "airInfoMode", "5"));
-    var donor = null;
-    for (var j = 0; j < elems.length && want !== "5"; j++) {
+    // 借用一条真实弹幕的 midHash/attr：空降标志(1948dd5d)会让 B 站在弹幕框左前方
+    // 固定加图标（有 action 给降落伞、没 action 给大拇指）+ 一圈边框，提醒并不想跳转，
+    // 不该冒充空降弹幕。只借这两个字段，mode/字号/颜色仍然由我们决定。
+    var donor = null, PLAIN = ["741886e", 1048576];
+    for (var j = 0; j < elems.length; j++) {
         var e = elems[j];
         if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr]; break; }
     }
+    donor = donor || PLAIN;
     for (var i = 0; i < built.length; i++) {
         if (built[i].action) continue;                       // 自动跳那条不动
         built[i].progress = Math.floor(segs[i][0] * 1000) + delay;
         built[i].mode = Number(want) || 5;
         built[i].color = __airColor(segs[i][2]);        // 按类别上色
-        // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
-        if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
+        built[i].midHash = donor[0]; built[i].attr = donor[1];   // 去掉空降图标与边框
+        // 想要降落伞图标就必须带 action（B 站是按 action 决定图标：有跳转给降落伞、
+        // 没跳转给大拇指）。指向自身时间 → 跳转落在原地，等于不跳。
+        if (String(__airVal(a, "airInfoIcon", "thumb")) === "chute") {
+            built[i].action = "airborne:" + built[i].progress;
+        }
     }
 
     // 片头汇总：把这个视频里「会被处理」的所有片段在开头依次列出来。
@@ -127,6 +135,8 @@ function __airInject(msg, segs, a) {
     var sum = String(__airVal(a, "airSummary", "single"));
     if (sum !== "off") {
         var cap = 5;                                            // 一条弹幕装不下太多，硬性截断
+        // 按片段起点排序：整篇标记起点是 0，应该排在最前，而不是夹在中段片段后面
+        segs = segs.slice().sort(function (x, y) { return x[0] - y[0]; });
         var shown = segs.slice(0, cap);
         var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
         // 段与段之间怎么排：line=每段一行（\n），same=挤一行用 · 分隔
@@ -154,7 +164,10 @@ function __airInject(msg, segs, a) {
         for (k = 0; k < head.length; k++) {
             head[k].mode = Number(want) || 5;
             head[k].color = sum === "single" ? AIR_SUMMARY_COLOR : __airColor(shown[k][2]);
-            if (donor) { head[k].midHash = donor[0]; head[k].attr = donor[1]; }
+            head[k].midHash = donor[0]; head[k].attr = donor[1];
+            if (String(__airVal(a, "airInfoIcon", "thumb")) === "chute") {
+                head[k].action = "airborne:" + head[k].progress;
+            }
         }
         built = head.concat(built);
     }
