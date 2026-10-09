@@ -6,6 +6,9 @@
 
 **v1.2** · 7 参数 / 2 Script / 3 MitM
 
+> 本文只描述**当前状态**。两个版本的踩坑与"自动跳转"九层消融的完整过程 →
+> [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
+
 ---
 
 ## 订阅 · Subscribe
@@ -50,7 +53,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `跳过哪些类型` | `sponsor` | 英文逗号分隔的类别白名单 |
 | `允许哪些动作` | `skip` | 动作白名单；`full` 空降到片尾、`poi` 空降到时间点、`mute` 无效 |
 | `片段最小时长(秒)` | `8` | 只管 `skip`；`full`/`poi` 的片段长度天然是 0，不受此限制 |
-| `空降方式` | `jump` | `jump` 自动跳 / `mark` 只提示 |
+| `空降方式` | `jump` | `jump`：显示带降落伞图标的空降弹幕，**点一下**跳到片段末尾；`mark`：只显示文字，不跳转 |
 | `提示文案` | `空指部已就位` | 支持 `{cat}` `{start}` `{end}` `{dur}` 占位符 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 

@@ -13,7 +13,7 @@ Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹�
 airCategories = input,"sponsor",tag=跳过哪些类型,desc=英文逗号分隔。可选：sponsor(恰饭) selfpromo(自我推广) exclusive_access(独家体验) interaction(一键三连) poi_highlight(精彩时刻) intro(片头) outro(片尾) preview(回顾) filler(填充) padding(前黑后黑) music_offtopic(离题闲聊)。填 off 或留空 = 全关
 airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，所以只有 skip / full / poi 有实际效果。full=整段即此类，会直接空降��片尾；poi=精彩时刻，空降��那个时间点；mute 填了无效
 airMinDuration = input,"8",tag=片段最小时长(秒),desc=比这个短的片段不跳。填 0 = 不限（一键三连提示只有 2-3 秒，想跳它就调到 3）
-airMode = select,"jump","mark",tag=空降方式,desc=jump：到点自动跳到片段末尾；mark：只在弹幕栏显示提示，不跳转
+airMode = select,"jump","mark",tag=空降方式,desc=jump：显示带降落伞图标的空降弹幕，**点一下**跳到片段末尾（配合下面的 chronos 重签才会自动跳）；mark：只显示文字提示，不跳转
 airNotice = input,"空指部已就位",tag=提示文案,desc=支持占位符 {cat}=类别 {start}=起点 {end}=终点 {dur}=时长(秒)。例：跳过{cat} {start}→{end}
 chronos = switch,true,tag=chronos 重签,desc=让 App 能加载到校验文件，空降弹幕才会自动跳。关掉后弹幕仍会显示、点了也能跳，只是不会自动跳
 logLevel = select,"off","error","warn","info","debug",tag=脚本日志等级,desc=排查时选 debug，Loon 日志里会出现 [SponsorBlock]

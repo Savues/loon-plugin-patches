@@ -19,7 +19,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | 插件 Plugin | 用途 Purpose | 状态 Status |
 |---|---|---|
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
-| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配**<br>SponsorBlock standalone · fully configurable | **v1.0** |
+| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签<br>SponsorBlock standalone · fully configurable | **v1.2** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
@@ -385,6 +385,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
 | [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Airborne/UPSTREAM.md) | 空降助手的出处、9 处锚点逐条对照 · Provenance & patch diff |
+| [Bilibili-Airborne/ITERATION.md](plugins/Bilibili-Airborne/ITERATION.md) | 空降助手的独立化与**自动跳转九层消融**全过程 · Post-mortem |
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
