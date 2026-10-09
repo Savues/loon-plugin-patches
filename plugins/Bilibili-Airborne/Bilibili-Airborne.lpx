@@ -1,12 +1,12 @@
-#!name=B站空降助手 v1.19
-#!desc=v1.19 删掉整篇软广的独立提醒——片头汇总里已经有一行「XX 整篇」，两条都在同一时刻出现、说的是同一件事。把片头汇总关掉时，整篇提醒仍会保留（兜底）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.20
+#!desc=v1.20 汇总标题改为「⚠️本视频包含⚠️」；整篇恰饭时置顶「全片恰饭软告」一行；sponsor 的中文名改为「恰饭硬广」（与自我推广区分）。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-10 06:10:00
+#!date=2026-10-10 07:30:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕

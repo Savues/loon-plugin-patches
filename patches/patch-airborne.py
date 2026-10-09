@@ -115,7 +115,7 @@ function __airFmt(t) {
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
 }
 var __airNames = {
-    sponsor: "恰饭", selfpromo: "自我推广", exclusive_access: "独家体验",
+    sponsor: "恰饭硬广", selfpromo: "自我推广", exclusive_access: "独家体验",
     interaction: "一键三连", poi_highlight: "精彩时刻", intro: "片头", outro: "片尾",
     preview: "回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
@@ -179,30 +179,38 @@ function __airInject(msg, segs, a) {
         var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
         // 段与段之间怎么排：line=每段一行（\n），same=挤一行用 · 分隔
         var join = String(__airVal(a, "airSummaryWrap", "line")) === "same" ? " · " : "\n";
-        var synth, head, k;
+        // 整篇就是恰饭 → 置顶一行明确提示，并从条目里去掉重复的「XX 整篇」
+        var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
+        var labels = [];
+        if (hasFullAd) labels.push("全片恰饭软告");
+        for (var kk = 0; kk < shown.length; kk++) {
+            if (shown[kk][2] === "sponsor" && shown[kk][3] === "full") continue;
+            labels.push(__airSegText(shown[kk]));
+        }
+        var synth, head;
         if (sum === "single") {
             // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
             var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-                ? String(__airVal(a, "airInfo", "")) : "📍 本视频包括：\n{list}";
+                ? String(__airVal(a, "airInfo", "")) : "⚠️本视频包含⚠️\n{list}";
             synth = [[0, 0, "", "skip", 0, 0]];
             head = nn(synth, a);
-            head[0].content = __airText(a, synth[0],
-                shown.map(__airSegText).join(join) + more, tpl);
+            head[0].content = __airText(a, synth[0], labels.join(join) + more, tpl);
             head[0].progress = delay;
         } else {
-            synth = shown.map(function () { return [0, 0, "", "skip", 0, 0]; });
+            synth = labels.map(function () { return [0, 0, "", "skip", 0, 0]; });
             head = nn(synth, a);
-            for (k = 0; k < head.length; k++) {
-                head[k].content = __airText(a, synth[k], __airSegText(shown[k]) + more,
-                    String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-                        ? String(__airVal(a, "airInfo", "")) : "{list}");
-                head[k].progress = delay + k * 4000;
+            var lbl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
+                ? String(__airVal(a, "airInfo", "")) : "{list}";
+            for (var ki = 0; ki < head.length; ki++) {
+                head[ki].content = __airText(a, synth[ki], labels[ki] + (ki === 0 ? more : ""), lbl);
+                head[ki].progress = delay + ki * 4000;
             }
         }
-        for (k = 0; k < head.length; k++) {
-            head[k].mode = Number(want) || 5;
-            head[k].color = sum === "single" ? AIR_SUMMARY_COLOR : __airColor(shown[k][2]);
-            if (donor) { head[k].midHash = donor[0]; head[k].attr = donor[1]; }
+        for (var kk = 0; kk < head.length; kk++) {
+            head[kk].mode = Number(want) || 5;
+            head[kk].color = sum === "single" || labels[kk] === "全片恰饭软告"
+                ? AIR_SUMMARY_COLOR : __airColor(shown[kk][2]);
+            if (donor) { head[kk].midHash = donor[0]; head[kk].attr = donor[1]; }
         }
         built = head.concat(built.filter(function (x, i) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
