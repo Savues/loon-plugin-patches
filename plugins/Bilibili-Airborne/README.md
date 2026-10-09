@@ -4,7 +4,7 @@
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
 
-**v1.7** · 9 参数 / 2 Script / 3 MitM
+**v1.8** · 10 参数 / 2 Script / 3 MitM
 
 > 本文只描述**当前状态**。各版本踩坑与"自动跳转"九层消融的完整过程 →
 > [ITERATION.md](ITERATION.md)　出处与 9 处锚点逐条对照 → [UPSTREAM.md](UPSTREAM.md)
@@ -17,7 +17,7 @@
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/Bilibili-Airborne.lpx
 ```
 
-CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v17`
+CDN 缓存可能延迟更新，拉不到新版时加随机参数：`...lpx?cb=v18`
 
 **需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
@@ -57,6 +57,7 @@ The fake danmaku's text `空指部已就位` is the only reliable signal that th
 | `空降方式` | `jump` | `jump` 正常；`mark` 把自动跳那一档也全部降级为只显示文字 |
 | `自动跳的文案` | `空指部已就位` | 占位符：`{cat}` 中文类别名、`{catid}` 原始 id、`{start}` `{end}` `{dur}` |
 | `只提醒的文案` | `⚠️ {cat} {start}→{end}` | 渲染成 `⚠️ 一键三连 00:56→01:07` |
+| `提醒延后秒数` | `8` | 只影响提醒档；自动跳的时机不变 |
 | `整篇软广的处理` | `notice` | 整篇标记默认只出文字提醒；`jump` 直接跳片尾；`off` 不处理 |
 | `chronos 重签` | 开 | **决定空降会不会自动跳**，见下 |
 
@@ -127,7 +128,10 @@ B 站 App 端我们只有弹幕这一个杠杆，没有播放器 UI：
 > 🔴 **「只提醒」的弹幕长什么样**：它不带跳转动作，而且**不会冒充空降弹幕**——
 > 会借用视频里一条真实弹幕的样式（`midHash`/`attr`/模式/字号）来渲染。
 > 实测带空降标志（`midHash=1948dd5d`）却没动作的弹幕，App 会整条丢弃、屏幕上什么都不出现。
-> 所以提醒档看起来就是一条普通的白色弹幕，从屏幕下方（默认）或顶部飘过。
+> 所以提醒档看起来就是一条**普通弹幕**——但会优先借用视频里一条「顶部」样式的真实弹幕，
+> 并且**延后到第 8 秒**出现（第 2 秒太早，用户根本来不及看），由 `提醒延后秒数` 调整。
+>
+> 自动跳的时机**不受**这个参数影响：它必须在片段开始时就位，否则来不及跳。
 
 ### 类别中文化
 

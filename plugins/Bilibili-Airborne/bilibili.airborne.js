@@ -79,17 +79,26 @@ function __airInject(msg, segs, a) {
     if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
     var built = nn(segs, a);
     // 只提醒的那几条不冒充空降弹幕：实测 midHash=1948dd5d + 空 action 会被 App 整条丢弃。
-    // 借一条真实弹幕的 midHash/attr/mode/fontsize，保证按普通弹幕渲染。
-    var donor = null, fallback = ["741886e", 1048576, 1, 25];
-    for (var i = 0; i < elems.length; i++) {
-        var e = elems[i];
-        if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
+    // 借一条真实弹幕的 midHash/attr/mode/fontsize，保证按普通弹幕渲染；优先借「顶部」样式，
+    // 因为滚动样式混在几百条弹幕里根本看不见。
+    var donor = null, fallback = ["46813211", 1048576, 5, 25], i, e;
+    for (i = 0; i < elems.length; i++) {
+        e = elems[i];
+        if (e && e.midHash && e.midHash !== "1948dd5d" && e.mode === 5) { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
+    }
+    if (!donor) {
+        for (i = 0; i < elems.length; i++) {
+            e = elems[i];
+            if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr, e.mode, e.fontsize]; break; }
+        }
     }
     var plain = donor || fallback;
+    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 8))) * 1000;   // 提醒比自动跳晚出现
     for (var j = 0; j < built.length; j++) {
         if (!built[j].action) {
             built[j].midHash = plain[0]; built[j].attr = plain[1];
             built[j].mode = plain[2]; built[j].fontsize = plain[3];
+            built[j].progress = Math.floor(segs[j][0] * 1000) + delay;      // 2 秒太早，看不见
         }
     }
     elems.push.apply(elems, built);

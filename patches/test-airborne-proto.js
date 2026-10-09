@@ -108,7 +108,28 @@ const bareMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     content: 'x', ctime: '1700000000', dmFrom: 2 },
 ]})));
 inject(bareMsg.elems, [[0, 0, 'sponsor', 'full', 191, 0]], {});
-ck('借不到样本时退回普通样式', bareMsg.elems[1].midHash === '741886e', bareMsg.elems[1].midHash);
+ck('借不到样本时退回普通样式', bareMsg.elems[1].midHash === '46813211', bareMsg.elems[1].midHash);
+
+// 优先借「顶部」样式的真实弹幕（滚动样式混在几百条里看不见）
+const topMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+  { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 1, fontsize: 25, content: '滚动', ctime: '1700000000', dmFrom: 2 },
+  { id: 2, progress: 20, midHash: 'bbb222', attr: 1048576, mode: 5, fontsize: 25, content: '顶部', ctime: '1700000000', dmFrom: 2 },
+]})));
+inject(topMsg.elems, [[0, 0, 'sponsor', 'full', 191, 0]], { airFullMode: 'notice' });
+ck('优先借顶部样式的真实弹幕', topMsg.elems[2].midHash === 'bbb222', topMsg.elems[2].midHash);
+ck('提醒默认延后到第 8 秒', topMsg.elems[2].progress === 8000, String(topMsg.elems[2].progress));
+ck('提醒时机可配', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 5, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[30, 0, 'sponsor', 'full', 191, 0]], { airFullMode: 'notice', airInfoDelay: 20 });
+  return m.elems[1].progress === 50000;
+})());
+ck('自动档时机不受提醒延后影响', (() => {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: 'aaa111', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 166, 'sponsor', 'skip', 191, 1]], { airInfoDelay: 20 });
+  return m.elems[1].progress === 152000;
+})());
 
 // 同样走真实调用点，但响应里已经有本脚本注入过的弹幕 → 幂等
 const ctx2 = mkCtx(_e.toBinary(after));
