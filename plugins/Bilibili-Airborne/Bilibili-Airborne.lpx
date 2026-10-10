@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.22
-#!desc=v1.22 两处修复：① 片头汇总钉点 —— 视频开头就有自动跳片段时，App 会在片段起点+2 秒直接 seek 走，汇总若仍钉在第 3 秒就落在被跳过的区间里永远看不到（实测 BV1PyHi6vEpA：开场动画 00:00–00:32，第 2 秒跳到 32 秒）；现在汇总顺着开头的自动跳链爬到用户真正的落点再钉住，落进跳过区间的「只提醒」弹幕一并下移，可用新参数 airSummaryAnchor=start 退回旧行为。② 类别名 sponsor 由「恰饭硬广」改为「恰饭内容」。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.23
+#!desc=v1.23 片头汇总精简：同一视频里同类的片段折叠成一行（实测 BV1VeHQ6tEaS 两段恰饭，原先显示两行「恰饭内容」纯噪音，时间点一个不丢，现为「恰饭内容 ×2 · 34:55–35:11 | 52:31–52:40」）；删除 stagger 与 same 两种排版（连同 airSummaryWrap 参数），汇总固定为一条弹幕、每类一行；截断上限改按「类」计。另修：超过 1 小时的时间点原先显示成 120:00，现在显示 2:00:00。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
