@@ -9,6 +9,8 @@ const b = src.indexOf('var C=');
 if (a < 0 || b < 0) { console.error('::error::没找到注入的工具代码，补丁可能没打上'); process.exit(1); }
 globalThis.nn = (segs) => segs.map(() => ({ ctime: '1735660800', dmFrom: 1 }));  // nn 的桩
 eval(src.slice(a, b));   // 注入的 __air* 全部进作用域
+globalThis.__airSummaryColorTest = __airSummaryColor;   // eval 之后才拿得到
+globalThis.__airSummaryColors = AIR_SUMMARY_COLORS;
 
 let fail = 0;
 const eq = (name, got, want) => {
@@ -183,6 +185,15 @@ eq('正好 1 小时补上小时段', __airFmt(3600), '1:00:00');
 eq('两小时', __airFmt(7200), '2:00:00');
 eq('两小时零一分', __airFmt(7260), '2:01:00');
 eq('负数归零', __airFmt(-5), '00:00');
+
+
+// ---- 汇总颜色预设的取值逻辑（逻辑层，不走 protobuf）----
+eq('8 个预设色齐全', Object.keys(__airSummaryColors).join(','), '白色,红色,橙色,黄色,绿色,青色,紫色,灰色');
+eq('默认白色', __airSummaryColorTest({}), 0xFFFFFF);
+eq('选红色', __airSummaryColorTest({ airSummaryColor: '红色' }), 0xFF5C5C);
+eq('选紫色', __airSummaryColorTest({ airSummaryColor: '紫色' }), 0xC08CFF);
+eq('认不出的名字退回白色', __airSummaryColorTest({ airSummaryColor: '七彩' }), 0xFFFFFF);
+eq('空值退回白色', __airSummaryColorTest({ airSummaryColor: '' }), 0xFFFFFF);
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);

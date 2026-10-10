@@ -146,8 +146,8 @@ ck('汇总只有一条，且不带 action（不会被跳走）',
 ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
   '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇',
   JSON.stringify(sumMsg2.elems[1].content));
-ck('汇总整条用红色（一条弹幕只能有一个颜色）',
-  sumMsg2.elems[1].color === 0xFF5C5C, String(sumMsg2.elems[1].color));
+ck('汇总整条默认白色（一条弹幕只能有一个颜色）',
+  sumMsg2.elems[1].color === 0xFFFFFF, String(sumMsg2.elems[1].color));
 
 const many = sumSegs.concat([[400, 420, 'filler', 'skip', 191, 0], [500, 530, 'preview', 'skip', 191, 0]]);
 const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
@@ -284,6 +284,34 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
      && m.elems.some(x => x.action === 'airborne:2111833')
      && m.elems.some(x => x.action === 'airborne:3160366'),
      JSON.stringify(m.elems.map(x => x.action)));
+}
+
+
+// ---- 汇总颜色预设（airSummaryColor）----
+{
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+      content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 190, 'filler', 'skip', 600, 0]],
+    { airSummary: 'single', airNoticeCategories: 'filler' });
+  ck('汇总颜色默认白色', m.elems[1].color === 0xFFFFFF, '0x' + m.elems[1].color.toString(16));
+}
+for (const [name, hex] of [['红色', 0xFF5C5C], ['橙色', 0xFFB400], ['黄色', 0xFFD100],
+                           ['绿色', 0x6EE7C8], ['青色', 0x5CC8FF], ['紫色', 0xC08CFF], ['灰色', 0xB4B4B4]]) {
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+      content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 190, 'filler', 'skip', 600, 0]],
+    { airSummary: 'single', airNoticeCategories: 'filler', airSummaryColor: name });
+  ck('汇总可选「' + name + '」', m.elems[1].color === hex, '0x' + m.elems[1].color.toString(16));
+}
+{
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+      content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[150, 190, 'filler', 'skip', 600, 0]],
+    { airSummary: 'single', airNoticeCategories: 'filler', airSummaryColor: '不存在的颜色' });
+  ck('认不出的颜色名静默退回白色', m.elems[1].color === 0xFFFFFF, '0x' + m.elems[1].color.toString(16));
 }
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');

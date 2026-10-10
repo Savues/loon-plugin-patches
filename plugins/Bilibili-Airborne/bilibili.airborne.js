@@ -57,7 +57,15 @@ var __airColors = {
     outro: 0xB4B4B4, exclusive_access: 0xC08CFF, poi_highlight: 0xFFD100, preview: 0xFF8FC7,
     filler: 0x6EE7C8, padding: 0x8C8C8C, music_offtopic: 0x9BE15D
 };
-var AIR_SUMMARY_COLOR = 0xFF5C5C;   // 片头汇总用红色
+/** 片头汇总的配色预设。字段 #5 是标准 0xRRGGBB 整数，用户在 App 上看到的就是这个值。 */
+var AIR_SUMMARY_COLORS = {
+    "白色": 0xFFFFFF, "红色": 0xFF5C5C, "橙色": 0xFFB400, "黄色": 0xFFD100,
+    "绿色": 0x6EE7C8, "青色": 0x5CC8FF, "紫色": 0xC08CFF, "灰色": 0xB4B4B4
+};
+function __airSummaryColor(a) {
+    var n = String(__airVal(a, "airSummaryColor", "白色"));
+    return AIR_SUMMARY_COLORS[n] || AIR_SUMMARY_COLORS["白色"];   // 认不出的值静默退回白色
+}
 function __airColor(cat) {
     return __airColors[cat] == null ? 0xFFFFFF : __airColors[cat];
 }
@@ -226,7 +234,7 @@ function __airInject(msg, segs, a) {
         head[0].content = __airText(a, synth[0], labels.join("\n") + more, tpl);
         head[0].progress = sumAt;
         head[0].mode = Number(want) || 5;
-        head[0].color = AIR_SUMMARY_COLOR;                  // 整条汇总一个颜色（一条弹幕只能有一个）
+        head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
         if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
         built = head.concat(built.filter(function (x, i) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
