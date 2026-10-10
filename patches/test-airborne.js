@@ -99,7 +99,7 @@ eq('interaction→三连提醒 / intro→开场动画 / preview→往期回顾',
 eq('{catid} 拿到原始 id', __airText({ airInfo: '{catid}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), 'selfpromo');
 eq('未知类别原样输出', __airText({ airInfo: '{cat}' }, [0, 42.9, 'brand_new', 'skip', 300, 0]), 'brand_new');
 eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), '三连提醒@00:00');
-eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过恰饭硬广 01:15→01:53 省38s');
+eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过恰饭内容 01:15→01:53 省38s');
 eq('自定义文案', __airText({ airNotice: 'AD' }, seg), 'AD');
 
 // 动作
@@ -123,7 +123,7 @@ eq('普通段仍按类别列表决定', __airIsAuto({}, 'skip', 'sponsor'), true
 eq('普通段在只提醒档不带动作', __airIsAuto({ airNoticeCategories: 'sponsor' }, 'skip', 'sponsor'), false);
 
 eq('full 跳到整段末尾', __airEnd(full), 1016.469);
-eq('full 提醒文案含全片时长', __airText({ airInfo: '{cat} 全长{end}' }, [0, 0, 'sponsor', 'full', 1016.469, 0]), '恰饭硬广 全长16:56');
+eq('full 提醒文案含全片时长', __airText({ airInfo: '{cat} 全长{end}' }, [0, 0, 'sponsor', 'full', 1016.469, 0]), '恰饭内容 全长16:56');
 eq('full 提醒出现在第 2 秒', __airText({ airInfo: '{start}' }, [0, 0, 'sponsor', 'full', 191, 0]), '00:00');
 eq('poi 加进自动档后通过（不受 8s 影响）', ok({ airCategories: 'poi_highlight', airActions: 'poi' }, 'poi', 'poi_highlight', 0, 876), true);
 eq('poi 落点就是那个时间点', __airEnd(poi), 183);

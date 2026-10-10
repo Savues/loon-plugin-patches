@@ -46,7 +46,7 @@ const rt = _e.fromBinary(_e.toBinary(after));
 ck('序列化→反序列化后条数不变', rt.elems.length === after.elems.length, String(rt.elems.length));
 const fake = rt.elems.filter(x => x.midHash === '1948dd5d');
 ck('假弹幕往返后仍可按 midHash 认出', fake.length === 3, String(fake.length));
-ck('文案往返无损', fake.some(x => x.content === '跳过恰饭硬广 00:00→00:42 省43s'), fake.map(x=>x.content).join('|'));
+ck('文案往返无损', fake.some(x => x.content === '跳过恰饭内容 00:00→00:42 省43s'), fake.map(x=>x.content).join('|'));
 ck('action 往返无损', fake.some(x => x.action === 'airborne:42900'), fake.map(x=>x.action).join('|'));
 ck('progress 往返无损', fake.some(x => x.progress === 65500), fake.map(x=>x.progress).join('/'));
 ck('原弹幕未被破坏', rt.elems.slice(0, 2).map(x => x.content).join(',') === '原弹幕A,原弹幕B',
@@ -129,7 +129,7 @@ const sumMsg = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 inject(sumMsg.elems, sumSegs, Object.assign({ airSummary: 'off' }, sumArg));
 ck('airSummary=off 时不产生汇总', sumMsg.elems.length === 5, String(sumMsg.elems.length));
 ck('airSummary=off 时，整篇的独立提醒仍然保留（兜底，避免信息全丢）',
-  sumMsg.elems.some(x => x.content === '⚠️ 恰饭硬广 00:00→03:11'),
+  sumMsg.elems.some(x => x.content === '⚠️ 恰饭内容 00:00→03:11'),
   sumMsg.elems.map(x => x.content).join(' | '));
 
 const sumMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
@@ -138,7 +138,7 @@ inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg))
 ck('stagger：4 条汇总 + 2 条逐段提醒（原弹幕 1）',
   sumMsg2.elems.length === 7, String(sumMsg2.elems.length));
 ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行「XX 整篇」）',
-  sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭硬广 00:00→03:11').length === 0 &&
+  sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭内容 00:00→03:11').length === 0 &&
   sumMsg2.elems.some(x => x.content === '恰饭 整篇' || x.content === '独家体验 整篇'),
   sumMsg2.elems.map(x => x.content).join(' | '));
 // elems[0] 是那条真实弹幕，汇总从 index 1 开始
@@ -146,7 +146,7 @@ const H2 = sumMsg2.elems.slice(1, 5);
 ck('stagger：汇总错开 4 秒',
   H2.map(x => x.progress).join('/') === '3000/7000/11000/15000', H2.map(x => x.progress).join('/'));
 ck('stagger：置顶「全片恰饭软广」+ 其余条目',
-  H2.map(x => x.content).join(' | ') === '全片恰饭软广 | 恰饭硬广 02:30–02:46 | 三连提醒 02:39–03:15 | 独家体验 整篇',
+  H2.map(x => x.content).join(' | ') === '全片恰饭软广 | 恰饭内容 02:30–02:46 | 三连提醒 02:39–03:15 | 独家体验 整篇',
   H2.map(x => x.content).join(' | '));
 ck('汇总弹幕都不带 action（不会被跳走）', H2.every(x => !x.action));
 
@@ -157,7 +157,7 @@ inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('single：6 段 → 原弹幕1 + 汇总1 + 逐段提醒4（2 个整篇让位给汇总）',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('single：标题行 + 每段一行',
-  sumMsg3.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭硬广 02:30–02:46\n三连提醒 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
+  sumMsg3.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 02:30–02:46\n三连提醒 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('single：汇总整条用金色', sumMsg3.elems[1].color === 0xFF5C5C, String(sumMsg3.elems[1].color));
 ck('提醒档按类别上色', (() => {
@@ -185,7 +185,7 @@ ck('single：可改成挤一行用 · 分隔', (() => {
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, many, Object.assign({ airSummary: 'single', airSummaryWrap: 'same' }, sumArg));
   // 标题行永远独占一行（内置模板写死了换行），same 只影响条目之间的分隔
-  return m.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广 · 恰饭硬广 02:30–02:46 · 三连提醒 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处';
+  return m.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广 · 恰饭内容 02:30–02:46 · 三连提醒 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处';
 })(), '挤一行');
 ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 

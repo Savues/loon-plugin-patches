@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.21
-#!desc=v1.21 类别改名：interaction→三连提醒、intro→开场动画、preview→往期回顾（依据是解包后的浏览器扩展 v0.16.0 自带的官方描述与 guideline）；片头汇总从金色改为红色；修正错别字「软告」→「软广」。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.22
+#!desc=v1.22 两处修复：① 片头汇总钉点 —— 视频开头就有自动跳片段时，App 会在片段起点+2 秒直接 seek 走，汇总若仍钉在第 3 秒就落在被跳过的区间里永远看不到（实测 BV1PyHi6vEpA：开场动画 00:00–00:32，第 2 秒跳到 32 秒）；现在汇总顺着开头的自动跳链爬到用户真正的落点再钉住，落进跳过区间的「只提醒」弹幕一并下移，可用新参数 airSummaryAnchor=start 退回旧行为。② 类别名 sponsor 由「恰饭硬广」改为「恰饭内容」。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS

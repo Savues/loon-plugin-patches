@@ -120,7 +120,7 @@ function __airFmt(t) {
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
 }
 var __airNames = {
-    sponsor: "恰饭硬广", selfpromo: "自我推广", exclusive_access: "独家体验",
+    sponsor: "恰饭内容", selfpromo: "自我推广", exclusive_access: "独家体验",
     interaction: "三连提醒", poi_highlight: "精彩时刻", intro: "开场动画", outro: "片尾",
     preview: "往期回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
