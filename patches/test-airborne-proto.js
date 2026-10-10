@@ -155,8 +155,8 @@ const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
-ck('6 类装不下 6 行上限时截断，末尾说明藏了多少', sumMsg3.elems[1].content ===
-  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇\n…另 2 类',
+ck('6 类装不下 6 行上限时，标记并进最后一行并点名被藏的类', sumMsg3.elems[1].content ===
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
@@ -336,8 +336,11 @@ for (const [name, hex] of [['红色', 0xFF5C5C], ['橙色', 0xFFB400], ['黄色'
   inject(m2.elems, SEGS, base);
   ck('默认就是 6 行上限（不必手动设置）',
      m2.elems[1].content.split('\n').length === 6, m2.elems[1].content);
-  ck('被藏起来的部分有说明',
-     m2.elems[1].content.includes('…另'), JSON.stringify(m2.elems[1].content));
+  ck('被藏起来的部分被点名（BV1EDHC6CEDJ 7 行 → 藏的是片尾）',
+     m2.elems[1].content.includes('…另 1 类（片尾）'), JSON.stringify(m2.elems[1].content));
+  ck('标记不单独占行（并进了最后一行）',
+     m2.elems[1].content.split('\n').slice(-1)[0].includes('…另 1 类（片尾）'),
+     m2.elems[1].content.split('\n').slice(-1)[0]);
 }
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');

@@ -125,37 +125,52 @@ function __airLineCap(a) {
     return v === "off" ? 0 : (v === "3" || v === "4" || v === "5" || v === "6" ? Number(v) : 6);
 }
 /**
- * 把「标题 + 全片恰饭行 + 各类别块」按行上限裁剪。
+ * 把「标题行 + 各类别块」按行上限裁剪。blocks 是 [{name, lines:[...]}]。
  *
- * ⚠️ 末尾的「…另 N 处、1 类」标记自己也要占一行，所以**必须提前预留**，
- * 否则会出现「上限 5 行 → 实际 6 行」兜不住的情况（原型阶段真踩过）。
- * 放不下时优先整块丢弃；连第一块都放不下就部分显示（块头 + 至少一段）。
+ * ⚠️ 末尾的「…另 N 处（…）」标记**并进最后一行**而不是单独占一行 —— 这样能腾回一行，
+ * 多显示一段。v1.30 用的是"预留一行给标记"，白白浪费；而且标记只写「另 1 类」很模糊，
+ * 这里改成**点名**：被藏的段报起点、被藏的类报名称。
+ *
+ * 另一个坑：部分显示的那个块本身是**显示出来的**，不能算进「另 N 类」，
+ * 只算它后面那些整块没放下的（v1.30 误把它算进去了，1 个类别被标成「另 1 类」）。
  */
 function __airFit(blocks, cap) {
     var total = 1, i, j;                                   // 1 = 标题行
-    for (i = 0; i < blocks.length; i++) total += blocks[i].length;
+    for (i = 0; i < blocks.length; i++) total += blocks[i].lines.length;
     if (!cap || total <= cap) return blocks;
-    var room = cap - 2;                                    // 标题行 + 预留 1 行给末尾标记
-    var kept = [], used = 0, hidSegs = 0, hidBlocks = 0;
+    var room = cap - 1;                                    // 只留标题行；标记不占行
+    var kept = [], used = 0, hidSegs = [], hidBlocks = [];
     for (i = 0; i < blocks.length; i++) {
-        var b = blocks[i];
+        var b = blocks[i].lines;
         if (used + b.length <= room) { kept.push(b); used += b.length; continue; }
-        if (room - used >= 1) {                             // 部分显示：至少露出块头（类别名+条数）
-            var k = room - used - 1;                        // k=0 时只剩块头，总比什么都不说强
-            kept.push(b.slice(0, k + 1));
-            used += k + 1;
-            hidSegs += b.length - 1 - k;
+        if (room - used >= 1) {                             // 放不下：至少露出块头（类别名+条数）
+            var k = room - used;
+            kept.push(b.slice(0, k));
+            used += k;
+            for (j = k; j < b.length; j++) hidSegs.push(b[j].split("–")[0].trim());
+            for (j = i + 1; j < blocks.length; j++) hidBlocks.push(blocks[j].name);
         } else {
-            hidSegs += Math.max(0, b.length - 1);
+            for (j = 1; j < b.length; j++) hidSegs.push(b[j].split("–")[0].trim());
+            hidBlocks.push(blocks[i].name);
+            for (j = i + 1; j < blocks.length; j++) hidBlocks.push(blocks[j].name);
         }
-        hidBlocks += blocks.length - i;
         break;
     }
+    var out = [], i2;
+    for (i2 = 0; i2 < kept.length; i2++) out = out.concat(kept[i2]);
     var tail = [];
-    if (hidSegs) tail.push(hidSegs + " 处");
-    if (hidBlocks) tail.push(hidBlocks + " 类");
-    if (tail.length) kept.push(["…另 " + tail.join("、")]);
-    return kept;
+    if (hidSegs.length) tail.push(hidSegs.length + " 处（" + __airNames4(hidSegs) + "）");
+    if (hidBlocks.length) tail.push(hidBlocks.length + " 类（" + __airNames4(hidBlocks) + "）");
+    if (tail.length) {
+        var mark = "…另 " + tail.join("，");
+        if (out.length) out[out.length - 1] = out[out.length - 1] + "  " + mark;
+        else out.push(mark);
+    }
+    return [{name: "", lines: out}];
+}
+/** 名单最多点 3 个名，多了补「等」——否则最后一行会被撑得很长 */
+function __airNames4(a) {
+    return a.slice(0, 3).join("、") + (a.length > 3 ? " 等" : "");
 }
 function __airFmt(t) {
     t = Math.max(0, Math.floor(t));
@@ -261,12 +276,16 @@ function __airInject(msg, segs, a) {
         var groups = __airGroups(segs);
         // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
-        var blocks = (hasFullAd ? [["全片恰饭软广"]] : [])
-            .concat(groups.map(function (g) { return g.text.split("\n"); }));
-        // 整条弹幕最多 6 行（实测），放不下的整块丢弃、部分块截断，末尾一行说明藏了多少
+        var blocks = (hasFullAd ? [{name: "全片恰饭软广", lines: ["全片恰饭软广"]}] : [])
+            .concat(groups.map(function (g, gi) {
+                return { name: __airNames[groups[gi].cat] || groups[gi].cat,
+                         lines: g.text.split("\n") };
+            }));
+        // 整条弹幕最多 6 行（实测）。放不下的整块丢弃、部分块截断，
+        // 末尾把「被藏的是什么」并进最后一行
         var labels = [];
         __airFit(blocks, __airLineCap(a)).forEach(function (b) {
-            labels = labels.concat(b);
+            labels = labels.concat(b.lines);
         });
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为

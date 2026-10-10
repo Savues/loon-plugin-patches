@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.30
-#!desc=v1.30 新增参数「汇总最多几行」——实测手机端单条弹幕最多 6 行，超出的整条会被忽略、汇总完全不显示（BV1EDHC6CEDJ 7 行时就是不显示）。默认 6，放不下的整块丢弃、部分块截断，末尾一行说明藏了多少；可切 off 不限。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.31
+#!desc=v1.31 片头汇总被行数上限截断时，末尾标记不再单独占一行（腾回一行多显示一段），并改为点名被藏的内容：「…另 1 类（片尾）」「…另 1 处（06:14）」。顺带修一个计数 bug：部分显示的那个类别原本也被算进「另 N 类」。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS

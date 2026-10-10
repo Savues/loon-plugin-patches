@@ -13,6 +13,7 @@ globalThis.__airSummaryColorTest = __airSummaryColor;   // eval 之后才拿得�
 globalThis.__airSummaryColors = AIR_SUMMARY_COLORS;
 globalThis.__airCap = __airLineCap;
 globalThis.__airFit = __airFit;
+globalThis.__airNames4 = __airNames4;
 
 let fail = 0;
 const eq = (name, got, want) => {
@@ -199,34 +200,41 @@ eq('空值退回白色', __airSummaryColorTest({ airSummaryColor: '' }), 0xFFFFF
 
 
 // ---- 汇总行数上限（实测手机端最多 6 行，超出的整条弹幕被忽略）----
-// __airFit 处理的是「块」，标题行由调用方单独拼，所以行数要 +1
-const FLAT = (blocks) => blocks.map(b => b.join('\n')).join('\n').split('\n');
+// __airFit 处理的是 [{name, lines}]，标题行由调用方单独拼，所以行数要 +1
+const BLK = (name, ...lines) => ({ name, lines });
+const FLAT = (blocks) => blocks.flatMap(b => b.lines);
 const TOT = (blocks) => FLAT(blocks).length + 1;
 const mkBlocks = () => [
-  ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '32:00–32:07 · 7s'],
-  ['片尾 · 42:54–43:27 · 32s']
+  BLK('开场动画', '开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '32:00–32:07 · 7s'),
+  BLK('片尾', '片尾 · 42:54–43:27 · 32s')
 ];
 eq('默认上限 6', __airCap({}), 6);
 eq('off = 不限', __airCap({ airSummaryLines: 'off' }), 0);
 eq('可降到 3', __airCap({ airSummaryLines: '3' }), 3);
 eq('认不出的值退回 6', __airCap({ airSummaryLines: '乱填' }), 6);
-eq('上限 off 完全不截断', FLAT(__airFit(mkBlocks(), 0)),
-   ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '32:00–32:07 · 7s', '片尾 · 42:54–43:27 · 32s']);
+eq('上限 off 完全不截断', FLAT(__airFit(mkBlocks(), 0)), mkBlocks().flatMap(b => b.lines));
 eq('放得下就原样返回（7 行 ≤ 上限 8）', TOT(__airFit(mkBlocks(), 8)), 7);
-eq('上限 6 的截断结果',
+// 🔴 标记并进最后一行（v1.30 用的是预留一行，白白浪费一行）
+eq('上限 6：标记并进最后一行，并点名被藏的类',
    FLAT(__airFit(mkBlocks(), 6)),
-   ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '…另 1 处、2 类']);
-// 🔴 关键：末尾的「…另 N 处、N 类」标记自己也要占一行，不预留就会出现
-// 「上限 5 行 → 实际 6 行」兜不住的情况（原型阶段真踩过）
+   ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s',
+    '32:00–32:07 · 7s  …另 1 类（片尾）']);
+// 🔴 部分显示的那个块本身是显示出来的，不能算进「另 N 类」（v1.30 的 off-by-one）
+eq('单块部分显示时，只报被藏的段数、不多报类',
+   FLAT(__airFit([BLK('三连提醒', '三连提醒 ×5', '00:07–00:34 · 27s', '00:43–01:12 · 29s',
+                        '01:47–01:49 · 2s', '04:23–04:26 · 3s', '06:14–06:47 · 33s')], 6)),
+   ['三连提醒 ×5', '00:07–00:34 · 27s', '00:43–01:12 · 29s', '01:47–01:49 · 2s',
+    '04:23–04:26 · 3s  …另 1 处（06:14）']);
+eq('被藏的段按起点点名', FLAT(__airFit(mkBlocks(), 4))[2],
+   '12:42–12:48 · 6s  …另 2 处（24:36、32:00），1 类（片尾）');
+// 🔴 标记行数：不预留就够用，所以各档必须严格不超
 for (const cap of [3, 4, 5, 6]) {
-  eq('上限 ' + cap + ' 严格不超（含标记行）', TOT(__airFit(mkBlocks(), cap)), cap);
+  eq('上限 ' + cap + ' 严格不超', TOT(__airFit(mkBlocks(), cap)), cap);
 }
-eq('预算极小时也要露出类别头，不能只剩标题和标记',
-   FLAT(__airFit(mkBlocks(), 3))[0], '开场动画 ×4');
-eq('单行块原样保留', FLAT(__airFit([['恰饭 · 01:00']], 6)), ['恰饭 · 01:00']);
-eq('单行块放不下时整块丢弃并计数',
-   FLAT(__airFit([['恰饭 · 01:00'], ['片尾 · 02:00'], ['自我推广 · 03:00']], 3)),
-   ['恰饭 · 01:00', '…另 2 类']);
+eq('预算极小时也露出类别头', FLAT(__airFit(mkBlocks(), 3))[0], '开场动画 ×4');
+eq('名单最多点 3 个名，多了补「等」',
+   __airNames4(['a', 'b', 'c', 'd', 'e']), 'a、b、c 等');
+eq('名单不超过 3 个时原样', __airNames4(['a', 'b']), 'a、b');
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);
