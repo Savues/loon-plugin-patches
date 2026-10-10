@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.23
-#!desc=v1.23 片头汇总精简：同一视频里同类的片段折叠成一行（实测 BV1VeHQ6tEaS 两段恰饭，原先显示两行「恰饭内容」纯噪音，时间点一个不丢，现为「恰饭内容 ×2 · 34:55–35:11 | 52:31–52:40」）；删除 stagger 与 same 两种排版（连同 airSummaryWrap 参数），汇总固定为一条弹幕、每类一行；截断上限改按「类」计。另修：超过 1 小时的时间点原先显示成 120:00，现在显示 2:00:00。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.24
+#!desc=v1.24 汇总紧凑化：同类的多段片段不再逐段列完整区间（三段就到 53 显示列，竖屏顶部弹幕会被截断），改为「恰饭内容 ×2 · 34:55、52:31（共25s）」；起点最多列 2 个、多余用 …，总时长按全部段计；单段保持完整区间不变。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS

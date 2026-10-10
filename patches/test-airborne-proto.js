@@ -155,7 +155,7 @@ const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
-ck('同一类折叠成一行，时间点一个不丢', sumMsg3.elems[1].content ===
+ck('标题行 + 每类一行（这组各片段类别都不同，未触发折叠）', sumMsg3.elems[1].content ===
   '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46\n三连提醒 · 02:39–03:15\n独家体验 整篇\n离题闲聊 · 06:40–07:00\n往期回顾 · 08:20–08:50',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
@@ -262,6 +262,25 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('落点越过片尾时不注入汇总',
      m.elems.filter(x => x.content.includes('本视频')).length === 0,
      m.elems.map(x => x.content).join(' | '));
+}
+
+
+// ---- 多段同类：端到端逐字比对（用户实测 BV1VeHQ6tEaS）----
+{
+  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
+    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
+      content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
+  inject(m.elems, [[2095.833, 2111.833, 'sponsor', 'skip', 3465.633, 1],
+                   [3151.633, 3160.366, 'sponsor', 'skip', 3465.633, 1]],
+    { airSummary: 'single', airCategories: 'sponsor', airNoticeCategories: 'off' });
+  ck('两段恰饭折叠成一行：只列起点 + 总时长',
+     m.elems[1].content === '⚠️本视频包含⚠️\n恰饭内容 ×2 · 34:55、52:31（共25s）',
+     JSON.stringify(m.elems[1].content));
+  ck('两段自动跳各自仍然到位（折叠只影响汇总文案）',
+     m.elems.filter(x => x.action).length === 2
+     && m.elems.some(x => x.action === 'airborne:2111833')
+     && m.elems.some(x => x.action === 'airborne:3160366'),
+     JSON.stringify(m.elems.map(x => x.action)));
 }
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');

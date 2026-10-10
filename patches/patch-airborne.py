@@ -118,9 +118,11 @@ function __airRange(seg) {   // 一段的时间范围；整篇标记没有起止
  * （实测 BV1VeHQ6tEaS 两段恰饭），逐段各占一行时类别名重复出现，纯属噪音：
  *     恰饭内容 34:55–35:11
  *     恰饭内容 52:31–52:40
- * 折叠成一行，时间点一个不丢：
- *     恰饭内容 ×2 · 34:55–35:11 | 52:31–52:40
- * 单段不写 ×1。返回 {text, cat, n} 数组，cat 供上色用。
+ * 折叠成一行；段数多时逐段列完整区间会撑爆顶部弹幕（实测三段同类 53 显示列），
+ * 所以多段只列起点 + 一个总时长：
+ *     恰饭内容 ×2 · 34:55、52:31（共25s）
+ * 单段保持完整区间：恰饭内容 · 34:55–35:11
+ * 返回 {text, cat, n} 数组，cat 供上色用。
  * 「整篇恰饭」（sponsor+full）不参与折叠 —— 它是独立置顶那一行，不是普通条目。
  */
 function __airGroups(segs) {
@@ -132,14 +134,25 @@ function __airGroups(segs) {
         if (!byCat[c]) { byCat[c] = []; order.push(c); }
         byCat[c].push(s);
     }
+    // 顶部弹幕(mode 5 / 字号 50)在竖屏手机上大约只放得下 32~40 显示列，
+    // 逐段列完整区间时三段同类就到 53 列、必然被 App 截断。所以多段只列起点。
+    var MAXP = 2;
     return order.map(function (c) {
         var arr = byCat[c], n = __airNames[c] || c || "";
-        // 整篇标记没有起止时间，保持老文案「XX 整篇」不带分隔符
-        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1, text: n + " 整篇" };
+        if (arr.length === 1) {                                   // 单段：保持完整区间不动
+            return { cat: c, n: 1, text: arr[0][3] === "full" ? n + " 整篇" : n + " · " + __airRange(arr[0]) };
+        }
+        // 混进了整篇标记就退回列区间：整篇没有起止时间，算不进总时长
+        if (arr.some(function (x) { return x[3] === "full"; })) {
+            return { cat: c, n: arr.length, text: n + " ×" + arr.length + " · " + arr.map(__airRange).join("、") };
+        }
+        // 时长不必逐段给：真正播放到那一段时，提醒档弹幕会带完整区间再显示一次
+        var starts = arr.slice(0, MAXP).map(function (x) { return __airFmt(x[0]); }).join("、");
+        var total = arr.reduce(function (x, y) { return x + (y[1] - y[0]); }, 0);
         return {
-            cat: c,
-            n: arr.length,
-            text: n + (arr.length > 1 ? " ×" + arr.length : "") + " · " + arr.map(__airRange).join(" | ")
+            cat: c, n: arr.length,
+            text: n + " ×" + arr.length + " · " + starts + (arr.length > MAXP ? "…" : "")
+                  + "（共" + Math.round(total) + "s）"
         };
     });
 }
