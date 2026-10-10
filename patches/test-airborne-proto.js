@@ -155,8 +155,8 @@ const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
-ck('标题行 + 每类一行（这组各片段类别都不同，未触发折叠）', sumMsg3.elems[1].content ===
-  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇\n离题闲聊 · 06:40–07:00 · 20s\n往期回顾 · 08:20–08:50 · 30s',
+ck('6 类装不下 6 行上限时截断，末尾说明藏了多少', sumMsg3.elems[1].content ===
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇\n…另 2 类',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
@@ -312,6 +312,32 @@ for (const [name, hex] of [['红色', 0xFF5C5C], ['橙色', 0xFFB400], ['黄色'
   inject(m.elems, [[150, 190, 'filler', 'skip', 600, 0]],
     { airSummary: 'single', airNoticeCategories: 'filler', airSummaryColor: '不存在的颜色' });
   ck('认不出的颜色名静默退回白色', m.elems[1].color === 0xFFFFFF, '0x' + m.elems[1].color.toString(16));
+}
+
+
+// ---- 行数上限的端到端验证（真实视频 BV1EDHC6CEDJ，5 段 7 行）----
+{
+  const SEGS = [[0, 31.56, 'intro', 'skip', 2607, 1], [762.08, 768.32, 'intro', 'skip', 2607, 1],
+                [1476.92, 1483.8, 'intro', 'skip', 2607, 1], [1920.28, 1927.56, 'intro', 'skip', 2607, 1],
+                [2574.84, 2607.24, 'outro', 'skip', 2607, 1]];
+  const base = { airSummary: 'single', airCategories: 'intro,outro', airNoticeCategories: 'off',
+                 airActions: 'skip', airMinDuration: 0 };
+  for (const cap of ['3', '4', '5', '6']) {
+    const m = mkReal();
+    inject(m.elems, SEGS, Object.assign({ airSummaryLines: cap }, base));
+    const L = m.elems[1].content.split('\n');
+    ck('端到端：上限 ' + cap + ' 实际 ' + L.length + ' 行，不超限', L.length <= Number(cap), String(L.length));
+  }
+  const m = mkReal();
+  inject(m.elems, SEGS, Object.assign({ airSummaryLines: 'off' }, base));
+  ck('airSummaryLines=off 时不截断（7 行）',
+     m.elems[1].content.split('\n').length === 7, String(m.elems[1].content.split('\n').length));
+  const m2 = mkReal();
+  inject(m2.elems, SEGS, base);
+  ck('默认就是 6 行上限（不必手动设置）',
+     m2.elems[1].content.split('\n').length === 6, m2.elems[1].content);
+  ck('被藏起来的部分有说明',
+     m2.elems[1].content.includes('…另'), JSON.stringify(m2.elems[1].content));
 }
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');

@@ -115,6 +115,48 @@ function __airGroups(segs) {
         };
     });
 }
+/**
+ * 汇总能占几行。实测（2026-10-10，用户手机）**单条弹幕最多 6 行**，超出的整条被忽略、
+ * 什么也看不见 —— 所以默认按 6 兜住。off = 不限。
+ * （参数是 select，认不出的值一律退回 6。）
+ */
+function __airLineCap(a) {
+    var v = String(__airVal(a, "airSummaryLines", "6"));
+    return v === "off" ? 0 : (v === "3" || v === "4" || v === "5" || v === "6" ? Number(v) : 6);
+}
+/**
+ * 把「标题 + 全片恰饭行 + 各类别块」按行上限裁剪。
+ *
+ * ⚠️ 末尾的「…另 N 处、1 类」标记自己也要占一行，所以**必须提前预留**，
+ * 否则会出现「上限 5 行 → 实际 6 行」兜不住的情况（原型阶段真踩过）。
+ * 放不下时优先整块丢弃；连第一块都放不下就部分显示（块头 + 至少一段）。
+ */
+function __airFit(blocks, cap) {
+    var total = 1, i, j;                                   // 1 = 标题行
+    for (i = 0; i < blocks.length; i++) total += blocks[i].length;
+    if (!cap || total <= cap) return blocks;
+    var room = cap - 2;                                    // 标题行 + 预留 1 行给末尾标记
+    var kept = [], used = 0, hidSegs = 0, hidBlocks = 0;
+    for (i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        if (used + b.length <= room) { kept.push(b); used += b.length; continue; }
+        if (room - used >= 1) {                             // 部分显示：至少露出块头（类别名+条数）
+            var k = room - used - 1;                        // k=0 时只剩块头，总比什么都不说强
+            kept.push(b.slice(0, k + 1));
+            used += k + 1;
+            hidSegs += b.length - 1 - k;
+        } else {
+            hidSegs += Math.max(0, b.length - 1);
+        }
+        hidBlocks += blocks.length - i;
+        break;
+    }
+    var tail = [];
+    if (hidSegs) tail.push(hidSegs + " 处");
+    if (hidBlocks) tail.push(hidBlocks + " 类");
+    if (tail.length) kept.push(["…另 " + tail.join("、")]);
+    return kept;
+}
 function __airFmt(t) {
     t = Math.max(0, Math.floor(t));
     var h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, s = t % 60;   // 超过 1 小时补上小时段
@@ -217,13 +259,15 @@ function __airInject(msg, segs, a) {
     var sum = String(__airVal(a, "airSummary", "single"));
     if (sum !== "off" && !__airLandPast(a, segs)) {
         var groups = __airGroups(segs);
-        var cap = 5;                                        // 一条弹幕装不下太多，按「类」硬性截断
-        var keep = groups.slice(0, cap);
-        var more = groups.length > keep.length ? " 等 " + groups.length + " 类" : "";
         // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
-        var labels = hasFullAd ? ["全片恰饭软广"] : [];
-        labels = labels.concat(keep.map(function (g) { return g.text; }));
+        var blocks = (hasFullAd ? [["全片恰饭软广"]] : [])
+            .concat(groups.map(function (g) { return g.text.split("\n"); }));
+        // 整条弹幕最多 6 行（实测），放不下的整块丢弃、部分块截断，末尾一行说明藏了多少
+        var labels = [];
+        __airFit(blocks, __airLineCap(a)).forEach(function (b) {
+            labels = labels.concat(b);
+        });
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
@@ -231,7 +275,7 @@ function __airInject(msg, segs, a) {
             ? String(__airVal(a, "airInfo", "")) : "⚠️本视频包含⚠️\n{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
-        head[0].content = __airText(a, synth[0], labels.join("\n") + more, tpl);
+        head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
         head[0].progress = sumAt;
         head[0].mode = Number(want) || 5;
         head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）

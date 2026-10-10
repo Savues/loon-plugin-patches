@@ -11,6 +11,8 @@ globalThis.nn = (segs) => segs.map(() => ({ ctime: '1735660800', dmFrom: 1 })); 
 eval(src.slice(a, b));   // 注入的 __air* 全部进作用域
 globalThis.__airSummaryColorTest = __airSummaryColor;   // eval 之后才拿得到
 globalThis.__airSummaryColors = AIR_SUMMARY_COLORS;
+globalThis.__airCap = __airLineCap;
+globalThis.__airFit = __airFit;
 
 let fail = 0;
 const eq = (name, got, want) => {
@@ -194,6 +196,37 @@ eq('选红色', __airSummaryColorTest({ airSummaryColor: '红色' }), 0xFF5C5C);
 eq('选紫色', __airSummaryColorTest({ airSummaryColor: '紫色' }), 0xC08CFF);
 eq('认不出的名字退回白色', __airSummaryColorTest({ airSummaryColor: '七彩' }), 0xFFFFFF);
 eq('空值退回白色', __airSummaryColorTest({ airSummaryColor: '' }), 0xFFFFFF);
+
+
+// ---- 汇总行数上限（实测手机端最多 6 行，超出的整条弹幕被忽略）----
+// __airFit 处理的是「块」，标题行由调用方单独拼，所以行数要 +1
+const FLAT = (blocks) => blocks.map(b => b.join('\n')).join('\n').split('\n');
+const TOT = (blocks) => FLAT(blocks).length + 1;
+const mkBlocks = () => [
+  ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '32:00–32:07 · 7s'],
+  ['片尾 · 42:54–43:27 · 32s']
+];
+eq('默认上限 6', __airCap({}), 6);
+eq('off = 不限', __airCap({ airSummaryLines: 'off' }), 0);
+eq('可降到 3', __airCap({ airSummaryLines: '3' }), 3);
+eq('认不出的值退回 6', __airCap({ airSummaryLines: '乱填' }), 6);
+eq('上限 off 完全不截断', FLAT(__airFit(mkBlocks(), 0)),
+   ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '32:00–32:07 · 7s', '片尾 · 42:54–43:27 · 32s']);
+eq('放得下就原样返回（7 行 ≤ 上限 8）', TOT(__airFit(mkBlocks(), 8)), 7);
+eq('上限 6 的截断结果',
+   FLAT(__airFit(mkBlocks(), 6)),
+   ['开场动画 ×4', '00:00–00:31 · 32s', '12:42–12:48 · 6s', '24:36–24:43 · 7s', '…另 1 处、2 类']);
+// 🔴 关键：末尾的「…另 N 处、N 类」标记自己也要占一行，不预留就会出现
+// 「上限 5 行 → 实际 6 行」兜不住的情况（原型阶段真踩过）
+for (const cap of [3, 4, 5, 6]) {
+  eq('上限 ' + cap + ' 严格不超（含标记行）', TOT(__airFit(mkBlocks(), cap)), cap);
+}
+eq('预算极小时也要露出类别头，不能只剩标题和标记',
+   FLAT(__airFit(mkBlocks(), 3))[0], '开场动画 ×4');
+eq('单行块原样保留', FLAT(__airFit([['恰饭 · 01:00']], 6)), ['恰饭 · 01:00']);
+eq('单行块放不下时整块丢弃并计数',
+   FLAT(__airFit([['恰饭 · 01:00'], ['片尾 · 02:00'], ['自我推广 · 03:00']], 3)),
+   ['恰饭 · 01:00', '…另 2 类']);
 
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);
