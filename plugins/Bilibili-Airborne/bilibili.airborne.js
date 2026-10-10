@@ -67,7 +67,7 @@ function __airRange(seg) {   // 一段的时间范围；整篇标记没有起止
 }
 function __airDur(seg) {     // 这一段有多长；整篇没有"多长"的概念
     if (seg[3] === "full") return "";
-    return "（" + Math.round(seg[1] - seg[0]) + "s）";
+    return " · " + Math.round(seg[1] - seg[0]) + "s";
 }
 /**
  * 把片段按**类别**分组，每类折叠成一行 —— 一个视频里同类的片段往往有好几段
@@ -76,9 +76,9 @@ function __airDur(seg) {     // 这一段有多长；整篇没有"多长"的概�
  *     恰饭内容 52:31–52:40
  * 折叠成一行类别 + 每段各占一行，并把**每段**的时长标出来：
  *     恰饭内容 ×2
- *     34:55–35:11 （16s）
- *     52:31–52:40 （9s）
- * 单段一行写完：恰饭内容 · 34:55–35:11 （16s）
+ *     34:55–35:11 · 16s
+ *     52:31–52:40 · 9s
+ * 单段一行写完：恰饭内容 · 34:55–35:11 · 16s
  * 每行宽度都在 20 列上下，不会像 v1.23 那样被横向截断（三段同类就到 53 列）。
  * 返回 {text, cat, n} 数组，cat 供上色用，text 可含换行。
  * 「整篇恰饭」（sponsor+full）不参与折叠 —— 它是独立置顶那一行，不是普通条目。
@@ -97,7 +97,7 @@ function __airGroups(segs) {
         // 整篇标记没有起止时间也没有"多长"，保持老文案「XX 整篇」
         if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1, text: n + " 整篇" };
         var lines = arr.map(function (x) {
-            return (__airRange(x) + " " + __airDur(x)).trim();
+            return (__airRange(x) + __airDur(x)).trim();   // __airDur 自带前导空格
         });
         return {
             cat: c,

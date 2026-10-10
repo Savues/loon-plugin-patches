@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.25
-#!desc=v1.25 片头汇总改为「类别一行 + 每段各一行 + 每段标时长」，如「恰饭内容 ×2」/「34:55–35:11 （16s）」/「52:31–52:40 （9s）」；单段也带时长。每行宽度约 20 列，段数再多也不会被横向截断。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.26
+#!desc=v1.26 汇总里每段的时长改用「·」分隔（34:55–35:11 · 16s）替代圆括号，与同一行的「类别 · 区间」统一。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS

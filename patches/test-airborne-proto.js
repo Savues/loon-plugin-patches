@@ -144,7 +144,7 @@ ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行�
 ck('汇总只有一条，且不带 action（不会被跳走）',
   sumMsg2.elems.length === 4 && !sumMsg2.elems[1].action);
 ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
-  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 （16s）\n三连提醒 · 02:39–03:15 （36s）\n独家体验 整篇',
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇',
   JSON.stringify(sumMsg2.elems[1].content));
 ck('汇总整条用红色（一条弹幕只能有一个颜色）',
   sumMsg2.elems[1].color === 0xFF5C5C, String(sumMsg2.elems[1].color));
@@ -156,7 +156,7 @@ inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('标题行 + 每类一行（这组各片段类别都不同，未触发折叠）', sumMsg3.elems[1].content ===
-  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 （16s）\n三连提醒 · 02:39–03:15 （36s）\n独家体验 整篇\n离题闲聊 · 06:40–07:00 （20s）\n往期回顾 · 08:20–08:50 （30s）',
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n独家体验 整篇\n离题闲聊 · 06:40–07:00 · 20s\n往期回顾 · 08:20–08:50 · 30s',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
@@ -171,7 +171,7 @@ ck('用户自定义含 {list} 的模板时优先用它', (() => {
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]],
     { airSummary: 'single', airNoticeCategories: 'filler', airInfo: '共 {list}' });
-  return m.elems[1].content === '共 离题闲聊 · 02:30–03:10 （40s）';
+  return m.elems[1].content === '共 离题闲聊 · 02:30–03:10 · 40s';
 })(), '自定义模板');
 
 ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
@@ -274,8 +274,11 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
                    [3151.633, 3160.366, 'sponsor', 'skip', 3465.633, 1]],
     { airSummary: 'single', airCategories: 'sponsor', airNoticeCategories: 'off' });
   ck('两段恰饭：类别一行 + 每段一行，各带时长',
-     m.elems[1].content === '⚠️本视频包含⚠️\n恰饭内容 ×2\n34:55–35:11 （16s）\n52:31–52:40 （9s）',
+     m.elems[1].content === '⚠️本视频包含⚠️\n恰饭内容 ×2\n34:55–35:11 · 16s\n52:31–52:40 · 9s',
      JSON.stringify(m.elems[1].content));
+  // 🔴 回归：时长改用 `·` 分隔时，__airDur 自带前导空格而行模板里又有一个，
+  // 两处一叠加就渲染出「34:55–35:11  · 16s」的双空格，肉眼很难在断言里发现。
+  ck('汇总文案里没有双空格', !m.elems[1].content.includes('  '), JSON.stringify(m.elems[1].content));
   ck('两段自动跳各自仍然到位（只改了汇总文案，不影响跳转）',
      m.elems.filter(x => x.action).length === 2
      && m.elems.some(x => x.action === 'airborne:2111833')
