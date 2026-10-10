@@ -113,16 +113,22 @@ function __airRange(seg) {   // 一段的时间范围；整篇标记没有起止
     if (seg[3] === "full") return "整篇";
     return __airFmt(seg[0]) + "–" + __airFmt(__airEnd(seg));
 }
+function __airDur(seg) {     // 这一段有多长；整篇没有"多长"的概念
+    if (seg[3] === "full") return "";
+    return "（" + Math.round(seg[1] - seg[0]) + "s）";
+}
 /**
  * 把片段按**类别**分组，每类折叠成一行 —— 一个视频里同类的片段往往有好几段
  * （实测 BV1VeHQ6tEaS 两段恰饭），逐段各占一行时类别名重复出现，纯属噪音：
  *     恰饭内容 34:55–35:11
  *     恰饭内容 52:31–52:40
- * 折叠成一行；段数多时逐段列完整区间会撑爆顶部弹幕（实测三段同类 53 显示列），
- * 所以多段只列起点 + 一个总时长：
- *     恰饭内容 ×2 · 34:55、52:31（共25s）
- * 单段保持完整区间：恰饭内容 · 34:55–35:11
- * 返回 {text, cat, n} 数组，cat 供上色用。
+ * 折叠成一行类别 + 每段各占一行，并把**每段**的时长标出来：
+ *     恰饭内容 ×2
+ *     34:55–35:11 （16s）
+ *     52:31–52:40 （9s）
+ * 单段一行写完：恰饭内容 · 34:55–35:11 （16s）
+ * 每行宽度都在 20 列上下，不会像 v1.23 那样被横向截断（三段同类就到 53 列）。
+ * 返回 {text, cat, n} 数组，cat 供上色用，text 可含换行。
  * 「整篇恰饭」（sponsor+full）不参与折叠 —— 它是独立置顶那一行，不是普通条目。
  */
 function __airGroups(segs) {
@@ -134,25 +140,18 @@ function __airGroups(segs) {
         if (!byCat[c]) { byCat[c] = []; order.push(c); }
         byCat[c].push(s);
     }
-    // 顶部弹幕(mode 5 / 字号 50)在竖屏手机上大约只放得下 32~40 显示列，
-    // 逐段列完整区间时三段同类就到 53 列、必然被 App 截断。所以多段只列起点。
-    var MAXP = 2;
     return order.map(function (c) {
         var arr = byCat[c], n = __airNames[c] || c || "";
-        if (arr.length === 1) {                                   // 单段：保持完整区间不动
-            return { cat: c, n: 1, text: arr[0][3] === "full" ? n + " 整篇" : n + " · " + __airRange(arr[0]) };
-        }
-        // 混进了整篇标记就退回列区间：整篇没有起止时间，算不进总时长
-        if (arr.some(function (x) { return x[3] === "full"; })) {
-            return { cat: c, n: arr.length, text: n + " ×" + arr.length + " · " + arr.map(__airRange).join("、") };
-        }
-        // 时长不必逐段给：真正播放到那一段时，提醒档弹幕会带完整区间再显示一次
-        var starts = arr.slice(0, MAXP).map(function (x) { return __airFmt(x[0]); }).join("、");
-        var total = arr.reduce(function (x, y) { return x + (y[1] - y[0]); }, 0);
+        // 整篇标记没有起止时间也没有"多长"，保持老文案「XX 整篇」
+        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1, text: n + " 整篇" };
+        var lines = arr.map(function (x) {
+            return (__airRange(x) + " " + __airDur(x)).trim();
+        });
         return {
-            cat: c, n: arr.length,
-            text: n + " ×" + arr.length + " · " + starts + (arr.length > MAXP ? "…" : "")
-                  + "（共" + Math.round(total) + "s）"
+            cat: c,
+            n: arr.length,
+            text: arr.length === 1 ? n + " · " + lines[0]
+                                   : n + " ×" + arr.length + "\n" + lines.join("\n")
         };
     });
 }
