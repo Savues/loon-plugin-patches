@@ -134,32 +134,31 @@ ck('airSummary=off 时，整篇的独立提醒仍然保留（兜底，避免信�
 
 const sumMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg));
-ck('stagger：4 条汇总 + 2 条逐段提醒（原弹幕 1）',
-  sumMsg2.elems.length === 7, String(sumMsg2.elems.length));
-ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行「XX 整篇」）',
+inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'single' }, sumArg));
+ck('single：4 段 → 原弹幕1 + 汇总1 + 逐段提醒2（2 个整篇让位给汇总）',
+  sumMsg2.elems.length === 4, JSON.stringify(sumMsg2.elems.map(x => x.content)));
+ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行「全片恰饭软广」）',
   sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭内容 00:00→03:11').length === 0 &&
-  sumMsg2.elems.some(x => x.content === '恰饭 整篇' || x.content === '独家体验 整篇'),
+  sumMsg2.elems[1].content.includes('全片恰饭软广'),
   sumMsg2.elems.map(x => x.content).join(' | '));
-// elems[0] 是那条真实弹幕，汇总从 index 1 开始
-const H2 = sumMsg2.elems.slice(1, 5);
-ck('stagger：汇总错开 4 秒',
-  H2.map(x => x.progress).join('/') === '3000/7000/11000/15000', H2.map(x => x.progress).join('/'));
-ck('stagger：置顶「全片恰饭软广」+ 其余条目',
-  H2.map(x => x.content).join(' | ') === '全片恰饭软广 | 恰饭内容 02:30–02:46 | 三连提醒 02:39–03:15 | 独家体验 整篇',
-  H2.map(x => x.content).join(' | '));
-ck('汇总弹幕都不带 action（不会被跳走）', H2.every(x => !x.action));
+ck('汇总只有一条，且不带 action（不会被跳走）',
+  sumMsg2.elems.length === 4 && !sumMsg2.elems[1].action);
+ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46\n三连提醒 · 02:39–03:15\n独家体验 整篇',
+  JSON.stringify(sumMsg2.elems[1].content));
+ck('汇总整条用红色（一条弹幕只能有一个颜色）',
+  sumMsg2.elems[1].color === 0xFF5C5C, String(sumMsg2.elems[1].color));
 
 const many = sumSegs.concat([[400, 420, 'filler', 'skip', 191, 0], [500, 530, 'preview', 'skip', 191, 0]]);
 const sumMsg3 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
   { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
 inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
-ck('single：6 段 → 原弹幕1 + 汇总1 + 逐段提醒4（2 个整篇让位给汇总）',
+ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
-ck('single：标题行 + 每段一行',
-  sumMsg3.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 02:30–02:46\n三连提醒 02:39–03:15\n独家体验 整篇\n离题闲聊 06:40–07:00 等 6 处',
+ck('同一类折叠成一行，时间点一个不丢', sumMsg3.elems[1].content ===
+  '⚠️本视频包含⚠️\n全片恰饭软广\n恰饭内容 · 02:30–02:46\n三连提醒 · 02:39–03:15\n独家体验 整篇\n离题闲聊 · 06:40–07:00\n往期回顾 · 08:20–08:50',
   JSON.stringify(sumMsg3.elems[1].content));
-ck('single：汇总整条用金色', sumMsg3.elems[1].color === 0xFF5C5C, String(sumMsg3.elems[1].color));
+ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
@@ -167,27 +166,13 @@ ck('提醒档按类别上色', (() => {
     { airSummary: 'off', airCategories: 'sponsor', airNoticeCategories: 'filler' });
   return m.elems[1].color === 0xFFFFFF && m.elems[2].color === 0x6EE7C8;   // 自动跳仍白色，提醒按类色
 })(), '按类别上色');
-ck('stagger：每条汇总按自身类别上色', (() => {
-  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, sumSegs, Object.assign({ airSummary: 'stagger' }, sumArg));
-  return m.elems[2].color === 0xFF5C5C && m.elems[3].color === 0x5CC8FF;
-})(), 'stagger 上色');
 ck('用户自定义含 {list} 的模板时优先用它', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   inject(m.elems, [[150, 190, 'filler', 'skip', 191, 0]],
     { airSummary: 'single', airNoticeCategories: 'filler', airInfo: '共 {list}' });
-  return m.elems[1].content === '共 离题闲聊 02:30–03:10';
+  return m.elems[1].content === '共 离题闲聊 · 02:30–03:10';
 })(), '自定义模板');
-ck('single：可改成挤一行用 · 分隔', (() => {
-  const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
-    { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
-  inject(m.elems, many, Object.assign({ airSummary: 'single', airSummaryWrap: 'same' }, sumArg));
-  // 标题行永远独占一行（内置模板写死了换行），same 只影响条目之间的分隔
-  return m.elems[1].content === '⚠️本视频包含⚠️\n全片恰饭软广 · 恰饭内容 02:30–02:46 · 三连提醒 02:39–03:15 · 独家体验 整篇 · 离题闲聊 06:40–07:00 等 6 处';
-})(), '挤一行');
-ck('single：出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 
 ck('提醒默认是顶部弹幕（时长最短但最显眼）', sNote.mode === 5, String(sNote.mode));
 ck('提醒可改成滚动弹幕（停留更久、暂停也保留）', (() => {
@@ -228,7 +213,7 @@ ck('响应里已有本脚本弹幕时不再重复注入',
       fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
   let broke = null;
   try {
-    for (const mode of ['single', 'stagger']) {
+    for (const mode of ['single', 'off']) {
       const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
         { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25,
           content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
@@ -253,7 +238,7 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, HAR_SEGS, HAR_ARG);
   ck('开头有自动跳：汇总钉在落点之后（32.005+2=34.005s）',
      m.elems[1].progress === 34005, String(m.elems[1].progress));
-  ck('汇总文案仍然完整', m.elems[1].content.includes('开场动画 00:00–00:32'), m.elems[1].content);
+  ck('汇总文案仍然完整', m.elems[1].content.includes('开场动画 · 00:00–00:32'), m.elems[1].content);
   ck('自动跳那条本身仍在片段起点 +2 秒',
      m.elems.some(x => x.progress === 2000 && !!x.action), JSON.stringify(m.elems.map(x => x.progress)));
 }
@@ -268,12 +253,6 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, [[600, 640, 'intro', 'skip', 1784, 1]], HAR_ARG);
   ck('开头没有自动跳时汇总仍在 airInfoDelay（行为不变）',
      m.elems[1].progress === 3000, String(m.elems[1].progress));
-}
-{
-  const m = mkReal();
-  inject(m.elems, HAR_SEGS, Object.assign({ airSummary: 'stagger' }, HAR_ARG));
-  ck('stagger 同样整体后移并保持 4 秒错开',
-     m.elems.slice(1, 2).map(x => x.progress).join('/') === '34005', m.elems.map(x => x.progress).join('/'));
 }
 {
   // 整篇即此类 + 开空降：用户被直接送到片尾，汇总钉哪儿都看不见 → 干脆不注入

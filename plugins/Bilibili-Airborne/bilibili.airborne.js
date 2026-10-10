@@ -61,15 +61,45 @@ var AIR_SUMMARY_COLOR = 0xFF5C5C;   // 片头汇总用红色
 function __airColor(cat) {
     return __airColors[cat] == null ? 0xFFFFFF : __airColors[cat];
 }
-function __airSegText(seg) {
-    var n = __airNames[seg[2]] || seg[2] || "";
-    if (seg[3] === "full") return n + " 整篇";                       // 整篇即此类：没有起止时间
-    return n + " " + __airFmt(seg[0]) + "–" + __airFmt(__airEnd(seg));
+function __airRange(seg) {   // 一段的时间范围；整篇标记没有起止时间
+    if (seg[3] === "full") return "整篇";
+    return __airFmt(seg[0]) + "–" + __airFmt(__airEnd(seg));
+}
+/**
+ * 把片段按**类别**分组，每类折叠成一行 —— 一个视频里同类的片段往往有好几段
+ * （实测 BV1VeHQ6tEaS 两段恰饭），逐段各占一行时类别名重复出现，纯属噪音：
+ *     恰饭内容 34:55–35:11
+ *     恰饭内容 52:31–52:40
+ * 折叠成一行，时间点一个不丢：
+ *     恰饭内容 ×2 · 34:55–35:11 | 52:31–52:40
+ * 单段不写 ×1。返回 {text, cat, n} 数组，cat 供上色用。
+ * 「整篇恰饭」（sponsor+full）不参与折叠 —— 它是独立置顶那一行，不是普通条目。
+ */
+function __airGroups(segs) {
+    var order = [], byCat = {}, i, s, c;
+    for (i = 0; i < segs.length; i++) {
+        s = segs[i];
+        if (s[2] === "sponsor" && s[3] === "full") continue;
+        c = s[2];
+        if (!byCat[c]) { byCat[c] = []; order.push(c); }
+        byCat[c].push(s);
+    }
+    return order.map(function (c) {
+        var arr = byCat[c], n = __airNames[c] || c || "";
+        // 整篇标记没有起止时间，保持老文案「XX 整篇」不带分隔符
+        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1, text: n + " 整篇" };
+        return {
+            cat: c,
+            n: arr.length,
+            text: n + (arr.length > 1 ? " ×" + arr.length : "") + " · " + arr.map(__airRange).join(" | ")
+        };
+    });
 }
 function __airFmt(t) {
     t = Math.max(0, Math.floor(t));
-    var m = (t / 60) | 0, s = t % 60;
-    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    var h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, s = t % 60;   // 超过 1 小时补上小时段
+    var p = function (x) { return (x < 10 ? "0" : "") + x; };
+    return h ? h + ":" + p(m) + ":" + p(s) : p(m) + ":" + p(s);
 }
 var __airNames = {
     sponsor: "恰饭内容", selfpromo: "自我推广", exclusive_access: "独家体验",
@@ -162,52 +192,30 @@ function __airInject(msg, segs, a) {
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
     }
 
-    // 片头汇总：把这个视频里「会被处理」的所有片段在开头依次列出来。
-    // stagger=每段一条错开 4 秒（单条不会太长显示得下）；single=挤成一条；off=不列。
+    // 片头汇总：把这个视频里「会被处理」的所有片段在开头一次列完。
+    // 同类折叠成一行（__airGroups），一条弹幕装不下太多时按「类」截断。
     var sum = String(__airVal(a, "airSummary", "single"));
     if (sum !== "off" && !__airLandPast(a, segs)) {
-        var cap = 5;                                            // 一条弹幕装不下太多，硬性截断
-        var shown = segs.slice(0, cap);
-        var more = segs.length > shown.length ? " 等 " + segs.length + " 处" : "";
-        // 段与段之间怎么排：line=每段一行（\n），same=挤一行用 · 分隔
-        var join = String(__airVal(a, "airSummaryWrap", "line")) === "same" ? " · " : "\n";
-        // 整篇就是恰饭 → 置顶一行明确提示，并从条目里去掉重复的「XX 整篇」
+        var groups = __airGroups(segs);
+        var cap = 5;                                        // 一条弹幕装不下太多，按「类」硬性截断
+        var keep = groups.slice(0, cap);
+        var more = groups.length > keep.length ? " 等 " + groups.length + " 类" : "";
+        // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
-        var labels = [];
-        if (hasFullAd) labels.push("全片恰饭软广");
-        for (var kk = 0; kk < shown.length; kk++) {
-            if (shown[kk][2] === "sponsor" && shown[kk][3] === "full") continue;
-            labels.push(__airSegText(shown[kk]));
-        }
+        var labels = hasFullAd ? ["全片恰饭软广"] : [];
+        labels = labels.concat(keep.map(function (g) { return g.text; }));
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
-        var synth, head;
-        if (sum === "single") {
-            // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
-            var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-                ? String(__airVal(a, "airInfo", "")) : "⚠️本视频包含⚠️\n{list}";
-            synth = [[0, 0, "", "skip", 0, 0]];
-            head = nn(synth, a);
-            head[0].content = __airText(a, synth[0], labels.join(join) + more, tpl);
-            head[0].progress = sumAt;
-        } else {
-            synth = labels.map(function () { return [0, 0, "", "skip", 0, 0]; });
-            head = nn(synth, a);
-            var lbl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-                ? String(__airVal(a, "airInfo", "")) : "{list}";
-            for (var ki = 0; ki < head.length; ki++) {
-                head[ki].content = __airText(a, synth[ki], labels[ki] + (ki === 0 ? more : ""), lbl);
-                head[ki].progress = sumAt + ki * 4000;
-            }
-        }
-        for (var kc = 0; kc < head.length; kc++) {
-            head[kc].mode = Number(want) || 5;
-            // labels[kc] 与 shown[kc] 从 kc>=1 起一一对应（kc=0 是插在最前的「全片恰饭软广」，
-            // shown[0] 恰好就是那条整篇恰饭，被上面那个 continue 跳过但没从 shown 里移除）
-            head[kc].color = sum === "single" || labels[kc] === "全片恰饭软广"
-                ? AIR_SUMMARY_COLOR : __airColor(shown[kc][2]);
-            if (donor) { head[kc].midHash = donor[0]; head[kc].attr = donor[1]; }
-        }
+        // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
+        var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
+            ? String(__airVal(a, "airInfo", "")) : "⚠️本视频包含⚠️\n{list}";
+        var synth = [[0, 0, "", "skip", 0, 0]];
+        var head = nn(synth, a);
+        head[0].content = __airText(a, synth[0], labels.join("\n") + more, tpl);
+        head[0].progress = sumAt;
+        head[0].mode = Number(want) || 5;
+        head[0].color = AIR_SUMMARY_COLOR;                  // 整条汇总一个颜色（一条弹幕只能有一个）
+        if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
         built = head.concat(built.filter(function (x, i) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
         }));
