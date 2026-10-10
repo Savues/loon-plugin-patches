@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.26
-#!desc=v1.26 汇总里每段的时长改用「·」分隔（34:55–35:11 · 16s）替代圆括号，与同一行的「类别 · 区间」统一。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.27
+#!desc=v1.27 紧急修复：v1.22~v1.26 的 chronos 重签对相当一部分视频静默失效（进度条不自动跳）。根因是 protobuf 解析把**零长度字段**误判为解析失败，导致 chronos 没被重签、App 降级。现已修正，并把用户抓包里的真实响应存成测试夹具。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS

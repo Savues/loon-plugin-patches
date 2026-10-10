@@ -92,7 +92,13 @@
         else if (wt === 5) p += 4;
         else return null;                    // 未知 wire type：无法确定剩余字段的范围
       }
-      if (!(p > start) || p > b.length) return null;   // 长度越界 / varint 读出 NaN
+      // ⚠️ 判据必须是 p >= start 而不是 p > start：protobuf 里零长度字段
+      // （空字符串 / 空 bytes / 未填充的 repeated）极其常见，真实抓包里
+      // ViewProgress 开头就是 `0a 00`（字段 #1 长度 0）。写成 p > start 会把
+      // 它当成解析失败 ⇒ split() 返回 null ⇒ 整个脚本原样放行 ⇒ chronos 没重签
+      // ⇒ App 降级成「弹幕能看能点但不会自动跳」，而且完全不报错。
+      // 真正要拦的两种情况仍能拦住：p > b.length（长度越界）、p 为 NaN（varint 读到末尾）。
+      if (!(p >= start) || p > b.length) return null;
       out.push({ no: no, wt: wt, raw: b.subarray(start, p) });
     }
     return out;

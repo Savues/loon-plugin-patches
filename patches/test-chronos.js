@@ -170,5 +170,47 @@ console.log = realLog;
 global.$argument = undefined;
 ck('logLevel=off 时不打任何日志', logged2.length === 0, logged2.join(' / '));
 
+
+// 🔴🔴 真实回归（2026-10-10 用户反馈「BV1EDHC6CEDJ 不自动跳，另一个视频可以」）：
+// 同一份抓包里两个 ViewProgress，BV1PyHi6vEpA 的被重签了、BV1EDHC6CEDJ 的没有。
+// 差别在 BV1EDHC6CEDJ 那份 payload 开头是 `0a 00` —— 字段 #1 是**零长度**字段。
+// 旧判据 `if (!(p > start) || p > b.length) return null;` 把零长度当成解析失败，
+// split() 返回 null → 整个脚本 $done({}) 原样放行 → chronos 没重签 →
+// App 降级成「弹幕能看能点但不会自动跳」，而且**全程不报任何错**。
+// 这份 body 就是抓包里的原件，作为夹具钉死这个行为。
+const zeroField = fs.readFileSync(path.join(DIR, 'viewprogress-zero-field.bin'));
+ck('夹具确实是 gzip 帧，且解压后开头是零长度字段 #1',
+   zeroField[0] === 0x01 && zeroField[5] === 0x1f &&
+   zlib.gunzipSync(Buffer.from(zeroField.subarray(5))).subarray(0, 2).toString('hex') === '0a00',
+   zeroField.subarray(5, 9).toString('hex') + ' (gzip 魔数)');
+const zfPayload = zlib.gunzipSync(Buffer.from(zeroField.subarray(5)));
+const zfOut = run(zeroField);
+ck('零长度字段不再让整条放弃重签', !!zfOut, '又原样放行了');
+if (zfOut) {
+  const zt = Buffer.from(zfOut);
+  ck('零长度字段那条的 chronos 已改写为表里的 md5',
+     zt.toString('latin1').includes('932002070dc1b51241198a074d2279fc'));
+  ck('零长度字段那条的 file 指向本仓库 zip', zt.includes('loon-plugin-patches'));
+  ck('零长度字段那条的 sign 已删除', !zt.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDb'));
+}
+// 零长度字段本身必须原样保留，不能被吞掉
+if (zfOut) {
+  const before = splitPb(zfPayload);
+  const after = splitPb(Buffer.from(zfOut).subarray(5));
+  ck('零长度的字段 #1 仍原样保留',
+     before.length === after.length && before.some(x => x.no === 1 && x.payload.length === 0),
+     before.map(x => x.no + ':' + x.payload.length).join(','));
+}
+
+// 判据放宽后，越界与截断仍必须原样放行（这两条是 v1.22 加守卫的目的）
+const mkStr2 = (no, s2) => {
+  const bb = Buffer.from(s2, 'latin1');
+  return Buffer.concat([Buffer.from(mkVarint((no << 3) | 2)), mkVarint(bb.length), bb]);
+};
+const inner3 = Buffer.concat([mkStr2(1, 'deadbeefdeadbeefdeadbeefdeadbeef'), mkStr2(2, 'http://x/y.zip')]);
+ck('零长度字段 + 后面跟长度越界的字段 → 整条原样放行',
+   run(mkFrame(Buffer.concat([Buffer.from([0x0a, 0x00]), mkStr2(2, inner3.toString('latin1')),
+                              Buffer.from(mkVarint((4 << 3) | 2)), mkVarint(200), Buffer.from([1, 2, 3])]))) === null);
+
 console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
 process.exit(fail ? 1 : 0);
