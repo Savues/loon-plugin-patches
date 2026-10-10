@@ -78,9 +78,12 @@ eq('filler 现在在只提醒档', ok({}, 'skip', 'filler', 40), true);
 eq('exclusive_access 现在在只提醒档', ok({}, 'full', 'exclusive_access', 0, 890), true);
 eq('mute 默认被拒', ok({}, 'mute', 'sponsor', 60), false);
 eq('提醒档不受动作白名单约束', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 20), true);
-eq('提醒档也要过最小时长', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 3), false);
+eq('提醒档也要过最小时长', ok({ airNoticeCategories: 'interaction', airMinDuration: 8 }, 'skip', 'interaction', 3), false);
+eq('提醒档默认不限（0）时 3s 也放行', ok({ airNoticeCategories: 'interaction' }, 'skip', 'interaction', 3), true);
 
-eq('7.9s 被时长滤掉', ok({}, 'skip', 'sponsor', 7.9), false);
+eq('默认 0 = 不限，7.9s 也放行', ok({}, 'skip', 'sponsor', 7.9), true);
+eq('调到 8 后 7.9s 被滤掉', ok({ airMinDuration: 8 }, 'skip', 'sponsor', 7.9), false);
+eq('调到 8 后 8s 刚好放行', ok({ airMinDuration: 8 }, 'skip', 'sponsor', 8), true);
 eq('时长可调到 3s', ok({ airMinDuration: 3 }, 'skip', 'sponsor', 2.9), false);
 eq('时长 0 = 不限', ok({ airMinDuration: 0 }, 'skip', 'sponsor', 0.1), true);
 eq('类别关掉后全拒', ok({ airCategories: 'off', airNoticeCategories: 'off' }, 'skip', 'sponsor', 60), false);
@@ -127,7 +130,7 @@ eq('full 提醒文案含全片时长', __airText({ airInfo: '{cat} 全长{end}' 
 eq('full 提醒出现在第 2 秒', __airText({ airInfo: '{start}' }, [0, 0, 'sponsor', 'full', 191, 0]), '00:00');
 eq('poi 加进自动档后通过（不受 8s 影响）', ok({ airCategories: 'poi_highlight', airActions: 'poi' }, 'poi', 'poi_highlight', 0, 876), true);
 eq('poi 落点就是那个时间点', __airEnd(poi), 183);
-eq('skip 仍受 8s 约束', ok({ airActions: 'skip,full' }, 'skip', 'sponsor', 5, 300), false);
+eq('skip 受最小时长约束', ok({ airActions: 'skip,full', airMinDuration: 8 }, 'skip', 'sponsor', 5, 300), false);
 eq('full 的文案 end 是片尾', __airText({ airNotice: '{start}→{end} 省{dur}s' }, full), '00:00→16:56 省1016s');
 eq('full 的 {cat} 是独家体验', __airText({ airNotice: '{cat}' }, full), '独家体验');
 

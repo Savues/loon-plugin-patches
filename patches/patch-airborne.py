@@ -10,7 +10,7 @@ bsbsb.top（浏览器扩展 hanydd/BilibiliSponsorBlock 的服务端）的片段
 
     src/service/sponsor-block.service.ts
       url: `https://bsbsb.top/api/skipSegments?videoID=..&cid=..&category=sponsor`
-      过滤: actionType === "skip" && (end - start) >= 8
+      过滤: actionType === "skip" && (end - start) >= 8   ← 本仓库把 8 改成了可配置，默认 0
 
 清单层（.lpx）只能传 argument，改不了上面这两处，所以「让用户自己选类别」
 只能改脚本。本补丁器改的是**构建产物**，不是手改：
@@ -83,13 +83,13 @@ function __airOK(a, t, r, n, d) {
     var info = __airCats(a, 1).indexOf(r) >= 0;   // 只提醒列表
     if (!auto && !info) return false;                      // 两个列表都没收录
     if (info) {                                             // 只提醒档：不跳，动作对它没有意义
-        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 8))) return false;
+        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 0))) return false;
         return true;
     }
     if (__airSplit(__airVal(a, "airActions", "skip")).map(function (x) { return x.toLowerCase(); })
         .indexOf(t) < 0) return false;
     if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
-    return n >= Number(__airVal(a, "airMinDuration", 8));
+    return n >= Number(__airVal(a, "airMinDuration", 0));
 }
 /** 这条片段要不要带空降动作 */
 function __airIsAuto(a, t, r) {

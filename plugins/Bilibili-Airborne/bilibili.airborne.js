@@ -35,13 +35,13 @@ function __airOK(a, t, r, n, d) {
     var info = __airCats(a, 1).indexOf(r) >= 0;   // 只提醒列表
     if (!auto && !info) return false;                      // 两个列表都没收录
     if (info) {                                             // 只提醒档：不跳，动作对它没有意义
-        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 8))) return false;
+        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 0))) return false;
         return true;
     }
     if (__airSplit(__airVal(a, "airActions", "skip")).map(function (x) { return x.toLowerCase(); })
         .indexOf(t) < 0) return false;
     if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
-    return n >= Number(__airVal(a, "airMinDuration", 8));
+    return n >= Number(__airVal(a, "airMinDuration", 0));
 }
 /** 这条片段要不要带空降动作 */
 function __airIsAuto(a, t, r) {

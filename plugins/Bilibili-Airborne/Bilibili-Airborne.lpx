@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.27
-#!desc=v1.27 紧急修复：v1.22~v1.26 的 chronos 重签对相当一部分视频静默失效（进度条不自动跳）。根因是 protobuf 解析把**零长度字段**误判为解析失败，导致 chronos 没被重签、App 降级。现已修正，并把用户抓包里的真实响应存成测试夹具。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!name=B站空降助手 v1.28
+#!desc=v1.28 「片段最小时长」默认值由 8 秒改为 0（不限）——所有片段都会处理，包括 2-3 秒的一键三连提示和 6-7 秒的短过渡。想只跳掉足够长的，把该值改回 8。本修改版仓库: https://github.com/Savues/loon-plugin-patches
 #!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
@@ -12,7 +12,7 @@
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
 airCategories = input,"sponsor,selfpromo,interaction,intro,outro,padding",tag=自动跳的类型,desc=英文逗号分隔。这些类别的片段会带空降动作（自动执行，点一下也能跳）。可选：sponsor(恰饭) selfpromo(自我推广) exclusive_access interaction poi_highlight intro(片头) outro(片尾) preview filler padding(前黑后黑) music_offtopic。填 off = 全关
 airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，所以只有 skip / full / poi 有实际效果。full=整段即此类，会直接空降到片尾；poi=精彩时刻，空降到那个时间点；mute 填了无效。
-airMinDuration = input,"8",tag=片段最小时长(秒),desc=比这个短的片段不跳。填 0 = 不限（一键三连提示只有 2-3 秒，想跳它就调到 3）
+airMinDuration = input,"0",tag=片段最小时长(秒),desc=比这个短的片段不跳。默认 0 = 不限，所有片段都处理。想只跳掉足够长的（如 ≥8 秒）就填 8
 airMode = select,"jump","mark",tag=空降方式,desc=jump：自动跳的类型带空降动作（需 chronos 重签）；mark：全部降级为只显示文字，一律不跳
 airNoticeCategories = input,"exclusive_access,poi_highlight,preview,filler,music_offtopic",tag=只提醒的类型,desc=这些类别的片段只在弹幕栏显示一行文字提醒，**不会跳转**，跳不跳你自己拖进度条。默认填的是所有**不在自动跳列表里**的类别，两档并集正好是 bsbsb 全部 11 类。把某类从这里删掉（并加进上面那档）就改成自动跳；反过来就变成只提醒
 airFullMode = select,"notice","jump","off",tag=整篇软广的处理,desc=社区把整个视频标记为某一类时（片段是零长度的整篇标记，官方有 8306 条独家/整篇恰饭）。notice：不再单独出提醒，整篇信息由「片头汇总」里那一行「XX 整篇」表达；关掉汇总时才会单独提醒；jump：直接空降到片尾；off：完全不处理。默认 notice 最安全——独家首发类（如电影）常常有真内容
