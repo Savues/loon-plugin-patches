@@ -246,9 +246,8 @@ function __airTally(a, segs) {
         c = segs[i][2];
         if (!by[c]) { by[c] = 0; order.push(c); }
         by[c]++;
-        // 整篇标记的时长 = 片长（实测夹具里 full 段的 start 不一定是 0，不能拿 end-start）
-        total += segs[i][3] === "full" ? Math.max(0, Number(segs[i][4]) || 0)
-                                      : Math.round(__airEnd(segs[i]) - segs[i][0]);
+        // 整篇标记（恰饭/软广）的"时长"=片长，计进合计会变成没意义的大数 → 只计数不计秒
+        if (segs[i][3] !== "full") total += Math.round(__airEnd(segs[i]) - segs[i][0]);
     }
     return order.map(function (k) { return (__airShort[k] || __airNames[k] || k) + "×" + by[k]; })
         .join(" ") + " ｜ " + segs.length + " 处 共计" + total + "s";

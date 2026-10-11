@@ -144,7 +144,7 @@ ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行�
 ck('汇总只有一条，且不带 action（不会被跳走）',
   sumMsg2.elems.length === 4 && !sumMsg2.elems[1].action);
 ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
-  '⚠️ 恰饭×2 三连×1 软广×1 ｜ 4 处 共计434s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n软广 · 产品/服务为品牌方无偿提供',
+  '⚠️ 恰饭×2 三连×1 软广×1 ｜ 4 处 共计52s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n软广 · 产品/服务为品牌方无偿提供',
   JSON.stringify(sumMsg2.elems[1].content));
 ck('汇总整条默认白色（一条弹幕只能有一个颜色）',
   sumMsg2.elems[1].color === 0xFFFFFF, String(sumMsg2.elems[1].color));
@@ -156,7 +156,7 @@ inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('6 类装不下 6 行上限时，标记并进最后一行并点名被藏的类', sumMsg3.elems[1].content ===
-  '⚠️ 恰饭×2 三连×1 软广×1 闲聊×1 回顾×1 ｜ 6 处 共计484s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n软广 · 产品/服务为品牌方无偿提供\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
+  '⚠️ 恰饭×2 三连×1 软广×1 闲聊×1 回顾×1 ｜ 6 处 共计102s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n软广 · 产品/服务为品牌方无偿提供\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
