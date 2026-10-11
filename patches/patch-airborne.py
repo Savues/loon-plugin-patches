@@ -150,10 +150,10 @@ function __airGroups(segs) {
     }
     return order.map(function (c) {
         var arr = byCat[c], n = __airNames[c] || c || "";
-        // 整篇标记没有起止时间也没有"多长"；软广披露多说一句它到底是什么
+        // 整篇标记没有起止时间也没有"多长"；软广披露用一句大家熟悉的电视腔说清它是什么
         // （官方定义：UP主免费或获品牌方补贴后使用的产品/服务，仅整篇标记）
         if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1,
-            text: c === "exclusive_access" ? "软广 · 产品/服务为品牌方无偿提供" : n + " 整篇" };
+            text: c === "exclusive_access" ? "本节目由品牌方赞助播出" : n + " 整篇" };
         var lines = arr.map(function (x) {
             return (__airRange(x) + __airDur(x)).trim();   // __airDur 自带前导空格
         });
