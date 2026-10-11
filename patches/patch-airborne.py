@@ -150,8 +150,10 @@ function __airGroups(segs) {
     }
     return order.map(function (c) {
         var arr = byCat[c], n = __airNames[c] || c || "";
-        // 整篇标记没有起止时间也没有"多长"，保持老文案「XX 整篇」
-        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1, text: n + " 整篇" };
+        // 整篇标记没有起止时间也没有"多长"；软广披露多说一句它到底是什么
+        // （官方定义：UP主免费或获品牌方补贴后使用的产品/服务，仅整篇标记）
+        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1,
+            text: c === "exclusive_access" ? "软广 · 产品/服务为品牌方无偿提供" : n + " 整篇" };
         var lines = arr.map(function (x) {
             return (__airRange(x) + __airDur(x)).trim();   // __airDur 自带前导空格
         });
@@ -227,10 +229,30 @@ function __airFmt(t) {
     return h ? h + ":" + p(m) + ":" + p(s) : p(m) + ":" + p(s);
 }
 var __airNames = {
-    sponsor: "恰饭内容", selfpromo: "自我推广", exclusive_access: "独家体验",
+    sponsor: "恰饭内容", selfpromo: "自我推广", exclusive_access: "软广",
     interaction: "三连提醒", poi_highlight: "精彩时刻", intro: "开场动画", outro: "片尾",
     preview: "往期回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
 };
+// 汇总首行的短名（⚠️ 恰饭×1 自推×1 ｜ N 处 共计Ms）
+var __airShort = {
+    sponsor: "恰饭", selfpromo: "自推", exclusive_access: "软广", interaction: "三连",
+    intro: "片头", outro: "片尾", poi_highlight: "高光", preview: "回顾",
+    padding: "黑屏", filler: "闲聊", music_offtopic: "非音乐"
+};
+/** 汇总首行：⚠️ 每类短名×次数 ｜ 总段数 处 共计总时长s（按首次出现排序） */
+function __airTally(a, segs) {
+    var order = [], by = {}, total = 0, i, c;
+    for (i = 0; i < segs.length; i++) {
+        c = segs[i][2];
+        if (!by[c]) { by[c] = 0; order.push(c); }
+        by[c]++;
+        // 整篇标记的时长 = 片长（实测夹具里 full 段的 start 不一定是 0，不能拿 end-start）
+        total += segs[i][3] === "full" ? Math.max(0, Number(segs[i][4]) || 0)
+                                      : Math.round(__airEnd(segs[i]) - segs[i][0]);
+    }
+    return order.map(function (k) { return (__airShort[k] || __airNames[k] || k) + "×" + by[k]; })
+        .join(" ") + " ｜ " + segs.length + " 处 共计" + total + "s";
+}
 function __airText(a, seg, list, tpl) {
     // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，
     // 只保留 {list}（以及模板里本来就有的文字）。tpl 可显式指定模板。
@@ -339,7 +361,7 @@ function __airInject(msg, segs, a) {
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
         var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-            ? String(__airVal(a, "airInfo", "")) : "⚠️本视频包含⚠️\n{list}";
+            ? String(__airVal(a, "airInfo", "")) : "⚠️ " + __airTally(a, segs) + "\n{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);

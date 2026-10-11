@@ -137,7 +137,7 @@ eq('poi 加进自动档后通过（不受 8s 影响）', ok({ airCategories: 'po
 eq('poi 落点就是那个时间点', __airEnd(poi), 183);
 eq('skip 受最小时长约束', ok({ airActions: 'skip,full', airMinDuration: 8 }, 'skip', 'sponsor', 5, 300), false);
 eq('full 的文案 end 是片尾', __airText({ airNotice: '{start}→{end} 省{dur}s' }, full), '00:00→16:56 省1016s');
-eq('full 的 {cat} 是独家体验', __airText({ airNotice: '{cat}' }, full), '独家体验');
+eq('full 的 {cat} 是软广', __airText({ airNotice: '{cat}' }, full), '软广');
 
 // 幂等守卫：同一个响应注入两次，只应有一条
 const elems = [];
@@ -166,12 +166,12 @@ eq('不同类各占一块，顺序按片段出现顺序',
 eq('整篇恰饭不参与折叠（由汇总的独立置顶行表达）',
    G([[0, 0, 'sponsor', 'full', 600, 0], [200, 230, 'sponsor', 'skip', 600, 1]]),
    ['恰饭内容 · 03:20–03:50 · 30s']);
-eq('整篇独家保持老文案「XX 整篇」，且不标时长',
-   G([[300, 330, 'exclusive_access', 'full', 600, 0]]), ['独家体验 整篇']);
+eq('整篇软广披露：改用说明性文案',
+   G([[300, 330, 'exclusive_access', 'full', 600, 0]]), ['软广 · 产品/服务为品牌方无偿提供']);
 eq('混进整篇标记的类别照常分段列出，整篇那行不带时长',
    G([[10, 20, 'exclusive_access', 'skip', 600, 1], [30, 40, 'exclusive_access', 'skip', 600, 1],
       [0, 0, 'exclusive_access', 'full', 600, 0]]),
-   ['独家体验 ×3\n00:10–00:20 · 10s\n00:30–00:40 · 10s\n整篇']);
+   ['软广 ×3\n00:10–00:20 · 10s\n00:30–00:40 · 10s\n整篇']);
 eq('时长四舍五入到整数秒', __airDur({ 3: 'skip', 1: 10.4, 0: 0 }), ' · 10s');
 eq('整篇没有"多长"的概念', __airDur([0, 0, 'sponsor', 'full', 100, 1]), '');
 // 🔴 回归：v1.23 把所有区间挤在一行，三段同类就到 53 显示列、竖屏顶部弹幕必被截断。
