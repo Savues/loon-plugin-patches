@@ -153,7 +153,7 @@ function __airGroups(segs) {
         // 整篇标记没有起止时间也没有"多长"；软广披露用一句大家熟悉的电视腔说清它是什么
         // （官方定义：UP主免费或获品牌方补贴后使用的产品/服务，仅整篇标记）
         if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1,
-            text: c === "exclusive_access" ? "本节目由品牌方赞助播出" : n + " 整篇" };
+            text: c === "exclusive_access" ? "⚠️警告：本片内产品/服务为厂商送测" : n + " 整篇" };
         var lines = arr.map(function (x) {
             return (__airRange(x) + __airDur(x)).trim();   // __airDur 自带前导空格
         });
@@ -346,7 +346,7 @@ function __airInject(msg, segs, a) {
         var groups = __airGroups(segs);
         // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
-        var blocks = (hasFullAd ? [{name: "全片恰饭软广", lines: ["全片恰饭软广"]}] : [])
+        var blocks = (hasFullAd ? [{name: "恰饭广告", lines: ["⚠️警告：本片为恰饭广告"]}] : [])
             .concat(groups.map(function (g, gi) {
                 return { name: __airNames[groups[gi].cat] || groups[gi].cat,
                          lines: g.text.split("\n") };

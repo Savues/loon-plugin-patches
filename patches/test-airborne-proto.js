@@ -137,14 +137,14 @@ const sumMsg2 = _e.fromBinary(_e.toBinary(_e.create({ elems: [
 inject(sumMsg2.elems, sumSegs, Object.assign({ airSummary: 'single' }, sumArg));
 ck('single：4 段 → 原弹幕1 + 汇总1 + 逐段提醒2（2 个整篇让位给汇总）',
   sumMsg2.elems.length === 4, JSON.stringify(sumMsg2.elems.map(x => x.content)));
-ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行「全片恰饭软广」）',
+ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行警告句）',
   sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭内容 00:00→03:11').length === 0 &&
-  sumMsg2.elems[1].content.includes('全片恰饭软广'),
+  sumMsg2.elems[1].content.includes('⚠️警告：本片为恰饭广告'),
   sumMsg2.elems.map(x => x.content).join(' | '));
 ck('汇总只有一条，且不带 action（不会被跳走）',
   sumMsg2.elems.length === 4 && !sumMsg2.elems[1].action);
 ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
-  '⚠️ 恰饭×2 三连×1 软广×1 ｜ 4 处 共计52s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n本节目由品牌方赞助播出',
+  '⚠️ 恰饭×2 三连×1 软广×1 ｜ 4 处 共计52s\n⚠️警告：本片为恰饭广告\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n⚠️警告：本片内产品/服务为厂商送测',
   JSON.stringify(sumMsg2.elems[1].content));
 ck('汇总整条默认白色（一条弹幕只能有一个颜色）',
   sumMsg2.elems[1].color === 0xFFFFFF, String(sumMsg2.elems[1].color));
@@ -156,7 +156,7 @@ inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('6 类装不下 6 行上限时，标记并进最后一行并点名被藏的类', sumMsg3.elems[1].content ===
-  '⚠️ 恰饭×2 三连×1 软广×1 闲聊×1 回顾×1 ｜ 6 处 共计102s\n全片恰饭软广\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n本节目由品牌方赞助播出\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
+  '⚠️ 恰饭×2 三连×1 软广×1 闲聊×1 回顾×1 ｜ 6 处 共计102s\n⚠️警告：本片为恰饭广告\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n⚠️警告：本片内产品/服务为厂商送测\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
@@ -269,7 +269,7 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, [[0, 0, 'exclusive_access', 'full', 1784, 0]],
     { airSummary: 'single', airNoticeCategories: 'exclusive_access' });
   ck('只有整篇软广时，那句话本身就是整条汇总（不再写「软广×1 ｜ 1 处」）',
-     m.elems[1].content === '本节目由品牌方赞助播出',
+     m.elems[1].content === '⚠️警告：本片内产品/服务为厂商送测',
      JSON.stringify(m.elems[1].content));
 }
 {
@@ -277,8 +277,8 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   const m = mkReal();
   inject(m.elems, [[0, 0, 'sponsor', 'full', 120, 0]],
     { airSummary: 'single', airFullMode: 'notice', airCategories: 'sponsor' });
-  ck('只有整篇恰饭时汇总是「全片恰饭软广」一句',
-     m.elems[1].content === '全片恰饭软广',
+  ck('只有整篇恰饭时汇总是警告句一句',
+     m.elems[1].content === '⚠️警告：本片为恰饭广告',
      JSON.stringify(m.elems[1].content));
 }
 
