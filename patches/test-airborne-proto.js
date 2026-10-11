@@ -268,8 +268,17 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   const m = mkReal();
   inject(m.elems, [[0, 0, 'exclusive_access', 'full', 1784, 0]],
     { airSummary: 'single', airNoticeCategories: 'exclusive_access' });
-  ck('只有整篇时首行不出现「共计0s」',
-     m.elems[1].content === '⚠️ 软广×1 ｜ 1 处\n本节目由品牌方赞助播出',
+  ck('只有整篇软广时，那句话本身就是整条汇总（不再写「软广×1 ｜ 1 处」）',
+     m.elems[1].content === '本节目由品牌方赞助播出',
+     JSON.stringify(m.elems[1].content));
+}
+{
+  // 全片只有一个整篇恰饭（notice 档）：同样一句话即整条
+  const m = mkReal();
+  inject(m.elems, [[0, 0, 'sponsor', 'full', 120, 0]],
+    { airSummary: 'single', airFullMode: 'notice', airCategories: 'sponsor' });
+  ck('只有整篇恰饭时汇总是「全片恰饭软广」一句',
+     m.elems[1].content === '全片恰饭软广',
      JSON.stringify(m.elems[1].content));
 }
 

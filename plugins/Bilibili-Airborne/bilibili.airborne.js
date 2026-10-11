@@ -311,9 +311,12 @@ function __airInject(msg, segs, a) {
         });
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
-        // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案
+        // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案。
+        // 全片只有一个整篇标记时没有"统计"可做，直接用那一句话当整条汇总
+        var onlyFull = segs.length === 1 && segs[0][3] === "full";
         var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
-            ? String(__airVal(a, "airInfo", "")) : "⚠️ " + __airTally(a, segs) + "\n{list}";
+            ? String(__airVal(a, "airInfo", ""))
+            : onlyFull ? "{list}" : "⚠️ " + __airTally(a, segs) + "\n{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
