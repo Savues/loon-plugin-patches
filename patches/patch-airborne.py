@@ -250,7 +250,8 @@ function __airTally(a, segs) {
         if (segs[i][3] !== "full") total += Math.round(__airEnd(segs[i]) - segs[i][0]);
     }
     return order.map(function (k) { return (__airShort[k] || __airNames[k] || k) + "×" + by[k]; })
-        .join(" ") + " ｜ " + segs.length + " 处 共计" + total + "s";
+        .join(" ") + " ｜ " + segs.length + " 处"
+        + (total ? " 共计" + total + "s" : "");   // 全是整篇时合计为 0，干脆不写，免得「共计0s」
 }
 function __airText(a, seg, list, tpl) {
     // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，

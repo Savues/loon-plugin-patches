@@ -260,8 +260,17 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, [[0, 0, 'sponsor', 'full', 120, 1]],
     { airSummary: 'single', airCategories: 'sponsor', airFullMode: 'jump', airActions: 'skip' });
   ck('落点越过片尾时不注入汇总',
-     m.elems.filter(x => x.content.includes('本视频')).length === 0,
+     m.elems.filter(x => x.content.includes('⚠️')).length === 0,
      m.elems.map(x => x.content).join(' | '));
+}
+{
+  // 只有整篇标记（软广披露）：合计 0 秒 → 首行不写「共计0s」（v1.34）
+  const m = mkReal();
+  inject(m.elems, [[0, 0, 'exclusive_access', 'full', 1784, 0]],
+    { airSummary: 'single', airNoticeCategories: 'exclusive_access' });
+  ck('只有整篇时首行不出现「共计0s」',
+     m.elems[1].content === '⚠️ 软广×1 ｜ 1 处\n软广 · 产品/服务为品牌方无偿提供',
+     JSON.stringify(m.elems[1].content));
 }
 
 
