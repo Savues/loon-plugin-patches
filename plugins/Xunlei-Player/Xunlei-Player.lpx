@@ -13,9 +13,7 @@ notify_body = text,点击在外部播放器打开,tag=通知内容
 auto_copy = switch,false,true,tag=自动复制链接,desc=同时复制视频链接到剪贴板
 
 [Script]
-# Response 端：捕获视频流响应（主检测）
 http-response ^https://vod.*-vip-lixian\.xunlei\.com/download/\?.*mtp=video_mp4.*$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Xunlei-Player/src/xunlei-player.js,requires-body=false,timeout=10,tag=迅雷云盘_视频直链检测,argument=[{player},{custom_scheme},{notify_title},{notify_body},{auto_copy}]
-# Request 端：探针确认规则被评估（即使 Response 不触发也能看到日志）
 http-request ^https://vod.*-vip-lixian\.xunlei\.com/download/\?.*mtp=video_mp4.*$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Xunlei-Player/src/xunlei-player-probe.js,requires-body=false,timeout=5,tag=迅雷云盘_请求探针,argument=[{player},{custom_scheme},{notify_title},{notify_body},{auto_copy}]
 
 [MitM]
