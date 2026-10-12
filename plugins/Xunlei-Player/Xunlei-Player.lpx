@@ -13,7 +13,7 @@ notify_body = text,点击在外部播放器打开,tag=通知内容
 auto_copy = switch,false,true,tag=自动复制链接,desc=同时复制视频链接到剪贴板
 
 [Script]
-http-response ^https://vod\d+-z\d+-vip-lixian\.xunlei\.com/download/\?.*fid=.*&mtp=video_mp4.*$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Xunlei-Player/src/xunlei-player.js,requires-body=false,timeout=10,tag=迅雷云盘_视频直链检测,argument=[{player},{custom_scheme},{notify_title},{notify_body},{auto_copy}]
+http-response ^https://vod\d+-[a-z]\d+-vip-lixian\.xunlei\.com/download/\?.*fid=.*&mtp=video_mp4.*$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Xunlei-Player/src/xunlei-player.js,requires-body=false,timeout=10,tag=迅雷云盘_视频直链检测,argument=[{player},{custom_scheme},{notify_title},{notify_body},{auto_copy}]
 
 [MitM]
 hostname = vod*-vip-lixian.xunlei.com
