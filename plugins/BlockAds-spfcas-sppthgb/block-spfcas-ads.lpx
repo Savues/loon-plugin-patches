@@ -1,5 +1,5 @@
-#!name=JavDB 去广告与公告 v1.8.0
-#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告（settings.NOTICE）。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
+#!name=JavDB 去广告与公告 v1.9.0
+#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告、首页轮播广告。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
 #!system=iOS, iPadOS
@@ -9,14 +9,13 @@
 #!date=2026-10-12
 
 [General]
-description = Blocks ad images from all known JavDB API domains; removes splash_ad and startup announcement (settings.NOTICE)
+description = Blocks ad images from all known JavDB API domains; removes splash_ad, startup announcement (settings.NOTICE), and homepage carousel ads (index_top)
 author = Savues
 homepage = https://github.com/Savues/loon-plugin-patches
 license = MIT
 
 [Rule]
 # Block ad image CDN - /ads/ path only (preserves covers/avatars/samples)
-# 核心拦截：广告图片。广告配置 /api/v1/ads 不拦截，避免触发 App 异常；图片已拦截即无法展示。
 URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
 
 # Block liquidlink config (returns empty responses)
@@ -38,6 +37,11 @@ DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 # Remove startup announcement (settings.NOTICE) from startup API
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
 ^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
+
+# Remove homepage carousel ads (index_top) and other ad arrays from /api/v1/ads
+# Keep structure intact (enabled=true, empty arrays) to avoid App errors
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
 
 # Remove startup announcement message from plans API (legacy endpoint)
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
