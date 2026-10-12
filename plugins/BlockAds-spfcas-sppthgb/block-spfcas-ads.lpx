@@ -1,14 +1,17 @@
 [General]
-name = Block Ads - spfcas/sppthgb
-description = Blocks ad images and config from tp.spfcas.com and apidd.spthgb.com
-version = 1.0.0
+name = Block Ads - spfcas/sppthgb/czssdgz
+description = Blocks ad images and config from tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com
+version = 1.1.0
 
 [Rule]
-# Block ad image CDN - /ads/ path only (preserves covers/avatars)
+# Block ad image CDN - /ads/ path only (preserves covers/avatars/samples)
 URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
 
-# Block ad config APIs only (keep legitimate movie/magnet APIs)
+# Block ad config APIs on primary domain (keep legitimate movie/magnet APIs)
 URL-REGEX,^https://apidd\.spthgb\.com/api/v1/(ads|startup),REJECT
+
+# Block ad config APIs on backup domain (keep legitimate movie/magnet APIs)
+URL-REGEX,^https://apidd\.czssdgz\.com/api/v1/(ads|startup),REJECT
 
 # Block liquidlink config (returns empty responses)
 DOMAIN-SUFFIX,api.liquidlink.cn,REJECT
@@ -21,4 +24,4 @@ DOMAIN-SUFFIX,zenaruk.com,REJECT
 DOMAIN-SUFFIX,tkock.com,REJECT
 
 [MITM]
-hostname = tp.spfcas.com, apidd.spthgb.com, api.liquidlink.cn
+hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, api.liquidlink.cn
