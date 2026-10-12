@@ -1,7 +1,7 @@
 [General]
 name = Block Ads - spfcas/sppthgb/czssdgz
 description = Blocks ad images and config from tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com; removes startup announcement and splash ads
-version = 1.3.0
+version = 1.4.0
 
 [Rule]
 # Block ad image CDN - /ads/ path only (preserves covers/avatars/samples)
@@ -22,11 +22,11 @@ DOMAIN-SUFFIX,tkock.com,REJECT
 
 [Rewrite]
 # Remove splash_ad from startup API (keep other config fields)
-# Matches: https://apidd.czssdgz.com/api/v1/startup?... and apidd.spthgb.com
-^https://apidd\.(czssdgz|spthgb)\.com/api/v1/startup.*$ body "\"splash_ad\":\{[^}]+\}" "\"splash_ad\":{}"
+# Matches both domains, handles spaces/newlines in JSON
+^https://apidd\.(czssdgz|spthgb)\.com/api/v1/startup.*$ body "splash_ad" ""
 
 # Remove startup announcement message from plans API
-^https://apidd\.(czssdgz|spthgb)\.com/api/v4/plans.*$ body "plan_message\":\"[^\"]*\"" "plan_message\":\"\""
+^https://apidd\.(czssdgz|spthgb)\.com/api/v4/plans.*$ body "plan_message" ""
 
 [MITM]
 hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, api.liquidlink.cn
