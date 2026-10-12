@@ -1,5 +1,5 @@
-#!name=JavDB 去广告与公告 v1.6.0
-#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告（settings.NOTICE）。覆盖所有已知 API 域名（apidd.spthgb.com / czssdgz.com / btyjscl.com / api.aliycloud.com / api.ffaoa.com）。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
+#!name=JavDB 去广告与公告 v1.7.0
+#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告（settings.NOTICE）。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
 #!system=iOS, iPadOS
@@ -34,17 +34,15 @@ DOMAIN-SUFFIX,tkock.com,REJECT
 DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 
 [Rewrite]
-# Remove splash_ad from startup API (all known domains) - set to empty object
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq 'del(.data.splash_ad) | .data.splash_ad = {}'
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq 'del(.data.splash_ad) | .data.splash_ad = {}'
+# Startup API: remove splash_ad and settings.NOTICE in one pass (apidd.* domains)
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {} | .data.settings.NOTICE = ""'
 
-# Remove startup announcement (settings.NOTICE) from startup API
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq 'del(.data.settings.NOTICE) | .data.settings.NOTICE = ""'
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq 'del(.data.settings.NOTICE) | .data.settings.NOTICE = ""'
+# Startup API: remove splash_ad and settings.NOTICE in one pass (api.* domains)
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {} | .data.settings.NOTICE = ""'
 
-# Remove startup announcement message from plans API (legacy endpoint)
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq 'del(.data.plan_message) | .data.plan_message = ""'
-^https://api\.(aliycloud|ffaoa)\.com/api/v4/plans.*$ response-body-json-jq 'del(.data.plan_message) | .data.plan_message = ""'
+# Plans API (legacy): remove plan_message
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
+^https://api\.(aliycloud|ffaoa)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
 
 [MITM]
 hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com, api.liquidlink.cn
