@@ -1,4 +1,4 @@
-#!name=JavDB 去广告与公告 v1.9.0
+#!name=JavDB 去广告与公告 v1.9.1
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告、首页轮播广告。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
@@ -38,10 +38,10 @@ DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
 ^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
 
-# Remove homepage carousel ads (index_top) and other ad arrays from /api/v1/ads
-# Keep structure intact (enabled=true, empty arrays) to avoid App errors
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
+# Remove homepage carousel ads: disable ads entirely + clear arrays
+# Set enabled=false so App hides the ad container, not just shows empty space
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.enabled = false | .data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.enabled = false | .data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
 
 # Remove startup announcement message from plans API (legacy endpoint)
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
