@@ -1,0 +1,15 @@
+#!name=JavDB 调试-1 广告图片
+#!desc=仅拦截 tp.spfcas.com/.../ads/ 广告图片
+#!author=Savues
+#!tag=去广告,JavDB,调试
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-10-12
+
+[Rule]
+URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
+
+[MITM]
+hostname = tp.spfcas.com

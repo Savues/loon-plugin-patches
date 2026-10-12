@@ -1,0 +1,16 @@
+#!name=JavDB 调试-2 广告配置
+#!desc=仅拦截 /api/v1/ads 广告列表配置
+#!author=Savues
+#!tag=去广告,JavDB,调试
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-10-12
+
+[Rule]
+URL-REGEX,^https://apidd\.(spthgb|czssdgz)\.com/api/v1/ads,REJECT
+URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads,REJECT
+
+[MITM]
+hostname = apidd.spthgb.com, apidd.czssdgz.com, api.aliycloud.com, api.ffaoa.com
