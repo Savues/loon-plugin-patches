@@ -1,0 +1,14 @@
+# 编译/临时文件
+*.log
+.DS_Store
+
+# 本地敏感内容 —— 绝不要提交
+*.crt
+*.pem
+*.p12
+*.key
+ca-backup*
+loon-ca.crt
+
+# GeoFix 生成物
+plugins/GeoFix/companion/shortcut/GeoFix位置.build.shortcut

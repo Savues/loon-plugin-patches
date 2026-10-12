@@ -1,0 +1,7 @@
+name = "geofix-parse"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+# 免费额度就够用：解析是纯字符串计算，只有短链展开会发一次出站请求。
+# 如果你不想让它抓任何东西，把 src/index.js 里 expandShortLink 的调用删掉即可。

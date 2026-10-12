@@ -1,0 +1,104 @@
+name: Sync blockAds
+
+on:
+  schedule:
+    # 每 6 小时一次（GitHub 最短周期，实际执行可能延迟 5-15 分钟）
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      with_tab_jq_block:
+        description: '同时禁用与 Biliverse Enhanced 冲突的两条 jq'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-blockads
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检出后确认补丁器存在
+        run: |
+          test -f patches/patch-blockads.py || {
+            echo "::error::patches/patch-blockads.py 不存在"
+            exit 1
+          }
+
+      - name: 拉取上游并施加补丁
+        id: patch
+        run: |
+          ARGS=""
+          if [ "${{ inputs.with_tab_jq_block }}" = "true" ]; then
+            ARGS="--with-tab-jq-block"
+          fi
+          mkdir -p plugins/BlockAds-Patched
+          python3 patches/patch-blockads.py $ARGS -o plugins/BlockAds-Patched/BlockAds.patched.plugin
+          # 把最终产物归档一份，便于比对
+          cp plugins/BlockAds-Patched/BlockAds.patched.plugin /tmp/new.plugin
+
+      - name: 生成差异报告
+        run: |
+          echo "### 同步报告" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- plugins/BlockAds-Patched/; then
+            echo "上游无变化，补丁产物与上次一致。" >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "上游有更新，差异如下：" >> "$GITHUB_STEP_SUMMARY"
+            echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+            git diff --stat -- plugins/BlockAds-Patched/ | head -20 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 校验 B 站退场是否完整
+        run: |
+          python3 - <<'PYEOF'
+          import re, sys, pathlib
+          s = pathlib.Path('plugins/BlockAds-Patched/BlockAds.patched.plugin').read_text(
+              encoding='utf-8', errors='ignore')
+          def norm(t): return t.replace('\\/', '/').replace('\\.', '.')
+          bili = re.compile(r'(bilibili\.com|biliapi\.net|biliapi\.com|biligame\.com)', re.I)
+          sec, live = None, []
+          for ln in s.splitlines():
+              t = ln.strip()
+              m = re.match(r'^\[([A-Za-z ]+)\]', t)
+              if m: sec = m.group(1).upper()
+              if sec in ('REWRITE', 'SCRIPT', 'RULE') and t and not t.startswith('#') \
+                 and bili.search(norm(t)):
+                  live.append(t)
+          mitm = re.search(r'^\[MITM\]([\s\S]*)', s, re.M)
+          bili_mitm = [h for h in re.split(r'[,\s]+', mitm.group(1))
+                       if h and bili.search(norm(h))] if mitm else []
+          if live or bili_mitm:
+              print("::error::B 站退场不完整")
+              for x in live[:5]: print("   残留规则:", x[:100])
+              for x in bili_mitm[:5]: print("   残留域名:", x)
+              print("::error::上游结构可能已变，需要更新 patches/patch-blockads.py")
+              sys.exit(1)
+          n = s.count('bilibili-removed')
+          print(f"::notice::退场校验通过，已注释 {n} 条 B 站规则，MITM 无 B 站域名")
+          PYEOF
+
+      - name: 提交并推送
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/BlockAds-Patched/
+          git commit -m "chore: 同步 blockAds 上游更新并重施补丁
+
+          由 .github/workflows/sync-blockads.yml 自动生成
+          补丁器: patches/patch-blockads.py"
+          git push
+
+      - name: 无变化时结束
+        if: steps.patch.outputs.changed == 'false'
+        run: echo "上游无更新，无需提交。"
