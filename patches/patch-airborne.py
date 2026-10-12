@@ -380,11 +380,12 @@ function __airInject(msg, segs, a) {
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案。
-        // 默认：警告置顶 → 统计 → 明细；全是整篇时没有统计可做，警告句本身就是整条汇总
+        // 默认：警告置顶 → 统计 → 明细；全是整篇时没有统计可做，警告句本身就是整条汇总。
+        // 警告句已在场时统计行不再带 ⚠️，免得两个警示符挤在一个开头
         var tpl = custom
             ? String(__airVal(a, "airInfo", ""))
             : (warns.length ? warns.join("\n") + "\n" : "")
-              + (tally ? "⚠️ " + tally + "\n" : "") + "{list}";
+              + (tally ? (warns.length ? "" : "⚠️ ") + tally + "\n" : "") + "{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
