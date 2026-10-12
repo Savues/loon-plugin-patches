@@ -239,19 +239,20 @@ var __airShort = {
     intro: "片头", outro: "片尾", poi_highlight: "高光", preview: "回顾",
     padding: "黑屏", filler: "闲聊", music_offtopic: "非音乐"
 };
-/** 汇总首行：⚠️ 每类短名×次数 ｜ 总段数 处 共计总时长s（按首次出现排序） */
+/** 汇总首行：⚠️ 每类短名×次数 ｜ 总段数 处 共计总时长s（按首次出现排序）。
+ *  整篇标记不参与——它们由两句警告句表达，计进 ×N/处/秒 都是重复计数 */
 function __airTally(a, segs) {
-    var order = [], by = {}, total = 0, i, c;
+    var order = [], by = {}, total = 0, i, c, n = 0;
     for (i = 0; i < segs.length; i++) {
+        if (segs[i][3] === "full") continue;
         c = segs[i][2];
         if (!by[c]) { by[c] = 0; order.push(c); }
-        by[c]++;
-        // 整篇标记（恰饭/软广）的"时长"=片长，计进合计会变成没意义的大数 → 只计数不计秒
-        if (segs[i][3] !== "full") total += Math.round(__airEnd(segs[i]) - segs[i][0]);
+        by[c]++; n++;
+        total += Math.round(__airEnd(segs[i]) - segs[i][0]);
     }
+    if (!n) return "";                                    // 全是整篇 → 首行交给警告句
     return order.map(function (k) { return (__airShort[k] || __airNames[k] || k) + "×" + by[k]; })
-        .join(" ") + " ｜ " + segs.length + " 处"
-        + (total ? " 共计" + total + "s" : "");   // 全是整篇时合计为 0，干脆不写，免得「共计0s」
+        .join(" ") + " ｜ " + n + " 处" + (total ? " 共计" + total + "s" : "");
 }
 function __airText(a, seg, list, tpl) {
     // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，
@@ -360,11 +361,11 @@ function __airInject(msg, segs, a) {
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案。
-        // 全片只有一个整篇标记时没有"统计"可做，直接用那一句话当整条汇总
-        var onlyFull = segs.length === 1 && segs[0][3] === "full";
+        // 全片只有整篇标记时没有"统计"可做，直接用那句话当整条汇总
+        var tally = __airTally(a, segs);
         var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
             ? String(__airVal(a, "airInfo", ""))
-            : onlyFull ? "{list}" : "⚠️ " + __airTally(a, segs) + "\n{list}";
+            : tally ? "⚠️ " + tally + "\n{list}" : "{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
