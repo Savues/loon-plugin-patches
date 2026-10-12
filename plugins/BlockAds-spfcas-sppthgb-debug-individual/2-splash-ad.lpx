@@ -1,5 +1,5 @@
 #!name=JavDB 调试-2 仅开屏广告
-#!desc=仅将 startup API 的 splash_ad 设为空对象
+#!desc=仅将 startup API 的 splash_ad.enabled 设为 false（保留结构）
 #!author=Savues
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
@@ -9,8 +9,8 @@
 #!date=2026-10-12
 
 [Rewrite]
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
 
 [MITM]
 hostname = apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com

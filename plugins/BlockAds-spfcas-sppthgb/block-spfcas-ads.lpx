@@ -1,4 +1,4 @@
-#!name=JavDB 去广告与公告 v1.9.2
+#!name=JavDB 去广告与公告 v1.9.3
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告、首页轮播广告。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
@@ -30,9 +30,9 @@ DOMAIN-SUFFIX,tkock.com,REJECT
 DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 
 [Rewrite]
-# Remove splash_ad from startup API (all known domains)
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+# Remove splash_ad: set enabled=false (keep structure to avoid bottom bar issue)
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
 
 # Remove startup announcement (settings.NOTICE) from startup API
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
