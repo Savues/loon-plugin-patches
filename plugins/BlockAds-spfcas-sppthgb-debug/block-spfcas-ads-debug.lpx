@@ -1,5 +1,5 @@
-#!name=JavDB 广告调试版 v1.0.0
-#!desc=调试版：每个功能独立开关，用于定位"未找到查询信息"的原因。请逐个开启测试。需开启 MITM 并信任证书。
+#!name=JavDB 广告调试版 v1.1.0
+#!desc=调试版：每个功能独立开关（注意：Rule/Rewrite不支持条件执行，开关仅作备忘。测试时请启用/禁用整个插件，或手动注释规则）。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
@@ -9,7 +9,7 @@
 #!date=2026-10-12
 
 [General]
-description = Debug version with individual switches for each blocking feature
+description = Debug version - switches are for reference only (Rule/Rewrite don't support conditional enable). Enable/disable whole plugin to test.
 author = Savues
 homepage = https://github.com/Savues/loon-plugin-patches
 license = MIT
@@ -37,39 +37,39 @@ BlockLiquidLink = switch,true,tag=8. 拦截 liquidlink 配置,desc=拦截 api.li
 
 [Rule]
 # 1. 广告图片 - 仅拦截 /ads/ 路径
-URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT,enable={BlockAdImages}
+URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
 
 # 2. 广告配置 /api/v1/ads - 主域名
-URL-REGEX,^https://apidd\.(spthgb|czssdgz)\.com/api/v1/ads,REJECT,enable={BlockAdConfig}
-URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads,REJECT,enable={BlockAdConfig}
+URL-REGEX,^https://apidd\.(spthgb|czssdgz)\.com/api/v1/ads,REJECT
+URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads,REJECT
 
-# 3. 备用域名广告配置 (慎用)
-URL-REGEX,^https://apidd\.btyjscl\.com/api/v1/ads,REJECT,enable={BlockBackupDomains}
-URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup,REJECT,enable={BlockBackupDomains}
+# 3. 备用域名广告配置 (默认注释，如需测试请取消注释)
+# URL-REGEX,^https://apidd\.btyjscl\.com/api/v1/ads,REJECT
+# URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup,REJECT
 
 # 4. Liquidlink
-DOMAIN-SUFFIX,api.liquidlink.cn,REJECT,enable={BlockLiquidLink}
+DOMAIN-SUFFIX,api.liquidlink.cn,REJECT
 
 # 5. 点击追踪域名
-DOMAIN-SUFFIX,afengy.com,REJECT,enable={BlockClickTracking}
-DOMAIN-SUFFIX,win1823.com,REJECT,enable={BlockClickTracking}
-DOMAIN-SUFFIX,jopeki.com,REJECT,enable={BlockClickTracking}
-DOMAIN-SUFFIX,zenaruk.com,REJECT,enable={BlockClickTracking}
-DOMAIN-SUFFIX,tkock.com,REJECT,enable={BlockClickTracking}
-DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT,enable={BlockClickTracking}
+DOMAIN-SUFFIX,afengy.com,REJECT
+DOMAIN-SUFFIX,win1823.com,REJECT
+DOMAIN-SUFFIX,jopeki.com,REJECT
+DOMAIN-SUFFIX,zenaruk.com,REJECT
+DOMAIN-SUFFIX,tkock.com,REJECT
+DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 
 [Rewrite]
 # 3. 移除 splash_ad
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}',enable={RewriteSplashAd}
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}',enable={RewriteSplashAd}
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
 
 # 4. 移除 NOTICE
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""',enable={RewriteNotice}
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""',enable={RewriteNotice}
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
 
 # 7. 旧版 plans 接口
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""',enable={RewritePlanMessage}
-^https://api\.(aliycloud|ffaoa)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""',enable={RewritePlanMessage}
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
+^https://api\.(aliycloud|ffaoa)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
 
 [MITM]
 hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com, api.liquidlink.cn
