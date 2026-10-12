@@ -1,0 +1,16 @@
+#!name=JavDB 调试-5 仅 ads.enabled=false
+#!desc=仅设置 /api/v1/ads 的 data.ads.enabled=false
+#!author=Savues
+#!tag=去广告,JavDB,调试
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-10-12
+
+[Rewrite]
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.enabled = false'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads.*$ response-body-json-jq '.data.ads.enabled = false'
+
+[MITM]
+hostname = apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com

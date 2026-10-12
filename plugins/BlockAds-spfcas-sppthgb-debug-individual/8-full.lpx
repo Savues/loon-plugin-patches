@@ -1,0 +1,23 @@
+#!name=JavDB 调试-8 完整版
+#!desc=完整功能：广告图片+开屏+公告+广告配置（对照组）
+#!author=Savues
+#!tag=去广告,JavDB,调试
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!date=2026-10-12
+
+[Rule]
+URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
+
+[Rewrite]
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/ads.*$ response-body-json-jq '.data.enabled = false | .data.ads.enabled = false | .data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads.*$ response-body-json-jq '.data.enabled = false | .data.ads.enabled = false | .data.ads.index_top = [] | .data.ads.web_magnets_top = [] | .data.ads.magnets_top = []'
+
+[MITM]
+hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com
