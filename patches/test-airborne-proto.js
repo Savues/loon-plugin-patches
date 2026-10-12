@@ -156,7 +156,7 @@ inject(sumMsg3.elems, many, Object.assign({ airSummary: 'single' }, sumArg));
 ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
   sumMsg3.elems.length === 6, String(sumMsg3.elems.length));
 ck('警告置顶后明细预算相应减少（6-2-1=3 行），标记并进最后一行并点名被藏的类', sumMsg3.elems[1].content ===
-  '⚠️警告：本片为恰饭广告\n⚠️警告：本片为品牌方合作内容\n恰饭×1 三连×1 闲聊×1 回顾×1 ｜ 4 处 共计102s\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（往期回顾）',
+  '⚠️警告：本片为恰饭广告\n⚠️警告：本片为品牌方合作内容\n恰饭×1 三连×1 闲聊×1 预告×1 ｜ 4 处 共计102s\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（内容预告）',
   JSON.stringify(sumMsg3.elems[1].content));
 ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {

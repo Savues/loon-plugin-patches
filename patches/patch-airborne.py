@@ -231,12 +231,12 @@ function __airFmt(t) {
 var __airNames = {
     sponsor: "恰饭内容", selfpromo: "自我推广", exclusive_access: "软广",
     interaction: "三连提醒", poi_highlight: "精彩时刻", intro: "开场动画", outro: "片尾",
-    preview: "往期回顾", padding: "前黑后黑", filler: "离题闲聊", music_offtopic: "非音乐片段"
+    preview: "内容预告", padding: "黑屏填充", filler: "离题闲聊", music_offtopic: "非音乐部分"
 };
 // 汇总首行的短名（⚠️ 恰饭×1 自推×1 ｜ N 处 共计Ms）
 var __airShort = {
     sponsor: "恰饭", selfpromo: "自推", exclusive_access: "软广", interaction: "三连",
-    intro: "片头", outro: "片尾", poi_highlight: "高光", preview: "回顾",
+    intro: "开场", outro: "片尾", poi_highlight: "高光", preview: "预告",
     padding: "黑屏", filler: "闲聊", music_offtopic: "非音乐"
 };
 /** 汇总首行：⚠️ 每类短名×次数 ｜ 总段数 处 共计总时长s（按首次出现排序）。
@@ -268,6 +268,8 @@ function __airText(a, seg, list, tpl) {
         .replace(/\{start\}/g, sum ? "" : __airFmt(seg[0]))
         .replace(/\{end\}/g, sum ? "" : __airFmt(e))
         .replace(/\{dur\}/g, sum ? "" : Math.round(e - seg[0]));
+    // 起止相同的片段（如三连提醒 45→45）只显示一个时间点，"00:45→00:45"是废话
+    if (!sum) s = s.replace(/(\d{1,3}:\d{2}(?::\d{2})?) ?→ ?\1(?!\d)/g, "$1");
     return sum ? s.replace(/[ \t]*→[ \t]*/g, " ").split("\n")
                     .map(function (x) { return x.trim(); }).filter(Boolean).join("\n") : s;
 }

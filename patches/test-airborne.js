@@ -99,15 +99,17 @@ eq('默认文案（自动档）', __airText({}, seg), '空指部已就位');
 eq('默认文案（提醒档）', __airText({}, [0, 42.9, 'interaction', 'skip', 300, 0]), '⚠️ 三连提醒 00:00→00:42');
 eq('提醒档需显式开启才走 mark', __airAction({ airNoticeCategories: 'interaction' }, [0, 42.9, 'interaction', 'skip', 300, 0], 42900), '');
 eq('{cat} 渲染成中文名', __airText({ airInfo: '{cat}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), '自我推广');
-eq('interaction→三连提醒 / intro→开场动画 / preview→往期回顾',
+eq('interaction→三连提醒 / intro→开场动画 / preview→内容预告',
   [__airText({airInfo:'{cat}'},[0,42.9,'interaction','skip',300,0]),
    __airText({airInfo:'{cat}'},[0,42.9,'intro','skip',300,0]),
    __airText({airInfo:'{cat}'},[0,42.9,'preview','skip',300,0])].join('/'),
-  '三连提醒/开场动画/往期回顾');
+  '三连提醒/开场动画/内容预告');
 eq('{catid} 拿到原始 id', __airText({ airInfo: '{catid}' }, [0, 42.9, 'selfpromo', 'skip', 300, 0]), 'selfpromo');
 eq('未知类别原样输出', __airText({ airInfo: '{cat}' }, [0, 42.9, 'brand_new', 'skip', 300, 0]), 'brand_new');
 eq('提醒档文案可自定义', __airText({ airInfo: '{cat}@{start}' }, [0, 42.9, 'interaction', 'skip', 300, 0]), '三连提醒@00:00');
 eq('占位符', __airText({ airNotice: '跳过{cat} {start}→{end} 省{dur}s' }, seg), '跳过恰饭内容 01:15→01:53 省38s');
+eq('起止相同的片段只显示一个时间点', __airText({}, [45, 45, 'interaction', 'skip', 100, 0]), '⚠️ 三连提醒 00:45');
+eq('起止不同不受影响', __airText({ airNotice: '{start}→{end}' }, [115, 153, 'sponsor', 'skip', 200, 1]), '01:55→02:33');
 eq('自定义文案', __airText({ airNotice: 'AD' }, seg), 'AD');
 
 // 动作
