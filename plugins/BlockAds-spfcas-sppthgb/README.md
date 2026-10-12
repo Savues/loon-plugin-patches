@@ -7,7 +7,7 @@
 | 功能 | 实现方式 | 状态 |
 |------|---------|------|
 | 启动广告图片 | 拦截 `tp.spfcas.com/.../ads/` CDN 路径 | ✅ |
-| 开屏广告配置 | Rewrite `splash_ad = {}` | ✅ |
+| 开屏广告配置 | Rewrite `splash_ad.enabled = false` (保留结构) | ✅ |
 | 启动公告 | Rewrite `settings.NOTICE = ""` | ✅ |
 | 首页轮播/横幅广告 | Rewrite `data.enabled = false` + `data.ads.enabled = false` + 清空广告数组 | ✅ |
 | 磁力/网页顶部广告 | 同首页轮播，清空 `web_magnets_top` / `magnets_top` | ✅ |
@@ -27,7 +27,7 @@
 在 Loon 中添加订阅链接：
 
 ```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/master/plugins/BlockAds-spfcas-sppthgb/block-spfcas-ads.lpx
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/BlockAds-spfcas-sppthgb/block-spfcas-ads.lpx
 ```
 
 ### 方式二：手动导入
@@ -59,6 +59,10 @@ api.liquidlink.cn
 
 ## 更新日志
 
+### v1.9.3 (2026-10-12)
+- ✅ 修复底栏按钮无反应：`splash_ad` 改为 `enabled=false` 保留结构，避免底栏初始化异常
+- ✅ 保留开屏广告结构兼容性，兼容所有版本
+
 ### v1.9.2 (2026-10-12)
 - ✅ 修复首页广告留白：双重设置 `data.enabled=false` + `data.ads.enabled=false`
 - ✅ 完整覆盖 5 个启动 API 域名 + 2 个广告配置域名
@@ -89,8 +93,8 @@ api.liquidlink.cn
 │     → URL-REGEX REJECT /ads/ 路径 (保留 /covers/ /avatars/)  │
 ├─────────────────────────────────────────────────────────────┤
 │  2. 启动接口 (/api/v1/startup) - 5 个域名                   │
-│     → splash_ad = {}        # 移除开屏广告配置               │
-│     → settings.NOTICE = ""  # 移除启动公告                   │
+│     → splash_ad.enabled = false  # 禁用开屏广告，保留结构    │
+│     → settings.NOTICE = ""       # 移除启动公告              │
 ├─────────────────────────────────────────────────────────────┤
 │  3. 广告配置 (/api/v1/ads) - 2 个域名                       │
 │     → data.enabled = false        # 顶层禁用                 │
@@ -123,7 +127,7 @@ api.liquidlink.cn
 
 ### Q: 安装后无效果
 - 确认 Loon MITM 已开启且证书已信任
-- 确认订阅已更新到最新版本 (v1.9.2+)
+- 确认订阅已更新到最新版本 (v1.9.3+)
 - **完全重启**：杀掉 Loon 后台进程 → 杀掉 JavDB → 重新打开
 
 ### Q: 提示"未找到查询信息"
@@ -134,6 +138,10 @@ api.liquidlink.cn
 - v1.9.0 仅清空数组，容器仍渲染
 - v1.9.1+ 设置 `enabled=false` 彻底隐藏容器
 - v1.9.2 双重禁用 `data.enabled` + `data.ads.enabled` 兼容所有版本
+
+### Q: 底栏按钮无反应
+- 这是 v1.9.2 `splash_ad = {}` 空对象导致的结构缺失
+- v1.9.3 改为 `splash_ad.enabled = false` 保留结构，已修复
 
 ### Q: 搜索历史/推荐消失
 - 这是 v1.0 误拦截整个 `/api/v1/startup` 导致
@@ -146,4 +154,4 @@ MIT License
 
 ## 仓库
 
-https://github.com/Savues/loon-plugin-patches/tree/master/plugins/BlockAds-spfcas-sppthgb
+https://github.com/Savues/loon-plugin-patches/tree/main/plugins/BlockAds-spfcas-sppthgb
