@@ -33,6 +33,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [AdGuard-Spoof](plugins/AdGuard-Spoof/) | 收据校验回包本地伪造 · 零外部依赖 · 端点已真机验证<br>Receipt response forged locally · zero external deps · endpoint verified live | **v1.01** |
 | [iTunes-Spoof](plugins/iTunes-Spoof/) | iOS 收据校验转发 · 脚本逐字节等于上游 · 真机验证通过 · 仍有 Worker 依赖<br>iOS receipt forwarding · script byte-identical to upstream · Worker dep remains | **v1.02** ✅ |
 | [BlockAds-Patched](plugins/BlockAds-Patched/) | 合集 B 站 + YouTube + Spotify + 拼多多 部分整体退场<br>Bilibili + YouTube + Spotify + PinDuoDuo removal from the big collection | 自动 Auto |
+| [BlockAds-spfcas-sppthgb](plugins/BlockAds-spfcas-sppthgb/) | JavDB 启动广告/公告/轮播屏蔽 · 5 域名覆盖 · 双层 enabled=false 无留白<br>JavDB startup ads/notice/carousel block · 5 domains · double enabled=false no blank | **v1.9.2** |
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
