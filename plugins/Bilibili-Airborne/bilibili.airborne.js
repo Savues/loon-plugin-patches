@@ -299,25 +299,44 @@ function __airInject(msg, segs, a) {
         var groups = __airGroups(segs);
         // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
         var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
-        var blocks = (hasFullAd ? [{name: "恰饭广告", lines: ["⚠️警告：本片为恰饭广告"]}] : [])
-            .concat(groups.map(function (g, gi) {
-                return { name: __airNames[groups[gi].cat] || groups[gi].cat,
-                         lines: g.text.split("\n") };
-            }));
+        // 两句整篇警告置顶，统计、明细跟在后面；警告不占 __airFit 的名额，
+        // 从行数预算里先扣掉（总行数与「警告混在 blocks 里」的老行为一致）
+        var warns = hasFullAd ? ["⚠️警告：本片为恰饭广告"] : [];
+        var details = [];
+        groups.forEach(function (g) {
+            if (g.text.indexOf("⚠️警告") === 0) {          // 整篇软广那句（唯一会带警告前缀的组）
+                if (warns.indexOf(g.text) < 0) warns.push(g.text);
+            } else {
+                details.push({ name: __airNames[g.cat] || g.cat, lines: g.text.split("\n") });
+            }
+        });
+        var tally = __airTally(a, segs);
+        var cap = __airLineCap(a);
+        var custom = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0;
+        // 自定义模板：保持老格式（警告作为普通块混进 {list}），别悄悄丢信息
+        var fitBlocks = custom
+            ? (hasFullAd ? [{name: "恰饭广告", lines: [warns[0]]}] : [])
+                .concat(details)
+                .concat(warns.slice(hasFullAd ? 1 : 0)
+                        .map(function (w) { return {name: w, lines: [w]}; }))
+            : details;
+        // __airFit 的 cap 含"标题行"（内部留 1），而我们传入的预算要覆盖 警告+统计+明细 的总行数
+        var budget = custom ? cap
+            : cap ? Math.max(2, cap - warns.length - (tally ? 1 : 0) + 1) : 0;   // 0 = 不限
         // 整条弹幕最多 6 行（实测）。放不下的整块丢弃、部分块截断，
         // 末尾把「被藏的是什么」并进最后一行
         var labels = [];
-        __airFit(blocks, __airLineCap(a)).forEach(function (b) {
+        __airFit(fitBlocks, budget).forEach(function (b) {
             labels = labels.concat(b.lines);
         });
         var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
             ? delay : Math.max(delay, floorMs);     // airSummaryAnchor=start 可退回旧行为
         // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案。
-        // 全片只有整篇标记时没有"统计"可做，直接用那句话当整条汇总
-        var tally = __airTally(a, segs);
-        var tpl = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0
+        // 默认：警告置顶 → 统计 → 明细；全是整篇时没有统计可做，警告句本身就是整条汇总
+        var tpl = custom
             ? String(__airVal(a, "airInfo", ""))
-            : tally ? "⚠️ " + tally + "\n{list}" : "{list}";
+            : (warns.length ? warns.join("\n") + "\n" : "")
+              + (tally ? "⚠️ " + tally + "\n" : "") + "{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
