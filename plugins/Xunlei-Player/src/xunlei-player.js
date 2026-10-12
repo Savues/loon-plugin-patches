@@ -2,7 +2,10 @@
 // Loon http-response script
 // argument: [player, custom_scheme, notify_title, notify_body, auto_copy]
 
-const $ = new Env("迅雷云盘·外部播放器");
+const $ = new Env("迅雷云盘·外部播放器 v1.1");
+
+// ========== 探针：脚本启动日志（在 Loon 日志搜索 "Xunlei-Player-Probe"） ==========
+$.log(`[Xunlei-Player-Probe] v1.1 脚本启动 | URL: ${$request.url} | UA: ${$request.headers?.["User-Agent"] || $request.headers?.["user-agent"] || "无"}`);
 
 // ========== 解析参数 ==========
 const [
@@ -38,9 +41,11 @@ const videoUrl = $request.url;
 
 // 校验 URL 格式
 if (!videoUrl.includes("vod") || !videoUrl.includes("mtp=video_mp4")) {
-    $.log("非视频直链，跳过");
+    $.log(`[Xunlei-Player-Probe] 非视频直链，跳过 | URL: ${videoUrl}`);
     $.done({});
 }
+
+$.log(`[Xunlei-Player-Probe] 视频直链匹配成功 | 视频URL: ${videoUrl}`);
 
 // ========== 解析播放器选择 ==========
 const player = playerChoice || "Safari";
@@ -78,6 +83,8 @@ if (doCopy) {
 // Loon 的通知支持 openUrl 和 mediaUrl
 // openUrl: 点击通知打开的链接（我们的 scheme 链接）
 // mediaUrl: 长按通知/媒体播放用的原始视频链接
+$.log(`[Xunlei-Player-Probe] 准备发送通知 | 播放器: ${playerInfo.name} | 跳转链接: ${finalUrl}`);
+
 $.msg(title, "", body, {
     openUrl: finalUrl,
     mediaUrl: videoUrl,

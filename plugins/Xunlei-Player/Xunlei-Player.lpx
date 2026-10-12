@@ -1,9 +1,9 @@
-#!name= 迅雷云盘·外部播放器
+#!name= 迅雷云盘·外部播放器 v1.1
 #!desc= 检测迅雷云盘视频直链，弹出通知跳转到第三方播放器 (SenPlayer/Forward/Alook/Infuse/nPlayer/VLC 等)
 #!author= Agent
-#!homepage= https://github.com/
+#!homepage= https://github.com/Savues/loon-plugin-patches
 #!icon= https://raw.githubusercontent.com/luongz/loon-plugins/main/icons/xunlei.png
-#!date= 2026-10-12 21:50:00
+#!date= 2026-10-12 22:30:00
 
 [Argument]
 player = select,"Safari","SenPlayer","Forward","Filebar","Alook","nPlayer","Infuse","VLC","IINA","MPV","Custom",tag=播放器,desc=选择要跳转的播放器
