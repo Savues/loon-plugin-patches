@@ -1,4 +1,4 @@
-#!name=JavDB 去广告与公告 v1.7.0
+#!name=JavDB 去广告与公告 v1.8.0
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告（settings.NOTICE）。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
@@ -9,18 +9,15 @@
 #!date=2026-10-12
 
 [General]
-description = Blocks ad images and config from all known JavDB API domains; removes splash_ad and startup announcement (settings.NOTICE)
+description = Blocks ad images from all known JavDB API domains; removes splash_ad and startup announcement (settings.NOTICE)
 author = Savues
 homepage = https://github.com/Savues/loon-plugin-patches
 license = MIT
 
 [Rule]
 # Block ad image CDN - /ads/ path only (preserves covers/avatars/samples)
+# 核心拦截：广告图片。广告配置 /api/v1/ads 不拦截，避免触发 App 异常；图片已拦截即无法展示。
 URL-REGEX,^https://tp\.spfcas\.com/.*/ads/,REJECT
-
-# Block ad config API /api/v1/ads on all known domains (keep legitimate movie/magnet APIs)
-URL-REGEX,^https://apidd\.(spthgb|czssdgz|btyjscl)\.com/api/v1/ads,REJECT
-URL-REGEX,^https://api\.(aliycloud|ffaoa)\.com/api/v1/ads,REJECT
 
 # Block liquidlink config (returns empty responses)
 DOMAIN-SUFFIX,api.liquidlink.cn,REJECT
@@ -34,13 +31,15 @@ DOMAIN-SUFFIX,tkock.com,REJECT
 DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 
 [Rewrite]
-# Startup API: remove splash_ad and settings.NOTICE in one pass (apidd.* domains)
-^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {} | .data.settings.NOTICE = ""'
+# Remove splash_ad from startup API (all known domains)
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {}'
 
-# Startup API: remove splash_ad and settings.NOTICE in one pass (api.* domains)
-^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad = {} | .data.settings.NOTICE = ""'
+# Remove startup announcement (settings.NOTICE) from startup API
+^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
+^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.settings.NOTICE = ""'
 
-# Plans API (legacy): remove plan_message
+# Remove startup announcement message from plans API (legacy endpoint)
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
 ^https://api\.(aliycloud|ffaoa)\.com/api/v4/plans.*$ response-body-json-jq '.data.plan_message = ""'
 
@@ -48,4 +47,4 @@ DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 hostname = tp.spfcas.com, apidd.spthgb.com, apidd.czssdgz.com, apidd.btyjscl.com, api.aliycloud.com, api.ffaoa.com, api.liquidlink.cn
 
 [Script]
-# No additional scripts needed - all handled by Rewrite rules
+# No additional scripts needed
