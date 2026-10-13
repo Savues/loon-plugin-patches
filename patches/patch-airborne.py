@@ -315,7 +315,13 @@ function __airLandPast(a, segs) {
  * 默认 off = 与普通弹幕一致，不冒充被 UP 主点赞的弹幕。
  */
 function __airAttr(a) {
-    return String(__airVal(a, "airUpLike", "off")) === "on" ? 1310724 : 1048576;
+    // 两位独立控制：0x40000=「自己」位（本人弹幕画方框，airOwn 默认 on）
+    //              0x4=「UP主点赞」位（部分客户端画 👍，airUpLike 默认 off）
+    // 都不要时 = 0x100000，与真实普通弹幕完全一致
+    var v = 0x100000;
+    if (String(__airVal(a, "airOwn", "on")) === "on") v += 0x40000;
+    if (String(__airVal(a, "airUpLike", "off")) === "on") v += 0x4;
+    return v;
 }
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象

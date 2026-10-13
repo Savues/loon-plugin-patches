@@ -336,8 +336,9 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('开头片段（起点 0）不再单独提醒', !base.some(x => (x[1] || '').includes('airborne') && x[0] === 2000),
      JSON.stringify(base));
 }
-// ---- 注入弹幕的 attr（airUpLike 开关）----
-// 0x100000 = 普通弹幕；0x140004 含「UP主点赞」位（值 4），部分客户端会画 👍
+// ---- 注入弹幕的 attr（airOwn 方框位 + airUpLike 点赞位，两位独立）----
+// 实测抓包（用户在自己视频下发的弹幕）：0x100000=普通；+0x40000=「自己」（客户端画方框）；
+// +0x4=「UP主点赞」（部分客户端画 👍）。我们自己就是靠 ctime 1735660800 注入的。
 {
   const SEGS = [[150, 166, 'sponsor', 'skip', 191, 1]];
   const attrOf = (arg) => {
@@ -346,14 +347,24 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
     const ours = m.elems.filter(x => x.ctime === '1735660800');
     return ours.map(x => x.attr);
   };
-  ck('默认不带「UP主点赞」位（attr=0x100000）',
-     attrOf({}).every(a => a === 0x100000), JSON.stringify(attrOf({})));
-  ck('airUpLike=off 同样不带', attrOf({ airUpLike: 'off' }).every(a => a === 0x100000),
-     JSON.stringify(attrOf({ airUpLike: 'off' })));
-  ck('airUpLike=on 带「UP主点赞」位（attr=0x140004）',
+  // 默认：airOwn=on（方框）、airUpLike=off（无点赞）→ 0x140000
+  ck('默认带「自己」位、不带点赞位（attr=0x140000）',
+     attrOf({}).every(a => a === 0x140000), JSON.stringify(attrOf({})));
+  ck('airOwn=on 显式带方框位', attrOf({ airOwn: 'on' }).every(a => a === 0x140000),
+     JSON.stringify(attrOf({ airOwn: 'on' })));
+  ck('airOwn=off 退回普通弹幕（attr=0x100000）',
+     attrOf({ airOwn: 'off' }).every(a => a === 0x100000), JSON.stringify(attrOf({ airOwn: 'off' })));
+  ck('airOwn 认不出的取值退回 on', attrOf({ airOwn: '???' }).every(a => a === 0x140000),
+     JSON.stringify(attrOf({ airOwn: '???' })));
+  // 🔴 回归：airUpLike=on 只加点赞位，**不能**连方框位一起开（用户实测指出）
+  ck('airUpLike=on 只带点赞位（0x140004，方框位不变）',
      attrOf({ airUpLike: 'on' }).every(a => a === 0x140004), JSON.stringify(attrOf({ airUpLike: 'on' })));
-  ck('认不出的取值退回 off', attrOf({ airUpLike: '???' }).every(a => a === 0x100000),
-     JSON.stringify(attrOf({ airUpLike: '???' })));
+  ck('airUpLike=on 且 airOwn=off → 只有点赞位（0x100004）',
+     attrOf({ airUpLike: 'on', airOwn: 'off' }).every(a => a === 0x100004),
+     JSON.stringify(attrOf({ airUpLike: 'on', airOwn: 'off' })));
+  ck('airUpLike=off → 与点赞位无关，只由 airOwn 决定',
+     attrOf({ airUpLike: 'off', airOwn: 'off' }).every(a => a === 0x100000),
+     JSON.stringify(attrOf({ airUpLike: 'off', airOwn: 'off' })));
 }
 
 // ---- 汇总颜色预设（airSummaryColor）----
