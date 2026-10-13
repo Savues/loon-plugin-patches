@@ -96,9 +96,9 @@ inject(styleMsg.elems,
   { airSummary: 'off', airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
 const sAuto = styleMsg.elems[1], sNote = styleMsg.elems[2];
 ck('自动档是顶部大字 + 有 action',
-  sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 50 && !!sAuto.action,
+  sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 25 && !!sAuto.action,
   JSON.stringify({ m: sAuto.midHash, mode: sAuto.mode, fs: sAuto.fontsize, a: sAuto.action }));
-ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
+ck('提醒档同样是顶部弹幕', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 25,
   JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
 ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
@@ -365,6 +365,29 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('airUpLike=off → 与点赞位无关，只由 airOwn 决定',
      attrOf({ airUpLike: 'off', airOwn: 'off' }).every(a => a === 0x100000),
      JSON.stringify(attrOf({ airUpLike: 'off', airOwn: 'off' })));
+}
+
+// ---- 元数据对齐真实弹幕（字号 / id / oid）----
+// 实测对比用户抓包：真实弹幕 fontsize 只有 25/18、id 是 64 位大整数、oid=视频 cid；
+// 我们原来是 fontsize 50、id "1"、oid 硬编码 212364987
+{
+  const SEGS = [[150, 166, 'sponsor', 'skip', 191, 1]];
+  const mk = (arg) => {
+    const m = mkReal();
+    inject(m.elems, SEGS, Object.assign({ airSummary: 'single', airCategories: 'sponsor' }, arg));
+    return m.elems.filter(x => x.ctime === '1735660800');
+  };
+  ck('默认字号 25（与真实弹幕一致）', mk({}).every(x => x.fontsize === 25),
+     JSON.stringify(mk({}).map(x => x.fontsize)));
+  ck('airFontSize=50 可切回大字', mk({ airFontSize: '50' }).every(x => x.fontsize === 50));
+  ck('airFontSize 非法值退回 25', mk({ airFontSize: '99' }).every(x => x.fontsize === 25));
+  ck('id 是 64 位大整数且 idStr 与之一致',
+     mk({}).every(x => String(x.id).length >= 18 && x.idStr === String(x.id)),
+     JSON.stringify(mk({}).map(x => [String(x.id), x.idStr])));
+  ck('多条弹幕的 id 互不相同', (() => {
+    const ids = mk({}).map(x => String(x.id));
+    return new Set(ids).size === ids.length;
+  })());
 }
 
 // ---- 汇总颜色预设（airSummaryColor）----

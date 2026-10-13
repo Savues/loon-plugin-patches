@@ -319,9 +319,23 @@ function __airAttr(a) {
     //              0x4=「UP主点赞」位（部分客户端画 👍，airUpLike 默认 off）
     // 都不要时 = 0x100000，与真实普通弹幕完全一致
     var v = 0x100000;
-    if (String(__airVal(a, "airOwn", "on")) === "on") v += 0x40000;
+    if (String(__airVal(a, "airOwn", "on")) !== "off") v += 0x40000;   // 非法值退回默认 on
     if (String(__airVal(a, "airUpLike", "off")) === "on") v += 0x4;
     return v;
+}
+/** 注入弹幕的字号：实测 12908 条真实弹幕只有 25 / 18，默认 25 与普通弹幕一致 */
+function __airFontSize(a) {
+    var v = String(__airVal(a, "airFontSize", "25"));
+    return v === "50" || v === "37" || v === "18" ? Number(v) : 25;
+}
+/** 弹幕 id：真实弹幕是 64 位大整数（App 可能按 id 缓存布局，别用 "1"/"2" 这种）。
+ *  用字符串拼接而不是算术——2221e18 超出 JS 安全整数范围，加法会把 id 算成同一个数 */
+function __airId(a, n, ms) {
+    return "2221" + String(100000000000000 + Math.floor(ms || 0) + n);
+}
+/** 弹幕 oid = 视频 cid（由请求带下来）。兜底 "0"：空串不是合法 int64，序列化会抛错 */
+function __airOid(a) {
+    return a && a.__airOid ? String(a.__airOid) : "0";
 }
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
@@ -492,6 +506,28 @@ PATCHES = [
     ('空降落点',
      ',l=Math.floor(t[1]*1e3)',
      ',l=Math.floor(__airEnd(t)*1e3)'),
+
+    # 元数据对齐真实弹幕（实测对比：我们的 id 是 "1"、oid 是硬编码假值、字号 50）
+    ('弹幕 id',
+     'id:i,progress:r',
+     'id:__airId(a,n,r),progress:r'),
+
+    ('弹幕 idStr',
+     'idStr:i,attr:',
+     'idStr:__airId(a,n,r),attr:'),
+
+    ('弹幕字号',
+     'fontsize:50',
+     'fontsize:__airFontSize(a)'),
+
+    ('弹幕 oid',
+     'oid:"212364987"',
+     'oid:__airOid(a)'),
+
+    # 请求里的 cid → 暂存给注入用（真实弹幕的 oid 就是它）
+    ('暂存 cid',
+     'let{pid:r,oid:l}=i,o=le(r)',
+     'let{pid:r,oid:l}=i,o=le(r);s.argument.__airOid=l'),
 
     ('弹幕属性位',
      'attr:1310724',
