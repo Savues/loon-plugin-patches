@@ -309,7 +309,7 @@ function __airLandPast(a, segs) {
     if (!dur) return false;
     return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
 }
-function __airInject(msg, segs, a) {
+function __airInject(msg, segs, a, segIdx) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
@@ -408,7 +408,21 @@ function __airInject(msg, segs, a) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
         }));
     }
+    // App 只渲染本页时间窗（360s/页）内的弹幕。segments 恰好在别的页就绪时，
+    // 不能把别页的弹幕塞进这条响应——塞了也看不见（实测 BV1sxp36eEMU：
+    // 钉在 3s 的汇总被注进第 1 页，永不显示）
+    if (segIdx != null) {
+        var w0 = segIdx * 360000, w1 = w0 + 360000;
+        built = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
+    }
     elems.push.apply(elems, built);
+}
+/** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */
+async function __airSeg(s, e, t) {
+    var r = await Pt(s, e, t), n = r.status, i = r.body;
+    B.debug("[SponsorBlock]", { videoId: e, status: n, body: i });
+    if (n !== 200 || !i || i === "[]") return [];
+    return tn(i, s.argument);
 }
 '''
 
@@ -435,7 +449,22 @@ PATCHES = [
 
     ('注入入口',
      't.elems.push(...nn(s.state.segments))',
-     '__airInject(t,s.state.segments,s.argument)'),
+     '__airInject(t,s.state.segments,s.argument,s.state.segIdx)'),
+
+    # DmSegMobile 的请求里带 segmentIndex（第几个 360s 分页），暂存给注入用
+    ('页码暂存',
+     'i.type!==1&&fe();',
+     'i.type!==1&&fe();s.state.segIdx=i.segmentIndex;'),
+
+    # bsbsb 瞬断重试一次：实测（BV1sxp36eEMU 的 HAR）第 1 页 76ms 瞬断放行、
+    # 下一次请求就成功——错过的是「视频开头那一页」，汇总正好全丢
+    ('bsbsb 瞬断重试',
+     'async function en(s,e,t){if(!__airAny(s.argument).length)return[];try{'
+     'let{status:n,body:i}=await Pt(s,e,t);return B.debug("[SponsorBlock]",{videoId:e,status:n,body:i}),'
+     'n!==200||!i||i==="[]"?[]:tn(i,s.argument)}catch(n){return B.info("[SponsorBlock]",n),[]}}',
+     'async function en(s,e,t){if(!__airAny(s.argument).length)return[];'
+     'try{return await __airSeg(s,e,t)}catch(n){B.info("[SponsorBlock]",n)}'
+     'try{return await __airSeg(s,e,t)}catch(n){return B.info("[SponsorBlock]",n),[]}}'),
 
     ('弹幕构造签名',
      'function nn(s){return s.map(',

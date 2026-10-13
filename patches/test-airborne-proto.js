@@ -18,6 +18,7 @@ let loaded = true, err = '';
 // 追加一行把内部符号挂到 globalThis（bundle 里是 let/const 声明，模块作用域取不到）
 const EXPORT = '\n;globalThis.__X={St:(typeof St==="undefined"?null:St),_e:(typeof _e==="undefined"?null:_e),' +
                'nn:(typeof nn==="undefined"?null:nn),inject:(typeof __airInject==="undefined"?null:__airInject),' +
+               'en:(typeof en==="undefined"?null:en),' +
   't:(typeof $t==="undefined"?null:$t)};';
 try { (0, eval)(src + EXPORT); } catch (e) { loaded = false; err = e.message; }
 ck('整份产物在 Loon 式全局下加载无异常', loaded, err.slice(0, 200));
@@ -361,5 +362,69 @@ for (const [name, hex] of [['红色', 0xFF5C5C], ['橙色', 0xFFB400], ['黄色'
      m2.elems[1].content.split('\n').slice(-1)[0]);
 }
 
-console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
-process.exit(fail ? 1 : 0);
+// ---- 按页注入：App 只渲染本页 360s 窗口内的弹幕（用户 HAR：BV1sxp36eEMU）----
+{
+  // 真实数据：preview 0–23 / sponsor 1469.7–1561.3 / interaction 1560.6–1573.8
+  const SEGS = [[0, 23.233, 'preview', 'skip', 1573.871, 0],
+                [1469.67, 1561.284, 'sponsor', 'skip', 1573.8334, 1],
+                [1560.63, 1573.833, 'interaction', 'skip', 1573.833, 1]];
+  const ARG = { airSummary: 'single', airCategories: 'sponsor,interaction',
+                airNoticeCategories: 'preview', airActions: 'skip' };
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 1);          // 第 1 页（360–720s）：什么都没有
+    ck('第 1 页不含钉在 3s 的汇总', m.elems.length === 1, JSON.stringify(m.elems.map(x => x.content)));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 0);          // 第 0 页：汇总 + preview 提醒
+    ck('第 0 页带汇总和预告提醒',
+       m.elems.some(x => x.progress === 3000 && (x.content || '').includes('共计')) &&
+       m.elems.some(x => x.progress === 3000 && (x.content || '').includes('内容预告')),
+       JSON.stringify(m.elems.map(x => [x.progress, x.content && x.content.slice(0, 24)])));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 4);          // 第 4 页（1440–1800s）：只有两个空降
+    ck('第 4 页只有两个空降、没有汇总',
+       m.elems.length === 3 && m.elems.filter(x => (x.action || '').startsWith('airborne:')).length === 2,
+       JSON.stringify(m.elems.map(x => [x.progress, x.action])));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG);             // 不带页码（旧调用方式）：不过滤
+    ck('不传页码时不过滤（兼容）', m.elems.length > 3, String(m.elems.length));
+  }
+}
+
+(async () => {
+  // ---- bsbsb 瞬断重试（用户 HAR：第 1 页 76ms 瞬断放行，下一次成功）----
+  const { en } = globalThis.__X;
+  let calls = 0;
+  global.$httpClient.get = (o, cb) => {
+    calls++;
+    if (calls === 1) return cb(new Error('boom'));
+    cb(null, { status: 200, headers: {} },
+      '[{"category":"sponsor","actionType":"skip","segment":[10,20],"videoDuration":100}]');
+  };
+  const fake = {
+    argument: { airCategories: 'sponsor', airActions: 'skip', logLevel: 'off' },
+    state: {},
+    fetch: (o) => new Promise((res, rej) =>
+      $httpClient[o.method.toLowerCase()](o, (a, u, d) => a ? rej(a) : res({ status: u.status, headers: u.headers, body: d })))
+  };
+  let segs = [];
+  try { segs = await en(fake, 'BVtest', '123'); } catch (e) { ck('en 重试用例异常', false, e.message); }
+  ck('bsbsb 瞬断后重试成功（第 2 次拿到片段）',
+     calls === 2 && segs.length === 1 && segs[0][2] === 'sponsor',
+     `calls=${calls} segs=${JSON.stringify(segs)}`);
+  let calls2 = 0;
+  global.$httpClient.get = (o, cb) => { calls2++; return cb(new Error('down')); };
+  let segs2 = [1];
+  try { segs2 = await en(fake, 'BVtest', '123'); } catch (e) { ck('en 双败用例异常', false, e.message); }
+  ck('两次都失败才放空（共 2 次调用）', calls2 === 2 && segs2.length === 0, `calls=${calls2}`);
+})().catch(e => { ck('重试块异常', false, e.message); })
+  .finally(() => {
+    console.log(fail ? `\n${fail} 项失败` : '\n全部通过');
+    process.exit(fail ? 1 : 0);
+  });
