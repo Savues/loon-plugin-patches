@@ -462,6 +462,12 @@ function __airInject(msg, segs, a) {
     }
     // 全部注入：实测 App 会渲染跨页弹幕（汇总在第 1 页响应里、进度 3500ms 也能显示），
     // 所以不分页过滤——过滤只会让自动跳过/提醒在「App 没请求那一页」时彻底丢失
+    // colorful 与空降渲染路径互斥：设了 colorful 的弹幕会被路由到彩色模型——
+    // 不预留图标位（排版错位）且不执行空降动作（实测：彩色模式下空指部不跳）。
+    // 所以带 airborne 动作的弹幕一律不彩色（airSelfAction=on 时我们的弹幕全都带动作，
+    // 此开关自动失效；airSelfAction=off 时才有意义）
+    var cf = String(__airVal(a, "airColorful", "off")) === "on" ? 60001 : 0;
+    built.forEach(function (x) { x.colorful = cf && !x.action ? cf : 0; });
     elems.push.apply(elems, built);
 }
 /** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */

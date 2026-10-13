@@ -423,8 +423,15 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
     return m.elems.filter(x => x.ctime === '1735660800').map(x => x.colorful);
   };
   ck('默认不是彩色（colorful=0）', cf({}).every(v => v === 0), JSON.stringify(cf({})));
-  ck('airColorful=on → 60001（VIP 渐变）', cf({ airColorful: 'on' }).every(v => v === 60001),
-     JSON.stringify(cf({ airColorful: 'on' })));
+  // 🔴 回归：colorful 与空降渲染路径互斥——带 airborne 动作的弹幕一律不彩色
+  //     （彩色模式下排版错位、空降不执行）。airSelfAction=on（默认）时我们的弹幕全带动作 → 开关自动失效
+  ck('airSelfAction=on（默认）：airColorful 被忽略（弹幕都带动作）',
+     cf({ airColorful: 'on' }).every(v => v === 0), JSON.stringify(cf({ airColorful: 'on' })));
+  // airSelfAction=off：汇总无动作→彩色生效；自动跳那条带动作→不彩色
+  ck('airSelfAction=off：汇总彩色、自动跳不彩色',
+     (() => { const v = cf({ airColorful: 'on', airSelfAction: 'off' });
+       return v.some(x => x === 60001) && v.some(x => x === 0); })(),
+     JSON.stringify(cf({ airColorful: 'on', airSelfAction: 'off' })));
   ck('airColorful=off → 0', cf({ airColorful: 'off' }).every(v => v === 0));
   ck('认不出的取值退回 off', cf({ airColorful: '???' }).every(v => v === 0));
 }
