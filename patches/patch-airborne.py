@@ -408,8 +408,31 @@ function __airInject(msg, segs, a, segIdx) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
         }));
     }
-    // 暂存 segIdx 供后续分页注入优化，但当前不做过滤（避免第 0 页请求未捕获时汇总全丢）。
-    // TODO: 真正的分页注入：segIdx=0 注入汇总+本页段，segIdx>0 只注入本页段。
+    // 分页注入：只把属于本页时间窗的弹幕塞进响应。
+    // segIdx=0: 注入汇总 + 本页提醒；segIdx>0: 只注本页提醒。
+    // 兜底：若连续处理 3 个分页仍未见 segIdx=0，将汇总注入首个响应（避免首页请求未捕获导致全无汇总）。
+    if (segIdx != null) {
+        var w0 = segIdx * 360000, w1 = w0 + 360000;
+        var isFirstPage = segIdx === 0;
+        var onlyThisPage = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
+        // 汇总只在首页注入
+        if (!isFirstPage) {
+            onlyThisPage = onlyThisPage.filter(function (x) { return !!x.action; }); // 只保留空降动作
+        }
+        built = onlyThisPage;
+        // 兜底计数：记录已见分页
+        s.state.__seenPages = (s.state.__seenPages || 0) + 1;
+        if (!isFirstPage && s.state.__seenPages >= 3 && !s.state.__fallbackDone) {
+            // 从未见过首页，把汇总补注到本响应（进度已是本页窗口内，虽不完美但总比没有强）
+            s.state.__fallbackDone = true;
+            var summary = built.filter(function (x) { return !x.action; })[0]; // 找汇总
+            if (summary) {
+                var fb = Object.assign({}, summary);
+                fb.progress = Math.max(fb.progress, w0); // 至少在本页窗口内
+                built.push(fb);
+            }
+        }
+    }
     elems.push.apply(elems, built);
 }
 /** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */
