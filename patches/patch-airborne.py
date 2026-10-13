@@ -408,13 +408,8 @@ function __airInject(msg, segs, a, segIdx) {
             return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
         }));
     }
-    // App 只渲染本页时间窗（360s/页）内的弹幕。segments 恰好在别的页就绪时，
-    // 不能把别页的弹幕塞进这条响应——塞了也看不见（实测 BV1sxp36eEMU：
-    // 钉在 3s 的汇总被注进第 1 页，永不显示）
-    if (segIdx != null) {
-        var w0 = segIdx * 360000, w1 = w0 + 360000;
-        built = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
-    }
+    // 暂存 segIdx 供后续分页注入优化，但当前不做过滤（避免第 0 页请求未捕获时汇总全丢）。
+    // TODO: 真正的分页注入：segIdx=0 注入汇总+本页段，segIdx>0 只注入本页段。
     elems.push.apply(elems, built);
 }
 /** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */

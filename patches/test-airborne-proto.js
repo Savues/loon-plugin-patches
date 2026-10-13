@@ -362,40 +362,6 @@ for (const [name, hex] of [['红色', 0xFF5C5C], ['橙色', 0xFFB400], ['黄色'
      m2.elems[1].content.split('\n').slice(-1)[0]);
 }
 
-// ---- 按页注入：App 只渲染本页 360s 窗口内的弹幕（用户 HAR：BV1sxp36eEMU）----
-{
-  // 真实数据：preview 0–23 / sponsor 1469.7–1561.3 / interaction 1560.6–1573.8
-  const SEGS = [[0, 23.233, 'preview', 'skip', 1573.871, 0],
-                [1469.67, 1561.284, 'sponsor', 'skip', 1573.8334, 1],
-                [1560.63, 1573.833, 'interaction', 'skip', 1573.833, 1]];
-  const ARG = { airSummary: 'single', airCategories: 'sponsor,interaction',
-                airNoticeCategories: 'preview', airActions: 'skip' };
-  {
-    const m = mkReal();
-    inject(m.elems, SEGS, ARG, 1);          // 第 1 页（360–720s）：什么都没有
-    ck('第 1 页不含钉在 3s 的汇总', m.elems.length === 1, JSON.stringify(m.elems.map(x => x.content)));
-  }
-  {
-    const m = mkReal();
-    inject(m.elems, SEGS, ARG, 0);          // 第 0 页：汇总 + preview 提醒
-    ck('第 0 页带汇总和预告提醒',
-       m.elems.some(x => x.progress === 3000 && (x.content || '').includes('共计')) &&
-       m.elems.some(x => x.progress === 3000 && (x.content || '').includes('内容预告')),
-       JSON.stringify(m.elems.map(x => [x.progress, x.content && x.content.slice(0, 24)])));
-  }
-  {
-    const m = mkReal();
-    inject(m.elems, SEGS, ARG, 4);          // 第 4 页（1440–1800s）：只有两个空降
-    ck('第 4 页只有两个空降、没有汇总',
-       m.elems.length === 3 && m.elems.filter(x => (x.action || '').startsWith('airborne:')).length === 2,
-       JSON.stringify(m.elems.map(x => [x.progress, x.action])));
-  }
-  {
-    const m = mkReal();
-    inject(m.elems, SEGS, ARG);             // 不带页码（旧调用方式）：不过滤
-    ck('不传页码时不过滤（兼容）', m.elems.length > 3, String(m.elems.length));
-  }
-}
 
 (async () => {
   // ---- bsbsb 瞬断重试（用户 HAR：第 1 页 76ms 瞬断放行，下一次成功）----
