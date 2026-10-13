@@ -337,6 +337,12 @@ function __airId(a, n, ms) {
 function __airOid(a) {
     return a && a.__airOid ? String(a.__airOid) : "0";
 }
+/** 弹幕的 colorful 字段：0=普通，60001=VIP 渐变彩色（DmColorfulType.VIP_GRADUAL_COLOR）。
+ *  渐变纹理由响应的 colorful_src（{type:60001, src:{fill_color,stroke_color}}）提供；
+ *  响应里没有该资源时会退回普通颜色 */
+function __airColorful(a) {
+    return String(__airVal(a, "airColorful", "off")) === "on" ? 60001 : 0;
+}
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
@@ -524,6 +530,10 @@ PATCHES = [
     ('弹幕 idStr',
      'idStr:i,attr:',
      'idStr:__airId(a,n,r),attr:'),
+
+    ('弹幕彩色',
+     'colorful:0',
+     'colorful:__airColorful(a)'),
 
     ('弹幕字号',
      'fontsize:50',

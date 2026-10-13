@@ -414,6 +414,21 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   })());
 }
 
+// ---- airColorful：VIP 渐变彩色（colorful=60001 = DmColorfulType.VIP_GRADUAL_COLOR）----
+{
+  const SEGS = [[150, 166, 'sponsor', 'skip', 191, 1]];
+  const cf = (arg) => {
+    const m = mkReal();
+    inject(m.elems, SEGS, Object.assign({ airSummary: 'single', airCategories: 'sponsor' }, arg));
+    return m.elems.filter(x => x.ctime === '1735660800').map(x => x.colorful);
+  };
+  ck('默认不是彩色（colorful=0）', cf({}).every(v => v === 0), JSON.stringify(cf({})));
+  ck('airColorful=on → 60001（VIP 渐变）', cf({ airColorful: 'on' }).every(v => v === 60001),
+     JSON.stringify(cf({ airColorful: 'on' })));
+  ck('airColorful=off → 0', cf({ airColorful: 'off' }).every(v => v === 0));
+  ck('认不出的取值退回 off', cf({ airColorful: '???' }).every(v => v === 0));
+}
+
 // ---- 汇总颜色预设（airSummaryColor）----
 {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
