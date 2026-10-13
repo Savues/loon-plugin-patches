@@ -277,7 +277,7 @@ function __airAttr(a) {
 }
 /** 注入弹幕的字号：实测 12908 条真实弹幕只有 25 / 18，默认 25 与普通弹幕一致 */
 function __airFontSize(a) {
-    var v = String(__airVal(a, "airFontSize", "25"));
+    var v = String(__airVal(a, "airFontSize", "50"));
     return v === "50" || v === "37" || v === "18" ? Number(v) : 25;
 }
 /** 弹幕 id：真实弹幕是 64 位大整数（App 可能按 id 缓存布局，别用 "1"/"2" 这种）。
