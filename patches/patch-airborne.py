@@ -340,7 +340,13 @@ function __airInject(msg, segs, a, segIdx) {
         built[i].color = __airColor(segs[i][2]);        // 按类别上色
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
+        // 如果是开头片段（起点=0），且汇总已注入，则不生成单独的提醒（汇总已覆盖）
+        if (segs[i][0] === 0 && sum !== "off" && !__airLandPast(a, segs)) {
+            built[i].content = "";  // 标记为空，后面过滤掉
+        }
     }
+    // 过滤掉开头片段的提醒（已被汇总覆盖）
+    built = built.filter(function (x) { return x.content !== ""; });
 
     // 片头汇总：把这个视频里「会被处理」的所有片段在开头一次列完。
     // 同类折叠成一行（__airGroups），一条弹幕装不下太多时按「类」截断。
