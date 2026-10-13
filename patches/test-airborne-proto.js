@@ -306,6 +306,65 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
 }
 
 
+// ---- 按页注入（segIdx）：生产路径每次都传，必须不抛异常且只注本页 ----
+// 🔴 回归：v1.47 的兜底逻辑写了 `s.state.__seenPages`，而 __airInject 里没有 s
+//    → 生产环境每次注入都 ReferenceError → Loon 回退原样放行 → 插件全灭。
+//    这条路径当时没有任何测试覆盖，所以 CI 全绿。别再删这些用例。
+{
+  const SEGS = [[0, 23.233, 'preview', 'skip', 1573, 0],
+                [1469.67, 1561.284, 'sponsor', 'skip', 1573, 1],
+                [1560.63, 1573.833, 'interaction', 'skip', 1573, 1]];
+  const ARG = { airSummary: 'single', airCategories: 'sponsor,interaction',
+                airNoticeCategories: 'preview', airActions: 'skip' };
+  // 🔴 生产环境传的是**字符串**（protobuf int64）——数字夹具曾让「首页判断失效」溜过 CI
+  for (const idx of [0, 1, 4, 26, '0', '1', '4']) {
+    const m = mkReal();
+    let threw = null;
+    try { inject(m.elems, SEGS, ARG, idx, {}); } catch (e) { threw = e; }
+    ck('segIdx=' + idx + ' 不抛异常', !threw, threw && threw.message);
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, '0', {});        // 字符串页码（生产类型）
+    ck('第 0 页（字符串 "0"）：带汇总',
+       m.elems.some(x => (x.content || '').includes('共计')),
+       JSON.stringify(m.elems.map(x => [x.progress, (x.content || '').slice(0, 18)])));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 0, {});
+    ck('第 0 页：带汇总 + 预告提醒（开头片段只留汇总）',
+       m.elems.some(x => x.progress === 3500 && (x.content || '').includes('共计')),
+       JSON.stringify(m.elems.map(x => [x.progress, (x.content || '').slice(0, 18)])));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 1, {});
+    ck('第 1 页（360–720s）：本页无片段 → 一条都不注', m.elems.length === 1,
+       JSON.stringify(m.elems.map(x => x.progress)));
+  }
+  {
+    const m = mkReal();
+    inject(m.elems, SEGS, ARG, 4, {});
+    ck('第 4 页（1440–1800s）：只注本页两个空降，无汇总',
+       m.elems.length === 3 && m.elems.filter(x => (x.action || '').startsWith('airborne:')).length === 2,
+       JSON.stringify(m.elems.map(x => [x.progress, x.action])));
+  }
+  {
+    // 兜底：连续 3 页未见首页 → 把汇总补注到本页
+    const st = {};
+    for (const idx of [1, 2, 3]) {
+      const m = mkReal();
+      inject(m.elems, SEGS, ARG, idx, st);
+      if (idx === 3) {
+        ck('连续 3 页未见首页 → 兜底补注汇总（进度钳制在本页窗口内）',
+           m.elems.some(x => (x.content || '').includes('共计') && x.progress >= idx * 360000),
+           JSON.stringify(m.elems.map(x => [x.progress, (x.content || '').slice(0, 18)])));
+      }
+    }
+  }
+}
+
 // ---- 汇总颜色预设（airSummaryColor）----
 {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [

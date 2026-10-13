@@ -309,12 +309,13 @@ function __airLandPast(a, segs) {
     if (!dur) return false;
     return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
 }
-function __airInject(msg, segs, a, segIdx) {
+function __airInject(msg, segs, a, segIdx, st) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
     if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
     var built = nn(segs, a);
+    var sumMode = String(__airVal(a, "airSummary", "single"));   // 提前声明：下面的提醒过滤要用
     // 落点之后的「地板」：汇总与提醒都不该出现在会被跳过的区间里
     var floorMs = __airLand(a, segs) * 1000 + 2000;
     // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），提醒档只是不带 action。
@@ -340,17 +341,22 @@ function __airInject(msg, segs, a, segIdx) {
         built[i].color = __airColor(segs[i][2]);        // 按类别上色
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
-        // 如果是开头片段（起点=0），且汇总已注入，则不生成单独的提醒（汇总已覆盖）
-        if (segs[i][0] === 0 && sum !== "off" && !__airLandPast(a, segs)) {
-            built[i].content = "";  // 标记为空，后面过滤掉
+        // 整篇标记的独立提醒让位给汇总里那一行（汇总没开时必须保留，否则信息全丢）
+        if (segs[i][3] === "full" && sumMode !== "off" && !__airLandPast(a, segs)) {
+            built[i].content = "";
+        }
+        // 开头片段（起点=0）的提醒也去掉：汇总已覆盖，否则开头两条弹幕
+        if (segs[i][0] === 0 && sumMode !== "off" && !__airLandPast(a, segs)) {
+            built[i].content = "";
         }
     }
-    // 过滤掉开头片段的提醒（已被汇总覆盖）
+    // 上面两条规则都在 built[i] ↔ segs[i] 对齐时判断，删完再统一过滤（别在下游按索引删）
     built = built.filter(function (x) { return x.content !== ""; });
 
+    var sumElem = null;   // 汇总那条（按页过滤的兜底要用）
     // 片头汇总：把这个视频里「会被处理」的所有片段在开头一次列完。
     // 同类折叠成一行（__airGroups），一条弹幕装不下太多时按「类」截断。
-    var sum = String(__airVal(a, "airSummary", "single"));
+    var sum = sumMode;
     if (sum !== "off" && !__airLandPast(a, segs)) {
         var groups = __airGroups(segs);
         // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
@@ -410,32 +416,32 @@ function __airInject(msg, segs, a, segIdx) {
         head[0].mode = Number(want) || 5;
         head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
         if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
-        built = head.concat(built.filter(function (x, i) {
-            return x.action || segs[i][3] !== "full";   // 整篇的独立提醒让位给汇总里那一行
-        }));
+        built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
+        sumElem = head[0];
     }
     // 分页注入：只把属于本页时间窗的弹幕塞进响应。
     // segIdx=0: 注入汇总 + 本页提醒；segIdx>0: 只注本页提醒。
     // 兜底：若连续处理 3 个分页仍未见 segIdx=0，将汇总注入首个响应（避免首页请求未捕获导致全无汇总）。
     if (segIdx != null) {
-        var w0 = segIdx * 360000, w1 = w0 + 360000;
-        var isFirstPage = segIdx === 0;
-        var onlyThisPage = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
-        // 汇总只在首页注入
+        // ⚠️ segmentIndex 是 protobuf int64 → 解析出来是**字符串**（"0"/"1"），
+        //    必须 Number() 归一，否则 `segIdx === 0` 恒假 → 首页被当成非首页、汇总被丢
+        var page = Number(segIdx);
+        var w0 = page * 360000, w1 = w0 + 360000;
+        var isFirstPage = page === 0;
+        built = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
+        // 汇总只在首页；其它页只留空降动作（汇总钉在 3s 或落点，塞别页也看不见）
         if (!isFirstPage) {
-            onlyThisPage = onlyThisPage.filter(function (x) { return !!x.action; }); // 只保留空降动作
-        }
-        built = onlyThisPage;
-        // 兜底计数：记录已见分页
-        s.state.__seenPages = (s.state.__seenPages || 0) + 1;
-        if (!isFirstPage && s.state.__seenPages >= 3 && !s.state.__fallbackDone) {
-            // 从未见过首页，把汇总补注到本响应（进度已是本页窗口内，虽不完美但总比没有强）
-            s.state.__fallbackDone = true;
-            var summary = built.filter(function (x) { return !x.action; })[0]; // 找汇总
-            if (summary) {
-                var fb = Object.assign({}, summary);
-                fb.progress = Math.max(fb.progress, w0); // 至少在本页窗口内
-                built.push(fb);
+            built = built.filter(function (x) { return !!x.action; });
+            // 兜底：连续 3 页都没见到首页 → 把汇总补注到本页（进度钳进本页窗口），
+            // 否则「首页请求未被捕获」时开头永远没有汇总
+            if (st) {
+                st.__seenPages = (st.__seenPages || 0) + 1;
+                if (st.__seenPages >= 3 && !st.__fallbackDone && sumElem) {
+                    st.__fallbackDone = true;
+                    var fb = Object.assign({}, sumElem);
+                    fb.progress = Math.max(fb.progress, w0);
+                    built.push(fb);
+                }
             }
         }
     }
@@ -473,7 +479,7 @@ PATCHES = [
 
     ('注入入口',
      't.elems.push(...nn(s.state.segments))',
-     '__airInject(t,s.state.segments,s.argument,s.state.segIdx)'),
+     '__airInject(t,s.state.segments,s.argument,s.state.segIdx,s.state)'),
 
     # DmSegMobile 的请求里带 segmentIndex（第几个 360s 分页），暂存给注入用
     ('页码暂存',

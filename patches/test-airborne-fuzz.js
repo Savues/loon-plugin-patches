@@ -61,6 +61,15 @@ for (const [name, body] of CASES) {
       const first = elems.length;
       __airInject(elems, segs, arg);
       if (elems.length !== first) { console.log(`✗ ${name} ${JSON.stringify(arg)} 重复注入多加了 ${elems.length - first} 条`); fail++; }
+      // 生产路径每次都带 segIdx + state：必须同样不抛（v1.47 曾在这里 ReferenceError 全灭）
+      for (const idx of [0, 1, 4, '0', '1']) {   // 字符串页码 = 生产类型（protobuf int64）
+        const e2 = [];
+        __airInject(e2, segs, arg, idx, {});
+        __airInject(e2, segs, arg, idx, {});   // 幂等
+        const n2 = e2.length;
+        __airInject(e2, segs, arg, idx, {});
+        if (e2.length !== n2) { console.log(`✗ ${name} segIdx=${idx} 重复注入多加了 ${e2.length - n2} 条`); fail++; }
+      }
     } catch (e) {
       fail++;
       console.log(`✗ ${name} ${JSON.stringify(arg)} → ${e.constructor.name}: ${e.message}`);
