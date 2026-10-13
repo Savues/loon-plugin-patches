@@ -11,7 +11,7 @@
  *   服务端原始  chronos#1 = 325e7073ffc6fb5263682fecdcd1058f
  *                chronos#2 = http://i0.hdslb.com/bfs/app-static/042de1dc….zip
  *                chronos#3 = 80 字符 token
- *   重签之后    chronos#1 = 899e091b7f2356bcaddf38ab22317820
+ *   重签之后    chronos#1 = 7d0a357c92ee4a002c0970e88d1b38b6
  *                chronos#2 = 本仓库托管的 chronos/<md5>.zip
  *                chronos#3 被删除
  *   两次会话注入的空降弹幕响应字节完全相同（HAR md5 6bc9feb4 / 19cdaca0），
@@ -29,15 +29,15 @@
  */
 (function () {
   var MAP = {
-    universal: 'df269929251c4bf8fe9ec78f96515c8e',
-    hd: '500e0cdd1039f74134132d566d0b5c79',
-    inter: 'ad3c8fa6279cd904e75b5b883514565d',
-    '45b564f5ba1fdd3746406937059addd8': 'df269929251c4bf8fe9ec78f96515c8e',
-    c29bd8f2b64a8f57f49c3622c0f763db: 'f2336b99b32a015305ebf2b71304b7c4',
-    c218977c14e5dfdafd51edf3ae49ed02: '500e0cdd1039f74134132d566d0b5c79',
-    '8232ffb6ee43b687b5fe5add5b3e97de': 'faea77f43fd820f0f19a7607b78f43d7',
-    '325e7073ffc6fb5263682fecdcd1058f': '899e091b7f2356bcaddf38ab22317820',
-    '3a14beddd23328eaddfe9f0eb048d713': 'ad3c8fa6279cd904e75b5b883514565d'
+    universal: 'c0765d8cf4fb56c8a901226e05795c4a',
+    hd: '8b0ed90623941b6b19ddf838a225419d',
+    inter: 'c9940a255224fb5ab2829f0c87df71c9',
+    '45b564f5ba1fdd3746406937059addd8': 'c0765d8cf4fb56c8a901226e05795c4a',
+    c29bd8f2b64a8f57f49c3622c0f763db: '7e7f5a132eff729936b17c35cafda14a',
+    c218977c14e5dfdafd51edf3ae49ed02: '8b0ed90623941b6b19ddf838a225419d',
+    '8232ffb6ee43b687b5fe5add5b3e97de': '1903c8e4308a9d33dbce98fb711a1e0d',
+    '325e7073ffc6fb5263682fecdcd1058f': '7d0a357c92ee4a002c0970e88d1b38b6',
+    '3a14beddd23328eaddfe9f0eb048d713': 'c9940a255224fb5ab2829f0c87df71c9'
   };
   var BASE = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/chronos/';
 
