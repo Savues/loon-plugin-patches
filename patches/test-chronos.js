@@ -27,9 +27,9 @@ ck('输出与 Dedup 实测结果逐字节一致', got.equals(expect),
    '长度 ' + got.length + ' vs 期望 ' + expect.length);
 
 const text = Buffer.from(got.subarray(5)).toString('latin1');
-ck('chronos#1 已改写为表里的 md5', text.includes('932002070dc1b51241198a074d2279fc'));
+ck('chronos#1 已改写为表里的 md5', text.includes('40ccaa3ddb73e9a874c4c5494f67e3ec'));
 ck('chronos#2 指向本仓库 zip',
-   text.includes('/plugins/Bilibili-Airborne/chronos/932002070dc1b51241198a074d2279fc.zip'));
+   text.includes('/plugins/Bilibili-Airborne/chronos/40ccaa3ddb73e9a874c4c5494f67e3ec.zip'));
 ck('chronos#3 sign 已删除', !text.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDbULF5yrEbrmhi2vsa97QXFvkq0rK'));
 ck('帧头改成未压缩(0x00)', got[0] === 0x00, String(got[0]));
 ck('长度字段正确', got.readUInt32BE(1) === got.length - 5);
@@ -189,7 +189,7 @@ ck('零长度字段不再让整条放弃重签', !!zfOut, '又原样放行了');
 if (zfOut) {
   const zt = Buffer.from(zfOut);
   ck('零长度字段那条的 chronos 已改写为表里的 md5',
-     zt.toString('latin1').includes('932002070dc1b51241198a074d2279fc'));
+     zt.toString('latin1').includes('40ccaa3ddb73e9a874c4c5494f67e3ec'));
   ck('零长度字段那条的 file 指向本仓库 zip', zt.includes('loon-plugin-patches'));
   ck('零长度字段那条的 sign 已删除', !zt.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDb'));
 }
