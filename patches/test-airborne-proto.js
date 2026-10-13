@@ -336,6 +336,26 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('开头片段（起点 0）不再单独提醒', !base.some(x => (x[1] || '').includes('airborne') && x[0] === 2000),
      JSON.stringify(base));
 }
+// ---- 注入弹幕的 attr（airUpLike 开关）----
+// 0x100000 = 普通弹幕；0x140004 含「UP主点赞」位（值 4），部分客户端会画 👍
+{
+  const SEGS = [[150, 166, 'sponsor', 'skip', 191, 1]];
+  const attrOf = (arg) => {
+    const m = mkReal();
+    inject(m.elems, SEGS, Object.assign({ airSummary: 'single', airCategories: 'sponsor' }, arg));
+    const ours = m.elems.filter(x => x.ctime === '1735660800');
+    return ours.map(x => x.attr);
+  };
+  ck('默认不带「UP主点赞」位（attr=0x100000）',
+     attrOf({}).every(a => a === 0x100000), JSON.stringify(attrOf({})));
+  ck('airUpLike=off 同样不带', attrOf({ airUpLike: 'off' }).every(a => a === 0x100000),
+     JSON.stringify(attrOf({ airUpLike: 'off' })));
+  ck('airUpLike=on 带「UP主点赞」位（attr=0x140004）',
+     attrOf({ airUpLike: 'on' }).every(a => a === 0x140004), JSON.stringify(attrOf({ airUpLike: 'on' })));
+  ck('认不出的取值退回 off', attrOf({ airUpLike: '???' }).every(a => a === 0x100000),
+     JSON.stringify(attrOf({ airUpLike: '???' })));
+}
+
 // ---- 汇总颜色预设（airSummaryColor）----
 {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [

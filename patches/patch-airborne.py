@@ -309,6 +309,14 @@ function __airLandPast(a, segs) {
     if (!dur) return false;
     return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
 }
+/**
+ * 注入弹幕的 attr（弹幕属性位）。普通弹幕是 0x100000；0x140004 里含
+ * 「UP主点赞」位（第 2 位，值 4）——部分客户端会因此显示 👍 图标。
+ * 默认 off = 与普通弹幕一致，不冒充被 UP 主点赞的弹幕。
+ */
+function __airAttr(a) {
+    return String(__airVal(a, "airUpLike", "off")) === "on" ? 1310724 : 1048576;
+}
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
@@ -478,6 +486,10 @@ PATCHES = [
     ('空降落点',
      ',l=Math.floor(t[1]*1e3)',
      ',l=Math.floor(__airEnd(t)*1e3)'),
+
+    ('弹幕属性位',
+     'attr:1310724',
+     'attr:__airAttr(a)'),
 
     ('空降动作',
      'action:`airborne:${l}`',
