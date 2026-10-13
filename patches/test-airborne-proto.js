@@ -238,7 +238,7 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, HAR_SEGS, HAR_ARG);
   ck('开头有自动跳：汇总钉在落点之后（32.005+2=34.005s）',
      m.elems[1].progress === 34005, String(m.elems[1].progress));
-  ck('汇总文案仍然完整', m.elems[1].content.includes('开场动画 · 00:00–00:32'), m.elems[1].content);
+  ck('汇总文案仍然完整', m.elems[1].content.includes('00:00–00:32 · 32s'), m.elems[1].content);
   ck('自动跳那条本身仍在片段起点 +2 秒',
      m.elems.some(x => x.progress === 2000 && !!x.action), JSON.stringify(m.elems.map(x => x.progress)));
 }
@@ -291,8 +291,8 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   inject(m.elems, [[2095.833, 2111.833, 'sponsor', 'skip', 3465.633, 1],
                    [3151.633, 3160.366, 'sponsor', 'skip', 3465.633, 1]],
     { airSummary: 'single', airCategories: 'sponsor', airNoticeCategories: 'off' });
-  ck('两段恰饭：类别一行 + 每段一行，各带时长',
-     m.elems[1].content === '⚠️ 恰饭×2 ｜ 2 处 共计25s\n恰饭内容 ×2\n34:55–35:11 · 16s\n52:31–52:40 · 9s',
+  ck('单类别：无类别头行，统计首行直接统领明细',
+     m.elems[1].content === '⚠️ 恰饭×2 ｜ 2 处 共计25s\n34:55–35:11 · 16s\n52:31–52:40 · 9s',
      JSON.stringify(m.elems[1].content));
   // 🔴 回归：时长改用 `·` 分隔时，__airDur 自带前导空格而行模板里又有一个，
   // 两处一叠加就渲染出「34:55–35:11  · 16s」的双空格，肉眼很难在断言里发现。

@@ -360,6 +360,15 @@ function __airInject(msg, segs, a) {
                 details.push({ name: __airNames[g.cat] || g.cat, lines: g.text.split("\n") });
             }
         });
+        // 单类别：统计首行已点名类别+条数，类别头行是复读 → 去掉，首行直接统领明细。
+        // 只作用于默认路径：自定义 {list} 模板没有统计首行，剥掉名字会丢信息
+        function stripHeads(bl) {
+            return bl.length !== 1 ? bl : bl.map(function (b) {
+                return { name: b.name,
+                         lines: b.lines.length > 1 ? b.lines.slice(1)
+                              : [String(b.lines[0]).replace(b.name + " · ", "")] };
+            });
+        }
         var tally = __airTally(a, segs);
         var cap = __airLineCap(a);
         var custom = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0;
@@ -369,7 +378,7 @@ function __airInject(msg, segs, a) {
                 .concat(details)
                 .concat(warns.slice(hasFullAd ? 1 : 0)
                         .map(function (w) { return {name: w, lines: [w]}; }))
-            : details;
+            : stripHeads(details);
         // __airFit 的 cap 含"标题行"（内部留 1），而我们传入的预算要覆盖 警告+统计+明细 的总行数
         var budget = custom ? cap
             : cap ? Math.max(2, cap - warns.length - (tally ? 1 : 0) + 1) : 0;   // 0 = 不限
