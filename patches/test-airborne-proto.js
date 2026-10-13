@@ -437,6 +437,19 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
        return v.some(x => x === 60001) && v.some(x => x === 0); })(),
      JSON.stringify(cf({ airColorful: 'on', airSelfAction: 'off' })));
   ck('airColorful=off → 0', cf({ airColorful: 'off' }).every(v => v === 0));
+  // 彩色 + 多行汇总：拆成多条单行弹幕（彩色渲染器测不准多行高度）
+  {
+    const m = mkReal();
+    inject(m.elems, [[0, 23.233, 'preview', 'skip', 1573, 0], [150, 166, 'sponsor', 'skip', 191, 1]],
+      { airColorful: 'on' });
+    const built = m.elems.filter(x => x.ctime === '1735660800');
+    ck('彩色多行汇总拆成单行弹幕（无 \n）',
+       built.length === 2 && built.every(x => !x.content.includes('\n')),
+       JSON.stringify(built.map(x => x.content)));
+    ck('每条都带自身空降动作（原地跳）',
+       built.every(x => x.action === 'airborne:' + x.progress),
+       JSON.stringify(built.map(x => x.action)));
+  }
   ck('认不出的取值退回 off', cf({ airColorful: '???' }).every(v => v === 0));
 }
 
