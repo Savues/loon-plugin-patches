@@ -449,16 +449,29 @@ function __airInject(msg, segs, a) {
             : (warns.length ? warns.join("\n") + "\n" : "")
               + (tally ? (warns.length ? "" : "⚠️ ") + tally + "\n" : "") + "{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
-        var head = nn(synth, a);
-        head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
-        head[0].progress = sumAt;
-        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
-            head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
+        // 彩色模型的 measureText 对含 \n 的内容只返回第一行高度 → 多行会互相重叠。
+        // 彩色模式下拆成多条单行弹幕：每条各自居中、各自占一行，彻底绕开
+        if (cf) {
+            labels.forEach(function (ln) {
+                var m = nn(synth, a);
+                m[0].content = ln;
+                m[0].progress = sumAt;
+                if (String(__airVal(a, "airSelfAction", "on")) === "on") m[0].action = "airborne:" + sumAt;
+                m[0].mode = Number(want) || 5;
+                m[0].color = __airSummaryColor(a);
+                built = built.concat(m);
+            });
+        } else {
+            var head = nn(synth, a);
+            head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
+            head[0].progress = sumAt;
+            if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+                head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
+            }
+            head[0].mode = Number(want) || 5;
+            head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
+            built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
         }
-        head[0].mode = Number(want) || 5;
-        head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
-        if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
-        built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
     }
     // 全部注入：实测 App 会渲染跨页弹幕（汇总在第 1 页响应里、进度 3500ms 也能显示），
     // 所以不分页过滤——过滤只会让自动跳过/提醒在「App 没请求那一页」时彻底丢失
