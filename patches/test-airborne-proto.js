@@ -100,7 +100,7 @@ ck('自动档是顶部大字 + 有 action',
   JSON.stringify({ m: sAuto.midHash, mode: sAuto.mode, fs: sAuto.fontsize, a: sAuto.action }));
 ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
   JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
-ck('提醒档唯一区别是没有 action', !sNote.action, sNote.action);
+ck('提醒档带指向自身的动作（原地跳，不会跳走）', sNote.action === 'airborne:' + sNote.progress, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
 ck('自动档是片段起点 + 2 秒', sAuto.progress === 2000, String(sAuto.progress));
 // 开头有自动跳 [0,42.9]：用户 2 秒就被 seek 到 42.9s，整篇提醒若钉在 3 秒就看不见了，
@@ -142,8 +142,9 @@ ck('汇总开启时，整篇软广不再单独出提醒（汇总里已有一行�
   sumMsg2.elems.filter(x => x.content === '⚠️ 恰饭广告 00:00→03:11').length === 0 &&
   sumMsg2.elems[1].content.includes('⚠️警告：本片为恰饭广告'),
   sumMsg2.elems.map(x => x.content).join(' | '));
-ck('汇总只有一条，且不带 action（不会被跳走）',
-  sumMsg2.elems.length === 4 && !sumMsg2.elems[1].action);
+ck('汇总只有一条，且动作指向自身（原地跳，不会被跳走）',
+  sumMsg2.elems.length === 4 && sumMsg2.elems[1].action === 'airborne:' + sumMsg2.elems[1].progress,
+  sumMsg2.elems[1].action);
 ck('标题行 + 每类一行', sumMsg2.elems[1].content ===
   '⚠️警告：本片为恰饭广告\n⚠️警告：本片为品牌方合作内容\n恰饭×1 三连×1 ｜ 2 处 共计52s\n恰饭广告 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s',
   JSON.stringify(sumMsg2.elems[1].content));
@@ -298,8 +299,8 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   // 🔴 回归：时长改用 `·` 分隔时，__airDur 自带前导空格而行模板里又有一个，
   // 两处一叠加就渲染出「34:55–35:11  · 16s」的双空格，肉眼很难在断言里发现。
   ck('汇总文案里没有双空格', !m.elems[1].content.includes('  '), JSON.stringify(m.elems[1].content));
-  ck('两段自动跳各自仍然到位（只改了汇总文案，不影响跳转）',
-     m.elems.filter(x => x.action).length === 2
+  ck('两段自动跳各自仍然到位（汇总自身那条动作不影响跳转）',
+     m.elems.filter(x => x.action).length === 3
      && m.elems.some(x => x.action === 'airborne:2111833')
      && m.elems.some(x => x.action === 'airborne:3160366'),
      JSON.stringify(m.elems.map(x => x.action)));
@@ -365,6 +366,29 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('airUpLike=off → 与点赞位无关，只由 airOwn 决定',
      attrOf({ airUpLike: 'off', airOwn: 'off' }).every(a => a === 0x100000),
      JSON.stringify(attrOf({ airUpLike: 'off', airOwn: 'off' })));
+}
+
+// ---- airSelfAction：只提醒/汇总借用空降渲染路径（实测：带 action 的才居中）----
+{
+  const SEGS = [[150, 166, 'sponsor', 'skip', 191, 1], [600, 640, 'filler', 'skip', 191, 0]];
+  const run = (arg) => {
+    const m = mkReal();
+    inject(m.elems, SEGS, Object.assign({ airSummary: 'single', airCategories: 'sponsor',
+                                          airNoticeCategories: 'filler' }, arg));
+    return m.elems.filter(x => x.ctime === '1735660800');
+  };
+  const on = run({});
+  ck('默认：提醒/汇总带指向自身的空降动作',
+     on.filter(x => x.progress !== 152000).every(x => x.action === 'airborne:' + x.progress),
+     JSON.stringify(on.map(x => [x.progress, x.action])));
+  ck('自动跳那条仍是自己的动作（指向片段终点，不是自身）',
+     on.some(x => x.action === 'airborne:166000'),
+     JSON.stringify(on.map(x => [x.progress, x.action])));
+  const off = run({ airSelfAction: 'off' });
+  ck('airSelfAction=off：只提醒/汇总不带动作',
+     off.filter(x => x.progress !== 152000).every(x => !x.action),
+     JSON.stringify(off.map(x => [x.progress, x.action])));
+  ck('airSelfAction=off 不影响自动跳那条', off.some(x => x.action === 'airborne:166000'));
 }
 
 // ---- 元数据对齐真实弹幕（字号 / id / oid）----

@@ -369,6 +369,12 @@ function __airInject(msg, segs, a) {
         built[i].color = __airColor(segs[i][2]);        // 按类别上色
         // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
         if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
+        // 借用空降渲染路径：实测带 action 的弹幕（空指部）完全居中，不带 action 的
+        // 普通顶部弹幕会被 App 整体挤右一个徽标宽度。动作指向**自身位置**——
+        // App 在弹幕出现的那一刻执行跳转，而那时播放位置就是它，等于原地跳
+        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+            built[i].action = "airborne:" + built[i].progress;
+        }
         // 整篇标记的独立提醒让位给汇总里那一行（汇总没开时必须保留，否则信息全丢）
         if (segs[i][3] === "full" && sumMode !== "off" && !__airLandPast(a, segs)) {
             built[i].content = "";
@@ -440,6 +446,9 @@ function __airInject(msg, segs, a) {
         var head = nn(synth, a);
         head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
         head[0].progress = sumAt;
+        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+            head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
+        }
         head[0].mode = Number(want) || 5;
         head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
         if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
