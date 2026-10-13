@@ -337,12 +337,6 @@ function __airId(a, n, ms) {
 function __airOid(a) {
     return a && a.__airOid ? String(a.__airOid) : "0";
 }
-/** 弹幕的 colorful 字段：0=普通，60001=VIP 渐变彩色（DmColorfulType.VIP_GRADUAL_COLOR）。
- *  渐变纹理由响应的 colorful_src（{type:60001, src:{fill_color,stroke_color}}）提供；
- *  响应里没有该资源时会退回普通颜色 */
-function __airColorful(a) {
-    return String(__airVal(a, "airColorful", "off")) === "on" ? 60001 : 0;
-}
 function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
@@ -449,41 +443,19 @@ function __airInject(msg, segs, a) {
             : (warns.length ? warns.join("\n") + "\n" : "")
               + (tally ? (warns.length ? "" : "⚠️ ") + tally + "\n" : "") + "{list}";
         var synth = [[0, 0, "", "skip", 0, 0]];
-        // 彩色模型的 measureText 对含 \n 的内容只返回第一行高度 → 多行会互相重叠。
-        // 彩色模式下拆成多条单行弹幕：每条各自居中、各自占一行，彻底绕开
-        if (cf) {
-            labels.forEach(function (ln) {
-                var m = nn(synth, a);
-                m[0].content = ln;
-                m[0].progress = sumAt;
-                if (String(__airVal(a, "airSelfAction", "on")) === "on") m[0].action = "airborne:" + sumAt;
-                m[0].mode = Number(want) || 5;
-                m[0].color = __airSummaryColor(a);
-                built = built.concat(m);
-            });
-        } else {
-            var head = nn(synth, a);
-            head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
-            head[0].progress = sumAt;
-            if (String(__airVal(a, "airSelfAction", "on")) === "on") {
-                head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
-            }
-            head[0].mode = Number(want) || 5;
-            head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
-            built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
+        var head = nn(synth, a);
+        head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
+        head[0].progress = sumAt;
+        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+            head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
         }
+        head[0].mode = Number(want) || 5;
+        head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
+        if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
+        built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
     }
     // 全部注入：实测 App 会渲染跨页弹幕（汇总在第 1 页响应里、进度 3500ms 也能显示），
     // 所以不分页过滤——过滤只会让自动跳过/提醒在「App 没请求那一页」时彻底丢失
-    // colorful 会让弹幕走「彩色模型」：默认不执行空降动作（真跳会失效）、且布局宽度
-    // 被互动 UI 多算 0.8×行高（偏右）。已在 chronos.zip 的引擎里给**我们的弹幕**
-    // （id 前缀 2221）关掉互动 UI → 彩色也能居中；但真跳那条仍必须留在空降模型，
-    // 所以只给「没有真跳动作」的弹幕上彩色（自身动作/无动作都算）
-    var cf = String(__airVal(a, "airColorful", "off")) === "on" ? 60001 : 0;
-    built.forEach(function (x) {
-        var noRealJump = !x.action || x.action === "airborne:" + x.progress;
-        x.colorful = cf && noRealJump ? cf : 0;
-    });
     elems.push.apply(elems, built);
 }
 /** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */
@@ -552,10 +524,6 @@ PATCHES = [
     ('弹幕 idStr',
      'idStr:i,attr:',
      'idStr:__airId(a,n,r),attr:'),
-
-    ('弹幕彩色',
-     'colorful:0',
-     'colorful:__airColorful(a)'),
 
     ('弹幕字号',
      'fontsize:50',
