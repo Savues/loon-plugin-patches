@@ -159,7 +159,7 @@ ck('6 段 5 类 → 原弹幕1 + 汇总1 + 逐段提醒4',
 ck('警告置顶后明细预算相应减少（6-2-1=3 行），标记并进最后一行并点名被藏的类', sumMsg3.elems[1].content ===
   '⚠️警告：本片为恰饭广告\n⚠️警告：本片为品牌方合作内容\n恰饭×1 三连×1 闲聊×1 预告×1 ｜ 4 处 共计102s\n恰饭内容 · 02:30–02:46 · 16s\n三连提醒 · 02:39–03:15 · 36s\n离题闲聊 · 06:40–07:00 · 20s  …另 1 类（内容预告）',
   JSON.stringify(sumMsg3.elems[1].content));
-ck('出现在 airInfoDelay 处', sumMsg3.elems[1].progress === 3000, String(sumMsg3.elems[1].progress));
+ck('出现在 airInfoDelay+500ms 处', sumMsg3.elems[1].progress === 3500, String(sumMsg3.elems[1].progress));
 ck('提醒档按类别上色', (() => {
   const m = _e.fromBinary(_e.toBinary(_e.create({ elems: [
     { id: 1, progress: 10, midHash: '741886e', attr: 1048576, mode: 1, fontsize: 25, content: 'x', ctime: '1700000000', dmFrom: 2 }] })));
@@ -237,8 +237,8 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
 {
   const m = mkReal();
   inject(m.elems, HAR_SEGS, HAR_ARG);
-  ck('开头有自动跳：汇总钉在落点之后（32.005+2=34.005s）',
-     m.elems[1].progress === 34005, String(m.elems[1].progress));
+  ck('开头有自动跳：汇总钉在落点之后+500ms（32.005+2+0.5=34.505s）',
+     m.elems[1].progress === 34505, String(m.elems[1].progress));
   ck('汇总文案仍然完整', m.elems[1].content.includes('00:00–00:32 · 32s'), m.elems[1].content);
   ck('自动跳那条本身仍在片段起点 +2 秒',
      m.elems.some(x => x.progress === 2000 && !!x.action), JSON.stringify(m.elems.map(x => x.progress)));
@@ -246,14 +246,14 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
 {
   const m = mkReal();
   inject(m.elems, HAR_SEGS, Object.assign({ airSummaryAnchor: 'start' }, HAR_ARG));
-  ck('airSummaryAnchor=start 可退回旧行为（钉在 3 秒）',
+  ck('airSummaryAnchor=start 可退回旧行为（钉在 3 秒，不加 500ms）',
      m.elems[1].progress === 3000, String(m.elems[1].progress));
 }
 {
   const m = mkReal();
   inject(m.elems, [[600, 640, 'intro', 'skip', 1784, 1]], HAR_ARG);
-  ck('开头没有自动跳时汇总仍在 airInfoDelay（行为不变）',
-     m.elems[1].progress === 3000, String(m.elems[1].progress));
+  ck('开头没有自动跳时汇总在 airInfoDelay+500ms',
+     m.elems[1].progress === 3500, String(m.elems[1].progress));
 }
 {
   // 整篇即此类 + 开空降：用户被直接送到片尾，汇总钉哪儿都看不见 → 干脆不注入
