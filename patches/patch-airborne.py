@@ -309,7 +309,7 @@ function __airLandPast(a, segs) {
     if (!dur) return false;
     return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
 }
-function __airInject(msg, segs, a, segIdx, st) {
+function __airInject(msg, segs, a) {
     var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
     if (!elems || !segs || !segs.length) return;
     // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
@@ -353,7 +353,6 @@ function __airInject(msg, segs, a, segIdx, st) {
     // 上面两条规则都在 built[i] ↔ segs[i] 对齐时判断，删完再统一过滤（别在下游按索引删）
     built = built.filter(function (x) { return x.content !== ""; });
 
-    var sumElem = null;   // 汇总那条（按页过滤的兜底要用）
     // 片头汇总：把这个视频里「会被处理」的所有片段在开头一次列完。
     // 同类折叠成一行（__airGroups），一条弹幕装不下太多时按「类」截断。
     var sum = sumMode;
@@ -417,36 +416,9 @@ function __airInject(msg, segs, a, segIdx, st) {
         head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
         if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
         built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
-        sumElem = head[0];
     }
-    // 分页注入：只把属于本页时间窗的弹幕塞进响应。
-    // segIdx=0: 注入汇总 + 本页提醒；segIdx>0: 只注本页提醒。
-    // 兜底：若连续处理 3 个分页仍未见 segIdx=0，将汇总注入首个响应（避免首页请求未捕获导致全无汇总）。
-    if (segIdx != null) {
-        // ⚠️ segmentIndex 是 protobuf int64 → 解析出来是**字符串**（"0"/"1"），
-        //    必须 Number() 归一，否则 `segIdx === 0` 恒假 → 首页被当成非首页、汇总被丢
-        var page = Number(segIdx);
-        var w0 = page * 360000, w1 = w0 + 360000;
-        var isFirstPage = page === 0;
-        // 汇总不按页过滤：保持原进度（3500ms）每页都带——
-        // 若 App 只渲染本页窗口，它自然不显示；若能渲染跨页弹幕，开头就能看到
-        built = built.filter(function (x) { return x === sumElem || (x.progress >= w0 && x.progress < w1); });
-        // 其它页只留空降动作（汇总钉在 3s 或落点，塞别页也看不见）
-        if (!isFirstPage) {
-            built = built.filter(function (x) { return x === sumElem || !!x.action; });
-            // 兜底：连续 3 页都没见到首页 → 把汇总补注到本页（进度钳进本页窗口），
-            // 否则「首页请求未被捕获」时开头永远没有汇总
-            if (st) {
-                st.__seenPages = (st.__seenPages || 0) + 1;
-                if (st.__seenPages >= 3 && !st.__fallbackDone && sumElem) {
-                    st.__fallbackDone = true;
-                    var fb = Object.assign({}, sumElem);
-                    fb.progress = Math.max(fb.progress, w0);
-                    built.push(fb);
-                }
-            }
-        }
-    }
+    // 全部注入：实测 App 会渲染跨页弹幕（汇总在第 1 页响应里、进度 3500ms 也能显示），
+    // 所以不分页过滤——过滤只会让自动跳过/提醒在「App 没请求那一页」时彻底丢失
     elems.push.apply(elems, built);
 }
 /** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */
@@ -481,12 +453,8 @@ PATCHES = [
 
     ('注入入口',
      't.elems.push(...nn(s.state.segments))',
-     '__airInject(t,s.state.segments,s.argument,s.state.segIdx,s.state)'),
+     '__airInject(t,s.state.segments,s.argument)'),
 
-    # DmSegMobile 的请求里带 segmentIndex（第几个 360s 分页），暂存给注入用
-    ('页码暂存',
-     'i.type!==1&&fe();',
-     'i.type!==1&&fe();s.state.segIdx=i.segmentIndex;'),
 
     # bsbsb 瞬断重试一次：实测（BV1sxp36eEMU 的 HAR）第 1 页 76ms 瞬断放行、
     # 下一次请求就成功——错过的是「视频开头那一页」，汇总正好全丢
