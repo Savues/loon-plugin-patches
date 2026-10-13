@@ -227,7 +227,7 @@ HAR 里两次会话 ViewProgress 响应的**唯一**差异：
 | | chronos#1 md5 | chronos#2 file | chronos#3 sign |
 |---|---|---|---|
 | 服务端原始 | `325e7073ffc6fb5263682fecdcd1058f` | `http://i0.hdslb.com/bfs/app-static/042de1dc….zip` | 80 字符 token |
-| 重签之后 | `7d0a357c92ee4a002c0970e88d1b38b6` | 本仓库 `chronos/<md5>.zip` | **删除** |
+| 重签之后 | `dd181a343326a5368f35e9038e78e72b` | 本仓库 `chronos/<md5>.zip` | **删除** |
 
 **拿不到 chronos 校验文件时，App 会进入降级状态**：弹幕照常渲染、
 **点了也能跳**，但 `airborne:` 动作不自动执行。
