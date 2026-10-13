@@ -340,13 +340,17 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   {
     const m = mkReal();
     inject(m.elems, SEGS, ARG, 1, {});
-    ck('第 1 页（360–720s）：本页无片段 → 一条都不注', m.elems.length === 1,
+    // 汇总不按页过滤：每页都带（若 App 只渲染本页窗口，它自然不显示）
+    ck('第 1 页：本页无片段 → 只剩汇总（带原进度 3500ms）',
+       m.elems.length === 2 && m.elems[1].progress === 3500,
        JSON.stringify(m.elems.map(x => x.progress)));
   }
   {
     const m = mkReal();
     inject(m.elems, SEGS, ARG, 4, {});
-    ck('第 4 页（1440–1800s）：只注本页两个空降，无汇总',
+    ck('第 4 页（1440–1800s）：本页两个空降 + 汇总',
+       m.elems.length === 4 && m.elems.filter(x => (x.action || '').startsWith('airborne:')).length === 2
+       && m.elems.some(x => (x.content || '').includes('共计')),
        m.elems.length === 3 && m.elems.filter(x => (x.action || '').startsWith('airborne:')).length === 2,
        JSON.stringify(m.elems.map(x => [x.progress, x.action])));
   }

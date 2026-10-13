@@ -380,10 +380,12 @@ function __airInject(msg, segs, a, segIdx, st) {
         var page = Number(segIdx);
         var w0 = page * 360000, w1 = w0 + 360000;
         var isFirstPage = page === 0;
-        built = built.filter(function (x) { return x.progress >= w0 && x.progress < w1; });
-        // 汇总只在首页；其它页只留空降动作（汇总钉在 3s 或落点，塞别页也看不见）
+        // 汇总不按页过滤：保持原进度（3500ms）每页都带——
+        // 若 App 只渲染本页窗口，它自然不显示；若能渲染跨页弹幕，开头就能看到
+        built = built.filter(function (x) { return x === sumElem || (x.progress >= w0 && x.progress < w1); });
+        // 其它页只留空降动作（汇总钉在 3s 或落点，塞别页也看不见）
         if (!isFirstPage) {
-            built = built.filter(function (x) { return !!x.action; });
+            built = built.filter(function (x) { return x === sumElem || !!x.action; });
             // 兜底：连续 3 页都没见到首页 → 把汇总补注到本页（进度钳进本页窗口），
             // 否则「首页请求未被捕获」时开头永远没有汇总
             if (st) {
