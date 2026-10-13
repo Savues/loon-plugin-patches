@@ -425,8 +425,12 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
   ck('默认不是彩色（colorful=0）', cf({}).every(v => v === 0), JSON.stringify(cf({})));
   // 🔴 回归：colorful 与空降渲染路径互斥——带 airborne 动作的弹幕一律不彩色
   //     （彩色模式下排版错位、空降不执行）。airSelfAction=on（默认）时我们的弹幕全带动作 → 开关自动失效
-  ck('airSelfAction=on（默认）：airColorful 被忽略（弹幕都带动作）',
-     cf({ airColorful: 'on' }).every(v => v === 0), JSON.stringify(cf({ airColorful: 'on' })));
+  // 引擎补丁（chronos.zip）给我们的彩色弹幕关掉了互动 UI → 彩色也能居中；
+  // 只有「真跳」那条必须留在空降模型（否则跳转失效）
+  ck('airSelfAction=on：汇总/提醒彩色、真跳那条不彩色',
+     (() => { const v = cf({ airColorful: 'on' });
+       return v.filter(x => x === 60001).length === 1 && v.filter(x => x === 0).length === 1; })(),
+     JSON.stringify(cf({ airColorful: 'on' })));
   // airSelfAction=off：汇总无动作→彩色生效；自动跳那条带动作→不彩色
   ck('airSelfAction=off：汇总彩色、自动跳不彩色',
      (() => { const v = cf({ airColorful: 'on', airSelfAction: 'off' });
