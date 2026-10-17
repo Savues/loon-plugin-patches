@@ -35,8 +35,9 @@ try {
     if (item) {
       item.thumb = customUrl;
       item.thumb_name = "自定义开屏";
-      item.thumb_hash = "custom" + Date.now();
-      item.logo_hash = "custom" + Date.now();
+      // 用固定的合法 hash 格式（32 字符十六进制）
+      item.thumb_hash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6";
+      item.logo_hash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6";
     }
     // 注入 show 排期
     j.data.show = [{

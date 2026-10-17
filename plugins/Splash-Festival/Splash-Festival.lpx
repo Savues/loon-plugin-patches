@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v9
+#!name=开屏节日定制(Splash Festival) v10
 #!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤），或屏蔽节日开屏，或自定义URL展示任意隐藏开屏。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -19,7 +19,7 @@ enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日�
 
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
-# v9: 22 官方皮肤 + block + custom URL 模式（载体 id=13，同时修改 thumb_hash）
+# v10: 22 官方皮肤 + block + custom URL 模式（载体 id=13，固定合法 hash）
 http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{custom_url}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
