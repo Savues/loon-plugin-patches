@@ -29,8 +29,8 @@ try {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
   } else if (sel === "custom" && customUrl) {
-    // custom 模式：用 midautumn(id=38) 作载体，thumb 替换为自定义 URL
-    const carrierId = FESTIVALS.midautumn;
+    // custom 模式：用 slogan(id=17) 作载体（不常用，避免缓存），thumb 替换为自定义 URL
+    const carrierId = FESTIVALS.slogan;
     // 替换 list 中该 id 的 thumb
     const item = j.data.list.find(x => x.id === carrierId);
     if (item) {
