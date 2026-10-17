@@ -29,13 +29,15 @@ try {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
   } else if (sel === "custom" && customUrl) {
-    // custom 模式：用 slogan(id=17) 作载体（不常用，避免缓存），thumb 替换为自定义 URL
+    // custom 模式：用 slogan(id=17) 作载体，替换 thumb + thumb_hash（避免缓存）
     const carrierId = FESTIVALS.slogan;
-    // 替换 list 中该 id 的 thumb
     const item = j.data.list.find(x => x.id === carrierId);
     if (item) {
       item.thumb = customUrl;
       item.thumb_name = "自定义开屏";
+      // 同时修改 hash，让客户端强制重新加载
+      item.thumb_hash = "custom" + Date.now();
+      item.logo_hash = "custom" + Date.now();
     }
     // 注入 show 排期
     j.data.show = [{
