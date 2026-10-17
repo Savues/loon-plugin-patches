@@ -1,5 +1,5 @@
-#!name=开屏节日定制(Splash Festival) v7
-#!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤可选），或屏蔽节日开屏。拦截 splash/brand/list 的 show 数组注入排期条目。
+#!name=开屏节日定制(Splash Festival) v8
+#!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤），或屏蔽节日开屏，或自定义URL展示任意隐藏开屏。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS
@@ -10,7 +10,8 @@
 #!date=2026-10-18 02:57:00
 
 [Argument]
-festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，或选择 block 屏蔽节日开屏
+festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","custom",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，block 屏蔽节日开屏，custom 自定义URL展示任意隐藏开屏
+custom_url = input,"",tag=自定义URL,desc=自定义开屏图片URL（festival=custom 时生效）
 enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日排期
 
 [Rule]
@@ -18,7 +19,7 @@ enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日�
 
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
-# v7: 只保留当前 22 个官方皮肤 + block 屏蔽模式
+# v8: 22 官方皮肤 + block + custom URL 模式
 http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
