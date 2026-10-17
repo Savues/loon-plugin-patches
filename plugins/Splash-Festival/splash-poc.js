@@ -1,14 +1,14 @@
 /*
- * splash/brand/list show 注入 —— 强制展示指定节日/活动品牌皮肤。
- * v5: 历史皮肤同时注入 list 条目（素材）+ show 排期。
+ * splash/brand/list + splash/show 双注入 —— 强制展示指定节日/活动品牌皮肤。
+ * v6: 历史皮肤同时注入 brand/list (list条目+show排期) 和 splash/show (完整字段)。
  *
- * 机制：客户端按 show.id 从 list 数组查找素材。
- * 历史皮肤不在当前 list 中 → 注入 show 时同时补 list 条目。
+ * 机制：客户端可能同时检查 brand/list 和 splash/show，
+ * 历史皮肤需要两个端点都注入才能生效。
  */
 const A = $argument || {};
 const LOGO = "http://i0.hdslb.com/bfs/archive/1b1a8a4fc78a3b1b2992402ebdc19808b9d251ed.png";
 
-// 当前皮肤（id 在服务端 list 中，只需注入 show）
+// 当前皮肤（id 在服务端 list 中）
 const CURRENT = {
   midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
   halloween: 31, xmas1: 32, xmas2: 33, women: 35, labor: 41,
@@ -53,47 +53,33 @@ const HISTORICAL = {
 };
 
 const sel = A.festival;
+const url = $request.url;
+
 try {
   const j = JSON.parse($response.body);
   if (!j.data) j.data = {};
-  if (!Array.isArray(j.data.list)) j.data.list = [];
   const now = Math.floor(Date.now() / 1000);
 
   if (sel === "block") {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
-  } else if (HISTORICAL[sel]) {
-    // 历史皮肤：补 list 条目 + show 排期
-    const h = HISTORICAL[sel];
-    const listItem = {
-      id: h.id,
-      thumb: h.thumb,
-      logo_url: LOGO,
-      mode: "full",
-      thumb_name: h.name,
-      source: "brand",
-      show_logo: true
-    };
-    // 避免重复
-    if (!j.data.list.some(x => x.id === h.id)) j.data.list.push(listItem);
-    j.data.show = [{
-      id: h.id,
-      begin_time: now - 7 * 86400,
-      end_time: now + 7 * 86400,
-      probability: 1,
-      duration: 1000,
-      mode: "full",
-      show_logo: true,
-      logo_position: "center",
-      new_splash: true,
-      categories: null,
-      initial_push_time: now - 7 * 86400,
-      source: "brand"
-    }];
-    $done({ body: JSON.stringify(j) });
-  } else {
-    // 当前皮肤：只注入 show 排期
-    const id = CURRENT[sel] || CURRENT.midautumn;
+  } else if (url.includes("brand/list")) {
+    // brand/list: 注入 list 条目 + show 排期
+    if (HISTORICAL[sel]) {
+      const h = HISTORICAL[sel];
+      const listItem = {
+        id: h.id,
+        thumb: h.thumb,
+        logo_url: LOGO,
+        mode: "full",
+        thumb_name: h.name,
+        source: "brand",
+        show_logo: true
+      };
+      if (!j.data.list) j.data.list = [];
+      if (!j.data.list.some(x => x.id === h.id)) j.data.list.push(listItem);
+    }
+    const id = HISTORICAL[sel] ? HISTORICAL[sel].id : (CURRENT[sel] || CURRENT.midautumn);
     j.data.show = [{
       id: id,
       begin_time: now - 7 * 86400,
@@ -109,8 +95,30 @@ try {
       source: "brand"
     }];
     $done({ body: JSON.stringify(j) });
+  } else if (url.includes("splash/show")) {
+    // splash/show: 注入完整 show 数组
+    const id = HISTORICAL[sel] ? HISTORICAL[sel].id : (CURRENT[sel] || CURRENT.midautumn);
+    const thumb = HISTORICAL[sel] ? HISTORICAL[sel].thumb : LOGO;
+    const name = HISTORICAL[sel] ? HISTORICAL[sel].name : "品牌皮肤";
+    j.data.show = [{
+      id: id,
+      thumb: thumb,
+      logo_url: LOGO,
+      thumb_name: name,
+      source: "brand",
+      show_logo: true,
+      is_ad: false,
+      is_ad_loc: false,
+      type: 2,
+      card_type: 39,
+      duration: 5,
+      skip: true
+    }];
+    $done({ body: JSON.stringify(j) });
+  } else {
+    $done({});
   }
 } catch (e) {
   $done({});
 }
-// v5: historical skins inject list entry + show schedule
+// v6: dual injection (brand/list + splash/show)
