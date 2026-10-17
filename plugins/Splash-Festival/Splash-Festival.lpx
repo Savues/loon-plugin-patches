@@ -20,7 +20,7 @@ enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日�
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
 # v8: 22 官方皮肤 + block + custom URL 模式
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival}], tag=节日开屏注入, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{custom_url}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。
