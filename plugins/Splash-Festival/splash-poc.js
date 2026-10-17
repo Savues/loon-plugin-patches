@@ -1,12 +1,9 @@
 /*
- * splash/show 注入 PoC —— 强制展示指定节日品牌皮肤。
+ * splash/brand/list show 注入 —— 强制展示指定节日品牌皮肤。
  *
- * 处理两种响应：
- *   1) 200 + data.show=[] → 直接替换 show 数组
- *   2) -304 + data=null（缓存命中）→ Loon 拦截后返回 200 + 注入的 show
- *
- * 假设（未验证）：splash/show 的 show 数组除广告/活动条目外，也接受品牌皮肤条目。
- * 若客户端 splash/show 为空时只走本地节日表、忽略 show 里的品牌条目 → 注入无效。
+ * 机制：brand/list 响应的 data.show 数组是展示控制通道，
+ * 客户端按 begin_time/end_time 时间窗口决定是否展示。
+ * 注入目标节日条目，时间窗口设为当前时间前后各一天。
  */
 const A = $argument || {};
 const FESTIVALS = {
@@ -20,7 +17,7 @@ const FESTIVALS = {
   },
   chongyang: {
     id: 145,
-    thumb: "https://i0.hdslb.com/bfs/splash/d48ac964228e69c8a6f764a836f50053fb368568.webp",
+    thumb: "https://i0.hdslb.com/bfs/splash/0013afcbf738bc912a0d7bfb41b15df073cd8958.webp",
     logo_url: "http://i0.hdslb.com/bfs/archive/1b1a8a4fc78a3b1b2992402ebdc19808b9d251ed.png",
     thumb_name: "2026重阳节",
     source: "brand",
@@ -31,18 +28,22 @@ const F = FESTIVALS[A.festival] || FESTIVALS.midautumn;
 
 try {
   const j = JSON.parse($response.body);
-  // -304 时 data=null，构造完整结构；200 时直接改 show
-  if (!j.data) {
-    j.data = { show: [], splash_request_id: "poc" };
-  }
-  const entry = Object.assign({}, F, {
-    is_ad: false,
-    is_ad_loc: false,
-    type: 2,
-    card_type: 39,
-    duration: 5,
-    skip: true
-  });
+  if (!j.data) j.data = {};
+  const now = Math.floor(Date.now() / 1000);
+  const entry = {
+    id: F.id,
+    begin_time: now - 86400,
+    end_time: now + 86400,
+    probability: 1,
+    duration: 1000,
+    mode: "full",
+    show_logo: true,
+    logo_position: "center",
+    new_splash: true,
+    categories: null,
+    initial_push_time: now - 86400,
+    source: "brand"
+  };
   j.data.show = [entry];
   $done({ body: JSON.stringify(j) });
 } catch (e) {

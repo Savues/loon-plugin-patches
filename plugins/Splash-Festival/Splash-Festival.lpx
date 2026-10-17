@@ -1,5 +1,5 @@
 #!name=开屏节日定制(Splash Festival)
-#!desc=强制展示指定节日品牌皮肤（中秋/重阳）。测试插件：拦截 splash/show 注入节日条目。
+#!desc=强制展示指定节日品牌皮肤（中秋/重阳）。拦截 splash/brand/list 的 show 数组注入排期条目。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS
@@ -17,11 +17,10 @@ enabled = switch,true,tag=启用,desc=拦截 splash/show 并注入节日条目
 # 占位：本插件全部逻辑在 [Script]，无需 Rule
 
 [Script]
-# 拦截 splash/show，把 show 数组替换为选中节日条目
-# 脚本字段取自 brand/list 抓包（2026-10）。若客户端 splash/show 为空时只走本地
-# 节日表、忽略 show 里的品牌条目 → 注入无效，表现为开屏无变化（预期大概率如此）。
-# 同时处理 200（show=[]）与 -304（data=null）两种输入。
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/show\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival}], tag=节日开屏注入, enable={enabled}
+# 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
+# 机制：brand/list 的 show 数组是展示控制通道，客户端按时间窗口决定是否展示。
+# 注入目标节日条目，时间窗口设为当前时间前后各一天。
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。
