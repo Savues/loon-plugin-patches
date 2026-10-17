@@ -49,3 +49,4 @@ try {
 } catch (e) {
   $done({});
 }
+// v2: brand/list show injection (force refresh cache)
