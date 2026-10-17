@@ -27,8 +27,8 @@ try {
   const now = Math.floor(Date.now() / 1000);
   j.data.show = [{
     id: F.id,
-    begin_time: now - 86400,
-    end_time: now + 86400,
+    begin_time: now - 7 * 86400,
+    end_time: now + 7 * 86400,
     probability: 1,
     duration: 1000,
     mode: "full",
@@ -36,7 +36,7 @@ try {
     logo_position: "center",
     new_splash: true,
     categories: null,
-    initial_push_time: now - 86400,
+    initial_push_time: now - 7 * 86400,
     source: "brand"
   }];
   $done({ body: JSON.stringify(j) });
