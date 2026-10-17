@@ -1,5 +1,5 @@
-#!name=开屏节日定制(Splash Festival) v3
-#!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤可选），或屏蔽节日开屏。拦截 splash/brand/list 的 show 数组注入排期条目。
+#!name=开屏节日定制(Splash Festival) v4
+#!desc=强制展示指定节日/活动品牌皮肤（53个官方皮肤可选），或屏蔽节日开屏。拦截 splash/brand/list 的 show 数组注入排期条目。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS
@@ -7,10 +7,10 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-10-18 02:46:00
+#!date=2026-10-18 02:57:00
 
 [Argument]
-festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，或选择 block 屏蔽节日开屏
+festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","gaokao24","duanwu24","summer24","qixi24","chongyang24","teacher24","midautumn24","cj25a","cj25b","cj25c","cj25d","cj25e","cj25f","yx25","women25","qm25","labor25","labor25b","duanwu25","gaokao25","summer25","qixi25","teacher25","midautumn25","cj26a","cj26b","cj26c","labor26","gaokao26","duanwu26","midautumn26","block",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，或选择 block 屏蔽节日开屏
 enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日排期
 
 [Rule]
@@ -18,7 +18,7 @@ enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日�
 
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
-# v3: 支持全部 22 个官方皮肤 + block 屏蔽模式
+# v4: 支持全部 53 个官方皮肤 + block 屏蔽模式
 http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]

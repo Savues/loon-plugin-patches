@@ -1,6 +1,6 @@
 /*
  * splash/brand/list show 注入 —— 强制展示指定节日/活动品牌皮肤。
- * v3: 支持全部 22 个官方皮肤 + 屏蔽功能。
+ * v4: 支持全部 53 个官方皮肤（22 当前 + 31 历史）+ 屏蔽功能。
  *
  * 机制：brand/list 响应的 data.show 数组是展示控制通道，
  * 客户端按 begin_time/end_time 时间窗口决定是否展示。
@@ -9,7 +9,7 @@
 const A = $argument || {};
 const LOGO = "http://i0.hdslb.com/bfs/archive/1b1a8a4fc78a3b1b2992402ebdc19808b9d251ed.png";
 const FESTIVALS = {
-  // 节日类
+  // 节日类（当前）
   midautumn:  { id: 38,  name: "中秋节" },
   chongyang:  { id: 145, name: "重阳节" },
   yuandan:    { id: 34,  name: "元旦" },
@@ -35,6 +35,38 @@ const FESTIVALS = {
   "2233c":    { id: 37,  name: "2233 款式三" },
   "2233d":    { id: 36,  name: "2233 款式四" },
   slogan:     { id: 17,  name: "slogan" },
+  // 历史皮肤（2024-2026）
+  gaokao24:   { id: 113, name: "2024高考" },
+  duanwu24:   { id: 114, name: "2024端午节" },
+  summer24:   { id: 115, name: "2024暑假快乐" },
+  qixi24:     { id: 116, name: "2024七夕" },
+  chongyang24:{ id: 117, name: "2024重阳" },
+  teacher24:  { id: 118, name: "2024教师节" },
+  midautumn24:{ id: 119, name: "2024中秋" },
+  cj25a:      { id: 120, name: "2025春节打铁花" },
+  cj25b:      { id: 121, name: "2025春节放御灯" },
+  cj25c:      { id: 122, name: "2025春节滚灯球" },
+  cj25d:      { id: 123, name: "2025春节聚天宫" },
+  cj25e:      { id: 124, name: "2025春节跨火盆" },
+  cj25f:      { id: 125, name: "2025春节舞龙狮" },
+  yx25:       { id: 126, name: "2025元宵节" },
+  women25:    { id: 127, name: "2025妇女节" },
+  qm25:       { id: 128, name: "2025清明" },
+  labor25:    { id: 129, name: "2025劳动节" },
+  labor25b:   { id: 130, name: "2025国际劳动节" },
+  duanwu25:   { id: 131, name: "2025端午" },
+  gaokao25:   { id: 132, name: "2025高考" },
+  summer25:   { id: 133, name: "2025暑假过半" },
+  qixi25:     { id: 134, name: "2025七夕" },
+  teacher25:  { id: 135, name: "2025教师节" },
+  midautumn25:{ id: 136, name: "2025中秋" },
+  cj26a:      { id: 137, name: "2026春节-马灯笼" },
+  cj26b:      { id: 138, name: "2026春节-马头琴" },
+  cj26c:      { id: 139, name: "2026春节-马球" },
+  labor26:    { id: 140, name: "2026五一" },
+  gaokao26:   { id: 141, name: "2026高考" },
+  duanwu26:   { id: 142, name: "2026端午" },
+  midautumn26:{ id: 144, name: "2026中秋" },
   // 屏蔽
   block:      { id: 0,   name: "屏蔽节日开屏" }
 };
@@ -67,4 +99,4 @@ try {
 } catch (e) {
   $done({});
 }
-// v3: full 22 skins + block mode
+// v4: full 53 skins + block mode
