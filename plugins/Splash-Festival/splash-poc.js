@@ -7,6 +7,7 @@
  */
 const A = $argument || {};
 const MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
+const IMG_MODE = A.imgMode || "auto";         // auto=按设备 / landscape=横图 / portrait=竖图
 
 const FESTIVALS = {
   midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
@@ -131,7 +132,12 @@ try {
     const id = FESTIVALS[sel] || FESTIVALS.midautumn;
     const vend = VENDORED[id];
     if (vend) {
-      const pick = (vend.pad && vend.phone) ? (__isPad() ? vend.pad : vend.phone) : vend;
+      let pick = vend;
+      if (vend.pad && vend.phone) {
+        if (IMG_MODE === "landscape") pick = vend.pad;
+        else if (IMG_MODE === "portrait") pick = vend.phone;
+        else pick = __isPad() ? vend.pad : vend.phone;  // auto
+      }
       const item = j.data.list.find(x => x.id === id);
       if (item) {
         item.thumb = IMG_BASE + pick.file;

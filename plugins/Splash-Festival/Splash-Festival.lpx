@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v25
+#!name=开屏节日定制(Splash Festival) v26
 #!desc=强制展示指定节日/活动品牌皮肤（22官方+31历史共53个），或屏蔽节日开屏。历史皮肤通过官方URL替换实现。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -13,6 +13,7 @@
 festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","gaokao24","duanwu24","summer24","qixi24","chongyang24","teacher24","midautumn24","cj25a","cj25b","cj25c","cj25d","cj25e","cj25f","yx25","women25","qm25","labor25","labor25b","duanwu25","gaokao25","summer25","qixi25","teacher25","midautumn25","cj26a","cj26b","cj26c","labor26","gaokao26","duanwu26","midautumn26",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤（22官方+31历史），或选择 block 屏蔽节日开屏
 enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日排期
 splashMode = select,"official","full","half",tag=显示模式,desc=开屏显示模式：official=按官方设定（full铺满/half缩放）；full=强制铺满；half=强制缩放完整（不裁切）
+imgMode = select,"auto","landscape","portrait",tag=图片方向,desc=开屏图方向：auto=按设备自动（iPad横图/手机竖图）；landscape=强制横图；portrait=强制竖图
 
 [Rule]
 # 占位：本插件全部逻辑在 [Script]，无需 Rule
@@ -20,7 +21,7 @@ splashMode = select,"official","full","half",tag=显示模式,desc=开屏显示�
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
 # v16: 22 官方皮肤 + 31 历史皮肤（thumb 替换）+ block 屏蔽模式
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{splashMode}], tag=节日开屏注入, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{splashMode},{imgMode}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。
