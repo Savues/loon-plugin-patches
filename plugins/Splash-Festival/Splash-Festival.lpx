@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v14
+#!name=开屏节日定制(Splash Festival) v15
 #!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤），或屏蔽节日开屏。拦截 splash/brand/list 的 show 数组注入排期条目。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili

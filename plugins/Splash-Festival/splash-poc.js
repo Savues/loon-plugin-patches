@@ -22,9 +22,9 @@ const OFFICIAL_THUMBS = {
     thumb: "https://i0.hdslb.com/bfs/feed-admin/374fd75303cca2e68856b23f05022d68a97d07b2.webp",
     hash: "9aeaed47d0958cf733cab7a51e554f2f"
   },
-  chongyang: {
-    thumb: "https://i0.hdslb.com/bfs/splash/0013afcbf738bc912a0d7bfb41b15df073cd8958.webp",
-    hash: "7cc80d3a9e8b576693f8a7ae8a21ce8a"
+  gaokao24: {
+    thumb: "https://i0.hdslb.com/bfs/garb/e47526bc43894fa5e1b71ffc34bf805574229cd3.webp",
+    hash: "06373b52a74215e0f88f8fae94b84b92"
   }
 };
 
@@ -41,7 +41,7 @@ try {
   } else if (sel === "replace") {
     // replace 模式：用 bili11(id=13) 作载体，thumb 换成中秋的 URL + hash
     const carrierId = FESTIVALS.bili11;
-    const target = OFFICIAL_THUMBS.midautumn;
+    const target = OFFICIAL_THUMBS.gaokao24;
     const item = j.data.list.find(x => x.id === carrierId);
     if (item) {
       item.thumb = target.thumb;
