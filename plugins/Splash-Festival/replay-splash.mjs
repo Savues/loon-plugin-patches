@@ -126,6 +126,21 @@ run('v29 格式 "官方_midautumn" → 38', { festival: '官方_midautumn' }, PH
   return [showIds(j) === '38', `show=[${showIds(j)}]`];
 });
 
+// —— 已移除选项的旧配置兼容 ——
+run('旧配置 "2025国际劳动节"（已移除）仍显示劳动节图', { festival: '2025国际劳动节' }, PHONE, (j) => {
+  return [endsWith(thumbOf(j, 13), 'labor25.webp'), `id13.thumb=${thumbOf(j, 13).split('/').pop()}`];
+});
+
+run('旧配置 "官方-2025国际劳动节=labor25b"（已移除）→ 劳动节图', { festival: '官方-2025国际劳动节=labor25b' }, PHONE, (j) => {
+  return [endsWith(thumbOf(j, 13), 'labor25.webp'), `id13.thumb=${thumbOf(j, 13).split('/').pop()}`];
+});
+
+// —— 已移除选项不应再作为独立皮肤 ——
+run('labor25b 不再是独立皮肤（显示与 labor25 同一文件）',
+  { festival: 'labor25b' }, PHONE, (j) => {
+    return [endsWith(thumbOf(j, 13), 'labor25.webp'), `id13.thumb=${thumbOf(j, 13).split('/').pop()}`];
+});
+
 // —— 显示模式开关 ——
 run('splashMode=half 覆盖官方 mode', { festival: '中秋节', splashMode: 'half' }, PHONE, (j) => {
   const it = j.data.list.find(x => x.id === 38) || {};

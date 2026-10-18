@@ -25,7 +25,11 @@ const CN_TO_KEY = {
   "2025春节-打铁花": "cj25a", "2025春节-放御灯": "cj25b", "2025春节-滚灯球": "cj25c",
   "2025春节-聚天宫": "cj25d", "2025春节-跨火盆": "cj25e", "2025春节-舞龙狮": "cj25f",
   "2025元宵节": "yx25", "2025妇女节": "women25", "2025清明": "qm25",
-  "2025劳动节": "labor25", "2025国际劳动节": "labor25b", "2025端午节": "duanwu25",
+  "2025劳动节": "labor25",
+  // 「2025国际劳动节」已从选项中移除（与「2025劳动节」同一张图）；
+  // 保留此映射，让老配置里存着该值时仍显示劳动节图，而不是落到兜底。
+  "2025国际劳动节": "labor25",
+  "2025端午节": "duanwu25",
   "2025高考": "gaokao25", "2025暑假过半": "summer25", "2025七夕节": "qixi25",
   "2025教师节": "teacher25", "2025中秋节": "midautumn25",
   "2026春节-马灯笼": "cj26a", "2026春节-马头琴": "cj26b", "2026春节-马球": "cj26c",
@@ -37,12 +41,16 @@ const CN_TO_KEY = {
 //   v31+ 中文标签（"2026五一"）      → 查 CN_TO_KEY
 //   v30   "标签=key"（"官方-中秋节=midautumn"）→ 取 = 后半段
 //   v29   "官方_key"（"官方_midautumn"）      → 去前缀
+// 已移除选项的残留值别名（老配置兼容，指向仍在的条目）
+const ALIAS_KEY = { labor25b: "labor25" };
+
 function normalizeFestival(v) {
   if (!v) return v;
   if (CN_TO_KEY[v]) return CN_TO_KEY[v];
-  if (v.indexOf("=") >= 0) return v.split("=").pop();
-  if (v.indexOf("官方_") === 0) return v.slice(3);
-  return v;
+  var k = v;
+  if (v.indexOf("=") >= 0) k = v.split("=").pop();
+  else if (v.indexOf("官方_") === 0) k = v.slice(3);
+  return ALIAS_KEY[k] || k;
 }
 
 var MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
@@ -77,7 +85,6 @@ var HISTORICAL_VENDORED = {
   women25:      { file: "women25.webp", hash: "f421406781ef5381cf064a8f7327ed0c", name: "2025妇女节" },
   qm25:         { file: "qm25.webp", hash: "fea844b6fdd04227e1c851133ca5e87f", name: "2025清明" },
   labor25:      { file: "labor25.webp", hash: "bdb46b92e93d83f0cf35216b58376222", name: "2025劳动节" },
-  labor25b:     { file: "labor25.webp", hash: "bdb46b92e93d83f0cf35216b58376222", name: "2025国际劳动节" },
   duanwu25:     { file: "duanwu25.webp", hash: "88835b4eb793752efb675cd8f6ebbee1", name: "2025端午" },
   gaokao25:     { file: "gaokao25.webp", hash: "38d43e9fb2a9ed0c45577e2f409f7fe9", name: "2025高考" },
   summer25:     { file: "summer25.webp", hash: "4f67c1db88ff3587e1dd27bcc66edc0b", name: "2025暑假过半" },

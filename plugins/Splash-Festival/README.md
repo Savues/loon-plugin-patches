@@ -1,7 +1,7 @@
 # 开屏节日定制 · Splash Festival
 
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
-> 非节日期间也能展示任意节日/活动开屏，共 **53 个皮肤** + 屏蔽模式。
+> 非节日期间也能展示任意节日/活动开屏，共 **52 个皮肤** + 屏蔽模式。
 
 **当前版本 v32** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
@@ -18,7 +18,7 @@
 | 参数 | 类型 | 选项 | 默认 | 说明 |
 |---|---|---|---|---|
 | `enabled` | switch | — | true | 启用插件 |
-| `festival` | select | 53 个节日 + block | midautumn | 选择展示的节日/活动品牌皮肤 |
+| `festival` | select | 52 个节日 + block | midautumn | 选择展示的节日/活动品牌皮肤 |
 | `splashMode` | select | official / full / half | official | **显示模式**：<br>• `official` = 官方设定（full=铺满 / half=缩放）<br>• `full` = 强制铺满全屏<br>• `half` = 强制缩放完整（不裁切） |
 | `imgMode` | select | auto / landscape / portrait | auto | **图片方向**：<br>• `auto` = 按设备自动（iPad 横图 / 手机竖图）<br>• `landscape` = 强制横图<br>• `portrait` = 强制竖图 |
 
@@ -46,7 +46,7 @@
 | 文件 | 说明 |
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
-| `splash-poc.js` | 注入脚本（53 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
+| `splash-poc.js` | 注入脚本（52 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
 | `images/` | **官方 + 历史皮肤全量仓库化**：官方 full 14 张 × 横竖两套（`{id}_pad`/.`{ext}` iPad 横图 / `{id}_phone`/.`{ext}` 手机竖图），官方 half 8 张单套（`{id}`/.`{ext}`），历史 31 张单套（`{key}`/.`{ext}`） |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
 
@@ -64,6 +64,6 @@
 
 ## 已知情况
 
-- **「2025劳动节」与「2025国际劳动节」目前指向同一张图**。v4（插件第一版）把它们列为两条独立记录，v16 仓库化时两者被填了同一个 URL/hash（`labor25.webp`，MD5 `bdb46b92e93d83f0cf35216b58376222`）。图片是绿色调「节日快乐」的 2025 五一开屏，源 URL `i0.hdslb.com/bfs/garb/3382e7a4…webp` 至今有效。
-  已排查：官方 `brand/list`（含 id/pn/ps/history/all/老版本 build/mobi_app 各种组合）**固定只下发当前 22 条**，历史 id 拿不到；Little-Data 仓库**全部 988 个 commit 历史**里从未收录 2025 五一（该仓库 2025-12-05 才建立）；用户提供的 4 份 HAR、Wayback Machine 均无记录。**无法确认官方是否本来就有第二张图**。若确认存在，需另行提供素材后入库替换；否则建议合并为单个选项。
-  全仓库 65 张图中**仅此一对重复**。
+- **「2025国际劳动节」选项已移除**（v33）：它与「2025劳动节」指向同一张图。v4（插件第一版）把它们列为两条独立记录，v16 仓库化时两者被填了同一个 URL/hash（`labor25.webp`，MD5 `bdb46b92e93d83f0cf35216b58376222`）。图片是绿色调「节日快乐」的 2025 五一开屏，源 URL `i0.hdslb.com/bfs/garb/3382e7a4…webp` 至今有效。
+  已排查：官方 `brand/list`（含 id/pn/ps/history/all/老版本 build/mobi_app 各种组合）**固定只下发当前 22 条**，历史 id 拿不到；Little-Data 仓库**全部 988 个 commit 历史**里从未收录 2025 五一（该仓库 2025-12-05 才建立）；用户提供的 4 份 HAR、Wayback Machine 均无记录。**无法确认官方是否本来就有第二张图**，故按「同一皮肤」合并。若日后找到独立素材，恢复方式：`HISTORICAL_VENDORED` 加回 `labor25b` 条目 + `.lpx` 选项 + `CN_TO_KEY` 映射，并把 `ALIAS_KEY.labor25b` 去掉。
+  老配置兼容：`2025国际劳动节` / `labor25b` 仍映射到 `labor25`（见脚本 `CN_TO_KEY` 与 `ALIAS_KEY`），升级后不会落到兜底。
