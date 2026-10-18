@@ -18,6 +18,7 @@ const FESTIVALS = {
 
 const sel = A.festival;
 const customUrl = A.custom_url || "";
+const customHash = A.custom_hash || "";
 
 try {
   const j = JSON.parse($response.body);
@@ -35,7 +36,10 @@ try {
     if (item) {
       item.thumb = customUrl;
       item.thumb_name = "自定义开屏";
-      // 不修改 thumb_hash（保持原值，避免 hash 不匹配）
+      if (customHash) {
+        item.thumb_hash = customHash;
+        item.logo_hash = customHash;
+      }
     }
     // 注入 show 排期
     j.data.show = [{

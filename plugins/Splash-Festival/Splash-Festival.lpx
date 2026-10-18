@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v11
+#!name=开屏节日定制(Splash Festival) v12
 #!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤），或屏蔽节日开屏，或自定义URL展示任意隐藏开屏。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -12,6 +12,7 @@
 [Argument]
 festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","custom",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，block 屏蔽节日开屏，custom 自定义URL展示任意隐藏开屏
 custom_url = input,"",tag=自定义URL,desc=自定义开屏图片URL（festival=custom 时生效）
+custom_hash = input,"",tag=自定义hash,desc=自定义图片的MD5（festival=custom 时生效，可用 md5sum 命令计算）
 enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日排期
 
 [Rule]
@@ -20,7 +21,7 @@ enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日�
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
 # v10: 22 官方皮肤 + block + custom URL 模式（载体 id=13，固定合法 hash）
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{custom_url}], tag=节日开屏注入, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{custom_url},{custom_hash}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。
