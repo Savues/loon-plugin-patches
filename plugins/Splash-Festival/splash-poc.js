@@ -205,10 +205,11 @@ try {
     }
 
     // 替换载体 (id=14 2233款式一) 的素材
+    // 注意：不修改 thumb_name！客户端按 thumb_name 匹配本地节日日历，
+    // 改掉 thumb_name 会导致匹配失败、展示默认原始图。保持"2233款式一"不变。
     const item = j.data.list.find(x => x.id === 14);
     if (item) {
       item.thumb = targetThumb;
-      item.thumb_name = targetName;
       item.thumb_hash = targetHash;
     }
 
