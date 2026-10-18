@@ -61,3 +61,9 @@
 7. **Loon `[Argument]` 的 `select` 不支持 `label=value` 语法** —— 选项值里出现 `=` 会与 `type=`/`tag=`/`desc=` 元数据字段冲突，导致整个 `[Argument]` 解析失败、UI 选项点不动（v30 的 bug）。中文标签只能作为**纯值**，脚本内用映射表翻译回英文键名
 8. **顶层 `const` 的 TDZ 陷阱** —— `var sel = CN_TO_KEY[...]` 写在文件顶部、`const CN_TO_KEY` 写在文件中部时，会抛 `Cannot access 'CN_TO_KEY' before initialization`；该异常在 `try` 之外，直接让脚本崩溃、Loon 放行原响应，表现为「插件静默失效、所有选项都显示服务器当前默认开屏」（v31 的 bug）。定义必须放在首次引用之前
 9. **回放器不传 HAR 就什么都不跑** —— 原 `replay-splash.mjs` 在没有 HAR 参数时静默 exit 0，制造「测试通过」的假象。现改为内置用例默认运行，且脚本抛异常一律记 FAIL
+
+## 已知情况
+
+- **「2025劳动节」与「2025国际劳动节」目前指向同一张图**。v4（插件第一版）把它们列为两条独立记录，v16 仓库化时两者被填了同一个 URL/hash（`labor25.webp`，MD5 `bdb46b92e93d83f0cf35216b58376222`）。图片是绿色调「节日快乐」的 2025 五一开屏，源 URL `i0.hdslb.com/bfs/garb/3382e7a4…webp` 至今有效。
+  已排查：官方 `brand/list`（含 id/pn/ps/history/all/老版本 build/mobi_app 各种组合）**固定只下发当前 22 条**，历史 id 拿不到；Little-Data 仓库**全部 988 个 commit 历史**里从未收录 2025 五一（该仓库 2025-12-05 才建立）；用户提供的 4 份 HAR、Wayback Machine 均无记录。**无法确认官方是否本来就有第二张图**。若确认存在，需另行提供素材后入库替换；否则建议合并为单个选项。
+  全仓库 65 张图中**仅此一对重复**。
