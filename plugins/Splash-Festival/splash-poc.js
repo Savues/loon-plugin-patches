@@ -53,28 +53,41 @@ const HISTORICAL = {  gaokao24:     { thumb: "https://i0.hdslb.com/bfs/garb/e475
 // 客户端校验 thumb_hash 与素材 MD5（与历史皮肤同机制），避免官方换图影响展示。
 const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
 const VENDORED = {
+  // —— full 模式：横竖两套，按客户端设备选择（pad=iPad横图 / phone=手机竖图）——
+  31: { pad: { file: "31_pad.jpg", hash: "3bdae29ad7994deecf3f52a376ad5a83", name: "万圣节" }, phone: { file: "31_phone.jpg", hash: "ee35af7edb80487d4f2b71f558fc0b4e", name: "万圣节" } },
+  32: { pad: { file: "32_pad.jpg", hash: "ada0d9b118f24d66d17732473feeee56", name: "圣诞节1.0" }, phone: { file: "32_phone.jpg", hash: "c996585b6ba34e6dbeeaf83c1480195f", name: "圣诞节1.0" } },
+  33: { pad: { file: "33_pad.jpg", hash: "c86dee0c8abc5019751f08700a42fab7", name: "圣诞节2.0" }, phone: { file: "33_phone.jpg", hash: "a2bb72f23cf3fea04759f8dc21bd6e52", name: "圣诞节2.0" } },
+  34: { pad: { file: "34_pad.webp", hash: "236a8a857b460dff58b1e52b24dd1e4e", name: "元旦" }, phone: { file: "34_phone.webp", hash: "6c324acd0b1f66113e6c28042d4af4a3", name: "元旦" } },
+  35: { pad: { file: "35_pad.jpg", hash: "f74525240fbf9fec5fc4ea2038e66038", name: "妇女节" }, phone: { file: "35_phone.jpg", hash: "1602207bedd8a18ee7cfc434c75b1c0c", name: "妇女节" } },
+  38: { pad: { file: "38_pad.webp", hash: "9aeaed47d0958cf733cab7a51e554f2f", name: "中秋节" }, phone: { file: "38_phone.webp", hash: "f0546d18602c6470775c53ca6d436c11", name: "中秋节" } },
+  41: { pad: { file: "41_pad.webp", hash: "266bfecb806f5e5e504294eebba198e8", name: "劳动节" }, phone: { file: "41_phone.webp", hash: "4e82972c6a6fd1911d3f10186b433564", name: "劳动节" } },
+  43: { pad: { file: "43_pad.webp", hash: "36c71c1fa6c6a1174b7f4fc6724ba885", name: "端午节" }, phone: { file: "43_phone.webp", hash: "95325e637a7133ec20862a1d99c6b131", name: "端午节" } },
+  44: { pad: { file: "44_pad.webp", hash: "a6c56481e46cad7e5b67ddc8a1c6c591", name: "Bilibili 12周年" }, phone: { file: "44_phone.webp", hash: "efabc3ef08ca8ce7572158824b7f75ed", name: "Bilibili 12周年" } },
+  45: { pad: { file: "45_pad.jpg", hash: "5ecdedae29d94eeea81bd1654743a19e", name: "BML 2021" }, phone: { file: "45_phone.jpg", hash: "55064c7f22f504d29d1b2532bc46af7d", name: "BML 2021" } },
+  46: { pad: { file: "46_pad.webp", hash: "57a7daa31bf37d65f9bc020d0c076ef8", name: "BW 2021" }, phone: { file: "46_phone.webp", hash: "59d93e6d24d73d301da19cbc133284bd", name: "BW 2021" } },
+  47: { pad: { file: "47_pad.webp", hash: "d86e16b7ef0c273b0fced28f75fbc9e6", name: "七夕节" }, phone: { file: "47_phone.webp", hash: "da609374db2f4147d6738a5254fd882c", name: "七夕节" } },
+  67: { pad: { file: "67_pad.webp", hash: "1e61a591ad1371331c425cf56747f684", name: "Bilibili 13周年" }, phone: { file: "67_phone.webp", hash: "21e2f845a5971eb97c817e00ab22ffdf", name: "Bilibili 13周年" } },
+  145: { pad: { file: "145_pad.webp", hash: "b79e163fc7a19b71b8837e40041634b1", name: "2026重阳节" }, phone: { file: "145_phone.webp", hash: "9f62d30b87649778886af61675d90b4e", name: "2026重阳节" } },
+  // —— half 模式：单套（iPad/手机两端相同）——
   10: { file: "10.png", hash: "af0b0486e1ee0b14e87c6d32cabcea5f", name: "BW 2020" },
   12: { file: "12.png", hash: "31f7f9a78cfec6710a62a6c1fc119edd", name: "Bilibili 10周年" },
   13: { file: "13.webp", hash: "4f67c1db88ff3587e1dd27bcc66edc0b", name: "2025暑假过半" },
   14: { file: "14.png", hash: "de1877c33dfef853af867b01c4926d7f", name: "2233 款式一" },
   15: { file: "15.png", hash: "c80b0c119116898265e2a146ec1cbd59", name: "2233 款式二" },
   17: { file: "17.png", hash: "543eedd93eced4ee4f31509212d911d8", name: "slogan" },
-  31: { file: "31.jpg", hash: "ee35af7edb80487d4f2b71f558fc0b4e", name: "万圣节" },
-  32: { file: "32.jpg", hash: "c996585b6ba34e6dbeeaf83c1480195f", name: "圣诞节1.0" },
-  33: { file: "33.jpg", hash: "a2bb72f23cf3fea04759f8dc21bd6e52", name: "圣诞节2.0" },
-  35: { file: "35.jpg", hash: "1602207bedd8a18ee7cfc434c75b1c0c", name: "妇女节" },
   36: { file: "36.webp", hash: "998c00adde03c12eea04352ca0dd2a8f", name: "2233 款式四" },
-  37: { file: "37.webp", hash: "f2d92ab314664181eed36e4e3aaea1f3", name: "2233 款式三" },
-  38: { file: "38.webp", hash: "f0546d18602c6470775c53ca6d436c11", name: "中秋节" },
-  41: { file: "41.webp", hash: "4e82972c6a6fd1911d3f10186b433564", name: "劳动节" },
-  43: { file: "43.webp", hash: "95325e637a7133ec20862a1d99c6b131", name: "端午节" },
-  44: { file: "44.webp", hash: "efabc3ef08ca8ce7572158824b7f75ed", name: "Bilibili 12周年" },
-  45: { file: "45.jpg", hash: "55064c7f22f504d29d1b2532bc46af7d", name: "BML 2021" },
-  46: { file: "46.webp", hash: "59d93e6d24d73d301da19cbc133284bd", name: "BW 2021" },
-  47: { file: "47.webp", hash: "da609374db2f4147d6738a5254fd882c", name: "七夕节" },
-  67: { file: "67.webp", hash: "21e2f845a5971eb97c817e00ab22ffdf", name: "Bilibili 13周年" },
-  145: { file: "145.webp", hash: "9f62d30b87649778886af61675d90b4e", name: "2026重阳节" }
+  37: { file: "37.webp", hash: "f2d92ab314664181eed36e4e3aaea1f3", name: "2233 款式三" }
 };
+
+// 判断客户端是否为 iPad（复刻服务器按设备下发横竖两版图的逻辑）
+function __isPad() {
+  var u = '';
+  try { u = ($request && $request.url) || ''; } catch (e) {}
+  if (/device=pad|mobi_app=ipad|appkey=5fd5a7d8bfd9b0e6/i.test(u)) return true;
+  var h = ($request && $request.headers) || {};
+  var ua = h['User-Agent'] || h['user-agent'] || '';
+  return /iPad/i.test(ua);
+}
 
 const sel = A.festival;
 try {
@@ -113,14 +126,16 @@ try {
     $done({ body: JSON.stringify(j) });
   } else {
     // 官方皮肤：注入 show 排期；已仓库化的皮肤同时替换 list 中该 id 的 thumb
+    // full 模式皮肤按设备选横竖版（iPad=横图 / 手机=竖图），half 模式单套
     const id = FESTIVALS[sel] || FESTIVALS.midautumn;
     const vend = VENDORED[id];
     if (vend) {
+      const pick = (vend.pad && vend.phone) ? (__isPad() ? vend.pad : vend.phone) : vend;
       const item = j.data.list.find(x => x.id === id);
       if (item) {
-        item.thumb = IMG_BASE + vend.file;
-        item.thumb_name = vend.name;
-        item.thumb_hash = vend.hash;
+        item.thumb = IMG_BASE + pick.file;
+        item.thumb_name = pick.name;
+        item.thumb_hash = pick.hash;
       }
     }
     j.data.show = [{

@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **53 个皮肤** + 屏蔽模式。
 
-**当前版本 v20** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v22** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -24,7 +24,7 @@
 客户端冷启动请求 `x/v2/splash/brand/list`，响应里的 `data.show` 数组是**展示控制通道**：
 客户端按其中条目的 `begin_time`/`end_time` 时间窗口决定是否展示对应 `id` 的品牌皮肤。
 
-- **官方皮肤**：直接向 `show` 注入排期条目（窗口 = 当前时间 ±7 天），客户端按 id 从 `list` 找素材展示
+- **官方皮肤**：直接向 `show` 注入排期条目（窗口 = 当前时间 ±7 天），客户端按 id 从 `list` 找素材展示。**素材图已仓库化**：官方对 full 模式节日皮肤**按设备下发横竖两版图**（iPad 横图 2732×2048 / 手机竖图 1600×2560，`mode` 不分设备），插件复刻该逻辑——按请求里的 `device=pad`/`mobi_app=ipad`/UA 识别设备并注入对应版本；half 模式品牌皮肤两端相同，单套即可。客户端只校验 `thumb_hash` 与素材 MD5 一致，官方换图不再影响展示
 - **历史皮肤**：以 B 站 11 周年（id=13）为载体，把 `list` 中该条目的 `thumb`/`thumb_hash` 替换为目标皮肤素材的 URL/MD5 —— 客户端只验证 hash 与素材内容一致，不校验 id 与素材的对应关系，也不做本地节日日期匹配
 - **屏蔽**：`show` 置空
 
@@ -36,6 +36,7 @@
 2. 历史皮肤直接注入历史 id 无效 —— 客户端只认当前 `list` 中存在的 id
 3. 自定义 URL 失败 —— 客户端校验 `thumb_hash` 与素材 MD5；同时**不能改 `logo_hash`**（改了必然不显示）
 4. GitHub 上第三方数据库的 MD5 有 3 处转录错误（qm25/cj26c/women25），必须实际下载素材重算
+5. 官方对 full 模式节日皮肤**按设备下发横竖两版图**（iPad 横图 / 手机竖图，`mode` 不分设备）——用错设备的图（如给 iPad 注入手机竖图）会在横屏严重裁切；插件现按请求里的 `device=pad`/`mobi_app=ipad`/UA 选对应版本
 
 ## 文件
 
@@ -43,5 +44,5 @@
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
 | `splash-poc.js` | 注入脚本（53 皮肤 id/URL/MD5 素材表，22 官方图已仓库化） |
-| `images/` | 22 张官方皮肤仓库图（`{id}.{ext}`），注入时替换 list 的 thumb |
+| `images/` | 官方皮肤仓库图：full 模式 14 张 × 横竖两套（`{id}_pad.{ext}` iPad 横图 / `{id}_phone.{ext}` 手机竖图），half 模式 8 张单套（`{id}.{ext}`） |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
