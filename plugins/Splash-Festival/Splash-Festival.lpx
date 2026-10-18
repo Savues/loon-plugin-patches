@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v19
+#!name=开屏节日定制(Splash Festival) v20
 #!desc=强制展示指定节日/活动品牌皮肤（22官方+31历史共53个），或屏蔽节日开屏。历史皮肤通过官方URL替换实现。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-10-18 03:47:00
+#!date=2026-10-18 14:45:00
 
 [Argument]
 festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","gaokao24","duanwu24","summer24","qixi24","chongyang24","teacher24","midautumn24","cj25a","cj25b","cj25c","cj25d","cj25e","cj25f","yx25","women25","qm25","labor25","labor25b","duanwu25","gaokao25","summer25","qixi25","teacher25","midautumn25","cj26a","cj26b","cj26c","labor26","gaokao26","duanwu26","midautumn26",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤（22官方+31历史），或选择 block 屏蔽节日开屏

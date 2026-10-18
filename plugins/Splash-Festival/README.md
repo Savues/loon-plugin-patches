@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **53 个皮肤** + 屏蔽模式。
 
-**当前版本 v18** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v20** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -42,5 +42,6 @@
 | 文件 | 说明 |
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
-| `splash-poc.js` | 注入脚本（53 皮肤 id/URL/MD5 素材表） |
+| `splash-poc.js` | 注入脚本（53 皮肤 id/URL/MD5 素材表，22 官方图已仓库化） |
+| `images/` | 22 张官方皮肤仓库图（`{id}.{ext}`），注入时替换 list 的 thumb |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
