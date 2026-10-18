@@ -126,6 +126,19 @@ run('v29 格式 "官方_midautumn" → 38', { festival: '官方_midautumn' }, PH
   return [showIds(j) === '38', `show=[${showIds(j)}]`];
 });
 
+// —— 新增 2023/2024 历史皮肤 ——
+run('2023端午节', { festival: '2023端午节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'duanwu23.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2023暑假过半', { festival: '2023暑假过半' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'summer23.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2023七夕节', { festival: '2023七夕节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'qixi23a.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2023中秋节', { festival: '2023中秋节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'midautumn23.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2023万圣节款式一', { festival: '2023万圣节款式一' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'halloween23a.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2023跨年', { festival: '2023跨年' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'yuandan23.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2024春节-款式一', { festival: '2024春节-款式一' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'cj24a.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2024元宵节', { festival: '2024元宵节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'yx24.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2024妇女节', { festival: '2024妇女节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'women24.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2024清明', { festival: '2024清明' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'qm24.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+run('2024劳动节', { festival: '2024劳动节' }, PHONE, (j) => [endsWith(thumbOf(j, 13), 'labor24.webp'), `id13.thumb=${thumbOf(j,13).split("/").pop()}`]);
+
 // —— 已移除选项的旧配置兼容 ——
 run('旧配置 "2025国际劳动节"（已移除）仍显示劳动节图', { festival: '2025国际劳动节' }, PHONE, (j) => {
   return [endsWith(thumbOf(j, 13), 'labor25.webp'), `id13.thumb=${thumbOf(j, 13).split('/').pop()}`];

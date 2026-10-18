@@ -1,16 +1,16 @@
 # 开屏节日定制 · Splash Festival
 
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
-> 非节日期间也能展示任意节日/活动开屏，共 **52 个皮肤** + 屏蔽模式。
+> 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 屏蔽模式。
 
-**当前版本 v32** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v34** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
 ## 功能
 
 - **22 个官方皮肤**：随时展示，不挑日期 —— 中秋、重阳、元旦、端午、七夕、万圣节、圣诞节 1.0/2.0、妇女节、劳动节、B 站 10/11/12/13 周年、BML 2021、BW 2020/2021、2233 款式一~四、slogan
-- **31 个历史皮肤**（2024–2026）：官方已下架但素材仍在线的开屏 —— 高考、教师节、清明、元宵、暑假、春节系列（2025 打铁花/放御灯/滚灯球/聚天宫/跨火盆/舞龙狮、2026 马年灯笼/马头琴/马球）等
+- **54 个历史皮肤**（2023–2026）：官方已下架但素材仍在线的开屏 —— 2023 端午/暑假/七夕×6/开学季/中秋/万圣/跨年；2024 春节×6/元宵/妇女节/清明/劳动/高考/端午/暑假/七夕/重阳/教师节/中秋；2025 春节×6/元宵/妇女节/清明/劳动/端午/高考/暑假/七夕/教师节/中秋；2026 春节×3/五一/高考/端午/中秋
 - **block 屏蔽模式**：开屏不显示任何品牌皮肤
 
 ## 参数设置
@@ -18,7 +18,7 @@
 | 参数 | 类型 | 选项 | 默认 | 说明 |
 |---|---|---|---|---|
 | `enabled` | switch | — | true | 启用插件 |
-| `festival` | select | 52 个节日 + block | midautumn | 选择展示的节日/活动品牌皮肤 |
+| `festival` | select | 76 个节日 + block | midautumn | 选择展示的节日/活动品牌皮肤 |
 | `splashMode` | select | official / full / half | official | **显示模式**：<br>• `official` = 官方设定（full=铺满 / half=缩放）<br>• `full` = 强制铺满全屏<br>• `half` = 强制缩放完整（不裁切） |
 | `imgMode` | select | auto / landscape / portrait | auto | **图片方向**：<br>• `auto` = 按设备自动（iPad 横图 / 手机竖图）<br>• `landscape` = 强制横图<br>• `portrait` = 强制竖图 |
 
@@ -46,11 +46,17 @@
 | 文件 | 说明 |
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
-| `splash-poc.js` | 注入脚本（52 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
+| `splash-poc.js` | 注入脚本（76 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
 | `images/` | **官方 + 历史皮肤全量仓库化**：官方 full 14 张 × 横竖两套（`{id}_pad`/.`{ext}` iPad 横图 / `{id}_phone`/.`{ext}` 手机竖图），官方 half 8 张单套（`{id}`/.`{ext}`），历史 31 张单套（`{key}`/.`{ext}`） |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
 
-## 踩过的坑（为什么版本号这么高）
+## 素材来源
+
+- **官方 22 皮肤**：`brand/list` 接口实时下发（已仓库化，免疫服务器换图）
+- **历史皮肤（54 个）**：
+  - 2023–2024 上半年（24 个）：来自 **zjkwdy/bili_app_splash** 归档（GitHub Actions 每日下载，停更于 2024-08，文件名即官方 id）
+  - 2024 下半年–2026（30 个）：来自 **Little-Data/bili_splash_images**（每日 Actions 更新中）
+- 全部图片已入库 `images/`，注入时走 GitHub raw URL，免疫官方链接失效
 
 1. `splash/show` 注入无效 —— 客户端不看该端点，只认 `brand/list` 的 `show`
 2. 历史皮肤直接注入历史 id 无效 —— 客户端只认当前 `list` 中存在的 id
