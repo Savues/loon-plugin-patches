@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v28
+#!name=开屏节日定制(Splash Festival) v29
 #!desc=强制展示指定节日/活动品牌皮肤（22官方+31历史共53个），或屏蔽节日开屏。历史皮肤通过官方URL替换实现。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -10,7 +10,7 @@
 #!date=2026-10-18 17:28:00
 
 [Argument]
-festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","gaokao24","duanwu24","summer24","qixi24","chongyang24","teacher24","midautumn24","cj25a","cj25b","cj25c","cj25d","cj25e","cj25f","yx25","women25","qm25","labor25","labor25b","duanwu25","gaokao25","summer25","qixi25","teacher25","midautumn25","cj26a","cj26b","cj26c","labor26","gaokao26","duanwu26","midautumn26",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤（22官方+31历史），或选择 block 屏蔽节日开屏
+festival = select,"官方_midautumn","官方_chongyang","官方_yuandan","官方_duanwu","官方_qixi","官方_halloween","官方_xmas1","官方_xmas2","官方_women","官方_labor","官方_bili10","官方_bili11","官方_bili12","官方_bili13","官方_bml2021","官方_bw2020","官方_bw2021","官方_2233a","官方_2233b","官方_2233c","官方_2233d","官方_slogan","block","gaokao24","duanwu24","summer24","qixi24","chongyang24","teacher24","midautumn24","cj25a","cj25b","cj25c","cj25d","cj25e","cj25f","yx25","women25","qm25","labor25","labor25b","duanwu25","gaokao25","summer25","qixi25","teacher25","midautumn25","cj26a","cj26b","cj26c","labor26","gaokao26","duanwu26","midautumn26",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤（22官方+31历史），或选择 block 屏蔽节日开屏
 enabled = switch,true,tag=启用,desc=开启后冷启动 B 站生效
 splashMode = select,"official","full","half",tag=显示模式,desc=官方=按官方设定（full铺满/half缩放，默认）；full=强制铺满全屏；half=强制缩放完整不裁切
 imgMode = select,"auto","landscape","portrait",tag=图片方向,desc=auto=按设备自动（iPad用横图/手机用竖图，默认）；landscape=强制横图；portrait=强制竖图

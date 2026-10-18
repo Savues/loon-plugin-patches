@@ -5,21 +5,22 @@
  * 机制：客户端验证 logo_hash 与 logo_url 匹配，但不验证 thumb_hash 与 id 对应关系。
  * 用 bili11(id=13) 作载体，替换 thumb + thumb_hash 为目标皮肤的值，不修改 logo_hash。
  */
-const A = $argument || {};
-const MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
-const IMG_MODE = A.imgMode || "auto";         // auto=按设备 / landscape=横图 / portrait=竖图
+var A = $argument || {};
+var MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
+var IMG_MODE = A.imgMode || "auto";         // auto=按设备 / landscape=横图 / portrait=竖图
+var sel = A.festival;
 
 const FESTIVALS = {
-  midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
-  halloween: 31, xmas1: 32, xmas2: 33, women: 35, labor: 41,
-  bili10: 12, bili11: 13, bili12: 44, bili13: 67,
-  bml2021: 45, bw2020: 10, bw2021: 46,
-  "2233a": 14, "2233b": 15, "2233c": 37, "2233d": 36, slogan: 17
+  "官方_midautumn": 38, "官方_chongyang": 145, "官方_yuandan": 34, "官方_duanwu": 43, "官方_qixi": 47,
+  "官方_halloween": 31, "官方_xmas1": 32, "官方_xmas2": 33, "官方_women": 35, "官方_labor": 41,
+  "官方_bili10": 12, "官方_bili11": 13, "官方_bili12": 44, "官方_bili13": 67,
+  "官方_bml2021": 45, "官方_bw2020": 10, "官方_bw2021": 46,
+  "官方_2233a": 14, "官方_2233b": 15, "官方_2233c": 37, "官方_2233d": 36, "官方_slogan": 17
 };
 
 // 历史皮肤（thumb + hash，通过 id=13 载体展示）
 // 31 个历史皮肤全部已入库 images/，注入时替换为仓库 URL（免疫官方链接失效）
-const HISTORICAL_VENDORED = {
+var HISTORICAL_VENDORED = {
   gaokao24:     { file: "gaokao24.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
   duanwu24:     { file: "duanwu24.webp", hash: "1171efbb0ba3ae5b6f25f7ce0a264864", name: "2024端午节" },
   summer24:     { file: "summer24.webp", hash: "6e581b904d51d95b072bd766b02d19eb", name: "2024暑假快乐" },
@@ -96,7 +97,7 @@ function __isPad() {
   return /iPad/i.test(ua);
 }
 
-const sel = A.festival;
+var sel = A.festival;
 try {
   const j = JSON.parse($response.body);
   if (!j.data) j.data = {};
@@ -106,9 +107,9 @@ try {
   if (sel === "block") {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
-  } else if (HISTORICAL_KEYS.includes(sel)) {
+  } else if (Object.keys(HISTORICAL_VENDORED).includes(sel)) {
     // 历史皮肤：用 bili11(id=13) 作载体，替换 thumb + thumb_hash 为仓库图
-    const carrierId = FESTIVALS.bili11;
+    const carrierId = FESTIVALS["官方_bili11"];
     const target = HISTORICAL_VENDORED[sel];
     const item = j.data.list.find(x => x.id === carrierId);
     if (item) {
