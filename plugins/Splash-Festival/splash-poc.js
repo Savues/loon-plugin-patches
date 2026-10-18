@@ -1,15 +1,14 @@
 /*
  * splash/brand/list show 注入 —— 强制展示指定节日/活动品牌皮肤。
- * v16: 22 官方皮肤 + block + 31 历史皮肤（通过 id=13 载体 + thumb 替换）。
+ * v35: 全皮肤统一用 slogan(id=17) 载体，绕过客户端节日日历验证。
  *
- * 机制：客户端验证 logo_hash 与 logo_url 匹配，但不验证 thumb_hash 与 id 对应关系。
- * 用 bili11(id=13) 作载体，替换 thumb + thumb_hash 为目标皮肤的值，不修改 logo_hash。
+ * 机制：客户端启动时检查本地节日日历，有节日 → 节日模式(接受任意 show)；无节日 → 非节日模式(仅接受品牌常驻皮肤)。
+ * 统一用 slogan(id=17) 作载体：注入 show 固定 id=17，替换 list 中 id=17 的 thumb/thumb_hash 为目标皮肤素材。
+ * 客户端看到 show 中有 slogan(品牌常驻) → 认为有效 → 加载 list 中 slogan 的 thumb(已替换为目标皮肤)。
  */
 var A = $argument || {};
 
-// 中文标签 → 英文键名映射（[Argument] select 不支持 label=value 语法，
-// 界面显示中文标签，脚本内部用英文键名查找）
-// 注意：必须定义在文件顶部——下方 var sel 会立即读取它，放在文件中部会触发 TDZ。
+// 中文标签 → 英文键名映射
 const CN_TO_KEY = {
   "中秋节": "midautumn", "重阳节": "chongyang", "元旦": "yuandan",
   "端午节": "duanwu", "七夕节": "qixi", "万圣节": "halloween",
@@ -39,8 +38,6 @@ const CN_TO_KEY = {
   "2025春节-聚天宫": "cj25d", "2025春节-跨火盆": "cj25e", "2025春节-舞龙狮": "cj25f",
   "2025元宵节": "yx25", "2025妇女节": "women25", "2025清明": "qm25",
   "2025劳动节": "labor25",
-  // 「2025国际劳动节」已从选项中移除（与「2025劳动节」同一张图）；
-  // 保留此映射，让老配置里存着该值时仍显示劳动节图，而不是落到兜底。
   "2025国际劳动节": "labor25",
   "2025端午节": "duanwu25",
   "2025高考": "gaokao25", "2025暑假过半": "summer25", "2025七夕节": "qixi25",
@@ -50,12 +47,6 @@ const CN_TO_KEY = {
   "2026五一": "labor26", "2026高考": "gaokao26", "2026端午节": "duanwu26", "2026中秋节": "midautumn26"
 };
 
-// 把 [Argument] 传来的值规范化成内部英文键名。
-// 兼容三种历史格式：
-//   v31+ 中文标签（"2026五一"）      → 查 CN_TO_KEY
-//   v30   "标签=key"（"官方-中秋节=midautumn"）→ 取 = 后半段
-//   v29   "官方_key"（"官方_midautumn"）      → 去前缀
-// 已移除选项的残留值别名（老配置兼容，指向仍在的条目）
 const ALIAS_KEY = { labor25b: "labor25" };
 
 function normalizeFestival(v) {
@@ -67,8 +58,8 @@ function normalizeFestival(v) {
   return ALIAS_KEY[k] || k;
 }
 
-var MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
-var IMG_MODE = A.imgMode || "auto";         // auto=按设备 / landscape=横图 / portrait=竖图
+var MODE_SEL = A.splashMode || "official";
+var IMG_MODE = A.imgMode || "auto";
 var sel = normalizeFestival(A.festival);
 
 const FESTIVALS = {
@@ -79,10 +70,8 @@ const FESTIVALS = {
   "2233a": 14, "2233b": 15, "2233c": 37, "2233d": 36, slogan: 17
 };
 
-// 历史皮肤（thumb + hash，通过 id=13 载体展示）
-// 54 个历史皮肤全部已入库 images/，注入时替换为仓库 URL（免疫官方链接失效）
+// 历史皮肤素材（GitHub 仓库 URL）
 var HISTORICAL_VENDORED = {
-  // —— 2023 年新增（zjkwdy/bili_app_splash 归档）——
   duanwu23:     { file: "duanwu23.webp", hash: "d8ee2240ca2ba43a81046a534a03edfd", name: "2023端午节" },
   summer23:     { file: "summer23.webp", hash: "572aedf353574767079246c2871a2dfe", name: "2023暑假过半" },
   qixi23a:      { file: "qixi23a.webp", hash: "d4d6cdc28ecc64190064639a85c2f12f", name: "2023七夕节" },
@@ -96,7 +85,6 @@ var HISTORICAL_VENDORED = {
   halloween23a: { file: "halloween23a.webp", hash: "fed922d0850cd809e3b23f27e1fc36ee", name: "2023万圣节款式一" },
   halloween23b: { file: "halloween23b.webp", hash: "511f6ecc421298d553c35317d01a3fbd", name: "2023万圣节款式二" },
   yuandan23:    { file: "yuandan23.webp", hash: "a0d4161bc9e3e1b6d40427b021d487a4", name: "2023跨年" },
-  // —— 2024 年新增 ——
   cj24a:        { file: "cj24a.webp", hash: "1e897dcd5932001bdf94d3a4030dbe50", name: "2024春节-款式一" },
   cj24b:        { file: "cj24b.webp", hash: "cc8a187db60fb57361d034a9ccac52ac", name: "2024春节-款式二" },
   cj24c:        { file: "cj24c.webp", hash: "5e6fc01ae5417f3b176077ecb8166b4a", name: "2024春节-款式三" },
@@ -107,7 +95,6 @@ var HISTORICAL_VENDORED = {
   women24:      { file: "women24.webp", hash: "01c5215b60e6f9fd7311b0b215a2e94d", name: "2024妇女节" },
   qm24:         { file: "qm24.webp", hash: "fdba5d96b9d28d8566e86074974a6db1", name: "2024清明" },
   labor24:      { file: "labor24.webp", hash: "0a5d0e69963ac31ec533ada53b430f2a", name: "2024劳动节" },
-  // —— 2024 下半年（已有）——
   gaokao24:     { file: "gaokao24.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
   duanwu24:     { file: "duanwu24.webp", hash: "1171efbb0ba3ae5b6f25f7ce0a264864", name: "2024端午节" },
   summer24:     { file: "summer24.webp", hash: "6e581b904d51d95b072bd766b02d19eb", name: "2024暑假快乐" },
@@ -140,14 +127,10 @@ var HISTORICAL_VENDORED = {
   midautumn26:  { file: "midautumn26.webp", hash: "cf3e9c439759651738948304d24b452a", name: "2026中秋" }
 };
 
-// 历史皮肤键名列表（用于判断是否历史皮肤）
 const HISTORICAL_KEYS = Object.keys(HISTORICAL_VENDORED);
 
-// 官方皮肤仓库图：图存 git 仓库，注入时替换 list 中该 id 的 thumb/thumb_hash，
-// 客户端校验 thumb_hash 与素材 MD5（与历史皮肤同机制），避免官方换图影响展示。
 const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
 const VENDORED = {
-  // —— full 模式：横竖两套，按客户端设备选择（pad=iPad横图 / phone=手机竖图）——
   31: { pad: { file: "31_pad.jpg", hash: "3bdae29ad7994deecf3f52a376ad5a83", name: "万圣节" }, phone: { file: "31_phone.jpg", hash: "ee35af7edb80487d4f2b71f558fc0b4e", name: "万圣节" } },
   32: { pad: { file: "32_pad.jpg", hash: "ada0d9b118f24d66d17732473feeee56", name: "圣诞节1.0" }, phone: { file: "32_phone.jpg", hash: "c996585b6ba34e6dbeeaf83c1480195f", name: "圣诞节1.0" } },
   33: { pad: { file: "33_pad.jpg", hash: "c86dee0c8abc5019751f08700a42fab7", name: "圣诞节2.0" }, phone: { file: "33_phone.jpg", hash: "a2bb72f23cf3fea04759f8dc21bd6e52", name: "圣诞节2.0" } },
@@ -162,7 +145,6 @@ const VENDORED = {
   47: { pad: { file: "47_pad.webp", hash: "d86e16b7ef0c273b0fced28f75fbc9e6", name: "七夕节" }, phone: { file: "47_phone.webp", hash: "da609374db2f4147d6738a5254fd882c", name: "七夕节" } },
   67: { pad: { file: "67_pad.webp", hash: "1e61a591ad1371331c425cf56747f684", name: "Bilibili 13周年" }, phone: { file: "67_phone.webp", hash: "21e2f845a5971eb97c817e00ab22ffdf", name: "Bilibili 13周年" } },
   145: { pad: { file: "145_pad.webp", hash: "b79e163fc7a19b71b8837e40041634b1", name: "2026重阳节" }, phone: { file: "145_phone.webp", hash: "9f62d30b87649778886af61675d90b4e", name: "2026重阳节" } },
-  // —— half 模式：单套（iPad/手机两端相同）——
   10: { file: "10.png", hash: "af0b0486e1ee0b14e87c6d32cabcea5f", name: "BW 2020" },
   12: { file: "12.png", hash: "31f7f9a78cfec6710a62a6c1fc119edd", name: "Bilibili 10周年" },
   13: { file: "13.png", hash: "ad7bb6b7fd542862f093dedad32b7af3", name: "Bilibili 11周年" },
@@ -173,7 +155,6 @@ const VENDORED = {
   37: { file: "37.webp", hash: "f2d92ab314664181eed36e4e3aaea1f3", name: "2233 款式三" }
 };
 
-// 判断客户端是否为 iPad（复刻服务器按设备下发横竖两版图的逻辑）
 function __isPad() {
   var u = '';
   try { u = ($request && $request.url) || ''; } catch (e) {}
@@ -193,56 +174,49 @@ try {
   if (sel === "block") {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
-  } else if (Object.keys(HISTORICAL_VENDORED).includes(sel)) {
-    // 历史皮肤：用 slogan(id=17) 作载体（品牌皮肤常驻有效，避免节日过期被拒）
-    const carrierId = FESTIVALS.slogan;
-    const target = HISTORICAL_VENDORED[sel];
-    const item = j.data.list.find(x => x.id === carrierId);
-    if (item) {
-      item.thumb = IMG_BASE + target.file;
-      item.thumb_name = target.name;
-      item.thumb_hash = target.hash;
-    }
-    j.data.show = [{
-      id: carrierId,
-      begin_time: now - 7 * 86400,
-      end_time: now + 7 * 86400,
-      probability: 1,
-      duration: 1000,
-      mode: "full",
-      show_logo: true,
-      logo_position: "center",
-      new_splash: true,
-      categories: null,
-      initial_push_time: now - 7 * 86400,
-      source: "brand"
-    }];
-    $done({ body: JSON.stringify(j) });
   } else {
-    // 官方皮肤：注入 show 排期；已仓库化的皮肤同时替换 list 中该 id 的 thumb
-    // full 模式皮肤按设备选横竖版（iPad=横图 / 手机=竖图），half 模式单套
-    const id = FESTIVALS[sel] || FESTIVALS.midautumn;
-    const vend = VENDORED[id];
-    if (vend) {
+    // 统一载体：slogan (id=17)
+    const carrierId = 17;
+    const carrierName = "slogan";
+
+    // 确定目标皮肤素材
+    let targetThumb, targetHash, targetName;
+    if (HISTORICAL_KEYS.includes(sel)) {
+      const h = HISTORICAL_VENDORED[sel];
+      targetThumb = IMG_BASE + h.file;
+      targetHash = h.hash;
+      targetName = h.name;
+    } else {
+      const id = FESTIVALS[sel] || FESTIVALS.midautumn;
+      const vend = VENDORED[id];
+      if (!vend) {
+        $done({ body: JSON.stringify(j) });
+        return;
+      }
       let pick = vend;
       if (vend.pad && vend.phone) {
         if (IMG_MODE === "landscape") pick = vend.pad;
         else if (IMG_MODE === "portrait") pick = vend.phone;
-        else pick = __isPad() ? vend.pad : vend.phone;  // auto
+        else pick = __isPad() ? vend.pad : vend.phone;
       }
-      const item = j.data.list.find(x => x.id === id);
-      if (item) {
-        item.thumb = IMG_BASE + pick.file;
-        item.thumb_name = pick.name;
-        item.thumb_hash = pick.hash;
-        // 显示模式：official=不动（官方设定）；full/half=强制覆盖
-        if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
-      }
+      targetThumb = IMG_BASE + pick.file;
+      targetHash = pick.hash;
+      targetName = pick.name;
     }
+
+    // 替换载体 (id=17 slogan) 的素材
+    const item = j.data.list.find(x => x.id === 17);
+    if (item) {
+      item.thumb = targetThumb;
+      item.thumb_name = targetName;
+      item.thumb_hash = targetHash;
+    }
+
+    // 注入 show：固定载体 id=17，时间窗口 ±7天
     j.data.show = [{
-      id: id,
-      begin_time: now - 7 * 86400,
-      end_time: now + 7 * 86400,
+      id: 17,
+      begin_time: Math.floor(Date.now() / 1000) - 7 * 86400,
+      end_time: Math.floor(Date.now() / 1000) + 7 * 86400,
       probability: 1,
       duration: 1000,
       mode: "full",
@@ -250,7 +224,7 @@ try {
       logo_position: "center",
       new_splash: true,
       categories: null,
-      initial_push_time: now - 7 * 86400,
+      initial_push_time: Math.floor(Date.now() / 1000) - 7 * 86400,
       source: "brand"
     }];
     $done({ body: JSON.stringify(j) });
@@ -258,4 +232,4 @@ try {
 } catch (e) {
   $done({});
 }
-// v16: 22 skins + block + 31 historical skins via thumb replacement
+// v35: all skins via slogan carrier (bypass festival calendar)
