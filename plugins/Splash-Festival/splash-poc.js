@@ -1,10 +1,10 @@
 /*
  * splash/brand/list show 注入 —— 强制展示指定节日/活动品牌皮肤。
- * v35: 全皮肤统一用 slogan(id=17) 载体，绕过客户端节日日历验证。
+ * v35: 全皮肤统一用 2233款式一(id=14) 载体，绕过客户端节日日历验证。
  *
- * 机制：客户端启动时检查本地节日日历，有节日 → 节日模式(接受任意 show)；无节日 → 非节日模式(仅接受品牌常驻皮肤)。
- * 统一用 slogan(id=17) 作载体：注入 show 固定 id=17，替换 list 中 id=17 的 thumb/thumb_hash 为目标皮肤素材。
- * 客户端看到 show 中有 slogan(品牌常驻) → 认为有效 → 加载 list 中 slogan 的 thumb(已替换为目标皮肤)。
+ * 机制：客户端启动时检查本地节日日历，有节日 → 节日模式(接受任意 show)；无节日 → 非节日模式(展示默认开屏)。
+ * 非节日模式默认开屏为 2233款式一(id=14)。统一用 id=14 作载体：注入 show 固定 id=14，替换 list 中 id=14 的 thumb/thumb_hash 为目标皮肤素材。
+ * 客户端展示默认开屏时加载 id=14 的 thumb(已替换为目标皮肤)。
  */
 var A = $argument || {};
 
@@ -175,9 +175,9 @@ try {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
   } else {
-    // 统一载体：slogan (id=17)
-    const carrierId = 17;
-    const carrierName = "slogan";
+    // 统一载体：2233款式一 (id=14) —— 客户端非节日模式的默认开屏
+    const carrierId = 14;
+    const carrierName = "2233款式一";
 
     // 确定目标皮肤素材
     let targetThumb, targetHash, targetName;
@@ -204,17 +204,17 @@ try {
       targetName = pick.name;
     }
 
-    // 替换载体 (id=17 slogan) 的素材
-    const item = j.data.list.find(x => x.id === 17);
+    // 替换载体 (id=14 2233款式一) 的素材
+    const item = j.data.list.find(x => x.id === 14);
     if (item) {
       item.thumb = targetThumb;
       item.thumb_name = targetName;
       item.thumb_hash = targetHash;
     }
 
-    // 注入 show：固定载体 id=17，时间窗口 ±7天
+    // 注入 show：固定载体 id=14，时间窗口 ±7天
     j.data.show = [{
-      id: 17,
+      id: 14,
       begin_time: Math.floor(Date.now() / 1000) - 7 * 86400,
       end_time: Math.floor(Date.now() / 1000) + 7 * 86400,
       probability: 1,
@@ -232,4 +232,4 @@ try {
 } catch (e) {
   $done({});
 }
-// v35: all skins via slogan carrier (bypass festival calendar)
+// v35: all skins via 2233款式一(id=14) carrier (bypass festival calendar)
