@@ -46,16 +46,16 @@
 | 文件 | 说明 |
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
-| `splash-poc.js` | 注入脚本（76 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
-| `images/` | **官方 + 历史皮肤全量仓库化**：官方 full 14 张 × 横竖两套（`{id}_pad`/.`{ext}` iPad 横图 / `{id}_phone`/.`{ext}` 手机竖图），官方 half 8 张单套（`{id}`/.`{ext}`），历史 31 张单套（`{key}`/.`{ext}`） |
+| `splash-poc.js` | 注入脚本（76 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版；历史 53 张） |
+| `images/` | **官方 + 历史皮肤全量仓库化**：官方 full 14 张 × 横竖两套（`{id}_pad`/.`{ext}` iPad 横图 / `{id}_phone`/.`{ext}` 手机竖图），官方 half 8 张单套（`{id}`/.`{ext}`），历史 53 张单套（`{key}`/.`{ext}`） |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
 
 ## 素材来源
 
 - **官方 22 皮肤**：`brand/list` 接口实时下发（已仓库化，免疫服务器换图）
 - **历史皮肤（54 个）**：
-  - 2023–2024 上半年（24 个）：来自 **zjkwdy/bili_app_splash** 归档（GitHub Actions 每日下载，停更于 2024-08，文件名即官方 id）
-  - 2024 下半年–2026（30 个）：来自 **Little-Data/bili_splash_images**（每日 Actions 更新中）
+  - 2023–2024 上半年（24 个）：来自 **zjkwdy/bili_app_splash** 归档（GitHub Actions 每日下载，停更于 2024-08，文件名即官方 id）——新增：2023 端午/暑假/七夕×6/开学季/中秋/万圣×2/跨年；2024 春节×6/元宵/妇女节/清明/劳动
+  - 2024 下半年–2026（30 个）：来自 **Little-Data/bili_splash_images**（每日 Actions 更新中）——2024 高考/端午/暑假/七夕/重阳/教师节/中秋；2025 春节×6/元宵/妇女节/清明/劳动/端午/高考/暑假/七夕/教师节/中秋；2026 春节×3/五一/高考/端午/中秋
 - 全部图片已入库 `images/`，注入时走 GitHub raw URL，免疫官方链接失效
 
 1. `splash/show` 注入无效 —— 客户端不看该端点，只认 `brand/list` 的 `show`
