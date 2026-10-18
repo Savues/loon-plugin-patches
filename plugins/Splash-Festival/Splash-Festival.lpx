@@ -1,5 +1,5 @@
-#!name=开屏节日定制(Splash Festival) TEST
-#!desc=【测试版】只注入固定 show（中秋 id=38），无视所有节日逻辑。纯测试拦截是否生效。
+#!name=开屏节日定制(Splash Festival) TEST v2
+#!desc=【测试版】双端点拦截 brand/list + splash/show，注入固定中秋（id=38）。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS
@@ -10,12 +10,13 @@
 #!date=2026-10-19
 
 [Argument]
-enabled = switch,true,tag=启用测试拦截,desc=测试拦截是否生效
+enabled = switch,true,tag=启用测试拦截,desc=测试双端点拦截是否生效
 
 [Rule]
 
 [Script]
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-test.js, argument=[{enabled}], tag=测试拦截, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-test.js, argument=[{enabled}], tag=测试-brand, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/show\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-test.js, argument=[{enabled}], tag=测试-show, enable={enabled}
 
 [Mitm]
 hostname=app.bilibili.com
