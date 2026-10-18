@@ -1,4 +1,4 @@
-#!name=开屏节日定制(Splash Festival) v13
+#!name=开屏节日定制(Splash Festival) v14
 #!desc=强制展示指定节日/活动品牌皮肤（22个官方皮肤），或屏蔽节日开屏。拦截 splash/brand/list 的 show 数组注入排期条目。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
@@ -10,7 +10,7 @@
 #!date=2026-10-18 03:47:00
 
 [Argument]
-festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，或选择 block 屏蔽节日开屏
+festival = select,"midautumn","chongyang","yuandan","duanwu","qixi","halloween","xmas1","xmas2","women","labor","bili10","bili11","bili12","bili13","bml2021","bw2020","bw2021","2233a","2233b","2233c","2233d","slogan","block","replace",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤，block 屏蔽节日开屏，replace 测试官方URL替换
 enabled = switch,true,tag=启用,desc=拦截 splash/brand/list 并注入节日排期
 
 [Rule]
