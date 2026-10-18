@@ -194,8 +194,8 @@ try {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
   } else if (Object.keys(HISTORICAL_VENDORED).includes(sel)) {
-    // 历史皮肤：用 bili11(id=13) 作载体，替换 thumb + thumb_hash 为仓库图
-    const carrierId = FESTIVALS.bili11;
+    // 历史皮肤：用 slogan(id=17) 作载体（品牌皮肤常驻有效，避免节日过期被拒）
+    const carrierId = FESTIVALS.slogan;
     const target = HISTORICAL_VENDORED[sel];
     const item = j.data.list.find(x => x.id === carrierId);
     if (item) {
