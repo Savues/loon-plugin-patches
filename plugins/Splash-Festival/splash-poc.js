@@ -8,7 +8,7 @@
 var A = $argument || {};
 var MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
 var IMG_MODE = A.imgMode || "auto";         // auto=按设备 / landscape=横图 / portrait=竖图
-var sel = A.festival;
+var sel = CN_TO_KEY[A.festival] || A.festival;
 
 const FESTIVALS = {
   midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
@@ -57,6 +57,30 @@ var HISTORICAL_VENDORED = {
 // 历史皮肤键名列表（用于判断是否历史皮肤）
 const HISTORICAL_KEYS = Object.keys(HISTORICAL_VENDORED);
 
+// 中文标签 → 英文键名映射（[Argument] select 不支持 label=value 语法，
+// 界面显示中文标签，脚本内部用英文键名查找）
+const CN_TO_KEY = {
+  "中秋节": "midautumn", "重阳节": "chongyang", "元旦": "yuandan",
+  "端午节": "duanwu", "七夕节": "qixi", "万圣节": "halloween",
+  "圣诞节1.0": "xmas1", "圣诞节2.0": "xmas2", "妇女节": "women",
+  "劳动节": "labor", "10周年": "bili10", "11周年": "bili11",
+  "12周年": "bili12", "13周年": "bili13", "BML 2021": "bml2021",
+  "BW 2020": "bw2020", "BW 2021": "bw2021",
+  "2233款式一": "2233a", "2233款式二": "2233b", "2233款式三": "2233c", "2233款式四": "2233d",
+  "Slogan": "slogan", "屏蔽开屏": "block",
+  "2024高考": "gaokao24", "2024端午节": "duanwu24", "2024暑假快乐": "summer24",
+  "2024七夕节": "qixi24", "2024重阳节": "chongyang24", "2024教师节": "teacher24",
+  "2024中秋节": "midautumn24",
+  "2025春节-打铁花": "cj25a", "2025春节-放御灯": "cj25b", "2025春节-滚灯球": "cj25c",
+  "2025春节-聚天宫": "cj25d", "2025春节-跨火盆": "cj25e", "2025春节-舞龙狮": "cj25f",
+  "2025元宵节": "yx25", "2025妇女节": "women25", "2025清明": "qm25",
+  "2025劳动节": "labor25", "2025国际劳动节": "labor25b", "2025端午节": "duanwu25",
+  "2025高考": "gaokao25", "2025暑假过半": "summer25", "2025七夕节": "qixi25",
+  "2025教师节": "teacher25", "2025中秋节": "midautumn25",
+  "2026春节-马灯笼": "cj26a", "2026春节-马头琴": "cj26b", "2026春节-马球": "cj26c",
+  "2026五一": "labor26", "2026高考": "gaokao26", "2026端午节": "duanwu26", "2026中秋节": "midautumn26"
+};
+
 // 官方皮肤仓库图：图存 git 仓库，注入时替换 list 中该 id 的 thumb/thumb_hash，
 // 客户端校验 thumb_hash 与素材 MD5（与历史皮肤同机制），避免官方换图影响展示。
 const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
@@ -97,7 +121,7 @@ function __isPad() {
   return /iPad/i.test(ua);
 }
 
-var sel = A.festival;
+var sel = CN_TO_KEY[A.festival] || A.festival;
 try {
   const j = JSON.parse($response.body);
   if (!j.data) j.data = {};
