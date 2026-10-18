@@ -62,7 +62,6 @@ const VENDORED = {
   31: { file: "31.jpg", hash: "ee35af7edb80487d4f2b71f558fc0b4e", name: "万圣节" },
   32: { file: "32.jpg", hash: "c996585b6ba34e6dbeeaf83c1480195f", name: "圣诞节1.0" },
   33: { file: "33.jpg", hash: "a2bb72f23cf3fea04759f8dc21bd6e52", name: "圣诞节2.0" },
-  34: { file: "34.webp", hash: "6c324acd0b1f66113e6c28042d4af4a3", name: "元旦" },
   35: { file: "35.jpg", hash: "1602207bedd8a18ee7cfc434c75b1c0c", name: "妇女节" },
   36: { file: "36.webp", hash: "998c00adde03c12eea04352ca0dd2a8f", name: "2233 款式四" },
   37: { file: "37.webp", hash: "f2d92ab314664181eed36e4e3aaea1f3", name: "2233 款式三" },
