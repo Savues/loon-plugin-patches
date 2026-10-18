@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **53 个皮肤** + 屏蔽模式。
 
-**当前版本 v27** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v32** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -58,3 +58,6 @@
 4. GitHub 上第三方数据库的 MD5 有 3 处转录错误（qm25/cj26c/women25），必须实际下载素材重算
 5. 官方对 full 模式节日皮肤**按设备下发横竖两版图**（iPad 横图 / 手机竖图，`mode` 不分设备）——用错设备的图（如给 iPad 注入手机竖图）会在横屏严重裁切；插件现按请求里的 `device=pad`/`mobi_app=ipad`/UA 选对应版本
 6. 官方 id=13（bili11）是轮播位，服务器会换图（当前是「2025暑假过半」），真正的 11 周年品牌图在 20251205 dump 里；v27 已修正为 11 周年品牌图（两端通用，half 模式）
+7. **Loon `[Argument]` 的 `select` 不支持 `label=value` 语法** —— 选项值里出现 `=` 会与 `type=`/`tag=`/`desc=` 元数据字段冲突，导致整个 `[Argument]` 解析失败、UI 选项点不动（v30 的 bug）。中文标签只能作为**纯值**，脚本内用映射表翻译回英文键名
+8. **顶层 `const` 的 TDZ 陷阱** —— `var sel = CN_TO_KEY[...]` 写在文件顶部、`const CN_TO_KEY` 写在文件中部时，会抛 `Cannot access 'CN_TO_KEY' before initialization`；该异常在 `try` 之外，直接让脚本崩溃、Loon 放行原响应，表现为「插件静默失效、所有选项都显示服务器当前默认开屏」（v31 的 bug）。定义必须放在首次引用之前
+9. **回放器不传 HAR 就什么都不跑** —— 原 `replay-splash.mjs` 在没有 HAR 参数时静默 exit 0，制造「测试通过」的假象。现改为内置用例默认运行，且脚本抛异常一律记 FAIL
