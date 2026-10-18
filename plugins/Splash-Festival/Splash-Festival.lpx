@@ -21,7 +21,7 @@ imgMode = select,"auto","landscape","portrait",tag=图片方向,desc=auto=按设
 [Script]
 # 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
 # v16: 22 官方皮肤 + 31 历史皮肤（thumb 替换）+ block 屏蔽模式
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js, argument=[{festival},{splashMode},{imgMode}], tag=节日开屏注入, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js?v=35.2, argument=[{festival},{splashMode},{imgMode}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。
