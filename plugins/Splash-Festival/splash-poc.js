@@ -73,7 +73,7 @@ const VENDORED = {
   // —— half 模式：单套（iPad/手机两端相同）——
   10: { file: "10.png", hash: "af0b0486e1ee0b14e87c6d32cabcea5f", name: "BW 2020" },
   12: { file: "12.png", hash: "31f7f9a78cfec6710a62a6c1fc119edd", name: "Bilibili 10周年" },
-  13: { file: "13.webp", hash: "4f67c1db88ff3587e1dd27bcc66edc0b", name: "2025暑假过半" },
+  13: { file: "13.png", hash: "ad7bb6b7fd542862f093dedad32b7af3", name: "Bilibili 11周年" },
   14: { file: "14.png", hash: "de1877c33dfef853af867b01c4926d7f", name: "2233 款式一" },
   15: { file: "15.png", hash: "c80b0c119116898265e2a146ec1cbd59", name: "2233 款式二" },
   17: { file: "17.png", hash: "543eedd93eced4ee4f31509212d911d8", name: "slogan" },
