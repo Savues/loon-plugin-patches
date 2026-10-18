@@ -6,6 +6,7 @@
  * 用 bili11(id=13) 作载体，替换 thumb + thumb_hash 为目标皮肤的值，不修改 logo_hash。
  */
 const A = $argument || {};
+const MODE_SEL = A.splashMode || "official";  // official=官方设定 / full=强制铺满 / half=强制缩放完整
 
 const FESTIVALS = {
   midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
@@ -136,8 +137,8 @@ try {
         item.thumb = IMG_BASE + pick.file;
         item.thumb_name = pick.name;
         item.thumb_hash = pick.hash;
-        // iPad 强制 half（完整缩放，不裁切）；手机保持服务器原 mode（原逻辑）
-        if (__isPad() && item.mode !== "half") item.mode = "half";
+        // 显示模式：official=不动（官方设定）；full/half=强制覆盖
+        if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
       }
     }
     j.data.show = [{
