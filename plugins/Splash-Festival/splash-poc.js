@@ -16,8 +16,7 @@ const FESTIVALS = {
 };
 
 // 历史皮肤（thumb + hash，通过 id=13 载体展示）
-const HISTORICAL = {
-  gaokao24:     { thumb: "https://i0.hdslb.com/bfs/garb/e47526bc43894fa5e1b71ffc34bf805574229cd3.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
+const HISTORICAL = {  gaokao24:     { thumb: "https://i0.hdslb.com/bfs/garb/e47526bc43894fa5e1b71ffc34bf805574229cd3.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
   duanwu24:     { thumb: "https://i0.hdslb.com/bfs/garb/504019c9290bc8897a42601333537dcbd67239f5.webp", hash: "1171efbb0ba3ae5b6f25f7ce0a264864", name: "2024端午节" },
   summer24:     { thumb: "https://i0.hdslb.com/bfs/garb/71d30f1189584e056dffee5c447c60cb882e131c.webp", hash: "6e581b904d51d95b072bd766b02d19eb", name: "2024暑假快乐" },
   qixi24:       { thumb: "https://i0.hdslb.com/bfs/garb/1c32a6f74da50c7c6087c4a6a8fb7475dc6344e3.webp", hash: "4179e69ecd5473d5f1a565b31511cefb", name: "2024七夕" },
@@ -48,6 +47,13 @@ const HISTORICAL = {
   gaokao26:     { thumb: "https://i0.hdslb.com/bfs/splash/e1734de117c20bf2145f1c5d2d1d49ee65ba4bfe.webp", hash: "2be857ce37c936dd06f29fced8170f72", name: "2026高考" },
   duanwu26:     { thumb: "https://i0.hdslb.com/bfs/splash/53ec7e17b88da0cd717c21bd8708daeafaeea489.webp", hash: "40ab7d24b2c7dec4594d03abe15a4628", name: "2026端午" },
   midautumn26:  { thumb: "https://i0.hdslb.com/bfs/splash/adbe8e54e5e3d1ab45f7bf3d1777f7522f9ea748.webp", hash: "cf3e9c439759651738948304d24b452a", name: "2026中秋" }
+};
+
+// 官方皮肤仓库图：图存 git 仓库，注入时替换 list 中该 id 的 thumb/thumb_hash，
+// 客户端校验 thumb_hash 与素材 MD5（与历史皮肤同机制），避免官方换图影响展示。
+const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
+const VENDORED = {
+  145: { file: "145.webp", hash: "9f62d30b87649778886af61675d90b4e", name: "2026重阳节" }
 };
 
 const sel = A.festival;
@@ -86,8 +92,17 @@ try {
     }];
     $done({ body: JSON.stringify(j) });
   } else {
-    // 当前皮肤：只注入 show 排期
+    // 官方皮肤：注入 show 排期；已仓库化的皮肤同时替换 list 中该 id 的 thumb
     const id = FESTIVALS[sel] || FESTIVALS.midautumn;
+    const vend = VENDORED[id];
+    if (vend) {
+      const item = j.data.list.find(x => x.id === id);
+      if (item) {
+        item.thumb = IMG_BASE + vend.file;
+        item.thumb_name = vend.name;
+        item.thumb_hash = vend.hash;
+      }
+    }
     j.data.show = [{
       id: id,
       begin_time: now - 7 * 86400,
