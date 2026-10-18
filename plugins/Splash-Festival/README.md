@@ -47,7 +47,7 @@
 |---|---|
 | `Splash-Festival.lpx` | 插件清单 |
 | `splash-poc.js` | 注入脚本（53 皮肤素材表；官方图已仓库化，full 皮肤按设备选横竖版） |
-| `images/` | 官方皮肤仓库图：full 模式 14 张 × 横竖两套（`{id}_pad.{ext}` iPad 横图 / `{id}_phone.{ext}` 手机竖图），half 模式 8 张单套（`{id}.{ext}`） |
+| `images/` | **官方 + 历史皮肤全量仓库化**：官方 full 14 张 × 横竖两套（`{id}_pad`/.`{ext}` iPad 横图 / `{id}_phone`/.`{ext}` 手机竖图），官方 half 8 张单套（`{id}`/.`{ext}`），历史 31 张单套（`{key}`/.`{ext}`） |
 | `replay-splash.mjs` | 离线回放验证器（node 运行，喂 HAR 验证注入） |
 
 ## 踩过的坑（为什么版本号这么高）
