@@ -1,0 +1,55 @@
+name: Sync Splash-Festival Images
+
+on:
+  schedule:
+    # 每日 03:13（UTC），与 Airborne (30) / BlockAds (17) 错开
+    - cron: '13 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-splash-images
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 拉取素材源
+        run: |
+          rm -rf /tmp/bili_splash_images
+          git clone --depth 1 -q https://github.com/Little-Data/bili_splash_images.git /tmp/bili_splash_images
+
+      - name: 检测并入库新素材
+        run: |
+          python3 patches/sync_splash_images.py \
+            --source /tmp/bili_splash_images \
+            --plugin plugins/Splash-Festival
+
+      - name: 跑回放器（含一致性校验）
+        run: node plugins/Splash-Festival/replay-splash.mjs
+
+      - name: 开 PR（仅当有改动时）
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/splash-images
+          title: 'chore: 入库新开屏素材'
+          body: |
+            CI 检测到新的开屏素材并自动入库。
+
+            ⚠️ **合并前请目视检查** PR 的 **Files changed** 标签页，确认图片不含手机 UI
+            （状态栏 / 导航条 / logo 水印 / 圆角）。
+          labels: splash-candidate
+          delete-branch: true
