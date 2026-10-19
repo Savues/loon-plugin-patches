@@ -58,11 +58,42 @@ const img = A.vipImg || T.image;
 // 实验（label 整段复刻、avatar_subscript、清认证、abserver 实验注入）已全部
 // 证伪并移除。
 const BADGE = on(A.vipAvatarBadge);
-// 角标图标（ICON_LAYER 的 local 资源 id，实测：1=大会员"大"字、3=认证+会员闪电；
-// 2/4/5/6 为未知枚举的测试值——小会员"小"字图标极可能是其中之一，
-// 但小会员只在每年愚人节上线、平时 HAR 里抓不到，留给真机自测）
-const BADGE_ICONS = { "大会员": 1, "认证闪电": 3, "测试·local2": 2, "测试·local4": 4, "测试·local5": 5, "测试·local6": 6 };
-const BADGE_ICON = BADGE_ICONS[A.vipBadgeIcon] || 1;
+// 角标图标（ICON_LAYER 的 local 资源 id）——2026-10-20 用户真机实测确认：
+//   1=大会员"大"字  2=小会员"小"字  3=认证+会员闪电  4=企业/机构认证  5=数字藏品标识
+//   6 仍未验证（下一个愚人节对照真实小会员的空间页响应可继续排查）
+const BADGE_ICONS = { "大会员": 1, "小会员": 2, "认证闪电": 3, "企业认证": 4, "数字藏品": 5, "测试·local6": 6 };
+// 动态数字藏品标识（HAR 412：蒔花再開 = 数字藏品头像 + 年大会员，7 层）：
+// GIF 动画层（res_type:4）+ 自己的白底圈，与会员图标并存。层参数逐字段抄自实测。
+const BADGE_BG = (x, y) => ({ visible: true,
+  general_spec: { pos_spec: { coordinate_pos: 1, axis_x: x, axis_y: y },
+                  size_spec: { width: 0.275, height: 0.275 }, render_spec: { opacity: 1 } },
+  layer_config: { tags: { ICON_LAYER: {} } },
+  resource: { res_type: 5,
+    res_native_draw: { draw_src: { src_type: 3,
+      draw: { draw_type: 1, fill_mode: 1,
+        color_config: { is_dark_mode_aware: true,
+          day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } });
+const BADGE_LOCAL = (id) => ({ visible: true,
+  general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 1, axis_y: 1 },
+                  size_spec: { width: 0.25, height: 0.25 }, render_spec: { opacity: 1 } },
+  layer_config: { tags: { ICON_LAYER: {} } },
+  resource: { res_type: 3,
+    res_image: { image_src: { src_type: 2, local: id } } } });
+const NFT_GIF = { visible: true,
+  general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 0.87, axis_y: 1.1366666666666665 },
+                  size_spec: { width: 0.225, height: 0.225 }, render_spec: { opacity: 1 } },
+  layer_config: { tags: { ICON_LAYER: {} } },
+  resource: { res_type: 4,
+    res_animation: { webp_src: { src_type: 1, placeholder: 5,
+      remote: { url: "https://i0.hdslb.com/bfs/activity-plat/static/20220506/334553dd7c506a92b88eaf4d59ac8b4d/j8AeXAkEul.gif", bfs_style: "widget-layer-avatar" } } } } };
+const NFT_BG = BADGE_BG(0.845, 1.1116666666666666);
+
+// 按选择生成要追加的角标图层数组
+function badgeLayersFor(choice) {
+  if (choice === "数字藏品·动态") { return [NFT_BG, NFT_GIF]; }
+  if (choice === "大会员+藏品动态") { return [ICON_LAYERS[0], BADGE_LOCAL(1), NFT_BG, NFT_GIF]; }
+  return [ICON_LAYERS[0], BADGE_LOCAL(BADGE_ICONS[choice] || 1)];
+}
 
 // 牌子配色覆盖（v7.29 发现的机制，v7.34 清理时曾随角标实验一起移除）：
 // 客户端牌子渲染按 label.label_theme 查本地主题表（BFCVipThemeConfig），
@@ -107,15 +138,7 @@ function addBadgeLayers(av) {
   const ls = av.fallback_layers.layers;
   const has = ls.some((l) => l && l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags);
   if (has) { return false; }
-  ls.push(ICON_LAYERS[0], {
-    visible: true,
-    general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 1, axis_y: 1 },
-                    size_spec: { width: 0.25, height: 0.25 },
-                    render_spec: { opacity: 1 } },
-    layer_config: { tags: { ICON_LAYER: {} } },
-    resource: { res_type: 3,
-      res_image: { image_src: { src_type: 2, local: BADGE_ICON } } }
-  });
+  ls.push.apply(ls, badgeLayersFor(A.vipBadgeIcon));
   return true;
 }
 

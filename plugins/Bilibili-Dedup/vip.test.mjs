@@ -408,12 +408,30 @@ t("组合·头像角标与认证彩蛋同时开 → 图层注入且认证文字�
 });
 
 // ---------- v7.35：角标样式测试值 + 牌子配色覆盖 ----------
-t("角标样式·local 2/4/5/6 测试值全部可注入", () => {
-  for (const [opt, id] of [["测试·local2", 2], ["测试·local4", 4], ["测试·local5", 5], ["测试·local6", 6]]) {
+t("角标样式·小会员/企业认证/数字藏品/local6 全部可注入", () => {
+  for (const [opt, id] of [["小会员", 2], ["企业认证", 4], ["数字藏品", 5], ["测试·local6", 6]]) {
     const f = mineNonMember(); f.data.avatar = avatarObj();
     const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: opt } });
     assert.strictEqual(json(r).data.avatar.fallback_layers.layers[3].resource.res_image.image_src.local, id, opt);
   }
+});
+t("角标样式·数字藏品·动态 → 白底圈+GIF 动画层（res_type:4）", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: "数字藏品·动态" } });
+  const ls = json(r).data.avatar.fallback_layers.layers;
+  assert.strictEqual(ls.length, 4, "2 原生 + 2 注入");
+  assert.strictEqual(ls[3].resource.res_type, 4, "GIF 动画层");
+  assert.ok(ls[3].resource.res_animation.webp_src.remote.url.includes("j8AeXAkEul.gif"));
+  assert.strictEqual(ls[2].resource.res_type, 5, "白底圈");
+});
+t("角标样式·大会员+藏品动态 → 双标识并存（蒔花再開同款 4 个注入层）", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: "大会员+藏品动态" } });
+  const ls = json(r).data.avatar.fallback_layers.layers;
+  assert.strictEqual(ls.length, 6, "2 原生 + 4 注入");
+  assert.strictEqual(ls[3].resource.res_image.image_src.local, 1, "大会员大字");
+  assert.strictEqual(ls[5].resource.res_type, 4, "GIF 动画层");
+  assert.strictEqual(iconTags(ls), 4, "4 个 ICON_LAYER");
 });
 t("角标样式·非法值回落 local:1", () => {
   const f = mineNonMember(); f.data.avatar = avatarObj();
