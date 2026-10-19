@@ -59,8 +59,18 @@ const img = A.vipImg || T.image;
 const LABEL_THEME = on(A.vipAvatarBadge) ? "annual_vip" : KEY;
 // 开关本体：开启后真实会员的响应也改 label_theme（只此一处，其余真实字段不动）
 const BADGE = on(A.vipAvatarBadge);
+// 真年度大会员的 label 实测值（HAR 逐字段抄录）。静态分析已确认 vip 数据路径
+// （isValidVip/vipTheme/themeInfoName/主题表）与真会员完全等价后角标仍不出现，
+// 剩余唯一差异是这三个字段：image/label_id/label_goto。开启后整段替换做等价性测试。
+const REAL_ANNUAL_LABEL = {
+  path: "", text: "年度大会员", label_theme: "annual_vip",
+  text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
+  border_color: "", image: "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
+  label_id: -22, label_goto: "https://big.bilibili.com/mobile/index?navhide=1&from_spmid=vipicon"
+};
 
 function label(v) {
+  if (BADGE) { return Object.assign({}, (v && v.label) || {}, REAL_ANNUAL_LABEL); }
   return Object.assign({}, (v && v.label) || {}, {
     path: "", text: text, label_theme: LABEL_THEME,
     text_color: fg, bg_style: 1, bg_color: bg, border_color: "", image: img
@@ -104,9 +114,9 @@ function patchSpace(d) {
   // 顶栏：只在这一步写 d.vip。专栏页响应里没有顶栏，造一个 d.vip 没有意义。
   if (card) {
     if (isReal) {
-      // 真实会员 + 角标开关：只换两处 label 的 label_theme，
-      // 到期时间/等级等真实字段全部保留，牌子文字配色也不动。
-      const lt = (cv) => Object.assign({}, (cv && cv.label) || {}, { label_theme: LABEL_THEME });
+      // 真实会员 + 角标开关：label 整段换成真年度会员字段（等价性测试），
+      // 到期时间/等级等真实字段全部保留。
+      const lt = (cv) => label(cv);
       card.vip = Object.assign({}, card.vip || {}, { label: lt(card.vip) });
       if (d.vip) { d.vip = Object.assign({}, d.vip, { label: lt(d.vip) }); }
       changed = true;
@@ -118,7 +128,8 @@ function patchSpace(d) {
       });
       // 空间页原生 label **没有** use_img_label 字段（只有「我的」页有），
       // 不显式补 true 的话 App 可能仍按文字渲染，牌子图不生效。
-      vip.label.use_img_label = true;
+      // 但开角标时按真年度会员响应复刻（其空间页无此字段），不加。
+      if (!BADGE) { vip.label.use_img_label = true; }
       d.vip = vip;
       // 空间页的到期提示开关，与会员样本一致
       if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
@@ -168,8 +179,8 @@ try {
       if (BADGE) { clearCert(d); }
       changed = true;
     } else if (d.vip && d.vip.status == 1 && BADGE) {
-      // 真实会员（本账号本身就是小会员）+ 角标开关 → 只换 label_theme
-      d.vip.label = Object.assign({}, d.vip.label, { label_theme: LABEL_THEME });
+      // 真实会员 + 角标开关 → label 整段换成真年度会员字段（等价性测试）
+      d.vip.label = label(d.vip);
       clearCert(d);
       changed = true;
     }
