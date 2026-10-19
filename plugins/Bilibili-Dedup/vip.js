@@ -52,10 +52,15 @@ const bg = A.vipBg || T.bg;
 const fg = A.vipFg || T.fg;
 const text = A.vipText || T.text;
 const img = A.vipImg || T.image;
+// 头像角标（头像下方"大"字）：客户端按 label.label_theme 在本地主题表里查
+// subscript.iconUrl 渲染。fools_day_hundred_annual_vip 不在表里 → 小会员无角标
+// （HAR 实证：真小会员同样无角标）。开启后改用 annual_vip（真实年度大会员的
+// key，主题表里必有）让角标出现。牌子文字/配色仍由上面的 label 字段决定，不受影响。
+const LABEL_THEME = on(A.vipAvatarBadge) ? "annual_vip" : KEY;
 
 function label(v) {
   return Object.assign({}, (v && v.label) || {}, {
-    path: "", text: text, label_theme: KEY,
+    path: "", text: text, label_theme: LABEL_THEME,
     text_color: fg, bg_style: 1, bg_color: bg, border_color: "", image: img
   });
 }
