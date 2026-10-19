@@ -141,13 +141,16 @@ const ICON_LAYERS = [
             day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } }
 ];
 
-// 给 avatar 新协议对象追加角标图层。真会员响应已带 ICON_LAYER → 不动（返回 false）。
-function addBadgeLayers(av) {
+// 给 avatar 新协议对象**写入**角标图层（v7.39：由「追加」升级为「替换」）。
+// 全员/点名彩蛋下其他用户（含真会员、藏品用户）已有自己的角标图层——
+// 追加会被 has 检查跳过、原样显示别人的角标，故先剥掉已有 ICON_LAYER 再
+// 写入选定样式，实现「全员替换」。无角标图层时行为与追加一致。
+function setBadgeLayers(av) {
   if (!av || !av.fallback_layers || !Array.isArray(av.fallback_layers.layers)) { return false; }
   const ls = av.fallback_layers.layers;
-  const has = ls.some((l) => l && l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags);
-  if (has) { return false; }
-  ls.push.apply(ls, badgeLayersFor(A.vipBadgeIcon));
+  const keep = ls.filter((l) => !(l && l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags));
+  keep.push.apply(keep, badgeLayersFor(A.vipBadgeIcon));
+  av.fallback_layers.layers = keep;
   return true;
 }
 
@@ -173,9 +176,16 @@ function patchSpace(d) {
   const v = d.vip;
   // 别人的主页（未点名）/ 响应异常 → 原样透传
   if (!(ALL || who === ME || who === TARGET)) { return false; }
-  // 已是真实会员：不碰（角标图层服务端已下发，牌子是真实数据）
+  // 已是真实会员：不碰 vip/牌子（真实数据）；唯一例外——开了头像角标时
+  // 替换其角标图层（全员/点名彩蛋要求「替换」别人的角标，追加会被跳过）。
   const isReal = v && v.vipStatus === 1;
-  if (isReal) { return false; }
+  if (isReal && !BADGE) { return false; }
+  if (isReal && BADGE) {
+    let c2 = false;
+    if (card && card.avatar) { c2 = setBadgeLayers(card.avatar) || c2; }
+    if (d.avatar) { c2 = setBadgeLayers(d.avatar) || c2; }
+    return c2;
+  }
 
   let changed = false;
   // 顶栏：只在这一步写 d.vip。专栏页响应里没有顶栏，造一个 d.vip 没有意义。
@@ -195,10 +205,10 @@ function patchSpace(d) {
     card.vip = Object.assign({}, card.vip || {}, vip);
     changed = true;
 
-    // 开了头像角标 → 追加 ICON_LAYER 图层（新视图渲染，与 vip/认证字段无关）
+    // 开了头像角标 → 写入选定的 ICON_LAYER 图层（替换语义，与 vip/认证字段无关）
     if (BADGE) {
-      addBadgeLayers(card.avatar);          // 空间页头像新协议：card.avatar
-      if (d.avatar) { addBadgeLayers(d.avatar); }
+      setBadgeLayers(card.avatar);          // 空间页头像新协议：card.avatar
+      if (d.avatar) { setBadgeLayers(d.avatar); }
     }
 
     // 彩蛋：伪装认证标识（v7.38 合并为单选）。真实样本逐字段对照：
@@ -243,7 +253,7 @@ try {
       d.vip = mine(d.vip);
       d.vip_type = 2;
       if (BADGE) {
-        addBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
+        setBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
       }
       changed = true;
     }

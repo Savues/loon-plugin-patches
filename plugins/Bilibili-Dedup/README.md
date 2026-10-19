@@ -180,7 +180,7 @@ Push-notification permission popup.
 | `localVIP` | switch | 开 | 账号页总开关 |
 | `localVIPSpace` | switch | 开 | 个人资料页开关 |
 | `myMid` | input | 空 | 我的 UID；**留空则空间页伪装不生效**，他人主页始终不受影响 |
-| `vipAllUsers` | switch | 关 | 彩蛋：开启后**所有人的主页**都按上面的设置显示（含真会员） |
+| `vipAllUsers` | switch | 关 | 彩蛋：开启后**所有人的主页**都按上面的设置显示。真会员 vip/牌子不碰；开「头像角标」时其角标图层替换成选定样式 |
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
@@ -209,6 +209,11 @@ v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celest
 ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
 `ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
 公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
+
+**v7.39 全员角标替换**：全员/点名下其他用户的角标由「追加」改为**替换**——
+真会员（大字）/藏品用户（GIF）原有的 ICON_LAYER 先剥掉再写入你选定的样式
+（此前追加逻辑被「已有角标跳过」挡住，别人的角标原样显示）。真会员仅换角标图层，
+vip/牌子/认证零改动。
 
 **v7.38 认证彩蛋合并**：黄V（原 vipFakeVerify 开关）与蓝V（新增，HAR 414 真实样本
 逐字段对照：type:1 role:3 splice 前缀「bilibili机构认证-企业：」）合并为单选

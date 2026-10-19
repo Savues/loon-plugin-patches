@@ -348,12 +348,20 @@ t("角标·我的页真会员 → 整体透传（不注入图层/不改 vip）",
   f.data.avatar = avatarObj();
   untouched(run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } }));
 });
-t("角标·空间页真会员（vipStatus=1）+ 开关开 → 整体透传", () => {
+t("角标·空间页真会员（自己）+ 开关开 → 只替换角标图层，vip/牌子不动", () => {
   const f = spaceNonMember();
   f.data.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
   f.data.card.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
   f.data.card.avatar = avatarObj();
-  untouched(run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } }));
+  f.data.card.avatar.fallback_layers.layers.push(
+    { visible: true, general_spec: {}, layer_config: { tags: { ICON_LAYER: {} } }, resource: {} },
+  );
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true, vipBadgeIcon: "小会员" } });
+  const j = json(r).data;
+  assert.strictEqual(j.card.vip.label.text, "真会员", "vip/牌子零改动");
+  const ls = j.card.avatar.fallback_layers.layers;
+  assert.strictEqual(iconTags(ls), 2, "原角标层被剥掉后注入选定样式");
+  assert.strictEqual(ls[ls.length - 1].resource.res_image.image_src.local, 2, "换成小会员小字");
 });
 
 t("角标·我的页响应无 avatar 字段 → 不炸、vip 伪装照常", () => {
@@ -529,12 +537,40 @@ t("审查·点名 UID → 生效；非点名 → 不生效", () => {
   const f2 = spaceNonMember(); f2.data.card.mid = "777"; f2.data.card.avatar = avatarObj();
   untouched(run({ body: f2, url: URL_SPACE, arg: { vipTargetMid: "888", vipAvatarBadge: true } }));
 });
-t("审查·全员遇到真会员 → 透传（角标/认证都不写）", () => {
+t("审查·全员+角标 → 真会员的角标被替换成选定样式（vip/认证不写）", () => {
   const f = spaceNonMember(); f.data.card.mid = "999";
   f.data.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
   f.data.card.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
   f.data.card.avatar = avatarObj();
-  untouched(run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipAvatarBadge: true, vipVerify: "黄V·UP主认证" } }));
+  f.data.card.avatar.fallback_layers.layers.push(
+    { visible: true, general_spec: {}, layer_config: { tags: { ICON_LAYER: {} } }, resource: {} },
+  );
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipAvatarBadge: true, vipBadgeIcon: "数字藏品", vipVerify: "黄V·UP主认证" } });
+  const j = json(r).data;
+  assert.strictEqual(j.card.vip.label.text, "真会员", "真会员 vip 零改动");
+  assert.notStrictEqual(j.card.official_verify.type, 0, "认证不写真会员");
+  const ls = j.card.avatar.fallback_layers.layers;
+  assert.strictEqual(iconTags(ls), 2, "旧角标剥掉");
+  assert.strictEqual(ls[ls.length - 1].resource.res_image.image_src.local, 5, "换成数字藏品样式");
+});
+t("审查·全员+角标关 → 真会员整体透传", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999";
+  f.data.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.avatar = avatarObj();
+  untouched(run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true } }));
+});
+t("审查·全员+角标 → 藏品用户的 GIF 层也被替换", () => {
+  const f = spaceNonMember(); f.data.card.mid = "666";
+  f.data.card.avatar = avatarObj();
+  f.data.card.avatar.fallback_layers.layers.push(
+    { visible: true, general_spec: {}, layer_config: { tags: { ICON_LAYER: {} } },
+      resource: { res_type: 4, res_animation: {} } },   // 模拟藏品 GIF 层
+  );
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipAvatarBadge: true } });
+  const ls = json(r).data.card.avatar.fallback_layers.layers;
+  assert.strictEqual(iconTags(ls), 2, "旧 GIF 角标层剥掉后注入选定样式");
+  assert.ok(!ls.some((l) => l.resource && l.resource.res_type === 4), "旧 GIF 层不存在");
 });
 t("审查·别人主页的专栏作者也被全员伪装（mine schema）", () => {
   const f = spaceNonMember(); f.data.card.mid = "999";
