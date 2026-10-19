@@ -471,4 +471,40 @@ t("牌子配色·与角标独立：仅开粉色牌子不注入角标图层", () 
   assert.strictEqual(j.data.vip.label.label_theme, "annual_vip");
   assert.strictEqual(j.data.avatar.fallback_layers.layers.length, 2, "角标开关没开则不注入图层");
 });
+
+// ---------- v7.38：认证彩蛋单选（黄/蓝） ----------
+t("认证·蓝V·企业认证：type1/role3/默认标题官方账号", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "蓝V·企业认证" } });
+  const ov = json(r).data.card.official_verify;
+  assert.strictEqual(ov.type, 1);
+  assert.strictEqual(ov.role, 3);
+  assert.strictEqual(ov.title, "官方账号");
+  assert.strictEqual(ov.desc, "官方账号");
+  assert.strictEqual(ov.splice_title, "", "标题未自定义时不写 splice 前缀");
+});
+t("认证·蓝V+自定义标题：splice 前缀「bilibili机构认证-企业：」", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "蓝V·企业认证", vipVerifyTitle: "迈从官方账号" } });
+  const ov = json(r).data.card.official_verify;
+  assert.strictEqual(ov.splice_title, "bilibili机构认证-企业：迈从官方账号");
+});
+t("认证·黄V显式选择：type0/role7", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "黄V·UP主认证" } });
+  const ov = json(r).data.card.official_verify;
+  assert.strictEqual(ov.type, 0);
+  assert.strictEqual(ov.role, 7);
+  assert.strictEqual(ov.title, "认证用户");
+});
+t("认证·旧版 vipFakeVerify 开关值兼容 → 视作黄V", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipFakeVerify: true } });
+  assert.strictEqual(json(r).data.card.official_verify.type, 0);
+});
+t("认证·选「关」且旧开关关 → 不改 official_verify", () => {
+  const f = spaceNonMember(); f.data.card.official_verify = { type: -1, role: 0 };
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "关" } });
+  assert.strictEqual(json(r).data.card.official_verify.type, -1);
+});
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

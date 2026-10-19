@@ -201,15 +201,21 @@ function patchSpace(d) {
       if (d.avatar) { addBadgeLayers(d.avatar); }
     }
 
-    // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
-    // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
-    // type/title/splice_title 仍有效：认证文字会显示，只是头像角标不会出现。
-    // v7.34 起与头像角标解除互斥（角标走图层，与 official_verify 无关）。
-    if (on(A.vipFakeVerify)) {
-      const t = A.vipVerifyTitle || "认证用户";
+    // 彩蛋：伪装认证标识（v7.38 合并为单选）。真实样本逐字段对照：
+    //   黄 V（个人）：type:0 role:7，splice_title 前缀「bilibili UP主认证：」
+    //   蓝 V（企业）：type:1 role:3，splice_title 前缀「bilibili机构认证-企业：」
+    // 注意**不写 icon**——抓包实证 App 从不请求 official_verify.icon，头像角标
+    // 走图层（local:3=黄V合成闪电 / local:4=企业蓝标，配合「头像角标样式」）。
+    // 兼容：旧版独立开关 vipFakeVerify 开启且新参数未选时按黄 V 处理。
+    const VTYPE = (on(A.vipFakeVerify) && !A.vipVerify) ? "黄V·UP主认证" : A.vipVerify;
+    if (VTYPE === "黄V·UP主认证" || VTYPE === "蓝V·企业认证") {
+      const t = A.vipVerifyTitle || (VTYPE === "蓝V·企业认证" ? "官方账号" : "认证用户");
+      const org = VTYPE === "蓝V·企业认证";
       card.official_verify = Object.assign({}, card.official_verify || {}, {
-        type: 0, role: 7, title: t, desc: t,
-        splice_title: A.vipVerifyTitle ? "bilibili UP主认证：" + t : ""
+        type: org ? 1 : 0, role: org ? 3 : 7, title: t, desc: t,
+        splice_title: A.vipVerifyTitle
+          ? (org ? "bilibili机构认证-企业：" : "bilibili UP主认证：") + t
+          : ""
       });
     }
   }

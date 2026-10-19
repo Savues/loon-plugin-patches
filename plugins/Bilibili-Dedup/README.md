@@ -184,8 +184,8 @@ Push-notification permission popup.
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
-| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。与头像角标互相独立，可同时开启 |
-| `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
+| `vipVerify` | select | 关 | 彩蛋·认证标识：黄V·UP主认证（type0/role7）/ 蓝V·企业认证（type1/role3，HAR 414 真实样本对照）。旧版 vipFakeVerify 开关值兼容（视作黄V） |
+| `vipVerifyTitle` | input | 空 | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
 | `vipBadgeIcon` | select | 大会员 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
 | `vipLabelAnnual` | switch | 关 | 牌子配色覆盖：强制 label_theme=annual_vip，客户端按主题表渲染配色 → 任意主题（含绿鲤鱼小会员）的牌子变粉色年度款，覆盖 vipBg/vipFg |
@@ -209,6 +209,10 @@ v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celest
 ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
 `ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
 公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
+
+**v7.38 认证彩蛋合并**：黄V（原 vipFakeVerify 开关）与蓝V（新增，HAR 414 真实样本
+逐字段对照：type:1 role:3 splice 前缀「bilibili机构认证-企业：」）合并为单选
+`vipVerify`，标题输入共用，旧开关值兼容；蓝V头像角标配「头像角标样式-企业认证」（local:4）。
 
 **v7.37 坐标修正 + 紫色变体**：藏品用户样本（HAR 412/413）全是 1.65/1.8 大容器
 （挂件 PENDENT_LAYER 或大头像层），其角标坐标不能照抄到普通 1.35/1.5 容器（v7.36
