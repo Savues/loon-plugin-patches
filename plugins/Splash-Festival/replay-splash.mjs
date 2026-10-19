@@ -406,7 +406,7 @@ run('随机 · 结果必落在官方池 22 个之内',
     return [OFFICIAL_PHONE.includes(t), `id14.thumb=${t}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
-run('随机·全部 · 结果必落在 75 个皮肤素材之内',
+run('随机·全部 · 结果必落在 98 个皮肤素材之内',
   { festival: '随机·全部' }, PHONE, (j) => {
     const t = thumbOf(j, 14).split('/').pop();
     return [SCRIPT_FILES.includes(t), `id14.thumb=${t}`];
@@ -516,11 +516,52 @@ run('随机·半透明 · 结果必落在 8 张透明图之内',
     return [TRANSPARENT_FILES.includes(t), `id14.thumb=${t}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
-run('轮换·全部 · 结果必落在 75 个皮肤素材之内',
+run('轮换·全部 · 结果必落在 98 个皮肤素材之内',
   { festival: '轮换·全部' }, PHONE, (j) => {
     const t = thumbOf(j, 14).split('/').pop();
     return [SCRIPT_FILES.includes(t), `id14.thumb=${t}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+// —— v41：新素材入库（来自 AIboy996/bilibili_poster）——
+run('2022春节-除夕', { festival: '2022春节-除夕' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'cj22a.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2022春节-初七', { festival: '2022春节-初七' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'cj22h.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2022劳动节', { festival: '2022劳动节' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'labor22.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2022端午节', { festival: '2022端午节' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'duanwu22.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2023春节-除夕', { festival: '2023春节-除夕' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'cj23a.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2023春节-初七', { festival: '2023春节-初七' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'cj23h.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('生日快乐', { festival: '生日快乐' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'bday.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('注册五周年', { festival: '注册五周年' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'reg5.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2024新年', { festival: '2024新年' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'newyear24.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2233-初', { festival: '2233-初' }, PHONE, (j) => [endsWith(thumbOf(j, 14), '2233e.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('2233-小电视', { festival: '2233-小电视' }, PHONE, (j) => [endsWith(thumbOf(j, 14), '2233f.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+run('十二周年', { festival: '十二周年' }, PHONE, (j) => [endsWith(thumbOf(j, 14), 'bili12b.webp'), `id14.thumb=${thumbOf(j,14).split("/").pop()}`]);
+
+// —— v41：.lpx 选项 ↔ JS 键 一致性 ——
+// 入库时踩过：加了 .lpx 选项却忘了在 CN_TO_KEY 里加映射 → 新选项全部落到兜底
+// （显示中秋），而老用例只测已知选项、没覆盖新选项，回放全绿但功能其实是坏的。
+// 这个用例把整张表对一遍，防止「加了选项没加键」或「加了键没加选项」。
+{
+  const lpx = readFileSync(new URL('./Splash-Festival.lpx', import.meta.url).pathname, 'utf-8');
+  const mSel = lpx.match(/festival\s*=\s*select,(.*?),tag=/s);
+  const opts = mSel ? [...mSel[1].matchAll(/"([^"]+)"/g)].map(x => x[1]) : [];
+  const grab = (re) => { const m = code.match(re); return m ? m[1] : ''; };
+  const festKeys = new Set();
+  for (const m of grab(/const FESTIVALS = \{([\s\S]*?)\};/).matchAll(/"?([A-Za-z0-9_]+)"?\s*:/g)) festKeys.add(m[1]);
+  for (const m of grab(/var HISTORICAL_VENDORED = \{([\s\S]*?)\n\};/).matchAll(/"?([A-Za-z0-9_]+)"?\s*:\s*\{/g)) festKeys.add(m[1]);
+  const cn = grab(/const CN_TO_KEY = \{([\s\S]*?)\};/);
+  const cnMap = {}; for (const m of cn.matchAll(/"([^"]+)"\s*:\s*"([^"]+)"/g)) cnMap[m[1]] = m[2];
+  const MODES = new Set(['自动节日','随机','随机·全部','随机·半透明','轮换','轮换·全部','轮换·半透明','屏蔽开屏']);
+  const bad = [];
+  for (const o of opts) {
+    if (MODES.has(o)) continue;
+    if (!(o in cnMap)) bad.push(`选项「${o}」不在 CN_TO_KEY（会落到兜底）`);
+    else if (!festKeys.has(cnMap[o])) bad.push(`选项「${o}」映射到不存在的键 ${cnMap[o]}`);
+  }
+  const covered = new Set(Object.values(cnMap));
+  for (const k of festKeys) if (!covered.has(k)) bad.push(`键 ${k} 没有 .lpx 选项（选不到）`);
+  if (bad.length) { failures++; console.log(`❌ .lpx 选项 ↔ JS 键 一致性: ${bad.join('；')}`); }
+  else console.log(`✅ .lpx 选项 ↔ JS 键 一致性: 选项 ${opts.length} 个 / 可选键 ${festKeys.size} 个，双向对齐`);
+}
 
 // —— 可选：真实 HAR ——
 const HAR = process.argv[2];
