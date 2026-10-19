@@ -286,6 +286,9 @@ const mockStore = () => ({
 const brokenStore = () => ({ read: () => null, write: () => {} });
 
 // 官方池（ROTATE_OFFICIAL = Object.keys(FESTIVALS)）在手机端的 22 个文件名
+// 半透明池的 8 张图（实测像素 70–82% 透明，服务端 mode 全是 half）
+const TRANSPARENT_FILES = ['10.png','12.png','13.png','14.png','15.png','17.png','36.webp','37.webp'];
+
 const OFFICIAL_PHONE = ['31_phone.jpg','32_phone.jpg','33_phone.jpg','34_phone.webp','35_phone.jpg',
   '38_phone.webp','41_phone.webp','43_phone.webp','44_phone.webp','45_phone.jpg','46_phone.webp',
   '47_phone.webp','67_phone.webp','145_phone.webp','10.png','12.png','13.png','14.png','15.png',
@@ -378,6 +381,27 @@ run('随机·全部 · 结果必落在 75 个皮肤素材之内',
   { festival: '随机·全部' }, PHONE, (j) => {
     const t = thumbOf(j, 14).split('/').pop();
     return [SCRIPT_FILES.includes(t), `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+// 前面的轮换用例已经把共享计数器推进过，这里重置后再断言顺序
+const freshStore = () => { for (const k of Object.keys(ROTATE_MEM)) delete ROTATE_MEM[k]; return mockStore(); };
+
+run('轮换·半透明 · 首次取半透明池第一个(2233a)',
+  { festival: '轮换·半透明' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [t === '14.png', `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: freshStore() });
+
+run('轮换·半透明 · 第二次取第二个(2233b)，计数器接着走',
+  { festival: '轮换·半透明' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [t === '15.png', `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('随机·半透明 · 结果必落在 8 张透明图之内',
+  { festival: '随机·半透明' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [TRANSPARENT_FILES.includes(t), `id14.thumb=${t}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
 run('轮换·全部 · 结果必落在 75 个皮肤素材之内',

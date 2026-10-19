@@ -190,8 +190,8 @@ function __pickAutoSkin(today) {
 var ROTATE_OFFICIAL, ROTATE_ALL;
 var ROTATE_KEY = "SplashFestivalRotateIdx";
 
-function __pickRotateKey(rotate, wide) {
-  var pool = wide ? ROTATE_ALL : ROTATE_OFFICIAL;
+function __pickRotateKey(rotate, wide, trans) {
+  var pool = trans ? ROTATE_TRANSPARENT : (wide ? ROTATE_ALL : ROTATE_OFFICIAL);
   if (!rotate) return pool[Math.floor(Math.random() * pool.length)];
   // ⚠️ Loon / Surge 的 $persistentStore 是 read(key) / write(value, key) ——
   // write 的参数顺序是 (值, 键)。写成 (键, 值) 会「读回来永远是 null」，
@@ -279,6 +279,9 @@ const HISTORICAL_KEYS = Object.keys(HISTORICAL_VENDORED);
 // 轮换/真实的池子在这里才赋值（FESTIVALS / HISTORICAL_KEYS 刚声明完）
 ROTATE_OFFICIAL = Object.keys(FESTIVALS);
 ROTATE_ALL = ROTATE_OFFICIAL.concat(HISTORICAL_KEYS);
+// 半透明池：实测像素层 70–82% 透明（PIL alpha 通道），服务端 mode 也全是 half。
+// ⚠️ bili12(44) / bili13(67) 虽是周年皮肤，但 mode=full、横竖双版满版图，不在此列。
+ROTATE_TRANSPARENT = ["2233a", "2233b", "2233c", "2233d", "slogan", "bw2020", "bili10", "bili11"];
 
 const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
 const VENDORED = {
@@ -329,8 +332,9 @@ try {
     // 非节日：不干预，让客户端显示官方默认开屏（而不是硬塞一个兜底皮肤）
     if (!picked) { $done({ body: JSON.stringify(j) }); return; }
     sel = picked;
-  } else if (sel === "随机" || sel === "随机·全部" || sel === "轮换" || sel === "轮换·全部") {
-    sel = __pickRotateKey(sel.charAt(0) === "轮", sel.indexOf("全部") >= 0);
+  } else if (sel === "随机" || sel === "随机·全部" || sel === "随机·半透明" ||
+             sel === "轮换" || sel === "轮换·全部" || sel === "轮换·半透明") {
+    sel = __pickRotateKey(sel.charAt(0) === "轮", sel.indexOf("全部") >= 0, sel.indexOf("半透明") >= 0);
   }
 
   if (sel === "block") {
