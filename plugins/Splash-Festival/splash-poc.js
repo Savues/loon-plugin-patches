@@ -67,6 +67,137 @@ var MODE_SEL = A.splashMode || "official";
 var IMG_MODE = A.imgMode || "auto";
 var sel = normalizeFestival(A.festival);
 
+// ════════════════════════════════════════════════════════════════════
+// v37-a：自动节日（festival = 自动节日）
+// 农历 1900-2100：高 4 位 = 闰月月份（0 = 无闰月），低 13 位 = 每月大小（1 = 30 天）
+// 数据表逐位核对过标准农历表；农历→公历 30 组节日日期全部验证通过。
+// ════════════════════════════════════════════════════════════════════
+var LUNAR_INFO = [
+0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,
+0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+0x0d520];
+
+function __lLeapMonth(y) { return LUNAR_INFO[y - 1900] & 0xf; }
+function __lLeapDays(y) { return __lLeapMonth(y) ? ((LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29) : 0; }
+function __lMonthDays(y, m) { return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29; }
+function __lYearDays(y) {
+  var s = 348, i;
+  for (i = 0x8000; i > 0x8; i >>= 1) s += (LUNAR_INFO[y - 1900] & i) ? 1 : 0;
+  return s + __lLeapDays(y);
+}
+// 农历 y 年 m 月 d 日 → 公历 Date（本地时区零点）。1900-01-31 = 农历 1900 正月初一
+function __lLunar2solar(y, m, d) {
+  var offset = 0, i;
+  for (i = 1900; i < y; i++) offset += __lYearDays(i);
+  var lm = __lLeapMonth(y);
+  // 闰月插在第 lm 月之后：累加「已经走过的」月份时顺带加上闰月天数即可，
+  // 不能再对 m > lm 额外加一次（重复计数会让闰年整体错一个月）。
+  for (i = 1; i < m; i++) { offset += __lMonthDays(y, i); if (lm && i === lm) offset += __lLeapDays(y); }
+  offset += d - 1;
+  return new Date(new Date(1900, 0, 31).getTime() + offset * 86400000);
+}
+
+// 节日表：lunar = [月,日]，solar = [月,日]；before/after = 节日前后各算几天。
+// 清明是节气（4/4–4/6），按 4/4 + after:2 近似；暑假/开学季是时段而非单日。
+var AUTO_FESTIVALS = [
+  { name: "春节",   lunar: [1,1],   before: 1, after: 6 },
+  { name: "元宵",   lunar: [1,15],  before: 1, after: 1 },
+  { name: "端午",   lunar: [5,5],   before: 1, after: 1 },
+  { name: "七夕",   lunar: [7,7],   before: 1, after: 1 },
+  { name: "中秋",   lunar: [8,15],  before: 1, after: 1 },
+  { name: "重阳",   lunar: [9,9],   before: 1, after: 1 },
+  { name: "周年",   solar: [6,26],  before: 1, after: 1 },
+  { name: "妇女节", solar: [3,8],   before: 0, after: 0 },
+  { name: "清明",   solar: [4,4],   before: 0, after: 2 },
+  { name: "劳动节", solar: [5,1],   before: 1, after: 3 },
+  { name: "高考",   solar: [6,7],   before: 1, after: 2 },
+  { name: "暑假",   solar: [7,15],  before: 0, after: 30 },
+  { name: "开学季", solar: [9,1],   before: 3, after: 7 },
+  { name: "教师节", solar: [9,10],  before: 0, after: 0 },
+  { name: "万圣",   solar: [10,31], before: 1, after: 1 },
+  { name: "圣诞",   solar: [12,25], before: 1, after: 0 },
+  { name: "跨年",   solar: [12,31], before: 1, after: 1 },
+  { name: "元旦",   solar: [1,1],   before: 1, after: 1 }
+];
+
+// 每个节日的皮肤键候选（按优先级）：先试今年的历史皮肤，再回退官方常青皮肤
+var AUTO_SKIN_CANDIDATES = {
+  "春节":   function (y) { var t = String(y % 100); return ["cj" + t + "a", "cj" + t + "b", "cj" + t + "c", "cj" + t + "d", "cj" + t + "e", "cj" + t + "f"]; },
+  "元宵":   function (y) { return ["yx" + String(y % 100)]; },
+  "端午":   function (y) { return ["duanwu" + String(y % 100), "duanwu"]; },
+  "七夕":   function (y) { var t = String(y % 100); return ["qixi" + t, "qixi" + t + "a"]; },
+  "中秋":   function (y) { return ["midautumn" + String(y % 100), "midautumn"]; },
+  "重阳":   function (y) { return ["chongyang" + String(y % 100), "chongyang"]; },
+  "元旦":   function (y) { return ["yuandan" + String(y % 100), "yuandan"]; },
+  "妇女节": function (y) { return ["women" + String(y % 100), "women"]; },
+  "清明":   function (y) { return ["qm" + String(y % 100)]; },
+  "劳动节": function (y) { return ["labor" + String(y % 100), "labor"]; },
+  "高考":   function (y) { return ["gaokao" + String(y % 100)]; },
+  "暑假":   function (y) { return ["summer" + String(y % 100)]; },
+  "开学季": function () { return ["school23"]; },
+  "教师节": function (y) { return ["teacher" + String(y % 100)]; },
+  "万圣":   function (y) { var t = String(y % 100); return ["halloween" + t + "a", "halloween" + t + "b", "halloween"]; },
+  "圣诞":   function () { return ["xmas2", "xmas1"]; },
+  "跨年":   function () { return ["yuandan23", "yuandan"]; },
+  "周年":   function () { return ["bili13"]; }
+};
+
+function __keyExists(k) { return !!(FESTIVALS[k] || HISTORICAL_VENDORED[k]); }
+
+// 返回今天命中的皮肤键；非节日返回 null（调用方据此决定不干预）
+function __pickAutoSkin(today) {
+  var y = today.getFullYear(), now = new Date(y, today.getMonth(), today.getDate());
+  for (var i = 0; i < AUTO_FESTIVALS.length; i++) {
+    var f = AUTO_FESTIVALS[i];
+    var d = f.lunar ? __lLunar2solar(y, f.lunar[0], f.lunar[1])
+                    : new Date(y, f.solar[0] - 1, f.solar[1]);
+    var diff = Math.round((now - d) / 86400000);
+    if (diff < -f.before || diff > f.after) continue;
+    var cands = (AUTO_SKIN_CANDIDATES[f.name] || function () { return []; })(y);
+    for (var k = 0; k < cands.length; k++) if (__keyExists(cands[k])) return cands[k];
+  }
+  return null;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// v37-b：轮换 / 随机（festival = 轮换 / 随机，加「·全部」扩大池子）
+// ════════════════════════════════════════════════════════════════════
+// 池子默认只用官方 22 皮肤：其中 half 版的 hash 与服务端一致、客户端通常已缓存，
+// 切过去立刻能显示；历史皮肤要等客户端把仓库图下载下来（第二次冷启动才生效）。
+// 「·全部」= 75 个皮肤全进池子。
+// 轮换用 $persistentStore 计数器：每次冷启动取下一个，可预测、可复现。
+// ════════════════════════════════════════════════════════════════════
+// 注意：FESTIVALS / HISTORICAL_KEYS 在文件更后面才声明（TDZ），
+// 所以这里只能声明不能赋值；实际赋值在 HISTORICAL_KEYS 声明之后。
+var ROTATE_OFFICIAL, ROTATE_ALL;
+
+function __pickRotateKey(rotate, wide) {
+  var pool = wide ? ROTATE_ALL : ROTATE_OFFICIAL;
+  if (!rotate) return pool[Math.floor(Math.random() * pool.length)];
+  var n = 0;
+  try { n = parseInt($persistentStore.read("rotate_idx") || "0", 10) || 0; } catch (e) {}
+  try { $persistentStore.write("rotate_idx", String(n + 1)); } catch (e) {}
+  return pool[n % pool.length];
+}
+
 const FESTIVALS = {
   midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
   halloween: 31, xmas1: 32, xmas2: 33, women: 35, labor: 41,
@@ -133,6 +264,9 @@ var HISTORICAL_VENDORED = {
 };
 
 const HISTORICAL_KEYS = Object.keys(HISTORICAL_VENDORED);
+// 轮换/真实的池子在这里才赋值（FESTIVALS / HISTORICAL_KEYS 刚声明完）
+ROTATE_OFFICIAL = Object.keys(FESTIVALS);
+ROTATE_ALL = ROTATE_OFFICIAL.concat(HISTORICAL_KEYS);
 
 const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
 const VENDORED = {
@@ -175,6 +309,17 @@ try {
   if (!j.data) j.data = {};
   if (!Array.isArray(j.data.list)) j.data.list = [];
   const now = Math.floor(Date.now() / 1000);
+
+  // ── v37：自动节日 / 轮换 / 随机 ────────────────────────────────────
+  // 这三个值不是皮肤键，先在这里翻译成真正的皮肤键，后面的逻辑不用改。
+  if (sel === "自动节日") {
+    const picked = __pickAutoSkin(new Date());
+    // 非节日：不干预，让客户端显示官方默认开屏（而不是硬塞一个兜底皮肤）
+    if (!picked) { $done({ body: JSON.stringify(j) }); return; }
+    sel = picked;
+  } else if (sel === "随机" || sel === "随机·全部" || sel === "轮换" || sel === "轮换·全部") {
+    sel = __pickRotateKey(sel.charAt(0) === "轮", sel.indexOf("全部") >= 0);
+  }
 
   if (sel === "block") {
     j.data.show = [];

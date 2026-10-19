@@ -39,13 +39,14 @@ const IPAD = 'https://app.bilibili.com/x/v2/splash/brand/list?appkey=5fd5a7d8bfd
 
 let failures = 0;
 
-function run(label, argument, url, expect, respBody) {
+function run(label, argument, url, expect, respBody, extra) {
   let done = null, error = null;
   const sandbox = {
     $argument: argument,
     $request: { url: url || PHONE },
     $response: { body: respBody || makeResp() },
-    $done: (r) => { done = r; }
+    $done: (r) => { done = r; },
+    ...(extra || {})
   };
   vm.createContext(sandbox);
   try {
@@ -74,6 +75,9 @@ ${code}
   if (ok) console.log(`✅ ${label}: ${msg}`);
   else { failures++; console.log(`❌ ${label}: ${msg}`); }
 }
+
+// 脚本里 vendored 的所有素材文件名 —— 用来断言「随机/轮换」的池子没跑出界
+const SCRIPT_FILES = [...code.matchAll(/file:\s*"([^"]+)"/g)].map(m => m[1]);
 
 const thumbOf = (j, id) => (j.data.list.find(x => x.id === id) || {}).thumb || '';
 const endsWith = (s, suf) => s.endsWith(suf);
@@ -251,6 +255,109 @@ run('list 为空 → 追加合成载体条目',
     const it = j.data.list.find(x => x.id === 14);
     return [!!it && /38_phone\.webp$/.test(it.thumb || ''), `list.length=${j.data.list.length}`];
   }, makeResp({ list: [] }));
+
+// —— v37：自动节日 / 轮换 / 随机 ——
+// 固定「现在」：无参的 new Date() / Date.now() 返回 fixed，带参的 new Date(y,m,d) 仍是真实日期
+// （脚本里 __lLunar2solar 要 new Date(1900,0,31) / new Date(y,m-1,d)，不能一起被冻住）
+function mkNow(y, mo, d) {
+  const fixed = new Date(y, mo, d).getTime();
+  const F = function () {
+    const a = arguments;
+    if (a.length === 0) return new Date(fixed);
+    switch (a.length) {
+      case 1: return new Date(a[0]);
+      case 3: return new Date(a[0], a[1], a[2]);
+      case 7: return new Date(a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+      default: return new Date(a[0], a[1]);
+    }
+  };
+  F.now = () => fixed; F.parse = Date.parse; F.UTC = Date.UTC;
+  F.prototype = Date.prototype;
+  return F;
+}
+const ROTATE_MEM = {};
+const mockStore = () => ({
+  read: (k) => (k in ROTATE_MEM ? ROTATE_MEM[k] : null),
+  write: (k, v) => { ROTATE_MEM[k] = v; }
+});
+
+// 官方池（ROTATE_OFFICIAL = Object.keys(FESTIVALS)）在手机端的 22 个文件名
+const OFFICIAL_PHONE = ['31_phone.jpg','32_phone.jpg','33_phone.jpg','34_phone.webp','35_phone.jpg',
+  '38_phone.webp','41_phone.webp','43_phone.webp','44_phone.webp','45_phone.jpg','46_phone.webp',
+  '47_phone.webp','67_phone.webp','145_phone.webp','10.png','12.png','13.png','14.png','15.png',
+  '17.png','36.webp','37.webp'];
+
+run('自动节日 · 重阳节当天(2026-10-18) → 官方 chongyang(145)',
+  { festival: '自动节日' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '145_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 9, 18) });
+
+run('自动节日 · 中秋节(2026-09-25) → 历史 midautumn26',
+  { festival: '自动节日' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, 'midautumn26.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 8, 25) });
+
+run('自动节日 · 劳动节(2026-05-01) → 历史 labor26',
+  { festival: '自动节日' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, 'labor26.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 4, 1) });
+
+run('自动节日 · 元宵节(2024-02-24) → 历史 yx24',
+  { festival: '自动节日' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, 'yx24.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2024, 1, 24) });
+
+run('自动节日 · 清明节(2025-04-04) → 历史 qm25',
+  { festival: '自动节日' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, 'qm25.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2025, 3, 4) });
+
+run('自动节日 · 非节日日(2026-03-15) → 不干预，原样放行',
+  { festival: '自动节日' }, PHONE, (j) => {
+    return [(j.data.show || []).length === 0 && j.data.forcibly !== true && thumbOf(j, 14) === 'orig_14',
+      `show=[${showIds(j)}] forcibly=${j.data.forcibly} thumb=${thumbOf(j, 14)}`];
+  }, null, { Date: mkNow(2026, 2, 15) });
+
+run('轮换 · 首次取官方池第一个(midautumn)',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '38_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('轮换 · 第二次取第二个(chongyang)，计数器生效',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '145_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('轮换 · 第三次取第三个(yuandan)',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '34_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('随机 · 结果必落在官方池 22 个之内',
+  { festival: '随机' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [OFFICIAL_PHONE.includes(t), `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('随机·全部 · 结果必落在 75 个皮肤素材之内',
+  { festival: '随机·全部' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [SCRIPT_FILES.includes(t), `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('轮换·全部 · 结果必落在 75 个皮肤素材之内',
+  { festival: '轮换·全部' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [SCRIPT_FILES.includes(t), `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
 // —— 可选：真实 HAR ——
 const HAR = process.argv[2];

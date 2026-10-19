@@ -1,16 +1,19 @@
 # 开屏节日定制 · Splash Festival
 
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
-> 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 屏蔽模式。
+> 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 5 个自动模式 + 屏蔽模式。
 
-**当前版本 v35.3** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v37** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
 ## 功能
 
 - **22 个官方皮肤**：随时展示，不挑日期 —— 中秋、重阳、元旦、端午、七夕、万圣节、圣诞节 1.0/2.0、妇女节、劳动节、B 站 10/11/12/13 周年、BML 2021、BW 2020/2021、2233 款式一~四、slogan
-- **54 个历史皮肤**（2023–2026）：官方已下架但素材仍在线的开屏 —— 2023 端午/暑假/七夕×6/开学季/中秋/万圣/跨年；2024 春节×6/元宵/妇女节/清明/劳动/高考/端午/暑假/七夕/重阳/教师节/中秋；2025 春节×6/元宵/妇女节/清明/劳动/端午/高考/暑假/七夕/教师节/中秋；2026 春节×3/五一/高考/端午/中秋
+- **53 个历史皮肤**（2023–2026）：官方已下架但素材仍在线的开屏 —— 2023 端午/暑假/七夕×6/开学季/中秋/万圣/跨年；2024 春节×6/元宵/妇女节/清明/劳动/高考/端午/暑假/七夕/重阳/教师节/中秋；2025 春节×6/元宵/妇女节/清明/劳动/端午/高考/暑假/七夕/教师节/中秋；2026 春节×3/五一/高考/端午/中秋
+- **自动节日**：按当天日期自动选皮肤，农历节日用标准农历算法（1900–2100 数据表，30 组节日日期验证通过）；优先用今年的历史皮肤，没有则回退官方常青皮肤；非节日不干预（客户端显示官方默认开屏）
+- **随机 / 轮换**：每次冷启动换一个皮肤。默认在官方 22 个里选（其中 half 版的 hash 与服务端一致、通常已缓存，切过去立刻能显示）；加「·全部」扩到 75 个。轮换用 `$persistentStore` 计数器，可预测可复现
+
 - **block 屏蔽模式**：开屏不显示任何品牌皮肤
 
 ## 参数设置
@@ -18,7 +21,7 @@
 | 参数 | 类型 | 选项 | 默认 | 说明 |
 |---|---|---|---|---|
 | `enabled` | switch | — | true | 启用插件 |
-| `festival` | select | 76 个节日 + block | midautumn | 选择展示的节日/活动品牌皮肤 |
+| `festival` | select | 76 个节日 + 5 个自动模式 + block | midautumn | 选择展示的节日/活动品牌皮肤；`自动节日` / `随机` / `随机·全部` / `轮换` / `轮换·全部` 见「功能」章节 |
 | `splashMode` | select | official / full / half | official | **显示模式**：<br>• `official` = 官方设定（full=铺满 / half=缩放）<br>• `full` = 强制铺满全屏<br>• `half` = 强制缩放完整（不裁切） |
 | `imgMode` | select | auto / landscape / portrait | auto | **图片方向**：<br>• `auto` = 按设备自动（iPad 横图 / 手机竖图）<br>• `landscape` = 强制横图<br>• `portrait` = 强制竖图 |
 
@@ -49,6 +52,24 @@
 5. 每条都要过 `availableSplash:` = `isFileExist:thumb_hash type:1` —— 图片必须已在本地品牌开屏缓存里
    （由 `BFCBrandSplashPreloader` 通过 `downloadResourceWithHashURL:hashValue:type:1` 下载）
 
+> **⚠️ v37 反汇编复核修正**：上面第 4 步的「否则」不是唯一出口 —— `getSplashInSplashList:type:4`
+> 内部还会按 `list.rule` 三分支：`"order"` 按 `next_index` 顺序取一条、`"probability"` 按
+> `arc4random_uniform(Σprobability)` 加权随机、**其它值（含服务端平日下发的 `""`）直接 `return nil`**。
+> 返回 nil 后控制流会**回退到 type-2 遍历 `selectList`**。
+>
+> 所以真相是：**非节日期间（`rule=""`）插件实际是靠 type-2 的 `selectList` 显示皮肤的，注入的 `show` 是装饰性的**；
+> 节日当天服务端会下发 `rule:"order"`，那时 `show` 才真正生效。两条路都能出图，这就是插件「一直能用」的原因。
+> （VA 速查：`getSplashInSplashList:type:` 0x10b2f6c3c，rule 分支 0x10b2f7104 / 0x10b2f7214 / 0x10b2f72f8，
+> 回退点 0x10b2f5d34 → 0x10b2f6034 → 0x10b2f5eac）
+>
+> **v36 修的另外两个坑**（同一次反汇编发现）：
+> ① `availableSplashListWithOriginList:` 在 `preload` 非空时改用 preload 条目当列表，只复制
+> `list / select_show_list / selectList / select_next_index / next_index / force_show`，
+> **不复制 `forcibly` 和 `rule`** → type-4 读到 preload 自己的 `show`，插件选的皮肤被官方节日皮肤顶掉
+> （HAR 实证 `3_1791218834491.har`）。修法：`j.data.preload = []`。
+> ② `force_show_times` 非 0 时 show 分支按 `force_show[splash_id]` 计数，超过就 `continue`
+> （节日当天服务端下发 3）。修法：`j.data.force_show_times = 0`。
+
 > **v35.3 修复的关键**：服务器平日只下发
 > `{"pull_interval":1800,"forcibly":false,"rule":"","list":[…]}`（`show` 里只有默认皮肤一条），
 > 缺 `forcibly` 与 `select_show_list` → 走 type-2 分支遍历空的 `selectList` → 什么都不显示。
@@ -63,6 +84,29 @@
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。
 
 ## 实测记录
+
+### v37（2026-10-19，离线）
+
+新增 `自动节日` / `随机` / `随机·全部` / `轮换` / `轮换·全部` 五个模式（`festival` 参数）。
+农历算法用标准 1900–2100 数据表，30 组节日日期（春节/元宵/端午/七夕/中秋/重阳 × 2023–2027）全部验证通过。
+
+| 输入 | 结果 |
+|---|---|
+| `自动节日` @ 2026-10-18 | 官方 `chongyang`(145) —— 今年无重阳历史皮肤，回退官方 |
+| `自动节日` @ 2026-09-25 | 历史 `midautumn26` —— 优先用今年的历史皮肤 |
+| `自动节日` @ 2026-05-01 | 历史 `labor26` |
+| `自动节日` @ 2024-02-24 | 历史 `yx24` |
+| `自动节日` @ 2025-04-04 | 历史 `qm25` |
+| `自动节日` @ 2026-03-15（非节日） | **不干预**，`show=[]`、`forcibly` 未改、载体 thumb 保持原样 |
+| `轮换` × 3 次 | `midautumn` → `chongyang` → `yuandan`，`$persistentStore` 计数器逐次递增 |
+| `随机` | 落在官方 22 个之内 |
+| `随机·全部` / `轮换·全部` | 落在 75 个皮肤之内 |
+
+回放器新增 15 项用例（共 39 项全过）。
+
+> **待真机实测**：`自动节日` / `轮换` 冷启动是否按预期出图（`轮换` 的计数器跨冷启动是否保持，
+> 取决于 `$persistentStore` 在 Loon 里的实际持久化行为）。
+
 
 ### v35.3（2026-10-19，iPad）
 
