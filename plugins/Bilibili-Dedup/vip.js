@@ -79,19 +79,28 @@ const BADGE_LOCAL = (id) => ({ visible: true,
   layer_config: { tags: { ICON_LAYER: {} } },
   resource: { res_type: 3,
     res_image: { image_src: { src_type: 2, local: id } } } });
-const NFT_GIF = { visible: true,
-  general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 0.87, axis_y: 1.1366666666666665 },
-                  size_spec: { width: 0.225, height: 0.225 }, render_spec: { opacity: 1 } },
+// 数字藏品 GIF 层。⚠ 坐标系：HAR 412/413 的藏品用户全是 1.65/1.8 大容器（带挂件
+// PENDENT_LAYER 或大头像层），照抄其坐标在普通 1.35/1.5 容器上会错位（v7.36 实测）。
+// 换算规律（HAR 413 实证）：角标中心距头像右下角恒定偏移，普通头像(1.05/pos0.75，
+// 右下=1.275)时 = Celestial 已验证坐标：单藏品 GIF 占右下角标准位（飞天螺旋小肥羊
+// 结构）；双标识 GIF 相对会员图标左移 0.25（蒔花再開/シンフォギア同款并排）。
+// GIF 资源有两个系列（实测主色）：j8AeXAkEul=粉紫标准款、IOHoVs1ebP=深紫款。
+const NFT_URL_PINK = "https://i0.hdslb.com/bfs/activity-plat/static/20220506/334553dd7c506a92b88eaf4d59ac8b4d/j8AeXAkEul.gif";
+const NFT_URL_PURPLE = "https://i0.hdslb.com/bfs/activity-plat/static/20220506/334553dd7c506a92b88eaf4d59ac8b4d/IOHoVs1ebP.gif";
+const nftGif = (url, x, y) => ({ visible: true,
+  general_spec: { pos_spec: { coordinate_pos: 1, axis_x: x, axis_y: y },
+                  size_spec: { width: 0.25, height: 0.25 }, render_spec: { opacity: 1 } },
   layer_config: { tags: { ICON_LAYER: {} } },
   resource: { res_type: 4,
     res_animation: { webp_src: { src_type: 1, placeholder: 5,
-      remote: { url: "https://i0.hdslb.com/bfs/activity-plat/static/20220506/334553dd7c506a92b88eaf4d59ac8b4d/j8AeXAkEul.gif", bfs_style: "widget-layer-avatar" } } } } };
-const NFT_BG = BADGE_BG(0.845, 1.1116666666666666);
+      remote: { url: url, bfs_style: "widget-layer-avatar" } } } } });
+const NFT_BG_LEFT = BADGE_BG(0.725, 0.975);
 
 // 按选择生成要追加的角标图层数组
 function badgeLayersFor(choice) {
-  if (choice === "数字藏品·动态") { return [NFT_BG, NFT_GIF]; }
-  if (choice === "大会员+藏品动态") { return [ICON_LAYERS[0], BADGE_LOCAL(1), NFT_BG, NFT_GIF]; }
+  if (choice === "数字藏品·动态") { return [ICON_LAYERS[0], nftGif(NFT_URL_PINK, 1, 1)]; }
+  if (choice === "数字藏品·紫动态") { return [ICON_LAYERS[0], nftGif(NFT_URL_PURPLE, 1, 1)]; }
+  if (choice === "大会员+藏品动态") { return [ICON_LAYERS[0], BADGE_LOCAL(1), NFT_BG_LEFT, nftGif(NFT_URL_PINK, 0.75, 1)]; }
   return [ICON_LAYERS[0], BADGE_LOCAL(BADGE_ICONS[choice] || 1)];
 }
 
