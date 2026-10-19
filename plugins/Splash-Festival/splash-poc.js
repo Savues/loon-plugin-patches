@@ -221,43 +221,27 @@ function __pickRotateKey(rotate, wide, trans) {
 }
 
 const FESTIVALS = {
-  midautumn: 38, chongyang: 145, yuandan: 34, duanwu: 43, qixi: 47,
-  halloween: 31, xmas1: 32, xmas2: 33, women: 35, labor: 41,
+  // 节日类（按年度时间顺序）
+  midautumn: 38, yuandan: 34, chongyang: 145, women: 35, labor: 41,
+  duanwu: 43, qixi: 47, halloween: 31, xmas1: 32, xmas2: 33,
+  // 周年/品牌类
   bili10: 12, bili11: 13, bili12: 44, bili13: 67,
   bml2021: 45, bw2020: 10, bw2021: 46,
+  // 2233 / Slogan
   "2233a": 14, "2233b": 15, "2233c": 37, "2233d": 36, slogan: 17
 };
 
 // 历史皮肤素材（GitHub 仓库 URL）
 var HISTORICAL_VENDORED = {
-  duanwu23:     { file: "duanwu23.webp", hash: "d8ee2240ca2ba43a81046a534a03edfd", name: "2023端午节" },
-  summer23:     { file: "summer23.webp", hash: "572aedf353574767079246c2871a2dfe", name: "2023暑假过半" },
-  qixi23a:      { file: "qixi23a.webp", hash: "d4d6cdc28ecc64190064639a85c2f12f", name: "2023七夕节" },
-  qixi23b:      { file: "qixi23b.webp", hash: "efa6968a50e5b6c2590298bb542a46f7", name: "2023七夕款式二" },
-  qixi23c:      { file: "qixi23c.webp", hash: "3a6e47d71621b5e45dfdcf65239e7ad7", name: "2023七夕款式三" },
-  qixi23d:      { file: "qixi23d.webp", hash: "e48e85aa05de072f22915c5182c77fc6", name: "2023七夕款式四" },
-  qixi23e:      { file: "qixi23e.webp", hash: "7a310283902b2edf336f7c6e44c1f186", name: "2023七夕款式五" },
-  qixi23f:      { file: "qixi23f.webp", hash: "78cb7eeacfeef2012882f857a715462d", name: "2023七夕款式六" },
-  school23:     { file: "school23.webp", hash: "67f7fc954bc8bde77ed15027fac1cee3", name: "2023开学季" },
-  midautumn23:  { file: "midautumn23.webp", hash: "0113a51f88927fe66b516254a7f4f896", name: "2023中秋节" },
-  halloween23a: { file: "halloween23a.webp", hash: "fed922d0850cd809e3b23f27e1fc36ee", name: "2023万圣节款式一" },
-  halloween23b: { file: "halloween23b.webp", hash: "511f6ecc421298d553c35317d01a3fbd", name: "2023万圣节款式二" },
-  yuandan23:    { file: "yuandan23.webp", hash: "a0d4161bc9e3e1b6d40427b021d487a4", name: "2023跨年" },
-  cj24a:        { file: "cj24a.webp", hash: "1e897dcd5932001bdf94d3a4030dbe50", name: "2024春节-款式一" },
-  cj24b:        { file: "cj24b.webp", hash: "cc8a187db60fb57361d034a9ccac52ac", name: "2024春节-款式二" },
-  cj24c:        { file: "cj24c.webp", hash: "5e6fc01ae5417f3b176077ecb8166b4a", name: "2024春节-款式三" },
-  cj24d:        { file: "cj24d.webp", hash: "35d191cf4917ebed27b5e4488c6b8369", name: "2024春节-款式四" },
-  yx24:         { file: "yx24.webp", hash: "9e201791544d9edf2cf9cb5129d6b7bd", name: "2024元宵节" },
-  women24:      { file: "women24.webp", hash: "01c5215b60e6f9fd7311b0b215a2e94d", name: "2024妇女节" },
-  qm24:         { file: "qm24.webp", hash: "fdba5d96b9d28d8566e86074974a6db1", name: "2024清明" },
-  labor24:      { file: "labor24.webp", hash: "0a5d0e69963ac31ec533ada53b430f2a", name: "2024劳动节" },
-  gaokao24:     { file: "gaokao24.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
-  duanwu24:     { file: "duanwu24.webp", hash: "1171efbb0ba3ae5b6f25f7ce0a264864", name: "2024端午节" },
-  summer24:     { file: "summer24.webp", hash: "6e581b904d51d95b072bd766b02d19eb", name: "2024暑假快乐" },
-  qixi24:       { file: "qixi24.webp", hash: "4179e69ecd5473d5f1a565b31511cefb", name: "2024七夕" },
-  chongyang24:  { file: "chongyang24.webp", hash: "b8547e59805d5b5e7984fe12fb73521f", name: "2024重阳" },
-  teacher24:    { file: "teacher24.webp", hash: "7023f9d552cb6b067077124cc1877ee6", name: "2024教师节" },
-  midautumn24:  { file: "midautumn24.webp", hash: "29a5e53fcd95d82dec534a7e57cf6bb7", name: "2024中秋" },
+  // 2026
+  cj26a:        { file: "cj26a.webp", hash: "ef6ad7e3c1ee0096bb623e7484047607", name: "2026春节-马灯笼" },
+  cj26b:        { file: "cj26b.webp", hash: "d49fc2fa45168270b55503b63c1cf9a0", name: "2026春节-马头琴" },
+  cj26c:        { file: "cj26c.webp", hash: "f636046db3b071d361942f8ffe061d4e", name: "2026春节-马球" },
+  labor26:      { file: "labor26.webp", hash: "e0420bfbbd985676b27b34845b799010", name: "2026五一" },
+  gaokao26:     { file: "gaokao26.webp", hash: "2be857ce37c936dd06f29fced8170f72", name: "2026高考" },
+  duanwu26:     { file: "duanwu26.webp", hash: "40ab7d24b2c7dec4594d03abe15a4628", name: "2026端午" },
+  midautumn26:  { file: "midautumn26.webp", hash: "cf3e9c439759651738948304d24b452a", name: "2026中秋" },
+  // 2025
   cj25a:        { file: "cj25a.webp", hash: "857a3f463c6e84001ce70a4afad2a2ff", name: "2025春节打铁花" },
   cj25b:        { file: "cj25b.webp", hash: "ca0e859a4c496f3855ebecbf98cbba22", name: "2025春节放御灯" },
   cj25c:        { file: "cj25c.webp", hash: "cc1810978b247b3a936ab0c1b43dc9b0", name: "2025春节滚灯球" },
@@ -274,13 +258,36 @@ var HISTORICAL_VENDORED = {
   qixi25:       { file: "qixi25.webp", hash: "0a0ad5e8ce1d5e1a285b0ef45dd2de62", name: "2025七夕" },
   teacher25:    { file: "teacher25.webp", hash: "d20f0d77beef9d2cdb76d34fcfd83278", name: "2025教师节" },
   midautumn25:  { file: "midautumn25.webp", hash: "c8e2a702b75e94b950ccd6d0fce20786", name: "2025中秋" },
-  cj26a:        { file: "cj26a.webp", hash: "ef6ad7e3c1ee0096bb623e7484047607", name: "2026春节-马灯笼" },
-  cj26b:        { file: "cj26b.webp", hash: "d49fc2fa45168270b55503b63c1cf9a0", name: "2026春节-马头琴" },
-  cj26c:        { file: "cj26c.webp", hash: "f636046db3b071d361942f8ffe061d4e", name: "2026春节-马球" },
-  labor26:      { file: "labor26.webp", hash: "e0420bfbbd985676b27b34845b799010", name: "2026五一" },
-  gaokao26:     { file: "gaokao26.webp", hash: "2be857ce37c936dd06f29fced8170f72", name: "2026高考" },
-  duanwu26:     { file: "duanwu26.webp", hash: "40ab7d24b2c7dec4594d03abe15a4628", name: "2026端午" },
-  midautumn26:  { file: "midautumn26.webp", hash: "cf3e9c439759651738948304d24b452a", name: "2026中秋" }
+  // 2024
+  cj24a:        { file: "cj24a.webp", hash: "1e897dcd5932001bdf94d3a4030dbe50", name: "2024春节-款式一" },
+  cj24b:        { file: "cj24b.webp", hash: "cc8a187db60fb57361d034a9ccac52ac", name: "2024春节-款式二" },
+  cj24c:        { file: "cj24c.webp", hash: "5e6fc01ae5417f3b176077ecb8166b4a", name: "2024春节-款式三" },
+  cj24d:        { file: "cj24d.webp", hash: "35d191cf4917ebed27b5e4488c6b8369", name: "2024春节-款式四" },
+  yx24:         { file: "yx24.webp", hash: "9e201791544d9edf2cf9cb5129d6b7bd", name: "2024元宵节" },
+  women24:      { file: "women24.webp", hash: "01c5215b60e6f9fd7311b0b215a2e94d", name: "2024妇女节" },
+  qm24:         { file: "qm24.webp", hash: "fdba5d96b9d28d8566e86074974a6db1", name: "2024清明" },
+  labor24:      { file: "labor24.webp", hash: "0a5d0e69963ac31ec533ada53b430f2a", name: "2024劳动节" },
+  gaokao24:     { file: "gaokao24.webp", hash: "06373b52a74215e0f88f8fae94b84b92", name: "2024高考" },
+  duanwu24:     { file: "duanwu24.webp", hash: "1171efbb0ba3ae5b6f25f7ce0a264864", name: "2024端午节" },
+  summer24:     { file: "summer24.webp", hash: "6e581b904d51d95b072bd766b02d19eb", name: "2024暑假快乐" },
+  qixi24:       { file: "qixi24.webp", hash: "4179e69ecd5473d5f1a565b31511cefb", name: "2024七夕" },
+  chongyang24:  { file: "chongyang24.webp", hash: "b8547e59805d5b5e7984fe12fb73521f", name: "2024重阳" },
+  teacher24:    { file: "teacher24.webp", hash: "7023f9d552cb6b067077124cc1877ee6", name: "2024教师节" },
+  midautumn24:  { file: "midautumn24.webp", hash: "29a5e53fcd95d82dec534a7e57cf6bb7", name: "2024中秋" },
+  // 2023
+  yuandan23:    { file: "yuandan23.webp", hash: "a0d4161bc9e3e1b6d40427b021d487a4", name: "2023跨年" },
+  summer23:     { file: "summer23.webp", hash: "572aedf353574767079246c2871a2dfe", name: "2023暑假过半" },
+  qixi23a:      { file: "qixi23a.webp", hash: "d4d6cdc28ecc64190064639a85c2f12f", name: "2023七夕节" },
+  qixi23b:      { file: "qixi23b.webp", hash: "efa6968a50e5b6c2590298bb542a46f7", name: "2023七夕款式二" },
+  qixi23c:      { file: "qixi23c.webp", hash: "3a6e47d71621b5e45dfdcf65239e7ad7", name: "2023七夕款式三" },
+  qixi23d:      { file: "qixi23d.webp", hash: "e48e85aa05de072f22915c5182c77fc6", name: "2023七夕款式四" },
+  qixi23e:      { file: "qixi23e.webp", hash: "7a310283902b2edf336f7c6e44c1f186", name: "2023七夕款式五" },
+  qixi23f:      { file: "qixi23f.webp", hash: "78cb7eeacfeef2012882f857a715462d", name: "2023七夕款式六" },
+  school23:     { file: "school23.webp", hash: "67f7fc954bc8bde77ed15027fac1cee3", name: "2023开学季" },
+  midautumn23:  { file: "midautumn23.webp", hash: "0113a51f88927fe66b516254a7f4f896", name: "2023中秋节" },
+  halloween23a: { file: "halloween23a.webp", hash: "fed922d0850cd809e3b23f27e1fc36ee", name: "2023万圣节款式一" },
+  halloween23b: { file: "halloween23b.webp", hash: "511f6ecc421298d553c35317d01a3fbd", name: "2023万圣节款式二" },
+  duanwu23:     { file: "duanwu23.webp", hash: "d8ee2240ca2ba43a81046a534a03edfd", name: "2023端午节" }
 };
 
 const HISTORICAL_KEYS = Object.keys(HISTORICAL_VENDORED);

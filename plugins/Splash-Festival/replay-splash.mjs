@@ -365,16 +365,16 @@ run('轮换 · 首次取官方池第一个(midautumn)',
     return [endsWith(t, '38_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
-run('轮换 · 第二次取第二个(chongyang)，计数器生效',
-  { festival: '轮换' }, PHONE, (j) => {
-    const t = thumbOf(j, 14);
-    return [endsWith(t, '145_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
-  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
-
-run('轮换 · 第三次取第三个(yuandan)',
+run('轮换 · 第二次取第二个(yuandan)，计数器生效',
   { festival: '轮换' }, PHONE, (j) => {
     const t = thumbOf(j, 14);
     return [endsWith(t, '34_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+run('轮换 · 第三次取第三个(chongyang)',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '145_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
 
 // 先探一次：拿到兜底（按天）在第 1 天的结果，供「隔天会换」用例比较
