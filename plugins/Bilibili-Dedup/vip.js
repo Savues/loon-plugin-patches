@@ -57,6 +57,8 @@ const img = A.vipImg || T.image;
 // （HAR 实证：真小会员同样无角标）。开启后改用 annual_vip（真实年度大会员的
 // key，主题表里必有）让角标出现。牌子文字/配色仍由上面的 label 字段决定，不受影响。
 const LABEL_THEME = on(A.vipAvatarBadge) ? "annual_vip" : KEY;
+// 开关本体：开启后真实会员的响应也改 label_theme（只此一处，其余真实字段不动）
+const BADGE = on(A.vipAvatarBadge);
 
 function label(v) {
   return Object.assign({}, (v && v.label) || {}, {
@@ -81,27 +83,40 @@ function patchSpace(d) {
   const a0 = items[0] && items[0].author;
   // ⚠️ UID 来源有两处：主页在 card.mid，专栏页在 item[].author.mid，JSON 里都是**字符串**
   const who = Number(card ? card.mid : (a0 ? a0.mid : NaN));  // 取不到或非法 → NaN，永远不等于 ME/TARGET
-  const v = d.vip;   // 空间页判据是 vipStatus（我的页是 status，两者不通用）
-  // 三种情况原样透传：别人的主页 / 响应异常 / 已经是会员
-  if (!(ALL || who === ME || who === TARGET) || (v && v.vipStatus === 1)) { return false; }
+  // 空间页判据是 vipStatus（我的页是 status，两者不通用）
+  const v = d.vip;
+  // 别人的主页（未点名）/ 响应异常 → 原样透传
+  if (!(ALL || who === ME || who === TARGET)) { return false; }
+  // 已是真实会员：默认不动；开了头像角标 → 只换 label_theme 让角标出现
+  const isReal = v && v.vipStatus === 1;
+  if (isReal && !BADGE) { return false; }
 
   let changed = false;
   // 顶栏：只在这一步写 d.vip。专栏页响应里没有顶栏，造一个 d.vip 没有意义。
   if (card) {
-    const vip = Object.assign({}, v || {}, {
-      vipType: T.type, vipDueDate: DUE, dueRemark: "", accessStatus: 0,
-      vipStatus: 1, vipStatusWarn: "", themeType: 0, label: label(v),
-      silence: 0, control: 0, end_time: 0, silence_url: "", nickname_color: T.bg
-    });
-    // 空间页原生 label **没有** use_img_label 字段（只有「我的」页有），
-    // 不显式补 true 的话 App 可能仍按文字渲染，牌子图不生效。
-    vip.label.use_img_label = true;
-    d.vip = vip;
-    // 空间页的到期提示开关，与会员样本一致
-    if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
-    // 关键：主页顶栏实际读 data.card.vip。抓包实证：只写 data.vip 时顶栏仍显示灰色。
-    card.vip = Object.assign({}, card.vip || {}, vip);
-    changed = true;
+    if (isReal) {
+      // 真实会员 + 角标开关：只换两处 label 的 label_theme，
+      // 到期时间/等级等真实字段全部保留，牌子文字配色也不动。
+      const lt = (cv) => Object.assign({}, (cv && cv.label) || {}, { label_theme: LABEL_THEME });
+      card.vip = Object.assign({}, card.vip || {}, { label: lt(card.vip) });
+      if (d.vip) { d.vip = Object.assign({}, d.vip, { label: lt(d.vip) }); }
+      changed = true;
+    } else {
+      const vip = Object.assign({}, v || {}, {
+        vipType: T.type, vipDueDate: DUE, dueRemark: "", accessStatus: 0,
+        vipStatus: 1, vipStatusWarn: "", themeType: 0, label: label(v),
+        silence: 0, control: 0, end_time: 0, silence_url: "", nickname_color: T.bg
+      });
+      // 空间页原生 label **没有** use_img_label 字段（只有「我的」页有），
+      // 不显式补 true 的话 App 可能仍按文字渲染，牌子图不生效。
+      vip.label.use_img_label = true;
+      d.vip = vip;
+      // 空间页的到期提示开关，与会员样本一致
+      if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
+      // 关键：主页顶栏实际读 data.card.vip。抓包实证：只写 data.vip 时顶栏仍显示灰色。
+      card.vip = Object.assign({}, card.vip || {}, vip);
+      changed = true;
+    }
 
     // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
     // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
@@ -134,9 +149,13 @@ try {
   if (d) {
     if (space) {
       changed = patchSpace(d);
-    } else if (d.vip && d.vip.status == 0) {   // 已开通的真实大会员不动
+    } else if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
       d.vip = mine(d.vip);
       d.vip_type = 2;
+      changed = true;
+    } else if (d.vip && d.vip.status == 1 && BADGE) {
+      // 真实会员（本账号本身就是小会员）+ 角标开关 → 只换 label_theme
+      d.vip.label = Object.assign({}, d.vip.label, { label_theme: LABEL_THEME });
       changed = true;
     }
   }
