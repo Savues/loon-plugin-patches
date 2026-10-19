@@ -342,15 +342,18 @@ t("角标·开关关 → avatar 原样不动", () => {
   assert.strictEqual(json(r).data.avatar.fallback_layers.layers.length, 2);
 });
 
-t("角标·真会员响应已带 ICON_LAYER → 不重复注入", () => {
+t("角标·我的页真会员 → 整体透传（不注入图层/不改 vip）", () => {
   const f = mineNonMember();
   f.data.vip.status = 1;
   f.data.avatar = avatarObj();
-  f.data.avatar.fallback_layers.layers.push(
-    { visible: true, general_spec: {}, layer_config: { tags: { ICON_LAYER: {} } }, resource: {} },
-  );
-  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } });
-  assert.strictEqual(json(r).data.avatar.fallback_layers.layers.length, 3, "已有角标图层时保持原样");
+  untouched(run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } }));
+});
+t("角标·空间页真会员（vipStatus=1）+ 开关开 → 整体透传", () => {
+  const f = spaceNonMember();
+  f.data.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.avatar = avatarObj();
+  untouched(run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } }));
 });
 
 t("角标·我的页响应无 avatar 字段 → 不炸、vip 伪装照常", () => {
@@ -360,13 +363,14 @@ t("角标·我的页响应无 avatar 字段 → 不炸、vip 伪装照常", () =
   assert.strictEqual(j.data.avatar, undefined, "无 avatar 字段则不造");
 });
 
-t("角标·空间页自己主页+开关开 → card.avatar 追加 ICON_LAYER", () => {
+t("角标·空间页自己主页+开关开 → card.avatar 追加 ICON_LAYER，认证保留", () => {
   const f = spaceNonMember(); f.data.card.avatar = avatarObj();
+  f.data.card.official_verify.type = 0;                 // v7.34 起不再清除认证
   const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } });
   const ls = json(r).data.card.avatar.fallback_layers.layers;
   assert.strictEqual(ls.length, 4);
   assert.strictEqual(iconTags(ls), 2);
-  assert.strictEqual(json(r).data.card.official_verify.type, -1, "认证同步清除");
+  assert.strictEqual(json(r).data.card.official_verify.type, 0, "认证不得被清除（v7.34）");
 });
 
 t("角标·空间页别人主页（无全员/点名）→ avatar 不动", () => {
@@ -374,4 +378,32 @@ t("角标·空间页别人主页（无全员/点名）→ avatar 不动", () => 
   untouched(run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } }));
 });
 
+// ---------- v7.34：角标样式自定义 + 证伪清理 ----------
+t("角标样式·默认（未传 vipBadgeIcon）→ local:1 大会员", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } });
+  assert.strictEqual(json(r).data.avatar.fallback_layers.layers[3].resource.res_image.image_src.local, 1);
+});
+t("角标样式·认证闪电 → local:3", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: "认证闪电" } });
+  assert.strictEqual(json(r).data.avatar.fallback_layers.layers[3].resource.res_image.image_src.local, 3);
+});
+t("清理·我的页不再写 avatar_subscript / label 不再强改 annual_vip", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } });
+  const v = json(r).data.vip;
+  assert.strictEqual("avatar_subscript" in v, false, "v7.31 字段已随证伪移除");
+  assert.strictEqual("avatar_subscript_url" in v, false);
+  assert.strictEqual(v.label.label_theme, "fools_day_hundred_annual_vip", "牌子主题跟随 vipTheme 选择");
+  assert.strictEqual("label_id" in v.label, false, "v7.30 整段复刻已移除");
+});
+t("组合·头像角标与认证彩蛋同时开 → 图层注入且认证文字写入", () => {
+  const f = spaceNonMember(); f.data.card.avatar = avatarObj();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true, vipFakeVerify: true } });
+  const j = json(r).data;
+  assert.strictEqual(iconTags(j.card.avatar.fallback_layers.layers), 2, "角标图层注入");
+  assert.strictEqual(j.card.official_verify.type, 0, "认证彩蛋照常生效");
+  assert.strictEqual(j.card.official_verify.title, "认证用户");
+});
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

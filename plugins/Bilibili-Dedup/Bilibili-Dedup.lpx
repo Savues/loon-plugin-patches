@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.33
-#!desc=B 站去广告 + 本地会员伪装 + 漫画净化。v7.33 头像角标终局：HAR 铁证——iPad 走新头像视图（BBAvatarView），角标根本不读 vip 字段，而是 avatar 新协议 fallback_layers 里的两个 ICON_LAYER 图层（白底圈+本地图标 local:1="大"字），真会员响应 4 层、非会员只有 2 层。v7.27~v7.32 改 vip 字段全无效即因于此。本版开启开关后向 mine 的 data.avatar 与空间页 card.avatar 逐字段复刻纯年度大会员的 ICON_LAYER（含暗色模式底圈）。abserver 实验注入已随证伪移除（DD 数据该开关本就 100% 全量）。
+#!name=小破站去广告(合并版) v7.34
+#!desc=B 站去广告 + 本地会员伪装 + 漫画净化。v7.34 清理与自定义：移除 v7.27~7.32 全部证伪实验（label_theme 强改 annual_vip、label 整段复刻、avatar_subscript、清认证、abserver 实验注入——角标只认 avatar 新协议的 ICON_LAYER 图层，与 vip 字段无关）；角标与认证彩蛋解除互斥（认证字段不再被清除）；新增「头像角标样式」可选大会员"大"字或认证闪电；真实会员响应完全不改动。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-10-20 03:10:00
+#!date=2026-10-20 03:55:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -19,11 +19,12 @@ localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space
 myMid = input,"",tag=我的UID,desc=个人主页伪装只作用于该 UID；留空则不生效。「我的」页伪装不受此项影响
 vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有用户的个人主页都按上面的设置显示（含真会员）。仅影响个人主页，「我的」页不变
 vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的个人主页按上面的设置显示。可与「我的UID」叠加；同时开「全员」时全员优先
-vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「bilibili UP主认证：xxx」文字。⚠️头像角标改不动（App 本地渲染，不读 icon）
+vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「bilibili UP主认证：xxx」文字。与头像角标互相独立，可同时开启（角标走图层，不读 icon）
 vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」
 vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
 vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
-vipAvatarBadge = switch,false,tag=头像角标,desc=在头像下方显示会员角标（"大"字）。原理：向 avatar 新协议（新头像视图的图层系统）追加真年度大会员的 ICON_LAYER 角标图层。⚠️认证 UP 主必读：认证角标与会员角标互斥且认证优先，开启本开关会自动清掉 official_verify 认证（认证标识和认证彩蛋都会消失）。牌子文字/配色不受影响
+vipBadgeIcon = select,"大会员","认证闪电",tag=头像角标样式,desc=大会员=粉底"大"字（默认）；认证闪电=认证+会员的合成闪电标。真实会员不受影响
+vipAvatarBadge = switch,false,tag=头像角标,desc=在头像下方显示会员角标。原理：向 avatar 新协议（新头像视图的图层系统）追加真年度大会员的 ICON_LAYER 角标图层。与牌子主题、认证彩蛋互相独立，可任意组合；真实会员响应不改动
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 # ---- kokoryh 参数 ----
 displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
@@ -63,8 +64,8 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 # 一个 vip 字段都没有（12 份抓包 22 个样本），留着只是每开一个评论列表白跑一次
 # requires-body + JSON.parse（最大 59KB/次）。注意它们**不是**「没被请求过」——
 # 国际版 bili-inter 正走 viewunite 变体。
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=733, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge}], tag=会员伪装, enable={localVIP}
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=733, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=734, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon}], tag=会员伪装, enable={localVIP}
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=734, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 # kokoryh protobuf（完整参数，补回 blockAds 降级项）
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js?v=722, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js?v=722, argument=[{displayUpList}, {purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理

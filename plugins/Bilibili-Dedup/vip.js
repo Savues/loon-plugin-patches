@@ -52,39 +52,22 @@ const bg = A.vipBg || T.bg;
 const fg = A.vipFg || T.fg;
 const text = A.vipText || T.text;
 const img = A.vipImg || T.image;
-// 头像角标（头像下方"大"字）：客户端按 label.label_theme 在本地主题表里查
-// subscript.iconUrl 渲染。fools_day_hundred_annual_vip 不在表里 → 小会员无角标
-// （HAR 实证：真小会员同样无角标）。开启后改用 annual_vip（真实年度大会员的
-// key，主题表里必有）让角标出现。牌子文字/配色仍由上面的 label 字段决定，不受影响。
-const LABEL_THEME = on(A.vipAvatarBadge) ? "annual_vip" : KEY;
-// 开关本体：开启后真实会员的响应也改 label_theme（只此一处，其余真实字段不动）
+// 头像角标（v7.33 定案）：角标是 avatar 新协议的 ICON_LAYER 图层（见下方
+// addBadgeLayers 注释），**与 vip 字段/label/主题完全无关** —— 牌子由上面的
+// label 字段驱动，角标由图层驱动，两者独立。v7.27~7.32 在 vip 数据侧的所有
+// 实验（label_theme 换 annual_vip、label 整段复刻、avatar_subscript、清认证、
+// abserver 实验注入）已全部证伪并移除。
 const BADGE = on(A.vipAvatarBadge);
-// 真年度大会员的 label 实测值（HAR 逐字段抄录）。静态分析已确认 vip 数据路径
-// （isValidVip/vipTheme/themeInfoName/主题表）与真会员完全等价后角标仍不出现，
-// 剩余唯一差异是这三个字段：image/label_id/label_goto。开启后整段替换做等价性测试。
-const REAL_ANNUAL_LABEL = {
-  path: "", text: "年度大会员", label_theme: "annual_vip",
-  text_color: "#FFFFFF", bg_style: 1, bg_color: "#FB7299",
-  border_color: "", image: "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
-  label_id: -22, label_goto: "https://big.bilibili.com/mobile/index?navhide=1&from_spmid=vipicon"
-};
+// 角标图标（ICON_LAYER 的 local 资源 id，实测：1=大会员"大"字、3=认证+会员闪电）
+const BADGE_ICON = A.vipBadgeIcon === "认证闪电" ? 3 : 1;
 
 function label(v) {
-  if (BADGE) { return Object.assign({}, (v && v.label) || {}, REAL_ANNUAL_LABEL); }
   return Object.assign({}, (v && v.label) || {}, {
-    path: "", text: text, label_theme: LABEL_THEME,
+    path: "", text: text, label_theme: KEY,
     text_color: fg, bg_style: 1, bg_color: bg, border_color: "", image: img
   });
 }
 
-// 头像角标与认证互斥（反汇编实证：updateBadgeWithUserInfo 里
-// certificationType≠0 直接渲染认证角标并跳过 VIP 角标路径）。
-// certificationType 由 official_verify.type 映射：-1→0(无)、0→1(个人)、1→2(机构)。
-// 开了角标就要把认证清掉，否则"大"字永远不出现。
-function clearCert(d) {
-  if (d.official_verify) { d.official_verify = Object.assign({}, d.official_verify, { type: -1 }); }
-  if (d.official) { d.official = Object.assign({}, d.official, { type: -1 }); }
-}
 
 // ★ 头像角标的真正机制（HAR 410 铁证，2026-10-19 定案）：
 // iPad 走新头像视图（BBAvatarView，Swift），它**不读 vip 字段**，角标是
@@ -104,14 +87,7 @@ const ICON_LAYERS = [
       res_native_draw: { draw_src: { src_type: 3,
         draw: { draw_type: 1, fill_mode: 1,
           color_config: { is_dark_mode_aware: true,
-            day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } },
-  { visible: true,
-    general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 1, axis_y: 1 },
-                    size_spec: { width: 0.25, height: 0.25 },
-                    render_spec: { opacity: 1 } },
-    layer_config: { tags: { ICON_LAYER: {} } },
-    resource: { res_type: 3,
-      res_image: { image_src: { src_type: 2, local: 1 } } } }
+            day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } }
 ];
 
 // 给 avatar 新协议对象追加角标图层。真会员响应已带 ICON_LAYER → 不动（返回 false）。
@@ -120,24 +96,26 @@ function addBadgeLayers(av) {
   const ls = av.fallback_layers.layers;
   const has = ls.some((l) => l && l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags);
   if (has) { return false; }
-  ls.push(ICON_LAYERS[0], ICON_LAYERS[1]);
+  ls.push(ICON_LAYERS[0], {
+    visible: true,
+    general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 1, axis_y: 1 },
+                    size_spec: { width: 0.25, height: 0.25 },
+                    render_spec: { opacity: 1 } },
+    layer_config: { tags: { ICON_LAYER: {} } },
+    resource: { res_type: 3,
+      res_image: { image_src: { src_type: 2, local: BADGE_ICON } } }
+  });
   return true;
 }
 
 
 // 「我的」页 schema。x/v2/account/* 与专栏页（/x/v2/space/article 的 item[].author）共用这一套。
-// avatar_subscript = 头像角标开关（HAR 实证：真年度大会员 article.author.vip 里恒为 1，
-// 非会员为 0；空间页 card.vip 无此字段）。自查看时头像角标读账号模型 → 必须在这里补。
+// （v7.31 的 avatar_subscript 补写已随 ICON_LAYER 定案移除——新视图不读该字段。）
 function mine(v) {
-  const o = Object.assign({}, v, {
+  return Object.assign({}, v, {
     type: 2, status: 1, due_date: DUE, role: T.role,
     nickname_color: T.bg, label: label(v)
   });
-  if (BADGE) {
-    o.avatar_subscript = 1;
-    if (o.avatar_subscript_url == null) { o.avatar_subscript_url = ""; }
-  }
-  return o;
 }
 
 // 个人资料页（顶栏 + 专栏列表）。x/v2/space 访问任何人主页都走它，故必须按 UID 限定生效范围。
@@ -152,41 +130,30 @@ function patchSpace(d) {
   const v = d.vip;
   // 别人的主页（未点名）/ 响应异常 → 原样透传
   if (!(ALL || who === ME || who === TARGET)) { return false; }
-  // 已是真实会员：默认不动；开了头像角标 → 只换 label_theme 让角标出现
+  // 已是真实会员：不碰（角标图层服务端已下发，牌子是真实数据）
   const isReal = v && v.vipStatus === 1;
-  if (isReal && !BADGE) { return false; }
+  if (isReal) { return false; }
 
   let changed = false;
   // 顶栏：只在这一步写 d.vip。专栏页响应里没有顶栏，造一个 d.vip 没有意义。
   if (card) {
-    if (isReal) {
-      // 真实会员 + 角标开关：label 整段换成真年度会员字段（等价性测试），
-      // 到期时间/等级等真实字段全部保留。
-      const lt = (cv) => label(cv);
-      card.vip = Object.assign({}, card.vip || {}, { label: lt(card.vip) });
-      if (d.vip) { d.vip = Object.assign({}, d.vip, { label: lt(d.vip) }); }
-      changed = true;
-    } else {
-      const vip = Object.assign({}, v || {}, {
-        vipType: T.type, vipDueDate: DUE, dueRemark: "", accessStatus: 0,
-        vipStatus: 1, vipStatusWarn: "", themeType: 0, label: label(v),
-        silence: 0, control: 0, end_time: 0, silence_url: "", nickname_color: T.bg
-      });
-      // 空间页原生 label **没有** use_img_label 字段（只有「我的」页有），
-      // 不显式补 true 的话 App 可能仍按文字渲染，牌子图不生效。
-      // 但开角标时按真年度会员响应复刻（其空间页无此字段），不加。
-      if (!BADGE) { vip.label.use_img_label = true; }
-      d.vip = vip;
-      // 空间页的到期提示开关，与会员样本一致
-      if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
-      // 关键：主页顶栏实际读 data.card.vip。抓包实证：只写 data.vip 时顶栏仍显示灰色。
-      card.vip = Object.assign({}, card.vip || {}, vip);
-      changed = true;
-    }
+    const vip = Object.assign({}, v || {}, {
+      vipType: T.type, vipDueDate: DUE, dueRemark: "", accessStatus: 0,
+      vipStatus: 1, vipStatusWarn: "", themeType: 0, label: label(v),
+      silence: 0, control: 0, end_time: 0, silence_url: "", nickname_color: T.bg
+    });
+    // 空间页原生 label **没有** use_img_label 字段（只有「我的」页有），
+    // 不显式补 true 的话 App 可能仍按文字渲染，牌子图不生效。
+    vip.label.use_img_label = true;
+    d.vip = vip;
+    // 空间页的到期提示开关，与会员样本一致
+    if (d.vip_space_label) { d.vip_space_label.show_expire = false; }
+    // 关键：主页顶栏实际读 data.card.vip。抓包实证：只写 data.vip 时顶栏仍显示灰色。
+    card.vip = Object.assign({}, card.vip || {}, vip);
+    changed = true;
 
-    // 开了头像角标 → 清掉认证（与认证角标互斥，不清则"大"字不出现）
+    // 开了头像角标 → 追加 ICON_LAYER 图层（新视图渲染，与 vip/认证字段无关）
     if (BADGE) {
-      clearCert(card);
       addBadgeLayers(card.avatar);          // 空间页头像新协议：card.avatar
       if (d.avatar) { addBadgeLayers(d.avatar); }
     }
@@ -194,8 +161,8 @@ function patchSpace(d) {
     // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
     // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
     // type/title/splice_title 仍有效：认证文字会显示，只是头像角标不会出现。
-    // 与头像角标开关互斥（认证在客户端优先级更高）。
-    if (!BADGE && on(A.vipFakeVerify)) {
+    // v7.34 起与头像角标解除互斥（角标走图层，与 official_verify 无关）。
+    if (on(A.vipFakeVerify)) {
       const t = A.vipVerifyTitle || "认证用户";
       card.official_verify = Object.assign({}, card.official_verify || {}, {
         type: 0, role: 7, title: t, desc: t,
@@ -227,19 +194,11 @@ try {
       d.vip = mine(d.vip);
       d.vip_type = 2;
       if (BADGE) {
-        clearCert(d);
         addBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
       }
       changed = true;
-    } else if (d.vip && d.vip.status == 1 && BADGE) {
-      // 真实会员 + 角标开关 → label 整段换真年度会员字段 + 补头像角标开关
-      d.vip.label = label(d.vip);
-      d.vip.avatar_subscript = 1;
-      if (d.vip.avatar_subscript_url == null) { d.vip.avatar_subscript_url = ""; }
-      clearCert(d);
-      addBadgeLayers(d.avatar);
-      changed = true;
     }
+    // 真实会员（status==1）不碰：角标图层服务端已下发，牌子是真实数据
   }
   $done(changed ? { body: JSON.stringify(j) } : {});
 } catch (e) {
