@@ -87,11 +87,18 @@ function clearCert(d) {
 }
 
 // 「我的」页 schema。x/v2/account/* 与专栏页（/x/v2/space/article 的 item[].author）共用这一套。
+// avatar_subscript = 头像角标开关（HAR 实证：真年度大会员 article.author.vip 里恒为 1，
+// 非会员为 0；空间页 card.vip 无此字段）。自查看时头像角标读账号模型 → 必须在这里补。
 function mine(v) {
-  return Object.assign({}, v, {
+  const o = Object.assign({}, v, {
     type: 2, status: 1, due_date: DUE, role: T.role,
     nickname_color: T.bg, label: label(v)
   });
+  if (BADGE) {
+    o.avatar_subscript = 1;
+    if (o.avatar_subscript_url == null) { o.avatar_subscript_url = ""; }
+  }
+  return o;
 }
 
 // 个人资料页（顶栏 + 专栏列表）。x/v2/space 访问任何人主页都走它，故必须按 UID 限定生效范围。
@@ -179,8 +186,10 @@ try {
       if (BADGE) { clearCert(d); }
       changed = true;
     } else if (d.vip && d.vip.status == 1 && BADGE) {
-      // 真实会员 + 角标开关 → label 整段换成真年度会员字段（等价性测试）
+      // 真实会员 + 角标开关 → label 整段换真年度会员字段 + 补头像角标开关
       d.vip.label = label(d.vip);
+      d.vip.avatar_subscript = 1;
+      if (d.vip.avatar_subscript_url == null) { d.vip.avatar_subscript_url = ""; }
       clearCert(d);
       changed = true;
     }
