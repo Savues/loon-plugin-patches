@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 7 个自动模式 + 屏蔽模式。
 
-**当前版本 v39.1** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v40** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -14,7 +14,7 @@
 - **自动节日**：按当天日期自动选皮肤，农历节日用标准农历算法（1900–2100 数据表，30 组节日日期验证通过）；优先用今年的历史皮肤，没有则回退官方常青皮肤；非节日不干预（客户端显示官方默认开屏）
 - **随机 / 轮换**：每次冷启动换一个皮肤。池子三档：默认官方 22 个；「·全部」75 个；「·半透明」只有 8 张透明角色图（2233 款式一~四 / slogan / BW2020 / 10 周年 / 11 周年 —— 实测像素层 70–82% 透明、服务端 `mode` 全为 `half`。注意 **12/13 周年是 full 满版图，不在半透明池**）。轮换用 `$persistentStore` 计数器，可预测可复现
 
-- **block 屏蔽模式**：开屏不显示任何品牌皮肤
+- **block 屏蔽模式（v40 加强）**：彻底屏蔽开屏 —— 清 `show` / `select_show_list` / `selectList` / `preload`，并把 `forcibly` / `rule` / `force_show_times` 归零，客户端不创建开屏视图。`list` 保留不动（皮肤库，设置页与预加载依赖它）
 
 ## 参数设置
 
@@ -86,6 +86,22 @@
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。
 
 ## 实测记录
+
+### v40（2026-10-19）
+
+`屏蔽开屏` 从「只清 `show`」升级为彻底屏蔽。原来有三个漏口：
+
+| 漏口 | 后果 | 修法 |
+|---|---|---|
+| 用户曾在 App 内「自选开屏」页保存过皮肤 → 服务端会带 `select_show_list` | `updateSelectList:` 重建出非空 `selectList`；type-4 拿空 `show` 返回 nil 后**回退 type-2**，反而把自选皮肤显示出来 | `select_show_list = []` + `selectList = []` |
+| 节日当天服务端下发 `forcibly: true` | 门控被服务端打开 | `forcibly = false` |
+| `preload` 非空 | 客户端改用 preload 条目当列表（v36 的坑） | `preload = []` |
+
+另外归零 `force_show` / `force_show_times` / `rule`，并把 `has_new_splash_set` 置 false。
+`list` **保留不动**：它是皮肤库，客户端「自选开屏」设置页与预加载都依赖它，清空有未知风险，
+收益也只是省掉预下载。
+
+回放器新增 4 项用例（含「节日当天 + 有自选」的最坏情况），共 67 项全过。
 
 ### v39.1（2026-10-19）
 

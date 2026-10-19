@@ -217,10 +217,38 @@ run('载体条目补上 splash_id', { festival: '中秋节' }, PHONE, (j) => {
   return [it.splash_id === '14', `splash_id=${it.splash_id}`];
 });
 
-run('block 模式只清 show，不残留旧皮肤', { festival: '屏蔽开屏' }, PHONE, (j) => {
+run('block 模式清 show，且不动 list（皮肤库保留）', { festival: '屏蔽开屏' }, PHONE, (j) => {
   const t = thumbOf(j, 14);
   return [(j.data.show || []).length === 0 && t === 'orig_14', `show=[] thumb=${t}`];
 });
+
+// —— v40：屏蔽开屏加强版 ——
+run('block：select_show_list / selectList 一并清空（否则用户自选皮肤会从 type-2 漏出来）',
+  { festival: '屏蔽开屏' }, PHONE, (j) => {
+    const a = (j.data.select_show_list || []).length, b = (j.data.selectList || []).length;
+    return [a === 0 && b === 0, `select_show_list=${a} selectList=${b}`];
+  }, makeResp({ forcibly: true, rule: 'order',
+                select_show_list: [{ id: 145, splash_id: '145' }],
+                selectList: [{ id: 145, thumb: 'x', thumb_hash: 'y' }],
+                show: [{ id: 145, splash_id: '145' }] }));
+
+run('block：节日当天的 forcibly/rule/force_show_times 都被归零',
+  { festival: '屏蔽开屏' }, PHONE, (j) => {
+    const ok = j.data.forcibly === false && j.data.rule === '' && j.data.force_show_times === 0
+      && JSON.stringify(j.data.force_show) === '{}';
+    return [ok, `forcibly=${j.data.forcibly} rule=${JSON.stringify(j.data.rule)} fst=${j.data.force_show_times} force_show=${JSON.stringify(j.data.force_show)}`];
+  }, makeResp({ forcibly: true, rule: 'order', force_show_times: 3, force_show: { '145': 2 } }));
+
+run('block：preload 清空（不预下载素材）',
+  { festival: '屏蔽开屏' }, PHONE, (j) => {
+    return [(j.data.preload || []).length === 0, `preload=${(j.data.preload || []).length}`];
+  });
+
+run('block：不修改任何皮肤素材（list 原样保留）',
+  { festival: '屏蔽开屏' }, PHONE, (j) => {
+    const bad = (j.data.list || []).filter(x => (x.thumb || '').indexOf('githubusercontent') >= 0);
+    return [bad.length === 0 && j.data.list.length === 22, `list=${j.data.list.length} 被改=${bad.length}`];
+  });
 
 // —— v36：preload / force_show_times（反汇编 + HAR 实证的两个坑）——
 run('preload 被清空（否则客户端改用 preload 条目，注入被官方节日皮肤顶掉）',

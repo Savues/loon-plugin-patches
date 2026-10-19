@@ -344,7 +344,25 @@ try {
   }
 
   if (sel === "block") {
+    // ── v40：屏蔽开屏加强版 ────────────────────────────────────────────
+    // 只清 show 是不够的，有三个漏口：
+    // ① 节日当天服务端会下发 forcibly:true；而如果用户曾在 App 内「自选开屏」页保存过
+    //    皮肤，服务端还会带 select_show_list → updateSelectList: 会重建出非空 selectList
+    //    → type-4 拿空 show 返回 nil 后**回退 type-2** → 反而把用户自选的皮肤显示出来。
+    //    所以 select_show_list / selectList 必须一起清。
+    // ② preload 非空会让客户端改用 preload 条目当列表（见 v36 的坑），一并清掉。
+    // ③ force_show / force_show_times 是强制展示计数，清掉避免残留。
+    // list 保留不动：它是皮肤库，客户端「自选开屏」设置页与预加载都依赖它，
+    // 清空有未知风险，收益也只是省掉预下载。
     j.data.show = [];
+    j.data.select_show_list = [];
+    j.data.selectList = [];
+    j.data.preload = [];
+    j.data.forcibly = false;
+    j.data.force_show = {};
+    j.data.force_show_times = 0;
+    j.data.rule = "";
+    j.data.has_new_splash_set = false;
     $done({ body: JSON.stringify(j) });
   } else {
     // 载体：2233款式一 (id=14)。服务端历史上一直带它，但 list 内容随时可能变，
