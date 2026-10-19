@@ -23,7 +23,8 @@ function makeResp(over = {}) {
     code: 0,
     data: Object.assign({
       list: IDS.map(id => ({
-        id, thumb: 'orig_' + id, thumb_name: 'orig', thumb_hash: 'orig', mode: 'half', logo_hash: 'lh' + id
+        id, thumb: 'orig_' + id, thumb_name: 'orig', thumb_hash: 'orig', mode: 'half',
+        logo_hash: 'lh' + id, show_logo: true
       })),
       show: [],
       preload: [{ forcibly: true, rule: 'order',
@@ -397,6 +398,47 @@ run('轮换·半透明 · 第二次取第二个(2233b)，计数器接着走',
     const t = thumbOf(j, 14).split('/').pop();
     return [t === '15.png', `id14.thumb=${t}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+// —— v39：logo 开关 / 显示时长 ——
+run('logo=隐藏 → list 条目与 show 条目的 show_logo 都为 false',
+  { festival: '中秋节', logo: '隐藏' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.show_logo === false && sh.show_logo === false,
+      `list=${it.show_logo} show=${sh.show_logo}`];
+  });
+
+run('logo=官方（默认）→ 不动 show_logo',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.show_logo === true && sh.show_logo === true,
+      `list=${it.show_logo} show=${sh.show_logo}`];
+  });
+
+run('duration=3秒 → list 与 show 都是 3000',
+  { festival: '中秋节', duration: '3秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 3000 && sh.duration === 3000,
+      `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=官方（默认）→ list 不带 duration、show 保持 1000',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === undefined && sh.duration === 1000,
+      `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=5秒 → list 与 show 都是 5000',
+  { festival: '中秋节', duration: '5秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 5000 && sh.duration === 5000,
+      `list=${it.duration} show=${sh.duration}`];
+  });
 
 run('随机·半透明 · 结果必落在 8 张透明图之内',
   { festival: '随机·半透明' }, PHONE, (j) => {

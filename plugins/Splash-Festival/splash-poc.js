@@ -65,6 +65,10 @@ function normalizeFestival(v) {
 
 var MODE_SEL = A.splashMode || "official";
 var IMG_MODE = A.imgMode || "auto";
+// v39：logo 开关 + 显示时长。中文标签做值（Loon select 不支持 label=value，见 .lpx 注释）
+var LOGO_SEL = A.logo || "官方";
+var DUR_SEL = A.duration || "官方";
+var DUR_MS = { "1秒": 1000, "2秒": 2000, "3秒": 3000, "5秒": 5000 }[DUR_SEL] || 0;
 var sel = normalizeFestival(A.festival);
 
 // ════════════════════════════════════════════════════════════════════
@@ -390,6 +394,18 @@ try {
     // （v35 改用 id=14 载体时把这段丢了，这里补回）
     if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
 
+    // ── v39：logo 开关 ─────────────────────────────────────────────────
+    // 反汇编：type-2（selectList）路径读的是 list 条目自己的 show_logo；
+    // type-4（show）路径会被 show 条目覆盖（[sp setShow_logo:[sh show_logo]]）。
+    // 非节日实际走 type-2，所以两处都要设才稳妥。
+    if (LOGO_SEL === "隐藏") item.show_logo = false;
+
+    // ── v39：显示时长 ──────────────────────────────────────────────────
+    // 服务端 list 条目本来就不带 duration 字段（HAR 实证），type-2 路径读的是它，
+    // 所以必须写到 list 条目上；type-4 路径会被 show 条目覆盖，也一并设。
+    // ⚠️ 单位 ms 是抓包+属性名推断，未从反汇编的计时器直接证实，待真机确认。
+    if (DUR_MS) item.duration = DUR_MS;
+
     // ── v35.3：补齐客户端真正读取的门控字段 ──────────────────────────────
     // 反汇编 BFCBrandSplashDispatcher.getSplashVCWithDelegate:launchFlag:inHot:
     //   1) [availableList forcibly] 必须为真
@@ -430,9 +446,9 @@ try {
       begin_time: now - 7 * 86400,
       end_time: now + 7 * 86400,
       probability: 1,
-      duration: 1000,
+      duration: DUR_MS || 1000,
       mode: "full",
-      show_logo: true,
+      show_logo: LOGO_SEL !== "隐藏",
       has_new_splash: true,
       source: "brand"
     }];
