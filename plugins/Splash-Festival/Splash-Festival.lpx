@@ -1,5 +1,5 @@
-#!name=开屏节日定制(Splash Festival) v35
-#!desc=强制展示指定节日/活动品牌皮肤（22官方+54历史共76个），或屏蔽节日开屏。历史皮肤通过官方URL替换实现。
+#!name=开屏节日定制(Splash Festival) v35.3
+#!desc=强制展示指定节日/活动品牌皮肤（22官方+54历史共76个），或屏蔽节日开屏。补齐 forcibly/select_show_list/selectList 门控字段，非节日也能生效。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-10-18 17:28:00
+#!date=2026-10-19 10:10:00
 
 [Argument]
 festival = select,"中秋节","重阳节","元旦","端午节","七夕节","万圣节","圣诞节1.0","圣诞节2.0","妇女节","劳动节","10周年","11周年","12周年","13周年","BML 2021","BW 2020","BW 2021","2233款式一","2233款式二","2233款式三","2233款式四","Slogan","屏蔽开屏","2023跨年","2024春节-款式一","2024春节-款式二","2024春节-款式三","2024春节-款式四","2024春节-款式五","2024春节-款式六","2025春节-打铁花","2025春节-放御灯","2025春节-滚灯球","2025春节-聚天宫","2025春节-跨火盆","2025春节-舞龙狮","2026春节-马灯笼","2026春节-马头琴","2026春节-马球","2024元宵节","2025元宵节","2024妇女节","2025妇女节","2024清明","2025清明","2024劳动节","2025劳动节","2023端午节","2024端午节","2025端午节","2026端午节","2023暑假过半","2024暑假快乐","2025暑假过半","2023七夕节","2023七夕款式二","2023七夕款式三","2023七夕款式四","2023七夕款式五","2023七夕款式六","2024七夕节","2025七夕节","2023中秋节","2024中秋节","2025中秋节","2026中秋节","2024重阳节","2024教师节","2025教师节","2023万圣节款式一","2023万圣节款式二","2024高考","2025高考","2026高考","2026五一","2023开学季",tag=节日皮肤,desc=选择展示的节日/活动品牌皮肤（22官方+54历史），或选择「屏蔽开屏」屏蔽节日开屏
@@ -19,9 +19,9 @@ imgMode = select,"auto","landscape","portrait",tag=图片方向,desc=auto=按设
 # 占位：本插件全部逻辑在 [Script]，无需 Rule
 
 [Script]
-# 拦截 splash/brand/list，把 data.show 数组替换为选中节日条目（带 begin_time/end_time 排期）
+# 拦截 splash/brand/list：替换 data.show 为选中节日条目，并补齐 forcibly / select_show_list / selectList 门控字段
 # v16: 22 官方皮肤 + 31 历史皮肤（thumb 替换）+ block 屏蔽模式
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js?v=35.2, argument=[{festival},{splashMode},{imgMode}], tag=节日开屏注入, enable={enabled}
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/splash-poc.js?v=35.3, argument=[{festival},{splashMode},{imgMode}], tag=节日开屏注入, enable={enabled}
 
 [Mitm]
 # 不变量：每个域名都要有规则作用于它。

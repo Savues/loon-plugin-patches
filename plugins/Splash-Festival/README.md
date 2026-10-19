@@ -31,12 +31,33 @@
 3. 按需调整 `splashMode`、`imgMode`
 4. 杀掉 B 站后台后重新打开（需冷启动拉取 `brand/list`）
 
-## 技术原理
+## 技术原理（v35.3，反汇编 8.89.0 客户端验证）
 
-客户端冷启动请求 `x/v2/splash/brand/list`，响应里的 `data.show` 数组是**展示控制通道**：客户端按其中条目的 `begin_time`/`end_time` 时间窗口决定是否展示对应 `id` 的品牌皮肤。
+客户端冷启动请求 `x/v2/splash/brand/list`。响应模型 `BFCBrandSplashListModel` 的关键字段：
+`list` / `show` / `select_show_list` / `selectList` / `forcibly` / `select_next_index` / `next_index` /
+`force_show` / `force_show_times` / `last_day` / `has_new_splash_set` / `splash_hash` / `show_hash` /
+`resources` / `preload` / `pull_interval` / `rule` / `queryList` / `splashItems`。
 
-- **官方皮肤**：直接向 `show` 注入排期条目（窗口 = 当前时间 ±7 天），客户端按 id 从 `list` 找素材展示。**素材图已仓库化**：官方对 full 模式节日皮肤按设备下发横竖两版（iPad 横图 2732×2048 / 手机竖图 1600×2560，`mode` 不分设备），插件复刻该逻辑——按请求里的 `device=pad`/`mobi_app=ipad`/UA 识别设备并注入对应版本；half 模式品牌皮肤两端相同，单套即可。客户端只校验 `thumb_hash` 与素材 MD5 一致，官方换图不再影响展示
-- **历史皮肤**：以 B 站 11 周年（id=13）为载体，把 `list` 中该条目的 `thumb`/`thumb_hash` 替换为目标皮肤素材的 URL/MD5 —— 客户端只验证 hash 与素材内容一致，不校验 id 与素材的对应关系，也不做本地节日日期匹配
+`BFCBrandSplashDispatcher.getSplashVCWithDelegate:launchFlag:inHot:` 的判定顺序：
+
+1. `inReview` → 直接不显示
+2. `getStringConfigByPath:` 非空且 `integerValue != 0` → 远程开关，跳过
+3. `updateSelectList:` 把 `select_show_list` 按 `splash_id` 解析成 `selectList`
+4. `[availableList forcibly]` 为真 **且** `[list selectList].count != 0`
+   - 都满足 → `getSplashInSplashList:type:4` 遍历 **`show`**，按 `begin_time <= now <= end_time` 过滤
+   - 否则     → `getSplashInSplashList:type:2` 遍历 **`selectList`**
+5. 每条都要过 `availableSplash:` = `isFileExist:thumb_hash type:1` —— 图片必须已在本地品牌开屏缓存里
+   （由 `BFCBrandSplashPreloader` 通过 `downloadResourceWithHashURL:hashValue:type:1` 下载）
+
+> **v35.3 修复的关键**：服务器平日只下发
+> `{"pull_interval":1800,"forcibly":false,"rule":"","list":[…]}`（`show` 里只有默认皮肤一条），
+> 缺 `forcibly` 与 `select_show_list` → 走 type-2 分支遍历空的 `selectList` → 什么都不显示。
+> 这就是「节日当天能用、过后失效」的根因，**不是**客户端做节日日历校验（8.89.0 二进制里没有本地节日列表）。
+> 插件现在自己补上 `forcibly:true` + `select_show_list:[{id,splash_id}]` + `selectList:[载体条目]`。
+
+- **载体**：`list` 中 id=14（2233款式一），替换其 `thumb`/`thumb_hash`（并补 `splash_id`，模型字段名是 `splash_id` 不是 `id`）
+- **官方皮肤**：注入 `show` 排期条目（窗口 = 当前时间 ±7 天），按设备选横/竖版（iPad 2732×2048 / 手机 1600×2560）
+- **历史皮肤**：同样以 id=14 为载体注入
 - **屏蔽**：`show` 置空
 
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。

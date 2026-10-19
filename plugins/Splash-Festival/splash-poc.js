@@ -1,10 +1,15 @@
 /*
  * splash/brand/list show 注入 —— 强制展示指定节日/活动品牌皮肤。
- * v35.2: 载体 2233款式一(id=14)，保持 thumb_name 不变（客户端按 thumb_name 匹配本地节日日历）。
+ * v35.3: 载体 2233款式一(id=14)，并补齐 forcibly / select_show_list / selectList
+ *        （反汇编确认客户端在非节日会忽略只带 show 的响应，见下方注释）。
  *
- * 机制：客户端启动时检查本地节日日历，有节日 → 节日模式(接受任意 show)；无节日 → 非节日模式(展示默认开屏)。
- * 非节日模式默认开屏为 2233款式一(id=14)。用 id=14 作载体：注入 show 固定 id=14，替换 list 中 id=14 的 thumb/thumb_hash 为目标皮肤素材。
- * 注意：不修改 thumb_name（保持"2233款式一"），否则客户端匹配节日日历失败。
+ * 机制（反汇编 BFCBrandSplashDispatcher 验证）：
+ *   - 客户端展示品牌开屏要同时满足：[list forcibly] 为真 且 [list selectList] 非空
+ *   - selectList 由 updateSelectList: 从 select_show_list 按 splash_id 解析而来
+ *   - 满足后走 type-4 分支读 show（按 begin_time/end_time 时间窗过滤）
+ *   - 不满足则走 type-2 分支读 selectList
+ *   - 每条最终都要过 availableSplash: → isFileExist:thumb_hash type:1（本地图片缓存）
+ * 服务端平日只下发 {pull_interval, forcibly:false, rule:"", list}，所以必须自己补齐上述字段。
  */
 var A = $argument || {};
 
@@ -205,27 +210,49 @@ try {
     }
 
     // 替换载体 (id=14 2233款式一) 的素材
-    // 注意：不修改 thumb_name！客户端按 thumb_name 匹配本地节日日历，
-    // 改掉 thumb_name 会导致匹配失败、展示默认原始图。保持"2233款式一"不变。
+    // 注意：不修改 thumb_name（客户端展示时按它取 logo 等）。
     const item = j.data.list.find(x => x.id === 14);
     if (item) {
       item.thumb = targetThumb;
       item.thumb_hash = targetHash;
+      // list 条目模型是 BFCBrandSplashModel，字段名是 splash_id（不是 id），
+      // 服务端只下发 id。这里补一份，保证 updateSelectList: 的 filter 能匹配上。
+      if (item.splash_id === undefined) item.splash_id = "14";
+      // splashMode：official = 不动服务器下发的 mode；full/half = 强制覆盖
+      // （v35 改用 id=14 载体时把这段丢了，这里补回）
+      if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
     }
+
+    // ── v35.3：补齐客户端真正读取的门控字段 ──────────────────────────────
+    // 反汇编 BFCBrandSplashDispatcher.getSplashVCWithDelegate:launchFlag:inHot:
+    //   1) [availableList forcibly] 必须为真
+    //   2) [list selectList].count 必须非空
+    //   3) 两者都满足 → getSplashInSplashList:type:4 遍历 show
+    //      否则           → getSplashInSplashList:type:2 遍历 selectList
+    //   4) selectList 由 updateSelectList: 从 select_show_list 按 splash_id 解析
+    //   5) 每条都要过 availableSplash: = isFileExist:thumb_hash type:1（本地缓存）
+    // 服务器平日只下发 {pull_interval, forcibly:false, rule:"", list}，
+    // 缺 forcibly / select_show_list → 只注入 show 会被完全忽略。
+    // 这就是"节日当天能用、过后失效"的根因。
+    const cid = carrierId;
+    const cidStr = String(cid);
+    const carrierCopy = item ? Object.assign({}, item) : null;
+
+    j.data.forcibly = true;
+    j.data.select_show_list = [ { id: cid, splash_id: cidStr } ];
+    if (carrierCopy) j.data.selectList = [carrierCopy];
 
     // 注入 show：固定载体 id=14，时间窗口 ±7天
     j.data.show = [{
-      id: 14,
-      begin_time: Math.floor(Date.now() / 1000) - 7 * 86400,
-      end_time: Math.floor(Date.now() / 1000) + 7 * 86400,
+      id: cid,
+      splash_id: cidStr,
+      begin_time: now - 7 * 86400,
+      end_time: now + 7 * 86400,
       probability: 1,
       duration: 1000,
       mode: "full",
       show_logo: true,
-      logo_position: "center",
-      new_splash: true,
-      categories: null,
-      initial_push_time: Math.floor(Date.now() / 1000) - 7 * 86400,
+      has_new_splash: true,
       source: "brand"
     }];
     $done({ body: JSON.stringify(j) });
