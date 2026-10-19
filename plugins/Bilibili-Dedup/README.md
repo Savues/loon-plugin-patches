@@ -184,8 +184,32 @@ Push-notification permission popup.
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
-| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。⚠️ 头像角标改不动（App 本地渲染，不读 `icon`） |
+| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。⚠️ 与头像角标互斥（认证优先） |
 | `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
+| `vipAvatarBadge` | switch | 关 | 头像下方会员角标（"大"字）。原理见下节 |
+
+#### 头像角标机制（v7.32，反汇编定案）
+
+「大」字角标不是数据问题——v7.27~v7.31 已把伪造 vip 做到与真年度大会员逐字段等价
+（含 `avatar_subscript:1`、`label.image`、清认证），角标仍不出现。国际版对照实验
+（两端 mine 响应逐字节一致、国际版我的页有角标 iPad 没有）证明差异在**客户端**：
+
+- iPad 3.71.0 头像装配二选一：`avatarNewViewEnable = [BBAvatarView isEnabled] && …`
+  → `+[BBAvatarView isEnabled]` = AB 实验 **`ff_new_avatar_view_enabled`**
+- 国际版 3.20.1 **没有这道门**（永远走新视图 `BBAvatarView`，角标正常）
+- iPad 实验未命中 → 走旧视图 `BFCNewAvatarView`，其 `refreshData` 只认
+  **`bfc_` 前缀协议**（`bfc_vipTheme` 等，逐项 `respondsToSelector:` 检查）；
+  我的页旧路径传入的账号模型不响应 → `setVipTheme:0` → 角标永不安装
+
+因此 v7.32 改为 rewrite `/x/resource/abtest/abserver`：向 `data.vars` 注入
+`{"name":"ff_new_avatar_view_enabled","group":"1","value":"true","force":1}`
+（`vars` 元素 = `BFCABTestConfigItem{name,group,value,force}`，三字段缺一整个
+条目被丢弃；`force=1` 跳过本地分组哈希），把头像渲染切到国际版同款新视图。
+
+**测试注意**：abserver 响应自带 `expire=1800000`（30 分钟缓存），打开开关后需等
+缓存过期或多次冷启动。若仍无效，则该 flag 走的是远程命令加密 KV（`BFCMemexConfig.decryptKV`）
+而非 abserver 明文，需下一轮迭代。完整链路见 `Savues/bilibili-splash-re` README 第十七章。
+ |
 
 ### 规则设计约定
 
