@@ -32,7 +32,7 @@ const CN_TO_KEY = {
   "2023跨年": "yuandan23",
   // —— 2024 年新增 ——
   "2024春节-款式一": "cj24a", "2024春节-款式二": "cj24b", "2024春节-款式三": "cj24c",
-  "2024春节-款式四": "cj24d", "2024春节-款式五": "cj24e", "2024春节-款式六": "cj24f",
+  "2024春节-款式四": "cj24d", "2024春节-款式五": "cj24b", "2024春节-款式六": "cj24d",
   "2024元宵节": "yx24", "2024妇女节": "women24", "2024清明": "qm24", "2024劳动节": "labor24",
   // —— 2024 下半年（已有）——
   "2024高考": "gaokao24", "2024端午节": "duanwu24", "2024暑假快乐": "summer24",
@@ -247,8 +247,6 @@ var HISTORICAL_VENDORED = {
   cj24b:        { file: "cj24b.webp", hash: "cc8a187db60fb57361d034a9ccac52ac", name: "2024春节-款式二" },
   cj24c:        { file: "cj24c.webp", hash: "5e6fc01ae5417f3b176077ecb8166b4a", name: "2024春节-款式三" },
   cj24d:        { file: "cj24d.webp", hash: "35d191cf4917ebed27b5e4488c6b8369", name: "2024春节-款式四" },
-  cj24e:        { file: "cj24e.webp", hash: "cc8a187db60fb57361d034a9ccac52ac", name: "2024春节-款式五" },
-  cj24f:        { file: "cj24f.webp", hash: "35d191cf4917ebed27b5e4488c6b8369", name: "2024春节-款式六" },
   yx24:         { file: "yx24.webp", hash: "9e201791544d9edf2cf9cb5129d6b7bd", name: "2024元宵节" },
   women24:      { file: "women24.webp", hash: "01c5215b60e6f9fd7311b0b215a2e94d", name: "2024妇女节" },
   qm24:         { file: "qm24.webp", hash: "fdba5d96b9d28d8566e86074974a6db1", name: "2024清明" },
@@ -293,7 +291,7 @@ ROTATE_ALL = ROTATE_OFFICIAL.concat(HISTORICAL_KEYS);
 // ⚠️ bili12(44) / bili13(67) 虽是周年皮肤，但 mode=full、横竖双版满版图，不在此列。
 ROTATE_TRANSPARENT = ["2233a", "2233b", "2233c", "2233d", "slogan", "bw2020", "bili10", "bili11"];
 
-const IMG_BASE = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/images/";
+const IMG_BASE = "https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Splash-Festival/images/";
 const VENDORED = {
   31: { pad: { file: "31_pad.jpg", hash: "3bdae29ad7994deecf3f52a376ad5a83", name: "万圣节" }, phone: { file: "31_phone.jpg", hash: "ee35af7edb80487d4f2b71f558fc0b4e", name: "万圣节" } },
   32: { pad: { file: "32_pad.jpg", hash: "ada0d9b118f24d66d17732473feeee56", name: "圣诞节1.0" }, phone: { file: "32_phone.jpg", hash: "c996585b6ba34e6dbeeaf83c1480195f", name: "圣诞节1.0" } },
