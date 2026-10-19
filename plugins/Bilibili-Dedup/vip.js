@@ -67,6 +67,15 @@ function label(v) {
   });
 }
 
+// 头像角标与认证互斥（反汇编实证：updateBadgeWithUserInfo 里
+// certificationType≠0 直接渲染认证角标并跳过 VIP 角标路径）。
+// certificationType 由 official_verify.type 映射：-1→0(无)、0→1(个人)、1→2(机构)。
+// 开了角标就要把认证清掉，否则"大"字永远不出现。
+function clearCert(d) {
+  if (d.official_verify) { d.official_verify = Object.assign({}, d.official_verify, { type: -1 }); }
+  if (d.official) { d.official = Object.assign({}, d.official, { type: -1 }); }
+}
+
 // 「我的」页 schema。x/v2/account/* 与专栏页（/x/v2/space/article 的 item[].author）共用这一套。
 function mine(v) {
   return Object.assign({}, v, {
@@ -118,10 +127,14 @@ function patchSpace(d) {
       changed = true;
     }
 
+    // 开了头像角标 → 清掉认证（与认证角标互斥，不清则"大"字不出现）
+    if (BADGE) { clearCert(card); }
+
     // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
     // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
     // type/title/splice_title 仍有效：认证文字会显示，只是头像角标不会出现。
-    if (on(A.vipFakeVerify)) {
+    // 与头像角标开关互斥（认证在客户端优先级更高）。
+    if (!BADGE && on(A.vipFakeVerify)) {
       const t = A.vipVerifyTitle || "认证用户";
       card.official_verify = Object.assign({}, card.official_verify || {}, {
         type: 0, role: 7, title: t, desc: t,
@@ -152,10 +165,12 @@ try {
     } else if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
       d.vip = mine(d.vip);
       d.vip_type = 2;
+      if (BADGE) { clearCert(d); }
       changed = true;
     } else if (d.vip && d.vip.status == 1 && BADGE) {
       // 真实会员（本账号本身就是小会员）+ 角标开关 → 只换 label_theme
       d.vip.label = Object.assign({}, d.vip.label, { label_theme: LABEL_THEME });
+      clearCert(d);
       changed = true;
     }
   }
