@@ -406,4 +406,41 @@ t("组合·头像角标与认证彩蛋同时开 → 图层注入且认证文字�
   assert.strictEqual(j.card.official_verify.type, 0, "认证彩蛋照常生效");
   assert.strictEqual(j.card.official_verify.title, "认证用户");
 });
+
+// ---------- v7.35：角标样式测试值 + 牌子配色覆盖 ----------
+t("角标样式·local 2/4/5/6 测试值全部可注入", () => {
+  for (const [opt, id] of [["测试·local2", 2], ["测试·local4", 4], ["测试·local5", 5], ["测试·local6", 6]]) {
+    const f = mineNonMember(); f.data.avatar = avatarObj();
+    const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: opt } });
+    assert.strictEqual(json(r).data.avatar.fallback_layers.layers[3].resource.res_image.image_src.local, id, opt);
+  }
+});
+t("角标样式·非法值回落 local:1", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true, vipBadgeIcon: "乱填" } });
+  assert.strictEqual(json(r).data.avatar.fallback_layers.layers[3].resource.res_image.image_src.local, 1);
+});
+t("牌子配色·vipLabelAnnual 开 → label_theme 强制 annual_vip（主题表命中粉色）", () => {
+  for (const url of [URL_MINE, URL_SPACE]) {
+    const arg = url === URL_SPACE ? { myMid: String(ME), vipLabelAnnual: true } : { vipLabelAnnual: true };
+    const f = url === URL_SPACE ? spaceNonMember() : mineNonMember();
+    const r = run({ body: f, url, arg });
+    const v = url === URL_SPACE ? json(r).data.vip : json(r).data.vip;
+    assert.strictEqual(v.label.label_theme, "annual_vip", url);
+    // 牌子文字/配色字段仍按用户主题写（真实渲染时被主题表覆盖成粉）
+    assert.strictEqual(v.label.text, "小会员");
+    assert.strictEqual(v.label.bg_color, "#00E07C");
+  }
+});
+t("牌子配色·关（默认）→ label_theme 跟随 vipTheme", () => {
+  const r = run({ body: mineNonMember(), url: URL_MINE });
+  assert.strictEqual(json(r).data.vip.label.label_theme, "fools_day_hundred_annual_vip");
+});
+t("牌子配色·与角标独立：仅开粉色牌子不注入角标图层", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipLabelAnnual: true } });
+  const j = json(r);
+  assert.strictEqual(j.data.vip.label.label_theme, "annual_vip");
+  assert.strictEqual(j.data.avatar.fallback_layers.layers.length, 2, "角标开关没开则不注入图层");
+});
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

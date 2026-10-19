@@ -187,7 +187,8 @@ Push-notification permission popup.
 | `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。与头像角标互相独立，可同时开启 |
 | `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
-| `vipBadgeIcon` | select | 大会员 | 角标样式：大会员=粉底"大"字（local:1）；认证闪电=合成闪电标（local:3） |
+| `vipBadgeIcon` | select | 大会员 | 角标样式：大会员=粉底"大"字（local:1）；认证闪电=合成闪电标（local:3）；local 2/4/5/6=未知枚举测试值（小会员"小"字图标大概率在其中，愚人节期间可对照真机验证） |
+| `vipLabelAnnual` | switch | 关 | 牌子配色覆盖：强制 label_theme=annual_vip，客户端按主题表渲染配色 → 任意主题（含绿鲤鱼小会员）的牌子变粉色年度款，覆盖 vipBg/vipFg |
 
 #### 头像角标机制（v7.33 终局，HAR 铁证）
 
@@ -208,6 +209,11 @@ v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celest
 ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
 `ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
 公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
+
+**v7.35**：角标样式开放 local 2/4/5/6 测试值（小会员图标只在每年愚人节上线、
+平时无法实测，供真机自测）；v7.27 的「label_theme 强改 annual_vip」从角标实验中
+拆出、恢复为独立开关 `vipLabelAnnual`（机制：客户端牌子按 label_theme 查主题表，
+表内配色覆盖 label 自带颜色——见 v7.29 发现；角标与牌子配色本就互不相干）。
 
 **v7.34 清理与自定义**：
 - 移除 v7.27~7.32 全部证伪实验代码：label_theme 强改 annual_vip、label 整段复刻

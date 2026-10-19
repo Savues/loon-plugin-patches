@@ -1,5 +1,5 @@
-#!name=小破站去广告(合并版) v7.34
-#!desc=B 站去广告 + 本地会员伪装 + 漫画净化。v7.34 清理与自定义：移除 v7.27~7.32 全部证伪实验（label_theme 强改 annual_vip、label 整段复刻、avatar_subscript、清认证、abserver 实验注入——角标只认 avatar 新协议的 ICON_LAYER 图层，与 vip 字段无关）；角标与认证彩蛋解除互斥（认证字段不再被清除）；新增「头像角标样式」可选大会员"大"字或认证闪电；真实会员响应完全不改动。
+#!name=小破站去广告(合并版) v7.35
+#!desc=B 站去广告 + 本地会员伪装 + 漫画净化。v7.35：角标样式开放 local 2/4/5/6 测试值（小会员图标大概率藏在其中，愚人节前无法实测，供真机自测）；v7.34 移除的「牌子配色覆盖」恢复为独立开关 vipLabelAnnual——客户端牌子按 label_theme 查主题表渲染，开启后强制 annual_vip 命中粉色年度款（覆盖 vipTheme 的配色，如绿鲤鱼的绿色牌子变粉）。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
 #!system=iOS, iPadOS
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/icon.png
-#!date=2026-10-20 03:55:00
+#!date=2026-10-20 04:20:00
 
 [Argument]
 # ---- 会员伪装 ----
@@ -23,7 +23,8 @@ vipFakeVerify = switch,false,tag=彩蛋·认证标识,desc=名字下方显示「
 vipVerifyTitle = input,"",tag=认证标题,desc=留空则显示「认证用户」
 vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
 vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
-vipBadgeIcon = select,"大会员","认证闪电",tag=头像角标样式,desc=大会员=粉底"大"字（默认）；认证闪电=认证+会员的合成闪电标。真实会员不受影响
+vipBadgeIcon = select,"大会员","认证闪电","测试·local2","测试·local4","测试·local5","测试·local6",tag=头像角标样式,desc=实测：大会员=粉底"大"字、认证闪电=合成闪电标。local 2/4/5/6 为未知枚举（小会员"小"字图标大概率在其中，愚人节期间才能对照真机验证）。真实会员不受影响
+vipLabelAnnual = switch,false,tag=牌子配色·年度粉,desc=开启后 label_theme 强制 annual_vip：客户端牌子按主题表渲染配色，任意主题（含绿鲤鱼小会员）的牌子都变粉色年度大会员款，覆盖 vipBg/vipFg 自定义色。关闭则跟随 vipTheme（绿鲤鱼不在主题表、用自带绿色）
 vipAvatarBadge = switch,false,tag=头像角标,desc=在头像下方显示会员角标。原理：向 avatar 新协议（新头像视图的图层系统）追加真年度大会员的 ICON_LAYER 角标图层。与牌子主题、认证彩蛋互相独立，可任意组合；真实会员响应不改动
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 # ---- kokoryh 参数 ----
@@ -64,8 +65,8 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 # 一个 vip 字段都没有（12 份抓包 22 个样本），留着只是每开一个评论列表白跑一次
 # requires-body + JSON.parse（最大 59KB/次）。注意它们**不是**「没被请求过」——
 # 国际版 bili-inter 正走 viewunite 变体。
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=734, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon}], tag=会员伪装, enable={localVIP}
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=734, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=735, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual}], tag=会员伪装, enable={localVIP}
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/vip.js?v=735, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual},{myMid},{vipAllUsers},{vipTargetMid},{vipFakeVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 # kokoryh protobuf（完整参数，补回 blockAds 降级项）
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.request.js?v=722, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
 http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Dedup/upstream/protobuf.response.js?v=722, argument=[{displayUpList}, {purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理

@@ -55,18 +55,29 @@ const img = A.vipImg || T.image;
 // 头像角标（v7.33 定案）：角标是 avatar 新协议的 ICON_LAYER 图层（见下方
 // addBadgeLayers 注释），**与 vip 字段/label/主题完全无关** —— 牌子由上面的
 // label 字段驱动，角标由图层驱动，两者独立。v7.27~7.32 在 vip 数据侧的所有
-// 实验（label_theme 换 annual_vip、label 整段复刻、avatar_subscript、清认证、
-// abserver 实验注入）已全部证伪并移除。
+// 实验（label 整段复刻、avatar_subscript、清认证、abserver 实验注入）已全部
+// 证伪并移除。
 const BADGE = on(A.vipAvatarBadge);
-// 角标图标（ICON_LAYER 的 local 资源 id，实测：1=大会员"大"字、3=认证+会员闪电）
-const BADGE_ICON = A.vipBadgeIcon === "认证闪电" ? 3 : 1;
+// 角标图标（ICON_LAYER 的 local 资源 id，实测：1=大会员"大"字、3=认证+会员闪电；
+// 2/4/5/6 为未知枚举的测试值——小会员"小"字图标极可能是其中之一，
+// 但小会员只在每年愚人节上线、平时 HAR 里抓不到，留给真机自测）
+const BADGE_ICONS = { "大会员": 1, "认证闪电": 3, "测试·local2": 2, "测试·local4": 4, "测试·local5": 5, "测试·local6": 6 };
+const BADGE_ICON = BADGE_ICONS[A.vipBadgeIcon] || 1;
+
+// 牌子配色覆盖（v7.29 发现的机制，v7.34 清理时曾随角标实验一起移除）：
+// 客户端牌子渲染按 label.label_theme 查本地主题表（BFCVipThemeConfig），
+// 表里的配色**覆盖** label 自带的 bg_color/text_color。开启后强制
+// label_theme="annual_vip"（主题表必命中）→ 任意主题的牌子都变粉色年度款。
+// 不开则 label_theme 跟随 vipTheme 选择（绿鲤鱼不在表里 → 用 label 自带绿色）。
+const PINK_LABEL = on(A.vipLabelAnnual);
 
 function label(v) {
   return Object.assign({}, (v && v.label) || {}, {
-    path: "", text: text, label_theme: KEY,
+    path: "", text: text, label_theme: PINK_LABEL ? "annual_vip" : KEY,
     text_color: fg, bg_style: 1, bg_color: bg, border_color: "", image: img
   });
 }
+
 
 
 // ★ 头像角标的真正机制（HAR 410 铁证，2026-10-19 定案）：
