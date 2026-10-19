@@ -180,9 +180,9 @@ try {
     j.data.show = [];
     $done({ body: JSON.stringify(j) });
   } else {
-    // 统一载体：2233款式一 (id=14) —— 客户端非节日模式的默认开屏
-    const carrierId = 14;
-    const carrierName = "2233款式一";
+    // 载体：2233款式一 (id=14)。服务端历史上一直带它，但 list 内容随时可能变，
+    // 硬编码 14 一旦失效会静默不显示 —— 下面做三级兜底。
+    let carrierId = 14;
 
     // 确定目标皮肤素材
     let targetThumb, targetHash, targetName;
@@ -209,19 +209,25 @@ try {
       targetName = pick.name;
     }
 
-    // 替换载体 (id=14 2233款式一) 的素材
+    // ── 选载体：id=14 → 任意 half 条目 → 任意条目 → 追加合成条目 ──────────
     // 注意：不修改 thumb_name（客户端展示时按它取 logo 等）。
-    const item = j.data.list.find(x => x.id === 14);
-    if (item) {
-      item.thumb = targetThumb;
-      item.thumb_hash = targetHash;
-      // list 条目模型是 BFCBrandSplashModel，字段名是 splash_id（不是 id），
-      // 服务端只下发 id。这里补一份，保证 updateSelectList: 的 filter 能匹配上。
-      if (item.splash_id === undefined) item.splash_id = "14";
-      // splashMode：official = 不动服务器下发的 mode；full/half = 强制覆盖
-      // （v35 改用 id=14 载体时把这段丢了，这里补回）
-      if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
+    let item = j.data.list.find(x => x.id === 14);
+    if (!item) item = j.data.list.find(x => x.mode === "half") || j.data.list[0] || null;
+    if (!item) {
+      item = { id: 14, thumb: "", thumb_hash: "", thumb_name: "2233款式一",
+               mode: "half", source: "brand", show_logo: true };
+      j.data.list.push(item);
     }
+    carrierId = item.id;
+
+    item.thumb = targetThumb;
+    item.thumb_hash = targetHash;
+    // list 条目模型是 BFCBrandSplashModel，字段名是 splash_id（不是 id），
+    // 服务端只下发 id。这里补一份，保证 updateSelectList: 的 filter 能匹配上。
+    if (item.splash_id === undefined) item.splash_id = String(item.id);
+    // splashMode：official = 不动服务器下发的 mode；full/half = 强制覆盖
+    // （v35 改用 id=14 载体时把这段丢了，这里补回）
+    if (MODE_SEL === "full" || MODE_SEL === "half") item.mode = MODE_SEL;
 
     // ── v35.3：补齐客户端真正读取的门控字段 ──────────────────────────────
     // 反汇编 BFCBrandSplashDispatcher.getSplashVCWithDelegate:launchFlag:inHot:
@@ -236,11 +242,25 @@ try {
     // 这就是"节日当天能用、过后失效"的根因。
     const cid = carrierId;
     const cidStr = String(cid);
-    const carrierCopy = item ? Object.assign({}, item) : null;
+    const carrierCopy = Object.assign({}, item);
 
     j.data.forcibly = true;
     j.data.select_show_list = [ { id: cid, splash_id: cidStr } ];
-    if (carrierCopy) j.data.selectList = [carrierCopy];
+    j.data.selectList = [carrierCopy];
+
+    // ── v36：修两个会静默失效的坑（反汇编 + HAR 实证）────────────────────
+    // ① preload 非空时客户端改用 preload 条目当列表。availableSplashListWithOriginList:
+    //    只复制 list / select_show_list / selectList / select_next_index / next_index /
+    //    force_show —— **不复制 forcibly 和 rule**，于是读到的是 preload 自己的 show，
+    //    插件选的皮肤被官方节日皮肤顶掉。
+    //    HAR 实证：3_1791218834491.har（preload[0] = {forcibly:true, rule:"order",
+    //    show:[{id:145}]}，origin = {forcibly:false, show:[]}）。
+    //    清空 preload → 客户端回落到 origin 列表，注入才稳定生效。
+    j.data.preload = [];
+    // ② force_show_times 非 0 时 show 分支会按 force_show[splash_id] 计数，
+    //    超过次数就把候选 continue 掉（节日当天服务端下发 3，HAR 实证）。
+    //    置 0 = 不限制展示次数。
+    j.data.force_show_times = 0;
 
     // 注入 show：固定载体 id=14，时间窗口 ±7天
     j.data.show = [{
@@ -258,6 +278,9 @@ try {
     $done({ body: JSON.stringify(j) });
   }
 } catch (e) {
+  // 脚本抛异常时 Loon 会放行原响应 = 插件静默失效，用户只看到「没生效」。
+  // 留个痕迹；$notification 不可用时降级为静默。
+  try { $notification.post("Splash-Festival 脚本异常", "", String((e && e.message) || e)); } catch (_) {}
   $done({});
 }
 // v35: all skins via 2233款式一(id=14) carrier (bypass festival calendar)

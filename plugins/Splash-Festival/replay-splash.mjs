@@ -15,15 +15,22 @@ const code = readFileSync(scriptPath, 'utf-8');
 
 // 最小 brand/list 响应：list 覆盖所有会用到的 id
 const IDS = [10, 12, 13, 14, 15, 17, 31, 32, 33, 34, 35, 36, 37, 38, 41, 43, 44, 45, 46, 47, 67, 145];
-function makeResp() {
+// 模拟服务端真实响应。非节日是 {forcibly:false, rule:"", preload:[], force_show_times:0}；
+// 节日当天会变成 {forcibly:true, rule:"order", preload:[{...}], force_show_times:3}。
+// 默认带上 preload / force_show_times，用来守住 v36 修的两个坑。
+function makeResp(over = {}) {
   return JSON.stringify({
     code: 0,
-    data: {
+    data: Object.assign({
       list: IDS.map(id => ({
         id, thumb: 'orig_' + id, thumb_name: 'orig', thumb_hash: 'orig', mode: 'half', logo_hash: 'lh' + id
       })),
-      show: []
-    }
+      show: [],
+      preload: [{ forcibly: true, rule: 'order',
+                  show: [{ id: 145, begin_time: 1, end_time: 9999999999 }], list: [] }],
+      force_show_times: 3,
+      rule: ''
+    }, over)
   });
 }
 
@@ -32,12 +39,12 @@ const IPAD = 'https://app.bilibili.com/x/v2/splash/brand/list?appkey=5fd5a7d8bfd
 
 let failures = 0;
 
-function run(label, argument, url, expect) {
+function run(label, argument, url, expect, respBody) {
   let done = null, error = null;
   const sandbox = {
     $argument: argument,
     $request: { url: url || PHONE },
-    $response: { body: makeResp() },
+    $response: { body: respBody || makeResp() },
     $done: (r) => { done = r; }
   };
   vm.createContext(sandbox);
@@ -209,6 +216,41 @@ run('block 模式只清 show，不残留旧皮肤', { festival: '屏蔽开屏' }
   const t = thumbOf(j, 14);
   return [(j.data.show || []).length === 0 && t === 'orig_14', `show=[] thumb=${t}`];
 });
+
+// —— v36：preload / force_show_times（反汇编 + HAR 实证的两个坑）——
+run('preload 被清空（否则客户端改用 preload 条目，注入被官方节日皮肤顶掉）',
+  { festival: '中秋节' }, PHONE, (j) => {
+    return [(j.data.preload || []).length === 0, `preload.length=${(j.data.preload || []).length}`];
+  });
+
+run('force_show_times 被置 0（否则注入条目只能展示 3 次）',
+  { festival: '中秋节' }, PHONE, (j) => {
+    return [j.data.force_show_times === 0, `force_show_times=${j.data.force_show_times}`];
+  });
+
+// —— v36：载体三级兜底 ——
+run('载体 id=14 缺失 → 回退到第一条 half 条目',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => (x.thumb || '').endsWith('38_phone.webp'));
+    return [!!it && it.id === 10, `回退到 id=${it && it.id}`];
+  }, makeResp({ list: [10, 17, 34].map(id => ({
+      id, thumb: 'orig_' + id, thumb_name: 'orig', thumb_hash: 'orig', mode: 'half', logo_hash: 'lh' + id
+    })) }));
+
+run('list 里没有 half 条目 → 回退到第一条',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => (x.thumb || '').endsWith('38_phone.webp'));
+    return [!!it && it.id === 17, `回退到 id=${it && it.id}`];
+  }, makeResp({ list: [
+      { id: 17, thumb: 'orig_17', thumb_name: 'orig', thumb_hash: 'orig', mode: 'full' },
+      { id: 34, thumb: 'orig_34', thumb_name: 'orig', thumb_hash: 'orig', mode: 'full' }
+    ] }));
+
+run('list 为空 → 追加合成载体条目',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14);
+    return [!!it && /38_phone\.webp$/.test(it.thumb || ''), `list.length=${j.data.list.length}`];
+  }, makeResp({ list: [] }));
 
 // —— 可选：真实 HAR ——
 const HAR = process.argv[2];
