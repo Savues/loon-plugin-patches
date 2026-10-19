@@ -507,4 +507,40 @@ t("认证·选「关」且旧开关关 → 不改 official_verify", () => {
   const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "关" } });
   assert.strictEqual(json(r).data.card.official_verify.type, -1);
 });
+
+// ---------- v7.38 审查：全员/点名彩蛋与新功能同步 ----------
+t("审查·全员+角标 → 别人主页也注入 ICON_LAYER", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999"; f.data.card.avatar = avatarObj();
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipAvatarBadge: true } });
+  const ls = json(r).data.card.avatar.fallback_layers.layers;
+  assert.strictEqual(iconTags(ls), 2, "全员生效时别人主页也注入角标");
+});
+t("审查·全员+认证彩蛋 → 别人主页写认证文字", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999";
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipVerify: "蓝V·企业认证", vipVerifyTitle: "某某科技" } });
+  const ov = json(r).data.card.official_verify;
+  assert.strictEqual(ov.type, 1);
+  assert.strictEqual(ov.splice_title, "bilibili机构认证-企业：某某科技");
+});
+t("审查·点名 UID → 生效；非点名 → 不生效", () => {
+  const f = spaceNonMember(); f.data.card.mid = "888"; f.data.card.avatar = avatarObj();
+  const r1 = run({ body: f, url: URL_SPACE, arg: { vipTargetMid: "888", vipAvatarBadge: true } });
+  assert.strictEqual(iconTags(json(r1).data.card.avatar.fallback_layers.layers), 2, "点名 UID 生效");
+  const f2 = spaceNonMember(); f2.data.card.mid = "777"; f2.data.card.avatar = avatarObj();
+  untouched(run({ body: f2, url: URL_SPACE, arg: { vipTargetMid: "888", vipAvatarBadge: true } }));
+});
+t("审查·全员遇到真会员 → 透传（角标/认证都不写）", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999";
+  f.data.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.vip = { vipStatus: 1, vipType: 2, label: { text: "真会员" } };
+  f.data.card.avatar = avatarObj();
+  untouched(run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipAvatarBadge: true, vipVerify: "黄V·UP主认证" } }));
+});
+t("审查·别人主页的专栏作者也被全员伪装（mine schema）", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999";
+  f.data.item = [{ author: { mid: "555", name: "b", vip: { type: 0, status: 0, label: {} } } }];
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true } });
+  const a = json(r).data.item[0].author;
+  assert.strictEqual(a.vip.status, 1, "专栏作者跟随全员伪装");
+});
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");
