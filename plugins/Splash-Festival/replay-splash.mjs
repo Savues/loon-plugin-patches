@@ -276,10 +276,14 @@ function mkNow(y, mo, d) {
   return F;
 }
 const ROTATE_MEM = {};
+// ⚠️ Loon / Surge 的 $persistentStore 是 read(key) / write(value, key) —— 值在前、键在后。
+// 这个顺序写反过一次（v37 首版），导致 read 永远 null、轮换卡在池子第一个。
 const mockStore = () => ({
   read: (k) => (k in ROTATE_MEM ? ROTATE_MEM[k] : null),
-  write: (k, v) => { ROTATE_MEM[k] = v; }
+  write: (v, k) => { ROTATE_MEM[k] = v; }
 });
+// 模拟「$persistentStore 不可用」：写进去读不回来
+const brokenStore = () => ({ read: () => null, write: () => {} });
 
 // 官方池（ROTATE_OFFICIAL = Object.keys(FESTIVALS)）在手机端的 22 个文件名
 const OFFICIAL_PHONE = ['31_phone.jpg','32_phone.jpg','33_phone.jpg','34_phone.webp','35_phone.jpg',
@@ -340,6 +344,29 @@ run('轮换 · 第三次取第三个(yuandan)',
     const t = thumbOf(j, 14);
     return [endsWith(t, '34_phone.webp'), `id14.thumb=${t.split('/').pop()}`];
   }, null, { Date: mkNow(2026, 9, 18), $persistentStore: mockStore() });
+
+// 先探一次：拿到兜底（按天）在第 1 天的结果，供「隔天会换」用例比较
+let DAY1_THUMB = '';
+{
+  let d = null;
+  const sb = { $argument: { festival: '轮换' }, $request: { url: PHONE }, $response: { body: makeResp() },
+               $done: (r) => { d = r; }, Date: mkNow(2026, 9, 18), $persistentStore: brokenStore() };
+  vm.createContext(sb);
+  vm.runInContext(`(function(){\n${code}\n})();`, sb, { filename: 'splash-poc.js' });
+  DAY1_THUMB = JSON.parse(d.body).data.list.find(x => x.id === 14).thumb.split('/').pop();
+}
+
+run('轮换 · $persistentStore 不可用 → 兜底按天轮换，仍落在官方池内',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [OFFICIAL_PHONE.includes(t), `id14.thumb=${t}`];
+  }, null, { Date: mkNow(2026, 9, 18), $persistentStore: brokenStore() });
+
+run('轮换 · $persistentStore 不可用时，隔天会换一张（不会永远卡同一张）',
+  { festival: '轮换' }, PHONE, (j) => {
+    const t = thumbOf(j, 14).split('/').pop();
+    return [OFFICIAL_PHONE.includes(t) && t !== DAY1_THUMB, `第2天=${t} 第1天=${DAY1_THUMB}`];
+  }, null, { Date: mkNow(2026, 9, 19), $persistentStore: brokenStore() });
 
 run('随机 · 结果必落在官方池 22 个之内',
   { festival: '随机' }, PHONE, (j) => {

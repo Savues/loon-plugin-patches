@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 5 个自动模式 + 屏蔽模式。
 
-**当前版本 v37** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v37.1** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -84,6 +84,22 @@
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。
 
 ## 实测记录
+
+### v37.1（2026-10-19，真机抓包修正）
+
+**bug**：`轮换` 一直出同一张图（HAR 实证：11 次冷启动全部注入 `38_pad.webp` = 池子第一个），
+`随机` 正常。
+
+**根因**：Loon / Surge 的 `$persistentStore` 是 `read(key)` / **`write(value, key)`** ——
+`write` 的参数顺序是**值在前、键在后**。首版写成了 `write(key, value)`，
+于是「键名被当成值存进去」，`read` 永远返回 `null` → 计数器恒为 0 → 永远取池子第一个。
+（仓库内可对照：`plugins/GeoFix/src/geo-response.js:405` 就是 `write(value, key)`。）
+
+**修法**：改正参数顺序；另加**回读校验**（写完读回，不一致就判定存储不可用），
+不可用时兜底为「按天轮换」，至少不会永远卡在同一张。
+
+回放器同步：mock 改成 `write(value, key)`，新增 2 项用例（存储不可用 → 仍落在池内 /
+隔天会换一张），共 42 项全过。
 
 ### v37（2026-10-19，离线）
 

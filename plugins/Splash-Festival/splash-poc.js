@@ -188,13 +188,25 @@ function __pickAutoSkin(today) {
 // 注意：FESTIVALS / HISTORICAL_KEYS 在文件更后面才声明（TDZ），
 // 所以这里只能声明不能赋值；实际赋值在 HISTORICAL_KEYS 声明之后。
 var ROTATE_OFFICIAL, ROTATE_ALL;
+var ROTATE_KEY = "SplashFestivalRotateIdx";
 
 function __pickRotateKey(rotate, wide) {
   var pool = wide ? ROTATE_ALL : ROTATE_OFFICIAL;
   if (!rotate) return pool[Math.floor(Math.random() * pool.length)];
-  var n = 0;
-  try { n = parseInt($persistentStore.read("rotate_idx") || "0", 10) || 0; } catch (e) {}
-  try { $persistentStore.write("rotate_idx", String(n + 1)); } catch (e) {}
+  // ⚠️ Loon / Surge 的 $persistentStore 是 read(key) / write(value, key) ——
+  // write 的参数顺序是 (值, 键)。写成 (键, 值) 会「读回来永远是 null」，
+  // 表现为轮换一直停在池子第一个（v37 首版就是这个 bug，HAR 实证 11 次冷启动
+  // 全出 38_pad.webp）。仓库里 GeoFix 的写法可对照：geo-response.js:405。
+  var n = -1;
+  try {
+    var cur = parseInt($persistentStore.read(ROTATE_KEY) || "", 10);
+    if (!isFinite(cur) || cur < 0) cur = 0;
+    $persistentStore.write(String(cur + 1), ROTATE_KEY);
+    // 回读校验：写没生效说明 $persistentStore 不可用 → 走兜底
+    if (parseInt($persistentStore.read(ROTATE_KEY) || "", 10) === cur + 1) n = cur;
+  } catch (e) { n = -1; }
+  // 兜底：按天轮换（不需要存储）。至少不会永远卡在同一张。
+  if (n < 0) n = Math.floor(Date.now() / 86400000);
   return pool[n % pool.length];
 }
 
