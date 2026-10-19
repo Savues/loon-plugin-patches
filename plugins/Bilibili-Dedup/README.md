@@ -184,9 +184,10 @@ Push-notification permission popup.
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
-| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。⚠️ 与头像角标互斥（认证优先） |
+| `vipFakeVerify` | switch | 关 | 彩蛋：名字下方显示「bilibili UP主认证：xxx」。与头像角标互相独立，可同时开启 |
 | `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
-| `vipAvatarBadge` | switch | 关 | 头像下方会员角标（"大"字）。原理见下节 |
+| `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
+| `vipBadgeIcon` | select | 大会员 | 角标样式：大会员=粉底"大"字（local:1）；认证闪电=合成闪电标（local:3） |
 
 #### 头像角标机制（v7.33 终局，HAR 铁证）
 
@@ -207,6 +208,15 @@ v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celest
 ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
 `ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
 公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
+
+**v7.34 清理与自定义**：
+- 移除 v7.27~7.32 全部证伪实验代码：label_theme 强改 annual_vip、label 整段复刻
+  （image/label_id/label_goto）、avatar_subscript 补写、清认证（clearCert）、
+  abserver 实验注入（ab.js）——新视图角标只认 ICON_LAYER，与这些字段全部无关
+- **认证不再被清除**：旧版「角标与认证互斥且优先」结论基于旧视图（BFCNewAvatarView），
+  新视图下不成立；角标开关与认证彩蛋现已互相独立、可同时开启
+- 新增 `vipBadgeIcon`：角标图标可选大会员"大"字（local:1，默认）或认证闪电（local:3）
+- 真实会员响应完全不改动（旧版会强改其 label_theme/label）
 
 ### 规则设计约定
 
