@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 屏蔽模式。
 
-**当前版本 v34** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v35.3** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -61,6 +61,21 @@
 - **屏蔽**：`show` 置空
 
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。
+
+## 实测记录
+
+### v35.3（2026-10-19，iPad）
+
+用户反馈「节日当天能用、过后失效」，根因确认为缺门控字段（详见技术原理章节）。修复后用户提供 HAR 验证：
+
+| 注入字段 | 客户端实际读取 |
+|---|---|
+| `forcibly: true` | ✅ 门控通过 |
+| `select_show_list: [{"id":14,"splash_id":"14"}]` | ✅ 被 `updateSelectList:` 解析成 `selectList` |
+| `selectList: [载体条目]` | ✅ type-4 分支前提满足 |
+| `show: [{id:14, splash_id:"14", begin_time/end_time ±7天, mode:"full"}]` | ✅ 成功读取，皮肤展示 |
+
+目标皮肤：**BW 2021**（id=46，iPad 横图 `46_pad.webp`）。用户选择 `splashMode=official`（默认），`list[14].mode` 保持服务器下发的 `"half"`，皮肤以缩放完整方式显示。
 
 ## 文件结构
 
