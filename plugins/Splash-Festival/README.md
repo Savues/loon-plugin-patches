@@ -3,7 +3,7 @@
 > B 站 iPad/iPhone 开屏品牌皮肤强制展示插件。
 > 非节日期间也能展示任意节日/活动开屏，共 **76 个皮肤** + 7 个自动模式 + 屏蔽模式。
 
-**当前版本 v40** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
+**当前版本 v40.1** · [订阅安装](https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Splash-Festival/Splash-Festival.lpx)
 
 ---
 
@@ -25,7 +25,7 @@
 | `splashMode` | select | official / full / half | official | **显示模式**：<br>• `official` = 官方设定（full=铺满 / half=缩放）<br>• `full` = 强制铺满全屏<br>• `half` = 强制缩放完整（不裁切） |
 | `imgMode` | select | auto / landscape / portrait | auto | **图片方向**：<br>• `auto` = 按设备自动（iPad 横图 / 手机竖图）<br>• `landscape` = 强制横图<br>• `portrait` = 强制竖图 |
 | `logo` | select | 官方 / 隐藏 | 官方 | **B 站 logo 角标**：`隐藏` = 不叠加官方 Bilibili 角标（历史满版插画上更干净）。反汇编：type-2 路径读 list 条目的 `show_logo`、type-4 路径被 show 条目覆盖，两处都设 |
-| `duration` | select | 官方 / 0.5秒 / 1秒 / 2秒 / 3秒 / 5秒 | 官方 | **显示时长**（ms）。⚠️ `duration` 会被 dispatcher 写入 list 条目（`[sp setDuration:]`），但「单位 ms、客户端是否真按它计时」未从反汇编的计时器直接证实，待真机确认 |
+| `duration` | select | 官方 / 0秒 / 0.1秒 / 0.2秒 / 0.3秒 / 0.5秒 / 1秒 / 2秒 / 3秒 / 5秒 | 官方 | **显示时长**（ms）。⚠️ `duration` 会被 dispatcher 写入 list 条目（`[sp setDuration:]`），但「单位 ms、客户端是否真按它计时」未从反汇编的计时器直接证实，待真机确认 |
 
 > `splashMode` 和 `imgMode` 可自由组合。例如：`splashMode=half` + `imgMode=landscape` = 强制横图 + 缩放完整。
 
@@ -86,6 +86,23 @@
 与 [Bilibili-Dedup](../Bilibili-Dedup/) 无端点冲突（本插件只拦 `brand/list`，Dedup 拦 `list`/`show`/`event/list2`），可同时启用。
 
 ## 实测记录
+
+### v40.1（2026-10-20，真机实测修正）
+
+`duration` 档位下压到 **0 秒 / 0.1 / 0.2 / 0.3 / 0.5**。
+
+**用户实测得出的客户端行为**（重要，写进这里免得后人再踩）：
+
+> **只有存在「特殊开屏图」时客户端才读 `duration`；否则回落默认图 + 默认时长。**
+
+所以 **`屏蔽开屏` 不能用来缩短时长** —— 屏蔽后没有特殊开屏图，时长参数直接失效。
+想「快速跳过开屏」的正确做法是：**选一个真实皮肤 + `duration` 设成极小值**（0.1 秒甚至 0 秒），
+让开屏一闪而过，而不是把它屏蔽掉。
+
+顺带把 `0` 值处理修成显式判断（`hasOwnProperty` + `!== undefined`），否则 `0秒` 会被
+`|| 0` / `if (DUR_MS)` / `|| 1000` 三处吃掉、静默变回 1000。
+
+回放器新增 2 项用例（0秒 / 0.1秒），共 69 项全过。
 
 ### v40（2026-10-19）
 

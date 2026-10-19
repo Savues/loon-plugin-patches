@@ -460,11 +460,25 @@ run('duration=官方（默认）→ list 不带 duration、show 保持 1000',
       `list=${it.duration} show=${sh.duration}`];
   });
 
-run('duration=0.5秒 → list 与 show 都是 500（最短档）',
+run('duration=0.5秒 → list 与 show 都是 500',
   { festival: '中秋节', duration: '0.5秒' }, PHONE, (j) => {
     const it = j.data.list.find(x => x.id === 14) || {};
     const sh = (j.data.show || [])[0] || {};
     return [it.duration === 500 && sh.duration === 500, `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=0秒 → list 与 show 都是 0（显式写入，不被 || 吃掉）',
+  { festival: '中秋节', duration: '0秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 0 && sh.duration === 0, `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=0.1秒 → list 与 show 都是 100',
+  { festival: '中秋节', duration: '0.1秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 100 && sh.duration === 100, `list=${it.duration} show=${sh.duration}`];
   });
 
 run('duration=5秒 → list 与 show 都是 5000',
