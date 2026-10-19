@@ -68,7 +68,10 @@ var IMG_MODE = A.imgMode || "auto";
 // v39：logo 开关 + 显示时长。中文标签做值（Loon select 不支持 label=value，见 .lpx 注释）
 var LOGO_SEL = A.logo || "官方";
 var DUR_SEL = A.duration || "官方";
-var DUR_MAP = { "0秒": 0, "0.1秒": 100, "0.2秒": 200, "0.3秒": 300, "0.5秒": 500,
+// 档位说明：0 会被客户端当成「未设置」回落默认（用户实测），所以不提供 0 档。
+// 下限在哪由真机探（0.1 秒以下是否还被尊重 / 是否被钳到某个最小值）。
+var DUR_MAP = { "1毫秒": 1, "10毫秒": 10, "50毫秒": 50,
+                "0.1秒": 100, "0.2秒": 200, "0.5秒": 500,
                 "1秒": 1000, "2秒": 2000, "3秒": 3000, "5秒": 5000 };
 // 注意用 undefined 判断而不是 !!：将来若加「0秒」档，0 也能正确写入（|| 0 会把 0 吃掉）
 var DUR_MS = Object.prototype.hasOwnProperty.call(DUR_MAP, DUR_SEL) ? DUR_MAP[DUR_SEL] : undefined;

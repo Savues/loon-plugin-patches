@@ -467,11 +467,32 @@ run('duration=0.5秒 → list 与 show 都是 500',
     return [it.duration === 500 && sh.duration === 500, `list=${it.duration} show=${sh.duration}`];
   });
 
-run('duration=0秒 → list 与 show 都是 0（显式写入，不被 || 吃掉）',
+run('duration=0秒（已移除的档）→ 回落默认（0 被客户端当成未设置，实测）',
   { festival: '中秋节', duration: '0秒' }, PHONE, (j) => {
     const it = j.data.list.find(x => x.id === 14) || {};
     const sh = (j.data.show || [])[0] || {};
-    return [it.duration === 0 && sh.duration === 0, `list=${it.duration} show=${sh.duration}`];
+    return [it.duration === undefined && sh.duration === 1000, `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=1毫秒 → list 与 show 都是 1',
+  { festival: '中秋节', duration: '1毫秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 1 && sh.duration === 1, `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=10毫秒 → list 与 show 都是 10',
+  { festival: '中秋节', duration: '10毫秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 10 && sh.duration === 10, `list=${it.duration} show=${sh.duration}`];
+  });
+
+run('duration=50毫秒 → list 与 show 都是 50',
+  { festival: '中秋节', duration: '50毫秒' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.duration === 50 && sh.duration === 50, `list=${it.duration} show=${sh.duration}`];
   });
 
 run('duration=0.1秒 → list 与 show 都是 100',
