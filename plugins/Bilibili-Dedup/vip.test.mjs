@@ -306,4 +306,72 @@ t("开关·vipFakeVerify：关掉时不改 official_verify", () => {
   }
 });
 
+// ---------- v7.33：ICON_LAYER 角标图层注入 ----------
+// avatar 新协议对象（真实样本结构：mine 的 data.avatar / 空间页 data.card.avatar）
+const avatarObj = () => ({
+  container_size: { width: 1.35, height: 1.35 },
+  fallback_layers: { layers: [
+    { visible: true, general_spec: { pos_spec: { coordinate_pos: 2, axis_x: 0.675, axis_y: 0.675 },
+        size_spec: { width: 1.0625, height: 1.0625 }, render_spec: { opacity: 1 } },
+      layer_config: { tags: { AVATAR_LAYER: {} }, is_critical: true },
+      resource: { res_type: 5, res_native_draw: { draw_src: { src_type: 3, draw: { draw_type: 1, fill_mode: 1 } } } } },
+    { visible: true, general_spec: { pos_spec: { coordinate_pos: 2, axis_x: 0.675, axis_y: 0.675 },
+        size_spec: { width: 1, height: 1 }, render_spec: { opacity: 1 } },
+      layer_config: { tags: { AVATAR_LAYER: {} }, is_critical: true },
+      resource: { res_type: 3, res_image: { image_src: { src_type: 1, placeholder: 6 } } } },
+  ] },
+  mid: ME,
+});
+const iconTags = (ls) => ls.filter((l) => l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags).length;
+
+t("角标·我的页非会员+开关开 → data.avatar 追加 2 个 ICON_LAYER（4 层）", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } });
+  const ls = json(r).data.avatar.fallback_layers.layers;
+  assert.strictEqual(ls.length, 4);
+  assert.strictEqual(iconTags(ls), 2);
+  const icon = ls[3];
+  assert.strictEqual(icon.resource.res_image.image_src.local, 1, "图标应为 local:1（大会员大字）");
+  const bg = ls[2];
+  assert.strictEqual(bg.resource.res_native_draw.draw_src.draw.color_config.night.argb, "#FF17181A", "暗色底圈参数照抄真会员");
+});
+
+t("角标·开关关 → avatar 原样不动", () => {
+  const f = mineNonMember(); f.data.avatar = avatarObj();
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: "false" } });
+  assert.strictEqual(json(r).data.avatar.fallback_layers.layers.length, 2);
+});
+
+t("角标·真会员响应已带 ICON_LAYER → 不重复注入", () => {
+  const f = mineNonMember();
+  f.data.vip.status = 1;
+  f.data.avatar = avatarObj();
+  f.data.avatar.fallback_layers.layers.push(
+    { visible: true, general_spec: {}, layer_config: { tags: { ICON_LAYER: {} } }, resource: {} },
+  );
+  const r = run({ body: f, url: URL_MINE, arg: { vipAvatarBadge: true } });
+  assert.strictEqual(json(r).data.avatar.fallback_layers.layers.length, 3, "已有角标图层时保持原样");
+});
+
+t("角标·我的页响应无 avatar 字段 → 不炸、vip 伪装照常", () => {
+  const r = run({ body: mineNonMember(), url: URL_MINE, arg: { vipAvatarBadge: true } });
+  const j = json(r);
+  assert.strictEqual(j.data.vip.status, 1, "vip 伪装仍生效");
+  assert.strictEqual(j.data.avatar, undefined, "无 avatar 字段则不造");
+});
+
+t("角标·空间页自己主页+开关开 → card.avatar 追加 ICON_LAYER", () => {
+  const f = spaceNonMember(); f.data.card.avatar = avatarObj();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } });
+  const ls = json(r).data.card.avatar.fallback_layers.layers;
+  assert.strictEqual(ls.length, 4);
+  assert.strictEqual(iconTags(ls), 2);
+  assert.strictEqual(json(r).data.card.official_verify.type, -1, "认证同步清除");
+});
+
+t("角标·空间页别人主页（无全员/点名）→ avatar 不动", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999"; f.data.card.avatar = avatarObj();
+  untouched(run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipAvatarBadge: true } }));
+});
+
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

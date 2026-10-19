@@ -188,28 +188,25 @@ Push-notification permission popup.
 | `vipVerifyTitle` | input | 空 | 彩蛋：认证标题，留空显示「认证用户」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标（"大"字）。原理见下节 |
 
-#### 头像角标机制（v7.32，反汇编定案）
+#### 头像角标机制（v7.33 终局，HAR 铁证）
 
-「大」字角标不是数据问题——v7.27~v7.31 已把伪造 vip 做到与真年度大会员逐字段等价
-（含 `avatar_subscript:1`、`label.image`、清认证），角标仍不出现。国际版对照实验
-（两端 mine 响应逐字节一致、国际版我的页有角标 iPad 没有）证明差异在**客户端**：
+v7.27~v7.31 在 vip 数据侧做到与真年度大会员逐字段等价仍无效；v7.32 翻 AB 实验也无效
+（HAR 证实注入成功但开关判定不走 abserver）。**HAR 410 对照真会员 vs 非会员的空间页响应**，
+最终定案：
 
-- iPad 3.71.0 头像装配二选一：`avatarNewViewEnable = [BBAvatarView isEnabled] && …`
-  → `+[BBAvatarView isEnabled]` = AB 实验 **`ff_new_avatar_view_enabled`**
-- 国际版 3.20.1 **没有这道门**（永远走新视图 `BBAvatarView`，角标正常）
-- iPad 实验未命中 → 走旧视图 `BFCNewAvatarView`，其 `refreshData` 只认
-  **`bfc_` 前缀协议**（`bfc_vipTheme` 等，逐项 `respondsToSelector:` 检查）；
-  我的页旧路径传入的账号模型不响应 → `setVipTheme:0` → 角标永不安装
+- iPad 走**新头像视图**（`BBAvatarView`，Swift），它**根本不读 vip 字段**
+- 头像角标 = avatar 新协议（mine 的 `data.avatar`、空间页的 `data.card.avatar`）里
+  `fallback_layers.layers` 的两个 **`ICON_LAYER`** 图层：
+  1. 白底圆（`res_type:5` native_draw，右下角 0.975/0.975，尺寸 0.3，含暗色模式 `#FF17181A`）
+  2. 本地图标（`res_type:3`，`src_type:2`；**`local:1` = 大会员"大"字**、`local:3` = 认证+会员闪电）
+- 实证：真会员响应 4 层（2×AVATAR_LAYER + 2×ICON_LAYER），非会员只有 2 层
+- 国际版我的页有角标是另一套：老客户端走旧视图 `BFCNewAvatarView`，旧视图读 vip 字段
+  （其老版本账号模型实现了 `bfc_` 协议），与新视图两套机制并存
 
-因此 v7.32 改为 rewrite `/x/resource/abtest/abserver`：向 `data.vars` 注入
-`{"name":"ff_new_avatar_view_enabled","group":"1","value":"true","force":1}`
-（`vars` 元素 = `BFCABTestConfigItem{name,group,value,force}`，三字段缺一整个
-条目被丢弃；`force=1` 跳过本地分组哈希），把头像渲染切到国际版同款新视图。
-
-**测试注意**：abserver 响应自带 `expire=1800000`（30 分钟缓存），打开开关后需等
-缓存过期或多次冷启动。若仍无效，则该 flag 走的是远程命令加密 KV（`BFCMemexConfig.decryptKV`）
-而非 abserver 明文，需下一轮迭代。完整链路见 `Savues/bilibili-splash-re` README 第十七章。
- |
+v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celestial紗雪）实测响应的
+ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
+`ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
+公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
 
 ### 规则设计约定
 

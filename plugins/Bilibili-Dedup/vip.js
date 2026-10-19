@@ -86,6 +86,45 @@ function clearCert(d) {
   if (d.official) { d.official = Object.assign({}, d.official, { type: -1 }); }
 }
 
+// ★ 头像角标的真正机制（HAR 410 铁证，2026-10-19 定案）：
+// iPad 走新头像视图（BBAvatarView，Swift），它**不读 vip 字段**，角标是
+// avatar 新协议（data.avatar / 空间页 data.card.avatar）里 fallback_layers.layers
+// 的两个 ICON_LAYER 图层：① 白底圆（res_type 5 native_draw，右下角 0.3 尺寸）
+// ② 本地图标（res_type 3，src_type 2 local：1=大会员"大"字、3=认证+会员闪电）。
+// HAR 实证：真会员空间页 4 层（2×AVATAR_LAYER+2×ICON_LAYER），非会员只有 2 层。
+// v7.27~7.32 改 vip 字段全无效就是因为新视图根本不看它；以下模板逐字段抄自
+// 纯年度大会员（Celestial紗雪）的实测响应。
+const ICON_LAYERS = [
+  { visible: true,
+    general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 0.975, axis_y: 0.975 },
+                    size_spec: { width: 0.3, height: 0.3 },
+                    render_spec: { opacity: 1 } },
+    layer_config: { tags: { ICON_LAYER: {} } },
+    resource: { res_type: 5,
+      res_native_draw: { draw_src: { src_type: 3,
+        draw: { draw_type: 1, fill_mode: 1,
+          color_config: { is_dark_mode_aware: true,
+            day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } },
+  { visible: true,
+    general_spec: { pos_spec: { coordinate_pos: 1, axis_x: 1, axis_y: 1 },
+                    size_spec: { width: 0.25, height: 0.25 },
+                    render_spec: { opacity: 1 } },
+    layer_config: { tags: { ICON_LAYER: {} } },
+    resource: { res_type: 3,
+      res_image: { image_src: { src_type: 2, local: 1 } } } }
+];
+
+// 给 avatar 新协议对象追加角标图层。真会员响应已带 ICON_LAYER → 不动（返回 false）。
+function addBadgeLayers(av) {
+  if (!av || !av.fallback_layers || !Array.isArray(av.fallback_layers.layers)) { return false; }
+  const ls = av.fallback_layers.layers;
+  const has = ls.some((l) => l && l.layer_config && l.layer_config.tags && "ICON_LAYER" in l.layer_config.tags);
+  if (has) { return false; }
+  ls.push(ICON_LAYERS[0], ICON_LAYERS[1]);
+  return true;
+}
+
+
 // 「我的」页 schema。x/v2/account/* 与专栏页（/x/v2/space/article 的 item[].author）共用这一套。
 // avatar_subscript = 头像角标开关（HAR 实证：真年度大会员 article.author.vip 里恒为 1，
 // 非会员为 0；空间页 card.vip 无此字段）。自查看时头像角标读账号模型 → 必须在这里补。
@@ -146,7 +185,11 @@ function patchSpace(d) {
     }
 
     // 开了头像角标 → 清掉认证（与认证角标互斥，不清则"大"字不出现）
-    if (BADGE) { clearCert(card); }
+    if (BADGE) {
+      clearCert(card);
+      addBadgeLayers(card.avatar);          // 空间页头像新协议：card.avatar
+      if (d.avatar) { addBadgeLayers(d.avatar); }
+    }
 
     // 彩蛋：伪装「已认证」标识。注意**不写 icon**——抓包实证 App 从不请求
     // official_verify.icon，角标是本地按状态渲染的内置图标，改 JSON 改不动。
@@ -183,7 +226,10 @@ try {
     } else if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
       d.vip = mine(d.vip);
       d.vip_type = 2;
-      if (BADGE) { clearCert(d); }
+      if (BADGE) {
+        clearCert(d);
+        addBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
+      }
       changed = true;
     } else if (d.vip && d.vip.status == 1 && BADGE) {
       // 真实会员 + 角标开关 → label 整段换真年度会员字段 + 补头像角标开关
@@ -191,6 +237,7 @@ try {
       d.vip.avatar_subscript = 1;
       if (d.vip.avatar_subscript_url == null) { d.vip.avatar_subscript_url = ""; }
       clearCert(d);
+      addBadgeLayers(d.avatar);
       changed = true;
     }
   }
