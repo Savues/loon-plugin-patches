@@ -1,11 +1,11 @@
 # IThome-AdBlock · IT之家去广告（修复 + 增强）
 
 上游：`https://kelee.one/Tool/Loon/Lpx/IThome_remove_ads.lpx`（可莉 / luestr，`#!date=2026-10-02`）
-当前版本：**v1.5**（2026-10-20）
+当前版本：**v1.6**（2026-10-20）
 
 | 文件 | 说明 |
 |---|---|
-| `IThome-AdBlock.lpx` | **v1.5 增强版（推荐）**：补全端点 + 自研脚本（`src/`），含顶栏标签过滤、开屏广告拦截、电商带货文过滤、事件日历卡片过滤、**完全隐藏顶栏开关** |
+| `IThome-AdBlock.lpx` | **v1.6 增强版（推荐）**：补全端点 + 自研脚本（`src/`），含顶栏标签过滤、开屏广告拦截、电商带货文过滤、事件日历卡片过滤、**完全隐藏顶栏开关（修复空白页）** |
 | `IThome-AdBlock.lite.lpx` | **v1.0 纯清单层修复**：只补端点正则，继续用 kelee.one 上游 JS，零托管 |
 | `src/IThome_remove_ads.js` | 自研脚本（逻辑重写 + 扩展，**不含上游代码**），node 回放 27 项断言全过 |
 
@@ -75,7 +75,37 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 - 新开关 `hideTopbarCompletely`（默认**关**）：开启后将 `showTopMenus` 置空，顶部标签栏完全不显示；App 回退加载 `gethomefeeds`（最新标签页）作为默认内容，**内容不受影响**。
 - 适用场景：想要纯净的单列表体验，不需要标签切换。
 
-## 开关（v1.5，除 `hideTopbarCompletely` 外全部默认开；参数顺序与 `script()` 一致）
+## v1.6 修复：hideTopbarCompletely 空白页问题
+
+**问题**：开启 `hideTopbarCompletely` 后，首页空白、顶栏没完全消失（右侧仍有编辑按钮）。
+
+**根因**：
+- 完全置空 `showTopMenus: []` → 客户端**没有任何 tab 可加载** → 不发 feed 请求 → 首页空白
+- 顶栏 UI 容器仍保留（编辑按钮是容器自带）
+
+**修复策略（v1.6）**：
+| 行为 | 修改前 | 修改后 |
+|---|---|---|
+| `showTopMenus` 处理 | 完全置空 `[]` | **仅保留 "最新" (id=101)** |
+| 内容加载 | 无 feed 请求 → 空白 | 客户端识别到 "最新" tab → **自动加载 gethomefeeds 内容** |
+| 兜底逻辑 | 无 | showTopMenus/hideTopMenus 均无 "最新" 时**不修改响应**，避免破坏 |
+
+**行为验证**：
+
+| 场景 | `showTopMenus` 结果 | 首页内容 |
+|---|---|---|
+| 正常响应含 "最新" | `[{id:101, title:"最新"}]` | 正常加载最新列表 ✅ |
+| `showTopMenus: []` 但 `hideTopMenus` 有 "最新" | 从 hide 恢复 `[最新]` | 正常加载最新列表 ✅ |
+| 两处均无 "最新"（极端情况） | **不修改响应** | 保持原样，避免破坏 ✅ |
+
+**关于“顶栏没完全消失”的说明**
+
+右侧编辑按钮是**顶栏 UI 容器自带**，只要容器存在就会显示。**完全移除顶栏容器需要客户端代码修改（Hook Swift/UIKit）**，插件层无法做到。当前方案已达成：
+- ✅ 内容正常显示（最新列表）
+- ✅ 视觉上仅剩单个 "最新" tab（接近隐藏效果）
+- ❌ 编辑按钮无法通过插件移除（需越狱/TrollStore Hook）
+
+## 开关（v1.6，除 `hideTopbarCompletely` 外全部默认开；参数顺序与 `script()` 一致）
 
 | 开关 | 默认 | 作用 |
 |---|---|---|
@@ -95,7 +125,7 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 纯清单：https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/IThome-AdBlock.lite.lpx
 ```
 
-脚本带 `?v=15` 版本参数：Loon 按 URL 缓存脚本，改脚本必须同时改此参数。
+脚本带 `?v=16` 版本参数：Loon 按 URL 缓存脚本，改脚本必须同时改此参数。
 
 ## 端点速查
 
