@@ -60,11 +60,12 @@ function pathOf(url) {
 }
 
 // ============================================
-// 搜索拦截核心逻辑 (完全复刻 v1.75 stub.response.js)
+// 搜索拦截核心逻辑 (完全复刻 v1.75 stub.response.js + 补全缺失端点)
 // ============================================
 // RULES: [开关, 动作, 路径, 动作参数]
 const SEARCH_RULES = [
   ['search_stub', 'stub', '/search_hotquery'],
+  ['search_stub', 'stub', '/search_suggest'],
   ['search_stub', 'del', '/search', ['expansion']],
 ];
 

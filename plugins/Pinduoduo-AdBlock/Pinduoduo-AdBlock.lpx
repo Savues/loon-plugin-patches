@@ -1,5 +1,5 @@
-#!name=拼多多去广告 v2.0.3
-#!desc=完全复刻 v1.75 搜索拦截架构：单条正则路由搜索端点、统一 search_stub 开关控制三源、search_hotquery 返回 200+{}。保留安全模式：字段级删除>整体Stub，高危开关默认关，一键风控模式。
+#!name=拼多多去广告 v2.0.4
+#!desc=完全复刻 v1.75 搜索拦截架构 + 补全 search_suggest 联想词端点。单条正则路由搜索端点、统一 search_stub 开关控制四源、search_hotquery 返回 200+{}。保留安全模式：字段级删除>整体Stub，高危开关默认关，一键风控模式。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=Savues
 #!tag=去广告
@@ -50,7 +50,7 @@ blockTracking = switch,false,tag=📊 拦截埋点上报,desc=⚠️默认关！
 # === 核心：单条正则统一路由所有搜索端点 (完全复刻 v1.75 架构) ===
 # v1.75 正则: ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/aristotle\/...|api\/aquarius\/hungary\/global\/homepage|...)
 # bundle.js 内部用 pathOf() 分发到 handleSearchResponse()
-http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/polemon\/gbdbpdc|api\/search_lego_m1_cards\/lego_view|api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element)|api\/aquarius\/hungary\/global\/homepage|api\/caterham\/(v2\/query\/goods_detail_with_tags|v3\/query\/(order_express_group|likes|my_order_group|new_chat_group|personal))|api\/alexa\/goods\/back_up|api\/brand-olay\/goods_detail\/bybt_guide|api\/engels\/(reviews\/require\/append|wait\/receive\/review)|api\/buffon\/nasus\/recommend|api\/phantom\/gbdbpdv\/extra|api\/manufacturer\/cross\/shortcut\/list|api\/dunkirk\/liveactivity\/push\/create\/url\/report|api\/growth\/nagato\/app\/index\/gather|api\/zaire_biz\/chat\/resource\/get_list_data)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={search_stub,removeSearchPromos,riskControlMode}, tag=搜索拦截+推荐词+会场接口
+http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search_suggest|search|api\/polemon\/gbdbpdc|api\/search_lego_m1_cards\/lego_view|api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element)|api\/aquarius\/hungary\/global\/homepage|api\/caterham\/(v2\/query\/goods_detail_with_tags|v3\/query\/(order_express_group|likes|my_order_group|new_chat_group|personal))|api\/alexa\/goods\/back_up|api\/brand-olay\/goods_detail\/bybt_guide|api\/engels\/(reviews\/require\/append|wait\/receive\/review)|api\/buffon\/nasus\/recommend|api\/phantom\/gbdbpdv\/extra|api\/manufacturer\/cross\/shortcut\/list|api\/dunkirk\/liveactivity\/push\/create\/url\/report|api\/growth\/nagato\/app\/index\/gather|api\/zaire_biz\/chat\/resource\/get_list_data)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={search_stub,removeSearchPromos,riskControlMode}, tag=搜索拦截+推荐词+会场接口
 
 # 首页 Hub (含 icon_set、search_bar_hot_query、all_top_opts、bottom_tabs、dy_module)
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeHomepageAds,removeIconSet,removeTopOptsImages,bottomCustom,Bot_index,Bot_chat,Bot_personal,Bot_live,Bot_class,Bot_attendance,Bot_custom,search_stub,riskControlMode}, tag=首页去广告+底栏自定义
