@@ -214,17 +214,17 @@ function filterFeedAds(body) {
 }
 
 // ============================================
-// 3. 搜索热词/推荐词过滤
+// 3. 搜索热词/推荐词/搜索页过滤
 // ============================================
-function filterSearchHotQuery(body) {
-  if (isDisabled("removeSearchHotQuery")) return body;
+function filterSearchHotQuery(body, url) {
+  if (isDisabled("removeSearchPromos")) return body;
   
   const data = safeParse(body);
   if (!data) return body;
   
   let modified = false;
   
-  // /api/polemon/gbdbpdc - 搜索框推荐词
+  // /api/polemon/gbdbpdc - 搜索框推荐词 (点击搜索框下拉)
   if (data.access_array) { data.access_array = []; modified = true; }
   if (data.history) { data.history = []; modified = true; }
   if (data.float_bar_array) { data.float_bar_array = []; modified = true; }
@@ -233,12 +233,71 @@ function filterSearchHotQuery(body) {
   if (data.tip1) { data.tip1 = ""; modified = true; }
   if (data.tip2) { data.tip2 = ""; modified = true; }
   if (data.text) { data.text = ""; modified = true; }
+  if (data.degrade) { data.degrade = []; modified = true; }
+  if (data.extra_array_style) { data.extra_array_style = []; modified = true; }
   
-  // /search_hotquery - 热词轮询
-  if (data.hotqs) { data.hotqs = []; modified = true; }
+  // /search_hotquery - 热词轮询 (对齐 v1.75: stub 整响应可选)
+  if (url.includes("/search_hotquery")) {
+    if (data.hotqs) { data.hotqs = []; modified = true; }
+    if (data.items) { data.items = []; modified = true; }
+    // 可选: 完全 stub 模式 (更彻底，对齐 v1.75)
+    if (isEnabled("searchStubMode")) {
+      log("Stub /search_hotquery (v1.75 mode)");
+      return '{"success":true,"code":0,"hotqs":[],"items":[]}';
+    }
+  }
   
-  // /search - 搜索结果页的 expansion 字段
-  if (data.expansion) { delete data.expansion; modified = true; }
+  // /search - 搜索结果页 (扩展 v1.75 仅删 expansion)
+  if (url.includes("/search") && !url.includes("/search_hotquery") && !url.includes("/search_lego")) {
+    const searchFieldsToDelete = [
+      'expansion',           // v1.75 原有
+      'banner',              // 顶部横幅广告
+      'ad_slots',            // 广告位
+      'search_discovery',    // 搜索发现栏目
+      'discovery',           // 发现栏目
+      'recommend_banner',    // 推荐横幅
+      'promotion_banner',    // 促销横幅
+      'hot_query',           // 热搜词
+      'related_search',      // 相关搜索
+      'guess_you_like',      // 猜你喜欢
+      'algo_data',           // 算法数据
+      'ext',                 // 扩展字段
+      'rec_data',            // 推荐数据
+      'search_guide',        // 搜索引导
+      'search_entrance',     // 搜索入口
+    ];
+    for (const field of searchFieldsToDelete) {
+      if (field in data) { delete data[field]; modified = true; }
+    }
+    // 也要检查 data.data
+    if (data.data && typeof data.data === 'object') {
+      for (const field of searchFieldsToDelete) {
+        if (field in data.data) { delete data.data[field]; modified = true; }
+      }
+      // goods_list 广告项过滤 (同信息流 data.ad 识别)
+      if (Array.isArray(data.data.goods_list)) {
+        const originalLen = data.data.goods_list.length;
+        data.data.goods_list = data.data.goods_list.filter(item => {
+          const d = item?.data;
+          if (!d) return true;
+          if (d.ad && (d.ad.bkfl === 1 || (d.ad.openinfo && d.ad.openinfo.ads_from === 0) || d.ad.ad_id)) {
+            log(`Filtered search result ad: goods_id=${d.goods_id}, ad_id=${d.ad.ad_id || d.ad.openinfo?.ad_id}`);
+            return false;
+          }
+          return true;
+        });
+        if (data.data.goods_list.length !== originalLen) {
+          modified = true;
+        }
+      }
+    }
+  }
+  
+  // /api/search_lego_m1_cards/lego_view - 搜索语音面板
+  if (data.result && Array.isArray(data.result)) {
+    data.result = [];
+    modified = true;
+  }
   
   if (modified) {
     log("Cleared search hot query data");
@@ -455,7 +514,7 @@ function main() {
                path === "/search_hotquery" || 
                path === "/search" ||
                path.startsWith("/api/search_lego")) {
-        newBody = filterSearchHotQuery(body);
+        newBody = filterSearchHotQuery(body, url);
       }
       // 个人中心
       else if (path === "/api/philo/personal/hub") {
