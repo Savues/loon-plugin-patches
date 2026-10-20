@@ -1,4 +1,4 @@
-#!name=大淘客联盟去广告 v1.3
+#!name=大淘客联盟去广告 v1.3.2
 #!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(app-index-topic/get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(search-v2/dtk-search-ad-list)、新用户红包、埋点上报、推送标签。6 独立开关，默认全开。
 #!author=Savues <https://github.com/Savues>
 #!tag=去广告,Dataoke
