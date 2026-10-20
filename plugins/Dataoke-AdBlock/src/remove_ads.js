@@ -1,7 +1,7 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.3.2
+// 版本: 1.3.3
 // 更新: 2026-10-20
 
 // Loon $argument 接收 boolean (true/false) - 来自 {${removeSplashAd}} 等展开
@@ -62,13 +62,25 @@ function main() {
   // ------------------------------------------------------------
   // 3. 首页运营位(备用): GET /get-index-topic-config
   //    响应: { data: [{...}, ...] } - 数组直接在 data 里
-  //    广告特征: banner/topic_img 非空、jump 非空、topic_type === 2(运营活动)、topic_type === 4(开屏类)、is_hot === 1
+  //    广告特征:
+  //      - 普通运营位: banner/topic_img 非空、jump 非空、topic_type === 2、is_hot === 1 -> 受 removeIndexBanner 控制
+  //      - 开屏类运营位: topic_type === 4、topic_img 非空 -> 受 removeSplashAd 控制（无论 removeIndexBanner 状态）
   // ------------------------------------------------------------
-  if (url.includes('/get-index-topic-config') && isEnabled('removeIndexBanner')) {
+  if (url.includes('/get-index-topic-config')) {
     if (Array.isArray(body.data)) {
       body.data = body.data.filter(item => {
-        const isAd = item.banner || item.topic_img || item.jump || item.topic_type === 2 || item.topic_type === 4 || item.is_hot === 1;
-        return !isAd;
+        const isSplashAd = item.topic_type === 4 || (item.topic_img && !item.banner && !item.jump);
+        const isRegularAd = item.banner || item.jump || item.topic_type === 2 || item.is_hot === 1;
+        
+        // 开屏类广告：由 removeSplashAd 控制
+        if (isSplashAd && isEnabled('removeSplashAd')) {
+          return false;
+        }
+        // 普通运营位广告：由 removeIndexBanner 控制
+        if (isRegularAd && isEnabled('removeIndexBanner')) {
+          return false;
+        }
+        return true;
       });
     }
   }
