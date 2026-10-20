@@ -5,5 +5,15 @@
     "bytes": 20252,
     "sha256": "6d9eba6c65b42c2baa42509728a4c570bd981355daf3785747cddd3f0abe130d",
     "mirrored_at": "2026-09-28"
+  },
+  "Enhanced.response.js": {
+    "source": "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js",
+    "note": "首页标签页/底栏自定义（仅手机/国际版布局）",
+    "mirrored_at": "2026-09-28"
+  },
+  "Enhanced-mine.response.js": {
+    "source": "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine.response.js",
+    "note": "我的页服务项自定义（iPad HD 专用）",
+    "mirrored_at": "2026-10-20"
   }
 }

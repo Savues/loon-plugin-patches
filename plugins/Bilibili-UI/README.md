@@ -3,11 +3,11 @@
 > 首页标签页与底部导航的自定义，真开关点选。
 > Home tab bar and bottom navigation, with real toggle switches.
 
-**v3.1** · 20 参数 / 1 条规则 · 20 parameters, 1 rule · 更新 `2026-09-28T14:55`
+**v3.2** · 27 参数 / 3 条规则 · 27 parameters, 3 rules · 更新 `2026-10-20`
 
 | | 中文 | English |
 |---|---|---|
-| 脚本 | 1 个，**由本仓库托管** | 1 script, self-hosted |
+| 脚本 | 2 个，**由本仓库托管** | 2 scripts, self-hosted |
 | 图标 | **自托管** `icon.png` | self-hosted |
 | 外部依赖 | **无** —— 所有 URL 指向本仓库 | none |
 
@@ -23,27 +23,46 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 
 ---
 
+## ⚠️ 重要：iPad HD 布局限制
+
+**首页标签页、底部导航栏、顶栏按钮在 iPad HD (iPadOS) 上完全无效**。
+
+**根因**：iPad HD 3.71 的首页顶栏/底栏由本地 Swift 类 `TabDisplayConfig` 直接驱动（属性 `homeTabData`/`bottomTabData`），**不读任何网络响应**（`x/resource/show/tab/v2` 已被插件注入但客户端不消费）。Loon 只能改写网络层，因此**彻底无法**在 iPad HD 上实现首页/底栏自定义。
+
+> 同端点 `x/resource/show/tab/v2` 在手机版/国际版（手机布局）上有效。
+
+---
+
 ## 功能 · Features
 
-| 功能 | 状态 | Feature | Status |
-|---|---|---|---|
-| **首页标签页** | ✅ 8 个开关 | Home tabs | ✅ 8 switches |
-| **底部导航栏** | ✅ 8 个开关 | Bottom nav | ✅ 8 switches |
-| 顶栏左侧头像 | ❌ 移除 | Top-left avatar | ❌ removed |
-| 顶栏右侧按钮 | ❌ 移除 | Top-right buttons | ❌ removed |
-| 标签栏右侧 | ❌ 未实测 | Tab-bar right | ❌ untested |
-| 分区页 / 我的页 | ❌ 移除 | Region / Mine | ❌ removed |
+| 功能 | 状态 | 适用布局 | Feature | Status | Layout |
+|---|---|---|---|---|---|
+| **首页标签页** | ✅ | 手机/国际版 | Home tabs | ✅ | Phone/Intl |
+| **底部导航栏** | ✅ | 手机/国际版 | Bottom nav | ✅ | Phone/Intl |
+| **我的页服务项** | ✅ **v3.2 新增** | **iPad HD** | Mine sections | ✅ **v3.2 new** | **iPad HD** |
+| 顶栏按钮 | ❌ | 全部 | Top buttons | ❌ | All |
+| 分区页自定义 | ❌ | 全部 | Region tabs | ❌ | All |
 
-**移除原因**
-- 顶栏右侧：B 站接口只下发「消息」一个按钮，可配项无意义
-- 我的页：与 Dedup 的会员伪装同端点
-- 头像：改它需改上游业务逻辑，超出「只改清单层」边界
+**移除/不可实现原因**
+- 顶栏/首页/底栏：iPad HD 走本地 `TabDisplayConfig`，非网络驱动；Loon 无法触达
+- 我的页：iPad HD 走 `x/v2/account/mine/ipad` 网络驱动，**可自定义服务项**（投稿区/推荐区/更多区）
+- 分区页：自定义标签页保存端点未知（可能 gRPC）
+
+---
+
+## 订阅 · Subscribe
+
+```
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Bilibili-UI.lpx
+```
+
+**需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
 
 ---
 
 ## 参数 · Parameters
 
-### 首页 · 标签页
+### 首页 · 标签页（仅手机/国际版布局）
 
 | 参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -59,7 +78,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 | `Home.Tab_default` | select | `2037` | 默认标签页，需先勾选 |
 | `Home.Tab` | input | 空 | 备用输入框，开关全关时兜底 |
 
-### 底部 · 导航栏
+### 底部 · 导航栏（仅手机/国际版布局）
 
 | 参数 | 默认 | 说明 | 参数 | 默认 | 说明 |
 |---|---|---|---|---|---|
@@ -70,53 +89,50 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 
 > ⚠️ `channel` / `publish` 部分版本可能已下线。
 
+### 我的页 · 服务项（iPad HD 专用，网络驱动）v3.2 新增
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `Mine.Enable` | switch | **开** | 总开关 |
+| `Mine.HideIds` | input | 空 | 隐藏 id（逗号分隔），如 `751,755,763` |
+| `Mine.HideTitles` | input | 空 | 隐藏标题（逗号分隔），如 `投稿,我的关注,我的客服` |
+| `Mine.Order` | input | 空 | 自定义顺序（id 逗号分隔），如 `751,755,763` |
+| `Mine.BlockUpper` | switch | 关 | 隐藏投稿区（`ipad_upper_sections`） |
+| `Mine.BlockRecommend` | switch | 关 | 隐藏推荐区（`ipad_recommend_sections`） |
+| `Mine.BlockMore` | switch | 关 | 隐藏更多区（`ipad_more_sections`） |
+| `Mine.SectionStyle` | select | `0` | 区块样式（需真机验证取值含义） |
+
+**可自定义的区块（字段 → 对应 UI）：**
+- `ipad_upper_sections` → 投稿区（投稿/发布等）
+- `ipad_recommend_sections` → 推荐区（我的关注/收藏/历史记录等）
+- `ipad_more_sections` → 更多区（我的客服/设置/反馈等）
+
+> ⚠️ `ipad_sections`（首页网格服务项：离线缓存/历史记录等）为**死字段**，客户端不读取，修改无效。
+
 ### 其他 · Other
 `LogLevel` 日志等级 · log level
 
 ---
 
-## 完整标签页 · Full tab list
-
-8 个只是常用项。分区页原生「快捷访问」有近 **60 个**：
-
-```js
-if (Reflect.has(storage.Home, "Tab")) set(l, "Home.Tab", storage.Home.Tab)
-```
-
-**App 内保存的结果优先于参数页** —— 想用完整的 60 项，去 App 分区页用原生「快捷访问」配置。
-App-side config takes precedence over these parameters.
-
----
-
 ## 实现说明 · Implementation
 
-本插件托管改造过的 `response.bundle.js`（原版 163842 → 改造后 163993 字符）。
+**两个脚本：**
+- `Enhanced.response.js` (166 KB) —— 首页标签页/底栏（改造自 Biliverse response.bundle.js）
+- `Enhanced-mine.response.js` (5.5 KB) —— 我的页服务项（全新编写，纯 Loon 原生 API）
 
-上游只接受**单个字符串**作为设置，而 Loon 无法把多个开关拼成一个值传入：
-
-```js
-(()=>{
-  const T=x=>x===!0||x===1||x==="true"||x==="1"||x==="on"||x==="ON"||x==="yes",
-        S=["2036","2037","780","545","774","151","801","2280"],
-        f=S.filter(x=>T(i.get(l,"Home.Tab_"+x)));
-  const c=i.get(l,"Home.Tab");
-  i.set(l,"Home.Tab", f.length?f:Array.isArray(c)?c:c?[c]:[]);
-})(),
-```
-
-| 改造点 | 说明 |
-|---|---|
-| 两处取参 | 标签页 / 底栏各一组 IIFE |
-| **键名不统一** | `Home.Tab` 带前缀，**`Bottom` 是顶层键** — 写成 `Home.Bottom` 会静默失效 |
-| 嵌套读取 | `i.get(l,["Home","Tab_"+x])`，参数经 `toPath` 拆路径后是**嵌套**结构 |
-| 去 BoxJS | 4 处，配置只读 Loon 参数页 |
+**关键技术点：**
+- 首页/底栏拦截 `x/resource/show/tab/v2`，参数拼装同 v3.1（IIFE 取参拼数组）
+- 我的页拦截 `x/v2/account/mine/ipad`，按 `id`/`title` 双键过滤，支持 `include`/`exclude`/`order` 三模式
+- 持久化用 `$persistentStore.write(value, key)`（值在前、键在后）
+- iPad HD 自动跳过首页/底栏改写（检测 `bili-hd2` UA 直接 `$done`）
 
 ---
 
 ## 兼容性 · Compatibility
 
-与 [Bilibili-Dedup](../Bilibili-Dedup/) **可共存** —— 端点不重叠（本插件只碰 `x/resource/show/tab/v2`）。
-blockAds 需使用**已移除 B 站部分的版本**。
+- 与 [Bilibili-Dedup](../Bilibili-Dedup/) **可共存** —— 端点不重叠
+- iPad HD 用户：**首页/底栏不可用，我的页可用**
+- 手机/国际版用户：全功能可用
 
 ---
 
@@ -125,31 +141,19 @@ blockAds 需使用**已移除 B 站部分的版本**。
 ```
 plugins/Bilibili-UI/
 ├── Bilibili-UI.lpx
-├── Enhanced.response.js   163 KB  改造自 Biliverse response.bundle.js
-├── icon.png                20 KB  256×256
-├── MANIFEST.json                  图标来源记录
+├── Enhanced.response.js           # 首页/底栏（改造自 Biliverse）
+├── Enhanced-mine.response.js      # 我的页（全新编写）
+├── icon.png                       # 256×256
+├── MANIFEST.json                  # 脚本来源记录
 └── README.md
 ```
 
 | 文件 | 说明 |
 |---|---|
-| `Enhanced.response.js` | **改造过的上游脚本**（非原样镜像），见[实现说明](#实现说明--implementation) |
-| `icon.png` | Biliverse `src/assets/icon_rounded.png`，**1024×1024 缩放至 256×256**（77 KB → 20 KB） |
-| `MANIFEST.json` | 记录图标原始 URL、字节数、SHA256、镜像日期 |
-
-`.lpx` 中**所有**外部 URL（含 `#!icon`）均指向本仓库，清单内无任何指向
-Biliverse / VirgilClyne 的可拉取地址。`MANIFEST.json` 的 `source` 字段保留上游地址，仅作溯源。
-
-校验：
-
-```bash
-python3 -c "
-import json,hashlib,pathlib
-for k,v in json.load(open('MANIFEST.json')).items():
-    p=pathlib.Path(k)
-    ok=p.exists() and hashlib.sha256(p.read_bytes()).hexdigest()==v['sha256']
-    print('OK  ' if ok else 'FAIL', k)"
-```
+| `Enhanced.response.js` | 166 KB，改造自 Biliverse `response.bundle.js` |
+| `Enhanced-mine.response.js` | 5.5 KB，全新编写，我的页服务项自定义 |
+| `icon.png` | Biliverse `icon_rounded.png`，**1024×1024 缩放至 256×256** |
+| `MANIFEST.json` | 记录所有脚本的原始 URL、字节数、SHA256、镜像日期 |
 
 ---
 
