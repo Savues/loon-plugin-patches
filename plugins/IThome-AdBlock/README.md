@@ -1,11 +1,11 @@
 # IThome-AdBlock · IT之家去广告（修复 + 增强）
 
 上游：`https://kelee.one/Tool/Loon/Lpx/IThome_remove_ads.lpx`（可莉 / luestr，`#!date=2026-10-02`）
-当前版本：**v1.3**（2026-10-20）
+当前版本：**v1.5**（2026-10-20）
 
 | 文件 | 说明 |
 |---|---|
-| `IThome-AdBlock.lpx` | **v1.3 增强版（推荐）**：补全端点 + 自研脚本（`src/`），含顶栏标签过滤、开屏广告拦截、电商带货文过滤、事件日历卡片过滤 |
+| `IThome-AdBlock.lpx` | **v1.5 增强版（推荐）**：补全端点 + 自研脚本（`src/`），含顶栏标签过滤、开屏广告拦截、电商带货文过滤、事件日历卡片过滤、**完全隐藏顶栏开关** |
 | `IThome-AdBlock.lite.lpx` | **v1.0 纯清单层修复**：只补端点正则，继续用 kelee.one 上游 JS，零托管 |
 | `src/IThome_remove_ads.js` | 自研脚本（逻辑重写 + 扩展，**不含上游代码**），node 回放 27 项断言全过 |
 
@@ -65,7 +65,17 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 - **`topmenu/getall`（顶栏标签）**：过滤 `showTopMenus`，可隐藏「关注/最新/热榜/事件/现场/发布会/IT号/评测/5G/鸿蒙/阳台/手机/数码家电/学院/VR/车/电脑/好物推荐/Win11」等标签。
 - **`api/appsplash/get?client=iphone`（开屏广告）**：拦截 `ITLaunchAdManager` / `XHLaunchAd` 加载的开屏广告响应，过滤 `type=launch/splash` 条目。
 
-## 开关（v1.3，全部默认开；参数顺序与 `script()` 一致）
+## v1.4 顶栏标签过滤加兜底
+
+- **`hideTopMenus` 无核心标签场景（HAR4）**：仅过滤促销项，避免核心标签丢失。
+- **兜底机制**：过滤后 `< 3` 个标签 → 放弃修改，保留服务端原响应，防止栏变空。
+
+## v1.5 新增：完全隐藏顶栏开关
+
+- 新开关 `hideTopbarCompletely`（默认**关**）：开启后将 `showTopMenus` 置空，顶部标签栏完全不显示；App 回退加载 `gethomefeeds`（最新标签页）作为默认内容，**内容不受影响**。
+- 适用场景：想要纯净的单列表体验，不需要标签切换。
+
+## 开关（v1.5，除 `hideTopbarCompletely` 外全部默认开；参数顺序与 `script()` 一致）
 
 | 开关 | 默认 | 作用 |
 |---|---|---|
@@ -76,6 +86,7 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 | `removeEventCalendar` | **开** | 信息流中的「事件日历」卡片（`feedType 10029`；事件页本身 10026/10027 不受影响） |
 | `removeAllBanners` | **开** | 整个轮播图（`10002`） |
 | `removePinnedArticles` | **开** | 置顶文章（`10003`） |
+| `hideTopbarCompletely` | **关** | **完全隐藏顶栏**，内容默认加载「最新」标签页（`gethomefeeds`） |
 
 ## 导入
 
@@ -84,14 +95,14 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 纯清单：https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/IThome-AdBlock.lite.lpx
 ```
 
-脚本带 `?v=13` 版本参数：Loon 按 URL 缓存脚本，改脚本必须同时改此参数。
+脚本带 `?v=15` 版本参数：Loon 按 URL 缓存脚本，改脚本必须同时改此参数。
 
 ## 端点速查
 
 | 端点 | 界面 |
 |---|---|
 | `api/news/indexv2/iphone/950` | 「最新」 |
-| `api/topmenu/gethomefeeds?topmenuId=101` | **首页（默认）** |
+| `api/topmenu/gethomefeeds?topmenuId=101` | **首页（默认 / "最新" 内容）** |
 | `api/topmenu/getfeeds?topmenuid=167` | 「关注」 |
 | `api/topmenu/getmenufeeds/{id}/0/iphone/950` | 各频道（评测/现场/IT号/…） |
 | `api/news/gethotbang/1` | 「热榜」 |
