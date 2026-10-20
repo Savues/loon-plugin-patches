@@ -38,7 +38,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
-| [IThome-AdBlock](plugins/IThome-AdBlock/) | IT之家去广告 · **补全首页 feed 端点**（`gethomefeeds` 漏配，双11红包等活动卡片全放行）· 电商带货文过滤（≥2 联盟特征判定）· 附纯清单 lite 版<br>IT-Home ad-block · home-tab feed endpoint was missing so event cards leaked · affiliate-article filter (≥2 markers) · manifest-only lite variant included | **v1.1** |
+| [IThome-AdBlock](plugins/IThome-AdBlock/) | IT之家去广告 · **补全首页 feed 端点**（`gethomefeeds` 漏配，双11红包等活动卡片全放行）· 电商带货文过滤（≥2 联盟特征判定）· 事件日历/轮播图/置顶全可配且默认全开 · 附纯清单 lite 版<br>IT-Home ad-block · home-tab feed endpoint was missing so event cards leaked · affiliate-article filter (≥2 markers) · all filters on by default · manifest-only lite variant included | **v1.2** |
 | [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 网络层已验证，App 端加载未解决<br>Locally model swap · URL rewrite · network layer verified, App-side load unresolved | **v1.6** ⚠️ |
 
 ### 托管了脚本的插件
