@@ -1,5 +1,5 @@
 #!name=IT之家去广告（增强版）
-#!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、开屏广告、顶栏标签、电商带货文章与置顶；补全首页/频道/热榜/事件/顶栏/开屏等未覆盖端点。
+#!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、开屏广告、顶栏标签、电商带货文章与置顶；支持完全隐藏顶栏（内容保留最新）；补全首页/频道/热榜/事件/顶栏/开屏等未覆盖端点。
 #!openUrl=https://apps.apple.com/app/id570610859
 #!author=Savues[https://github.com/Savues]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/IThome-AdBlock
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/IThome.png
-#!date=2026-10-20 16:30:00
+#!date=2026-10-20 18:00:00
 
 [Argument]
 removeWebViewCards = switch, true, false, tag=移除活动卡片（双11红包等）, desc=移除 feedType 10004 以及指向广告/活动域名的 WebView 卡片
@@ -18,12 +18,13 @@ removeEcommerceArticles = switch, true, false, tag=移除电商带货文章, des
 removeEventCalendar = switch, true, false, tag=移除事件日历卡片, desc=移除信息流中的「事件日历」卡片（feedType 10029）
 removeAllBanners = switch, true, false, tag=移除整个轮播图, desc=启用后将移除顶部轮播图（feedType 10002）
 removePinnedArticles = switch, true, false, tag=移除置顶文章, desc=启用后将移除置顶文章（feedType 10003）
+hideTopbarCompletely = switch, false, true, tag=完全隐藏顶栏, desc=启用后完全隐藏顶部标签栏，内容默认加载"最新"标签页（gethomefeeds）
 
 [Rewrite]
 request if ${url} ~= /^https?:\/\/dat\.ruanmei\.com\/ithome\/money\/acd\.json$/i then reject(404)
 
 [Script]
-response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getall|getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?|appsplash\/get)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/src/IThome_remove_ads.js?v=13", {${removeWebViewCards}, ${removeFeedAds}, ${removeBannerAds}, ${removeAllBanners}, ${removePinnedArticles}, ${removeEcommerceArticles}, ${removeEventCalendar}}) with tag="IT之家去广告", requires_body=true
+response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getall|getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?|appsplash\/get)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/src/IThome_remove_ads.js?v=15", {${removeWebViewCards}, ${removeFeedAds}, ${removeBannerAds}, ${removeAllBanners}, ${removePinnedArticles}, ${removeEcommerceArticles}, ${removeEventCalendar}, ${hideTopbarCompletely}}) with tag="IT之家去广告", requires_body=true
 
 [Rule]
 DOMAIN,knicks.jd.com,REJECT
