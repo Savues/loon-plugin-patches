@@ -7,21 +7,10 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-10-20 16:30:00
-
-[Argument]
-MineEnable = switch,true,tag=[我的页] 启用我的页自定义
-MineHideIds = input,"",tag=[我的页] 隐藏 id（逗号分隔）,desc=如 751,755,763
-MineHideTitles = input,"",tag=[我的页] 隐藏标题（逗号分隔）,desc=如 投稿,我的关注,我的客服
-MineOrder = input,"",tag=[我的页] 自定义顺序（id 逗号分隔）,desc=如 751,755,763
-MineBlockUpper = switch,false,tag=[我的页] 隐藏投稿区
-MineBlockRecommend = switch,false,tag=[我的页] 隐藏推荐区
-MineBlockMore = switch,false,tag=[我的页] 隐藏更多区
-MineSectionStyle = select,"0","0","1","2","3",tag=[我的页] 区块样式,desc=需真机验证取值含义
-LogLevel = select,"DEBUG","OFF","ERROR","WARN","INFO","DEBUG","ALL",tag=[调试] 日志等级
+#!date=2026-10-20 17:00:00
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine\/ipad requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine-body-debug.response.js?v=2, argument=[{MineEnable},{MineHideIds},{MineHideTitles},{MineOrder},{MineBlockUpper},{MineBlockRecommend},{MineBlockMore},{MineSectionStyle},{LogLevel}], enable={MineEnable}, tag=我的页字段测试-BodyDebug
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine-body-debug.response.js?v=3, tag=我的页字段测试-BodyDebug
 [Mitm]
-hostname=app.bilibili.com, app.biliapi.net
+hostname=app.bilibili.com
 h2 = true

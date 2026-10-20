@@ -1,5 +1,6 @@
-// Biliverse Enhanced - Mine iPad Customization (Body Debug Version)
+// Biliverse Enhanced - Mine iPad Customization (Body Debug Version - Hardcoded Config)
 // Injects debug info directly into response body for HAR inspection
+// Config: HIDE_IDS, HIDE_TITLES, ORDER, BLOCK_UPPER, BLOCK_RECOMMEND, BLOCK_MORE, SECTION_STYLE
 
 (() => {
   // Loon environment detection
@@ -12,7 +13,17 @@
   const isNode = typeof process?.versions?.node !== 'undefined';
   const isWorker = typeof Cloudflare !== 'undefined';
 
-  // Logger (write to response body instead of console)
+  // ============ HARDCODED CONFIG (modify here) ============
+  const HIDE_IDS = '';           // 如 '751,755,763'
+  const HIDE_TITLES = '';        // 如 '投稿,我的关注,我的客服'
+  const ORDER = '';              // 如 '751,755,763'
+  const BLOCK_UPPER = false;     // 隐藏投稿区
+  const BLOCK_RECOMMEND = false; // 隐藏推荐区
+  const BLOCK_MORE = false;      // 隐藏更多区
+  const SECTION_STYLE = 0;       // 区块样式
+  // =========================================================
+
+  // Logger (write to response body)
   let debugLines = [];
   const log = (...args) => { debugLines.push('[Enhanced-Mine] ' + args.join(' ')); };
   const warn = (...args) => { debugLines.push('[Enhanced-Mine-WARN] ' + args.join(' ')); };
@@ -29,34 +40,6 @@
       return;
     }
 
-    const rawArgs = globalThis.$argument || [];
-    const args = Array.isArray(rawArgs) ? rawArgs : [rawArgs];
-
-    log('=== Request intercepted ===', { url: url.substring(0, 80), ua: ua.substring(0, 60) });
-    log('Arguments received:', JSON.stringify(rawArgs));
-
-    if (!rawArgs[0]) { // MineEnable
-      log('MineEnable is false/undefined, skipping');
-      // Still inject debug into response
-      try {
-        let body = JSON.parse($response.body);
-        if (body && body.data) {
-          body._debug = { 
-            script: 'Enhanced-Mine',
-            skipped: true, 
-            reason: 'MineEnable=false',
-            argsReceived: rawArgs
-          };
-          $done({ body: JSON.stringify(body) });
-        } else {
-          $done({});
-        }
-      } catch (e) {
-        $done({});
-      }
-      return;
-    }
-
     try {
       let body = JSON.parse($response.body);
       if (!body || !body.data) {
@@ -66,50 +49,39 @@
 
       const data = body.data;
 
-      // Parse config from arguments (array order: MineEnable, MineHideIds, MineHideTitles, MineOrder, MineBlockUpper, MineBlockRecommend, MineBlockMore, MineSectionStyle, LogLevel)
-      const hideIds = new Set((rawArgs[1] || '').split(',').filter(Boolean).map(Number));
-      const hideTitles = new Set((rawArgs[2] || '').split(',').filter(Boolean));
-      const order = (rawArgs[3] || '').split(',').filter(Boolean).map(Number);
-      const blockUpper = !!rawArgs[4];
-      const blockRecommend = !!rawArgs[5];
-      const blockMore = !!rawArgs[6];
-      const sectionStyle = rawArgs[7];
+      // Parse hardcoded config
+      const hideIds = new Set((HIDE_IDS || '').split(',').filter(Boolean).map(Number));
+      const hideTitles = new Set((HIDE_TITLES || '').split(',').filter(Boolean));
+      const order = (ORDER || '').split(',').filter(Boolean).map(Number);
+      const blockUpper = BLOCK_UPPER;
+      const blockRecommend = BLOCK_RECOMMEND;
+      const blockMore = BLOCK_MORE;
+      const sectionStyle = SECTION_STYLE;
 
       const debugInfo = {
         script: 'Enhanced-Mine',
         scriptExecuted: true,
-        argsReceived: rawArgs,
-        parsedConfig: {
-          hideIds: Array.from(new Set((rawArgs[1] || '').split(',').filter(Boolean).map(Number))),
-          hideTitles: Array.from(new Set((rawArgs[2] || '').split(',').filter(Boolean))),
-          order: (rawArgs[3] || '').split(',').filter(Boolean).map(Number),
-          blockUpper: !!rawArgs[4],
-          blockRecommend: !!rawArgs[5],
-          blockMore: !!rawArgs[6],
-          sectionStyle: rawArgs[7]
+        config: {
+          hideIds: Array.from(hideIds),
+          hideTitles: Array.from(hideTitles),
+          order,
+          blockUpper,
+          blockRecommend,
+          blockMore,
+          sectionStyle
         },
         beforeFilter: {}
       };
 
-      // Fields to process
       const fields = [
-        { key: 'ipad_upper_sections', block: !!rawArgs[4] },
-        { key: 'ipad_recommend_sections', block: !!rawArgs[5] },
-        { key: 'ipad_more_sections', block: !!rawArgs[6] }
+        { key: 'ipad_upper_sections', block: BLOCK_UPPER },
+        { key: 'ipad_recommend_sections', block: BLOCK_RECOMMEND },
+        { key: 'ipad_more_sections', block: BLOCK_MORE }
       ];
 
-      const hideIds = new Set((rawArgs[1] || '').split(',').filter(Boolean).map(Number));
-      const hideTitles = new Set((rawArgs[2] || '').split(',').filter(Boolean));
-      const order = (rawArgs[3] || '').split(',').filter(Boolean).map(Number);
-      const blockUpper = !!rawArgs[4];
-      const blockRecommend = !!rawArgs[5];
-      const blockMore = !!rawArgs[6];
-      const sectionStyle = rawArgs[7];
-
-      for (const f of [{ key: 'ipad_upper_sections', block: !!rawArgs[4] }, { key: 'ipad_recommend_sections', block: !!rawArgs[5] }, { key: 'ipad_more_sections', block: !!rawArgs[6] }]) {
+      for (const f of fields) {
         if (f.block) {
           if (data[f.key]) {
-            // Record before state
             debugInfo.beforeFilter[f.key] = data[f.key].map(it => ({ id: it.id, title: it.title }));
             data[f.key] = [];
           }
@@ -120,21 +92,18 @@
         let arr = data[f.key];
         if (!Array.isArray(arr)) continue;
 
-        // Record before state
         debugInfo.beforeFilter[f.key] = arr.map(it => ({ id: it.id, title: it.title }));
 
-        // Filter by hideIds and hideTitles
         arr = arr.filter(it => {
-          if (it.id && new Set((rawArgs[1] || '').split(',').filter(Boolean).map(Number)).has(it.id)) return false;
-          if (it.title && new Set((rawArgs[2] || '').split(',').filter(Boolean)).has(it.title)) return false;
+          if (it.id && hideIds.has(it.id)) return false;
+          if (it.title && hideTitles.has(it.title)) return false;
           return true;
         });
 
-        // Reorder if order specified
-        if ((rawArgs[3] || '').split(',').filter(Boolean).map(Number).length > 0) {
+        if (order.length > 0) {
           const map = new Map(arr.map(it => [it.id, it]));
           const ordered = [];
-          for (const id of (rawArgs[3] || '').split(',').filter(Boolean).map(Number)) {
+          for (const id of order) {
             const item = map.get(id);
             if (item) ordered.push(item);
           }
@@ -147,41 +116,39 @@
         data[f.key] = arr;
       }
 
-      if (rawArgs[7] !== undefined && data.ipad_section_style !== undefined) {
-        data.ipad_section_style = Number(rawArgs[7]);
+      if (SECTION_STYLE !== undefined && data.ipad_section_style !== undefined) {
+        data.ipad_section_style = Number(SECTION_STYLE);
       }
+
+      // Capture after states
+      const afterFilter = {};
+      ['ipad_upper_sections', 'ipad_recommend_sections', 'ipad_more_sections'].forEach(key => {
+        if (data[key]) {
+          afterFilter[key] = data[key].map(it => ({ id: it.id, title: it.title }));
+        }
+      });
 
       // Inject debug info into response
       body._debug = {
         script: 'Enhanced-Mine',
         scriptExecuted: true,
-        argsReceived: globalThis.$argument,
-        parsedConfig: {
-          hideIds: Array.from(new Set((globalThis.$argument?.[1] || '').split(',').filter(Boolean).map(Number))),
-          hideTitles: Array.from(new Set((globalThis.$argument?.[2] || '').split(',').filter(Boolean))),
-          order: (globalThis.$argument?.[3] || '').split(',').filter(Boolean).map(Number),
-          blockUpper: !!globalThis.$argument?.[4],
-          blockRecommend: !!globalThis.$argument?.[5],
-          blockMore: !!globalThis.$argument?.[6],
-          sectionStyle: globalThis.$argument?.[7]
+        config: {
+          hideIds: Array.from(hideIds),
+          hideTitles: Array.from(hideTitles),
+          order,
+          blockUpper: BLOCK_UPPER,
+          blockRecommend: BLOCK_RECOMMEND,
+          blockMore: BLOCK_MORE,
+          sectionStyle: SECTION_STYLE
         },
-        beforeFilter: {},
-        afterFilter: {}
+        beforeFilter: debugInfo.beforeFilter,
+        afterFilter
       };
 
-      // Capture after states
-      ['ipad_upper_sections', 'ipad_recommend_sections', 'ipad_more_sections'].forEach(key => {
-        if (data[key]) {
-          debugInfo.afterFilter[key] = data[key].map(it => ({ id: it.id, title: it.title }));
-        }
-      });
-
-      // Write debug to body
       body._debug = debugInfo;
 
       $done({ body: JSON.stringify(body) });
     } catch (e) {
-      // On error, still inject error debug
       try {
         let body = JSON.parse($response.body);
         body._debug = { script: 'Enhanced-Mine', error: String(e), scriptExecuted: true };
