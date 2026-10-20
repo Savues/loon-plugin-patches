@@ -36,8 +36,8 @@ Home.Bot_mine = switch,true,tag=[底部] 我的
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine.response.js, tag=我的页服务项
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? requires-body=1, script-path=https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-UI/Enhanced.response.js, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad requires-body=1, script-path=https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-UI/Enhanced-mine.response.js, tag=我的页服务项
 [Mitm]
 hostname=app.bilibili.com, app.biliapi.net
 h2 = true
