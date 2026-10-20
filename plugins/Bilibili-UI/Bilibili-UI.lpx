@@ -7,7 +7,7 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-10-20 18:00:00
+#!date=2026-10-20 18:15:00
 # ==== v3.3.1 | 首页标签页/底栏（仅手机布局）· 我的页固定移除 751/755/763/747 ====
 
 [Argument]
@@ -41,3 +41,4 @@ http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad require
 [Mitm]
 hostname=app.bilibili.com
 h2 = true
+# cache_bust: 202610201830
