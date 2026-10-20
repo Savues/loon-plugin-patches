@@ -1,165 +1,122 @@
-# Bilibili-UI · 小破站界面增强
+# Bilibili-UI 小破站界面增强
 
-> 首页标签页与底部导航的自定义，真开关点选。
-> Home tab bar and bottom navigation, with real toggle switches.
-
-**v3.2** · 27 参数 / 3 条规则 · 27 parameters, 3 rules · 更新 `2026-10-20`
-
-| | 中文 | English |
-|---|---|---|
-| 脚本 | 2 个，**由本仓库托管** | 2 scripts, self-hosted |
-| 图标 | **自托管** `icon.png` | self-hosted |
-| 外部依赖 | **无** —— 所有 URL 指向本仓库 | none |
+> 基于 [Biliverse Enhanced](https://github.com/luestr/ProxyResource) 移植改造，适配 Loon 插件规范
 
 ---
 
-## 订阅 · Subscribe
+## ✨ 功能概览
 
+| 功能 | 支持平台 | 状态 | 说明 |
+|------|---------|------|------|
+| 首页标签页自定义 | iPhone / 国际版 | ✅ 可用 | 仅手机布局生效 |
+| 底部导航栏自定义 | iPhone / 国际版 | ✅ 可用 | 仅手机布局生效 |
+| **我的页服务项自定义** | **iPad HD** | ✅ **新增** | **网络驱动，完全可控** |
+
+---
+
+## 📱 平台差异说明（重要）
+
+### iPad HD（哔哩哔哩 HD 3.71+）
+- **首页顶栏/底栏**：**完全本地化**，数据源为 Swift 类 `TabDisplayConfig`（`homeTabData`/`bottomTabData` 硬编码），**不走任何网络端点**，Loon 层面**无法修改**
+- **我的页**：走 `x/v2/account/mine/ipad` 端点，**网络驱动**，可完全自定义服务项
+
+### iPhone / 国际版（手机布局）
+- 首页顶栏/底栏走 `x/resource/show/tab/v2` 端点，插件原有功能完全生效
+
+---
+
+## 🎯 iPad HD「我的页」服务项自定义
+
+### 端点
+```
+x/v2/account/mine/ipad
+```
+
+### 响应结构（四大区块）
+| 字段 | 说明 | 默认项（ID） |
+|------|------|-------------|
+| `ipad_upper_sections` | 创作中心区块 | 751 投稿 / 752 创作首页 / 753 稿件管理 / 754 有奖活动 |
+| `ipad_recommend_sections` | 推荐服务区块 | 755 我的关注 / 756 我的消息 / 757 我的钱包 / 758 直播中心 / 759 大会员 / 2541 我的游戏 / 760 我的课程 |
+| `ipad_more_sections` | 更多服务区块 | 763 我的客服 / 764 设置 / 965 青少年守护 |
+| `ipad_sections` | 常用功能区块 | 747 离线缓存 / 748 历史记录 / 749 我的收藏 / 750 稍后再看 |
+
+### 配置参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `MineHideIds` | `input` | `751,752,753,754,755,756,757,758,759,760,763,965,2541,750,747` | 逗号分隔的 ID 列表，匹配项将被隐藏 |
+
+**默认效果**：仅保留 **历史记录(748)**、**我的收藏(749)**、**设置(764)** 三项
+
+### 自定义示例
+
+```
+# 仅隐藏“投稿”和“我的关注”
+MineHideIds = 751,755
+
+# 隐藏整个“创作中心”区块
+MineHideIds = 751,752,753,754
+
+# 全部显示（清空）
+MineHideIds =
+```
+
+---
+
+## 🔧 安装与配置
+
+### 1. 安装插件
+Loon → 配置 → 插件 → 添加 → 粘贴以下链接：
 ```
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Bilibili-UI.lpx
 ```
 
-**需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
+### 2. 启用 MitM
+确保 Loon 已配置 MitM 并信任证书：
+- **Hostname**：`app.bilibili.com`
+- **开启 HTTP/2**：`h2 = true`
+
+### 3. 配置参数
+插件安装后在 Loon 参数面板中调整：
+- **首页标签页/底栏**：仅手机布局有效
+- **我的页服务项**：iPad HD 专用，修改 `MineHideIds`
+- **日志等级**：调试用，默认 `WARN`
 
 ---
 
-## ⚠️ 重要：iPad HD 布局限制
+## 📝 更新日志
 
-**首页标签页、底部导航栏、顶栏按钮在 iPad HD (iPadOS) 上完全无效**。
+### v3.4.1 (2026-10-20)
+- **新增**：iPad HD「我的页」服务项自定义（`MineHideIds`）
+- **修复**：脚本语法错误（重复声明导致静默失败）
+- **修正**：默认值覆盖所有已知 ID，默认仅保留 748/749/764
+- **文档**：明确平台差异，iPad HD 首页顶栏/底栏不可改
 
-**根因**：iPad HD 3.71 的首页顶栏/底栏由本地 Swift 类 `TabDisplayConfig` 直接驱动（属性 `homeTabData`/`bottomTabData`），**不读任何网络响应**（`x/resource/show/tab/v2` 已被插件注入但客户端不消费）。Loon 只能改写网络层，因此**彻底无法**在 iPad HD 上实现首页/底栏自定义。
-
-> 同端点 `x/resource/show/tab/v2` 在手机版/国际版（手机布局）上有效。
-
----
-
-## 功能 · Features
-
-| 功能 | 状态 | 适用布局 | Feature | Status | Layout |
-|---|---|---|---|---|---|
-| **首页标签页** | ✅ | 手机/国际版 | Home tabs | ✅ | Phone/Intl |
-| **底部导航栏** | ✅ | 手机/国际版 | Bottom nav | ✅ | Phone/Intl |
-| **我的页服务项** | ✅ **v3.2 新增** | **iPad HD** | Mine sections | ✅ **v3.2 new** | **iPad HD** |
-| 顶栏按钮 | ❌ | 全部 | Top buttons | ❌ | All |
-| 分区页自定义 | ❌ | 全部 | Region tabs | ❌ | All |
-
-**移除/不可实现原因**
-- 顶栏/首页/底栏：iPad HD 走本地 `TabDisplayConfig`，非网络驱动；Loon 无法触达
-- 我的页：iPad HD 走 `x/v2/account/mine/ipad` 网络驱动，**可自定义服务项**（投稿区/推荐区/更多区）
-- 分区页：自定义标签页保存端点未知（可能 gRPC）
+### v3.3.x
+- 修复 `mine/ipad` 与主脚本冲突
+- 参数名去点号兼容
+- MitM hostname 精确匹配
 
 ---
 
-## 订阅 · Subscribe
+## ⚠️ 已知限制
 
-```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Bilibili-UI.lpx
-```
-
-**需开启 MitM over HTTP/2。** Enable MitM over HTTP/2.
+1. **iPad HD 首页顶栏/底栏无法修改** — 客户端本地 Swift 类 `TabDisplayConfig` 硬编码，需越狱/TrollStore hook
+2. **Section 标题（常用功能/更多服务等）为客户端硬编码** — 无法单独隐藏标题，只能通过清空对应数组间接隐藏
+3. **需完全关闭 App 重启** — 修改参数后需杀进程重启 B 站才能生效
 
 ---
 
-## 参数 · Parameters
+## 🔗 相关资源
 
-### 首页 · 标签页（仅手机/国际版布局）
-
-| 参数 | 类型 | 默认 | 说明 |
-|---|---|---|---|
-| `Home.Switch` | switch | **开** | 首页总开关 |
-| `Home.Tab_2036` | switch | 关 | 直播 |
-| `Home.Tab_2037` | switch | **开** | 推荐 |
-| `Home.Tab_780` | switch | 关 | 热门 |
-| `Home.Tab_545` | switch | 关 | 番剧 |
-| `Home.Tab_774` | switch | **开** | 动画（港澳台） |
-| `Home.Tab_151` | switch | 关 | 影视 |
-| `Home.Tab_801` | switch | **开** | 韩综（港澳台） |
-| `Home.Tab_2280` | switch | 关 | 校园 |
-| `Home.Tab_default` | select | `2037` | 默认标签页，需先勾选 |
-| `Home.Tab` | input | 空 | 备用输入框，开关全关时兜底 |
-
-### 底部 · 导航栏（仅手机/国际版布局）
-
-| 参数 | 默认 | 说明 | 参数 | 默认 | 说明 |
-|---|---|---|---|---|---|
-| `Home.Bot_home` | **开** | 首页 | `Home.Bot_ogv` | 关 | 番剧 |
-| `Home.Bot_dynamic` | **开** | 动态 | `Home.Bot_mall` | 关 | 会员购 |
-| `Home.Bot_mine` | **开** | 我的 | `Home.Bot_messages` | 关 | 消息 |
-| `Home.Bot_channel` | 关 | 频道 ⚠️ | | | |
-
-> ⚠️ `channel` / `publish` 部分版本可能已下线。
-
-### 我的页 · 服务项（iPad HD 专用，网络驱动）v3.2 新增
-
-| 参数 | 类型 | 默认 | 说明 |
-|---|---|---|---|
-| `Mine.Enable` | switch | **开** | 总开关 |
-| `Mine.HideIds` | input | 空 | 隐藏 id（逗号分隔），如 `751,755,763` |
-| `Mine.HideTitles` | input | 空 | 隐藏标题（逗号分隔），如 `投稿,我的关注,我的客服` |
-| `Mine.Order` | input | 空 | 自定义顺序（id 逗号分隔），如 `751,755,763` |
-| `Mine.BlockUpper` | switch | 关 | 隐藏投稿区（`ipad_upper_sections`） |
-| `Mine.BlockRecommend` | switch | 关 | 隐藏推荐区（`ipad_recommend_sections`） |
-| `Mine.BlockMore` | switch | 关 | 隐藏更多区（`ipad_more_sections`） |
-| `Mine.SectionStyle` | select | `0` | 区块样式（需真机验证取值含义） |
-
-**可自定义的区块（字段 → 对应 UI）：**
-- `ipad_upper_sections` → 投稿区（投稿/发布等）
-- `ipad_recommend_sections` → 推荐区（我的关注/收藏/历史记录等）
-- `ipad_more_sections` → 更多区（我的客服/设置/反馈等）
-
-> ⚠️ `ipad_sections`（首页网格服务项：离线缓存/历史记录等）为**死字段**，客户端不读取，修改无效。
-
-### 其他 · Other
-`LogLevel` 日志等级 · log level
+- **插件源码**：[plugins/Bilibili-UI/](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-UI)
+- **上游项目**：[Biliverse Enhanced](https://github.com/luestr/ProxyResource)
+- **反编译分析仓库**：`/tmp/bili-splash-re/`（含 `AB_PLAN.md` 计划表）
 
 ---
 
-## 实现说明 · Implementation
+## 📄 许可证
 
-**两个脚本：**
-- `Enhanced.response.js` (166 KB) —— 首页标签页/底栏（改造自 Biliverse response.bundle.js）
-- `Enhanced-mine.response.js` (5.5 KB) —— 我的页服务项（全新编写，纯 Loon 原生 API）
-
-**关键技术点：**
-- 首页/底栏拦截 `x/resource/show/tab/v2`，参数拼装同 v3.1（IIFE 取参拼数组）
-- 我的页拦截 `x/v2/account/mine/ipad`，按 `id`/`title` 双键过滤，支持 `include`/`exclude`/`order` 三模式
-- 持久化用 `$persistentStore.write(value, key)`（值在前、键在后）
-- iPad HD 自动跳过首页/底栏改写（检测 `bili-hd2` UA 直接 `$done`）
-
----
-
-## 兼容性 · Compatibility
-
-- 与 [Bilibili-Dedup](../Bilibili-Dedup/) **可共存** —— 端点不重叠
-- iPad HD 用户：**首页/底栏不可用，我的页可用**
-- 手机/国际版用户：全功能可用
-
----
-
-## 文件 · Files
-
-```
-plugins/Bilibili-UI/
-├── Bilibili-UI.lpx
-├── Enhanced.response.js           # 首页/底栏（改造自 Biliverse）
-├── Enhanced-mine.response.js      # 我的页（全新编写）
-├── icon.png                       # 256×256
-├── MANIFEST.json                  # 脚本来源记录
-└── README.md
-```
-
-| 文件 | 说明 |
-|---|---|
-| `Enhanced.response.js` | 166 KB，改造自 Biliverse `response.bundle.js` |
-| `Enhanced-mine.response.js` | 5.5 KB，全新编写，我的页服务项自定义 |
-| `icon.png` | Biliverse `icon_rounded.png`，**1024×1024 缩放至 256×256** |
-| `MANIFEST.json` | 记录所有脚本的原始 URL、字节数、SHA256、镜像日期 |
-
----
-
-## 致谢 · Credits
-
-- **Biliverse** — VirgilClyne, app2smile, Maasea <https://biliverse.github.io/>
-
-上游已停止分发该脚本，本仓库为最终版本。
-Upstream has discontinued distribution; this is the final build.
+原作者：VirgilClyne, app2smile, Maasea (Biliverse)
+改造维护：Savues
+遵循上游仓库许可证
