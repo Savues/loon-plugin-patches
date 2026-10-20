@@ -179,54 +179,72 @@ function filterMetaxHomepage(body) {
   return body;
 }
 
-function filterMetaxFeedKeywords(body) {
+function filterMetaxFeed(body) {
   let data;
   try {
     data = JSON.parse(body);
   } catch (e) {
-    console.log("[Alimama-AdBlock] Metax feed keywords JSON parse failed:", e);
+    console.log("[Alimama-AdBlock] Metax feed JSON parse failed:", e);
     return body;
   }
 
   // Structure: { data: { data: { bodyList: [...] } } }
-  // 过滤 bodyList 中 fields.newsList.recommend.resultList 的商品
+  // 清空整个 feed (bodyList 中的推荐商品)
   if (!data?.data?.data?.bodyList || !Array.isArray(data.data.data.bodyList) || !isEnabled("removeFeedKeywords")) {
     return body;
   }
 
-  // 需要屏蔽的关键词 (硬编码，用户可自行修改脚本)
-  const BLOCKED_KEYWORDS = [
-    "霸王何首乌",
-    "霸王",
-    "何首乌",
-  ];
-
-  let totalRemoved = 0;
+  let totalCleared = 0;
 
   for (const bodyItem of data.data.data.bodyList) {
-    // 处理 newsList.recommend.resultList 结构
+    // 清空 newsList.recommend.resultList
     if (bodyItem?.fields?.newsList?.recommend?.resultList && Array.isArray(bodyItem.fields.newsList.recommend.resultList)) {
       const originalLen = bodyItem.fields.newsList.recommend.resultList.length;
-      bodyItem.fields.newsList.recommend.resultList = bodyItem.fields.newsList.recommend.resultList.filter(item => {
-        const name = item?.itemName || "";
-        return !BLOCKED_KEYWORDS.some(kw => name.includes(kw));
-      });
-      totalRemoved += originalLen - bodyItem.fields.newsList.recommend.resultList.length;
+      if (originalLen > 0) {
+        console.log(`[Alimama-AdBlock] Clearing feed: bodyList type=${bodyItem.type}, removed ${originalLen} items`);
+        bodyItem.fields.newsList.recommend.resultList = [];
+        bodyItem.fields.newsList.recommend.hasMore = "false";
+        bodyItem.fields.newsList.recommend.allCount = "0";
+        totalCleared += originalLen;
+      }
     }
 
-    // 也可能有其他推荐结构，如直接的 resultList
+    // 清空直接的 resultList
     if (bodyItem?.fields?.resultList && Array.isArray(bodyItem.fields.resultList)) {
       const originalLen = bodyItem.fields.resultList.length;
-      bodyItem.fields.resultList = bodyItem.fields.resultList.filter(item => {
-        const name = item?.itemName || item?.title || "";
-        return !BLOCKED_KEYWORDS.some(kw => name.includes(kw));
-      });
-      totalRemoved += originalLen - bodyItem.fields.resultList.length;
+      if (originalLen > 0) {
+        console.log(`[Alimama-AdBlock] Clearing feed: bodyList type=${bodyItem.type}, removed ${originalLen} items (resultList)`);
+        bodyItem.fields.resultList = [];
+        totalCleared += originalLen;
+      }
+    }
+
+    // 清空 floorMappingList 中的商品
+    if (bodyItem?.fields?.floorMappingList && Array.isArray(bodyItem.fields.floorMappingList)) {
+      for (const floor of bodyItem.fields.floorMappingList) {
+        if (floor?.siteMappingList && Array.isArray(floor.siteMappingList)) {
+          for (const site of floor.siteMappingList) {
+            if (site?.siteData?.pointList && Array.isArray(site.siteData.pointList)) {
+              const originalLen = site.siteData.pointList.length;
+              if (originalLen > 0) {
+                site.siteData.pointList = [];
+                totalCleared += originalLen;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 清空 homeSlotConverge 相关
+    if (bodyItem?.fields?.homeSlotConverge) {
+      bodyItem.fields.homeSlotConverge = {};
+      totalCleared++;
     }
   }
 
-  if (totalRemoved > 0) {
-    console.log(`[Alimama-AdBlock] Filtered feed keywords: removed ${totalRemoved} items`);
+  if (totalCleared > 0) {
+    console.log(`[Alimama-AdBlock] Cleared entire feed: ${totalCleared} items/sections`);
     return JSON.stringify(data);
   }
 
@@ -330,14 +348,14 @@ function main() {
     }
   }
 
-  // 5. 首页搜索栏热词 - metax homepage
+  // 5. 首页搜索栏热词 + Feed 清空 - metax homepage
   if (url.includes("mtop.alimama.moon.provider.metax.homepage.query")) {
     console.log("[Alimama-AdBlock] Processing metax homepage query response, length:", body.length);
     
     // 5a. 热词过滤
     let newBody = filterMetaxHomepage(body);
-    // 5b. Feed 关键词过滤
-    newBody = filterMetaxFeedKeywords(newBody);
+    // 5b. Feed 整体清空
+    newBody = filterMetaxFeed(newBody);
     
     if (newBody !== body) {
       console.log("[Alimama-AdBlock] Metax homepage response modified");
