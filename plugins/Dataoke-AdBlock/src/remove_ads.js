@@ -1,7 +1,7 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.1.0
+// 版本: 1.3.1
 // 更新: 2026-10-20
 
 // Loon $argument 接收 boolean (true/false) - 来自 {${removeSplashAd}} 等展开

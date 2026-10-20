@@ -1,5 +1,5 @@
 #!name=大淘客联盟去广告 v1.3
-#!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(app-index-topic/get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(search-v2/dtk-search-ad-list)、新用户红包。6 独立开关，核心默认开、埋点推送默认关。
+#!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(app-index-topic/get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(search-v2/dtk-search-ad-list)、新用户红包、埋点上报、推送标签。6 独立开关，默认全开。
 #!author=Savues <https://github.com/Savues>
 #!tag=去广告,Dataoke
 #!system=iOS
@@ -12,8 +12,8 @@ removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截启动页广�
 removeIndexBanner = switch, true, false, tag=首页运营位, desc=拦截首页顶部/中部/底部运营位 Banner (app-index-topic, get-index-topic-config)
 removeAdList = switch, true, false, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list / search-v2
 removeNewUserGuide = switch, true, false, tag=新用户红包, desc=拦截新用户红包引导弹窗
-blockTracking = switch, false, true, tag=埋点上报, desc=拦截 logcoll 行为埋点 (默认关，防止影响数据统计)
-blockPushTags = switch, false, true, tag=推送标签, desc=拦截阿里云推送标签绑定
+blockTracking = switch, true, false, tag=埋点上报, desc=拦截 logcoll 行为埋点
+blockPushTags = switch, true, false, tag=推送标签, desc=拦截阿里云推送标签绑定
 
 [Rewrite]
 request if ${url} ~= /^https?:\/\/logcoll-v2\.ffquan\.cn\/sendEvent\?/i then reject, enable={blockTracking}
