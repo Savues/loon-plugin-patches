@@ -74,7 +74,28 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 4. 搜索/推荐流: GET /search-v2
+  // 3.5 市场分类页: GET /get-all-market
+  //    响应: { data: [{ fc_single_label_img, ... }, ...] }
+  //    处理: 清空运营位图片字段 fc_single_label_img 等
+  // ------------------------------------------------------------
+  if (url.includes('/get-all-market') && isEnabled('removeIndexBanner')) {
+    if (body.data && Array.isArray(body.data)) {
+      body.data = body.data.map(item => ({
+        ...item,
+        fc_single_label_img: '',
+        fc_single_label_img2: '',
+        fc_single_label_img_wap: '',
+        fc_screen_label_img_app: null,
+        fc_screen_label_img_app_after: null,
+        fc_screen_label_img_app_before: null,
+        fc_detail_label_content: '',
+        fc_detail_label_content_wap: '',
+      }));
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 4. 搜索/推荐流: GET /search-v2 (含网关代理 /go_getway/proxy/search-v2)
   //    响应: { data: { list: [...] } } - 商品列表
   //    广告特征: is_pure_push === "1"、is_pure_push === 1、特定 tags 标识
   //    策略: 保留正常商品，过滤纯推广/广告标识商品

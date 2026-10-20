@@ -20,7 +20,7 @@ request if ${url} ~= /^https?:\/\/logcoll-v2\.ffquan\.cn\/sendEvent\?/i then rej
 request if ${url} ~= /^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\?/i then reject, enable={blockPushTags}
 
 [Script]
-response if ${url} ~= /^https?:\/\/dtkapi\.ffquan\.cn\/dtk_go_app_api\/v1\/(all-config|get-index-topic-config|app-index-topic|search-v2|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl)\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js", {${removeSplashAd}, ${removeIndexBanner}, ${removeAdList}, ${removeNewUserGuide}}) with tag="大淘客去广告", requires_body=true
+response if ${url} ~= /^https?:\/\/dtkapi\.ffquan\.cn\/(dtk_go_app_api\/v1\/(all-config|get-index-topic-config|app-index-topic|search-v2|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl|get-all-market)|go_getway\/proxy\/search-v2)\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js", {${removeSplashAd}, ${removeIndexBanner}, ${removeAdList}, ${removeNewUserGuide}}) with tag="大淘客去广告", requires_body=true
 
 [MitM]
 hostname=dtkapi.ffquan.cn, sr.ffquan.cn, logcoll-v2.ffquan.cn, mpush-api.aliyun.com, yy.ffquan.cn
