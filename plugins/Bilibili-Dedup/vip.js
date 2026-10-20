@@ -27,7 +27,9 @@ const on = (v) => v === true || v === "true";
 const ALL = on(A.vipAllUsers);
 
 // 国际版我的页服务项隐藏 ID（sections_v2）
-let mineInterHideIdsStr = '494,500,741,742,1028,3084';
+// 默认隐藏：离线缓存(494)/钱包(741)/NFT(1028)/稍后再看(3084)
+// 保留：联系客服(500)/稿件管理(742)
+let mineInterHideIdsStr = '494,741,1028,3084';
 if (A.MineInterHideIds) {
   mineInterHideIdsStr = A.MineInterHideIds;
 } else if (Array.isArray(A) && A[0] && A[0].MineInterHideIds) {
@@ -45,7 +47,9 @@ const mineInterHideIds = new Set(mineInterHideIdsStr.split(',').filter(Boolean).
 //
 // ⚠️ 取值用 hasOwnProperty 而非真值判断：Loon 的 [Argument] input 清空后传的是
 // 空字符串 ""（假值），真值判断会回落到默认隐藏列表 → 「留空=全部显示」不生效。
-const IPAD_HIDE_DEFAULT = '751,752,753,754,755,756,757,758,759,760,763,965,2541,750,747';
+// 默认隐藏：推荐服务(755-760,2541)/更多服务-青少年守护(965)/常用功能-离线缓存(747)/稍后再看(750)
+// 保留：创作中心全组(751-754)/我的客服(763)/历史记录(748)/收藏(749)/设置(764)
+const IPAD_HIDE_DEFAULT = '755,756,757,758,759,760,2541,965,747,750';
 const mineIpadArg = (Array.isArray(A) ? (A[0] || {}) : (A || {}));
 const mineIpadHideIdsStr = Object.prototype.hasOwnProperty.call(mineIpadArg, "MineHideIds")
   ? String(mineIpadArg.MineHideIds)

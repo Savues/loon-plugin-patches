@@ -189,8 +189,8 @@ Push-notification permission popup.
 | `vipVerifyTitle` | input | 空 | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
 | `vipBadgeIcon` | select | 大会员 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
-| `MineInterHideIds` | input | `494,500,741,742,1028,3084` | [国际版我的页] `sections_v2` 隐藏 id（逗号分隔） |
-| `MineHideIds` | input | `751,…,747` | [iPad HD 我的页] `ipad_upper/recommend/more/sections` 隐藏 id，**默认仅保留 748历史记录 749收藏 764设置**。原 Bilibili-UI 功能，v7.43 并入（该插件的规则会抢走本脚本，故已摘除）；留空=全部显示 |
+| `MineInterHideIds` | input | `494,741,1028,3084` | [国际版我的页] `sections_v2` 隐藏 id，**默认隐藏 离线缓存/钱包/NFT/稍后再看；保留 联系客服/稿件管理** |
+| `MineHideIds` | input | `755,756,757,758,759,760,2541,965,747,750` | [iPad HD 我的页] `ipad_upper/recommend/more/sections` 隐藏 id，**默认隐藏 推荐服务/更多服务(青少年守护)/常用功能(离线缓存/稍后再看)；保留 创作中心全组/我的客服/历史记录/收藏/设置**。留空=全部显示 |
 | `vipLabelAnnual` | switch | 关 | 牌子配色覆盖：强制 label_theme=annual_vip，客户端按主题表渲染配色 → 任意主题（含绿鲤鱼小会员）的牌子变粉色年度款，覆盖 vipBg/vipFg |
 
 #### 头像角标机制（v7.33 终局，HAR 铁证）
