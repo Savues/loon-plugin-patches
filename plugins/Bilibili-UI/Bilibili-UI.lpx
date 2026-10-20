@@ -1,5 +1,5 @@
-#!name=小破站界面增强 v3.4.0
-#!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。新增【我的页】服务项自定义（iPad HD 专用，网络驱动，固定移除 751/755/763/747）。需启用 MitM over HTTP/2。
+#!name=小破站界面增强 v3.4.1
+#!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。新增【我的页】服务项自定义（iPad HD 专用，网络驱动，默认仅保留历史记录/收藏/设置）。需启用 MitM over HTTP/2。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
@@ -7,8 +7,8 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-10-20 18:45:00
-# ==== v3.3.3 | 首页标签页/底栏（仅手机布局）· 我的页固定移除 751/755/763/747 ====
+#!date=2026-10-20 20:14:00
+# ==== v3.4.1 | 首页标签页/底栏（仅手机布局）· 我的页默认仅保留 748/749/764 ====
 
 [Argument]
 # ===== 首页 · 标签页（多选）=====
@@ -34,7 +34,7 @@ Home.Bot_messages = switch,false,tag=[底部] 消息
 Home.Bot_mine = switch,true,tag=[底部] 我的
 # ===== 其他 =====
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
-MineHideIds = input,"751,755,763,747",tag=[我的页] 隐藏 id（逗号分隔）,desc=如 751,755,763,747
+MineHideIds = input,"752,753,754,756,757,758,759,2541,760,965,750",tag=[我的页] 隐藏 id（逗号分隔）,desc=默认仅保留 748历史记录 749收藏 764设置
 
 [Script]
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
