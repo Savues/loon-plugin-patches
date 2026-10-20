@@ -1,25 +1,28 @@
-[General]
-name = Dataoke-AdBlock
-version = 1.0.0
-description = 大淘客联盟/易店长 去广告插件
-author = Savues
-
-[MITM]
-hostname = dtkapi.ffquan.cn, sr.ffquan.cn, logcoll-v2.ffquan.cn, mpush-api.aliyun.com, yy.ffquan.cn
-
-[Script]
-# 主广告过滤脚本 - Response Body Rewrite
-remove_ads = type=http-response, pattern=https://dtkapi\.ffquan\.cn/dtk_go_app_api/v1/(all-config|get-index-topic-config|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide/red-packet-info|get-tool-config|user-tpl), requires-body=true, max-size=0, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js
-# 可选：拦截埋点上报
-block_tracking = type=http-request, pattern=https://logcoll-v2\.ffquan\.cn/sendEvent, requires-body=false, script-path=reject
-# 可选：拦截推送标签绑定
-block_push = type=http-request, pattern=https://mpush-api\.aliyun\.com/(bind-tag|list-tag), requires-body=false, script-path=reject
+#!name=大淘客联盟去广告 v1.0
+#!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(dt-k-search-ad-list)、新用户红包。6 独立开关，核心默认开、埋点推送默认关。
+#!author=Savues <https://github.com/Savues>
+#!tag=去广告,Dataoke
+#!system=iOS
+#!loon_version=3.5.1(998)
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Dataoke-AdBlock
+#!date=2026-10-20 18:00:00
 
 [Argument]
-# 开关配置：Loon select 不支持 = 号，使用纯标签值 + 脚本内映射
-removeSplashAd = switch, 开启, 关闭, tag=开屏广告, desc=拦截启动页广告 (all-config advanced_strategy)
-removeIndexBanner = switch, 开启, 关闭, tag=首页运营位, desc=拦截首页顶部/中部/底部运营位 Banner
-removeAdList = switch, 开启, 关闭, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list
-removeNewUserGuide = switch, 开启, 关闭, tag=新用户红包, desc=拦截新用户红包引导弹窗
-blockTracking = switch, 关闭, 开启, tag=埋点上报, desc=拦截 logcoll 行为埋点 (默认关，防止影响数据统计)
-blockPushTags = switch, 关闭, 开启, tag=推送标签, desc=拦截阿里云推送标签绑定
+removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截启动页广告 (all-config advanced_strategy)
+removeIndexBanner = switch, true, false, tag=首页运营位, desc=拦截首页顶部/中部/底部运营位 Banner
+removeAdList = switch, true, false, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list
+removeNewUserGuide = switch, true, false, tag=新用户红包, desc=拦截新用户红包引导弹窗
+blockTracking = switch, false, true, tag=埋点上报, desc=拦截 logcoll 行为埋点 (默认关，防止影响数据统计)
+blockPushTags = switch, false, true, tag=推送标签, desc=拦截阿里云推送标签绑定
+
+[Script]
+# 主广告过滤脚本
+http-response ^https?:\/\/dtkapi\.ffquan\.cn\/dtk_go_app_api\/v1\/(all-config|get-index-topic-config|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js, argument=[{removeSplashAd},{removeIndexBanner},{removeAdList},{removeNewUserGuide}], tag=大淘客去广告
+# 可选：拦截埋点
+http-request ^https?:\/\/logcoll-v2\.ffquan\.cn\/sendEvent\? script-path=reject, enable={blockTracking}, tag=拦截埋点
+# 可选：拦截推送标签
+http-request ^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\? script-path=reject, enable={blockPushTags}, tag=拦截推送标签
+
+[MitM]
+hostname=dtkapi.ffquan.cn, sr.ffquan.cn, logcoll-v2.ffquan.cn, mpush-api.aliyun.com, yy.ffquan.cn
+h2 = true

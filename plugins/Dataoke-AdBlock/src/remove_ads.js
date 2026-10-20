@@ -1,22 +1,13 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.0.0
+// 版本: 1.0.1
 // 更新: 2026-10-20
 
-// Loon $argument 映射：select 选项为纯标签值（开启/关闭），无 = 号
-const ARG_MAP = {
-  removeSplashAd: 'removeSplashAd',        // 开屏广告
-  removeIndexBanner: 'removeIndexBanner',  // 首页运营位
-  removeAdList: 'removeAdList',            // 信息流广告
-  removeNewUserGuide: 'removeNewUserGuide', // 新用户红包
-  blockTracking: 'blockTracking',           // 埋点上报
-  blockPushTags: 'blockPushTags',           // 推送标签
-};
-
+// Loon $argument 接收 boolean (true/false) 而非中文标签
 function isEnabled(key) {
-  const v = $argument[ARG_MAP[key]];
-  return v === '开启' || v === true || v === 'true';
+  const v = $argument[key];
+  return v === true || v === 'true';
 }
 
 function safeParse(body) {
@@ -48,20 +39,18 @@ function main() {
 
   // ------------------------------------------------------------
   // 2. 首页运营位 Banner: GET /get-index-topic-config
-  //    响应: { top: [...], middle: [...], last: [...] }
-  //    广告特征: banner 非空、jump 非空、topic_type === 2 (运营活动)
+  //    响应: { data: [{...}, ...] } - 数组直接在 data 里
+  //    广告特征: banner 非空、jump 非空、topic_type === 2 (运营活动)、is_hot === 1
   //    保留: 纯分类导航 (topic_type !== 2、无 jump)
   // ------------------------------------------------------------
   if (url.includes('/get-index-topic-config') && isEnabled('removeIndexBanner')) {
-    ['top', 'middle', 'last'].forEach(key => {
-      if (Array.isArray(body.data?.[key])) {
-        body.data[key] = body.data[key].filter(item => {
-          // 保留正常分类入口，过滤运营活动/广告位
-          const isAd = item.banner || item.jump || item.topic_type === 2 || item.is_hot === 1;
-          return !isAd;
-        });
-      }
-    });
+    if (Array.isArray(body.data)) {
+      body.data = body.data.filter(item => {
+        // 保留正常分类入口，过滤运营活动/广告位
+        const isAd = item.banner || item.jump || item.topic_type === 2 || item.is_hot === 1;
+        return !isAd;
+      });
+    }
   }
 
   // ------------------------------------------------------------
@@ -75,7 +64,6 @@ function main() {
     if (body.data) {
       if (Array.isArray(body.data.list)) body.data.list = [];
       if (Array.isArray(body.data.banner)) body.data.banner = [];
-      // 兼容其他可能的广告字段
       if (Array.isArray(body.data.ads)) body.data.ads = [];
     }
   }
@@ -90,12 +78,11 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 5. 工具配置: /get-tool-config (可选，视具体字段再定)
+  // 5. 工具配置: /get-tool-config (可选)
   // ------------------------------------------------------------
   if (url.includes('/get-tool-config') && isEnabled('removeAdList')) {
     if (body.data?.list && Array.isArray(body.data.list)) {
       body.data.list = body.data.list.filter(item => {
-        // 过滤广告/推广类工具，保留正常功能
         const name = (item.name || '').toLowerCase();
         const title = (item.title || '').toLowerCase();
         return !name.includes('ad') && !title.includes('广告') && !title.includes('推广');
