@@ -64,11 +64,20 @@
     // 策略：仅当 hideTopMenus 里包含核心标签（最新/关注/热榜/事件）时才做合并恢复；
     //       否则保留服务端原响应，只过滤 showTopMenus 里的促销项，避免核心标签丢失。
     //       兜底：过滤后若少于 3 个标签，说明服务端没给核心标签，放弃修改，保留原响应。
-    // 用户可选：完全隐藏顶栏但保留"最新"内容 —— 将 showTopMenus 置空，App 会回退加载 gethomefeeds（最新）作为默认内容。
+    // 用户可选：完全隐藏顶栏但保留"最新"内容 —— 将 showTopMenus 仅保留 "最新"(id=101)。
+    // 注意：完全置空 showTopMenus 会导致客户端不加载任何 feed（空白页），且顶栏 UI 容器仍保留编辑按钮。
+    // 保留单个 "最新" 标签可让客户端加载 gethomefeeds 内容，视觉上近似隐藏。
     if (hideTopbar) {
         if (data && Array.isArray(data.showTopMenus)) {
-            data.showTopMenus = [];
-            modified = true;
+            const latestInShow = data.showTopMenus.find(m => m?.id === 101 || String(m?.title) === '最新');
+            const latestInHide = data.hideTopMenus?.find(m => m?.id === 101 || String(m?.title) === '最新');
+            const latest = latestInShow || latestInHide;
+
+            // 只有找到 "最新" 时才修改；找不到则不改动，避免误破坏响应
+            if (latest) {
+                data.showTopMenus = [latest];
+                modified = true;
+            }
         }
     } else {
         // 原有过滤逻辑
