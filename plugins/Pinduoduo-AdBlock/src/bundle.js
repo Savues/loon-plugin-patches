@@ -91,11 +91,10 @@ function filterHomepageHub(body) {
     }
   }
   
-  // 1.2 清空搜索热词 (键名统一为 removeSearchPromos)
+  // 1.2 删除搜索热词整个对象 (对齐 v1.75: 删除整个 key，非仅清空数组)
   if (isEnabled("removeSearchPromos") && r.search_bar_hot_query) {
-    if (r.search_bar_hot_query.hotqs) r.search_bar_hot_query.hotqs = [];
-    if (r.search_bar_hot_query.items) r.search_bar_hot_query.items = [];
-    log("Cleared search_bar_hot_query");
+    delete r.search_bar_hot_query;
+    log("Deleted search_bar_hot_query (v1.75 mode)");
     modified = true;
   }
   
@@ -236,15 +235,10 @@ function filterSearchHotQuery(body, url) {
   if (data.degrade) { data.degrade = []; modified = true; }
   if (data.extra_array_style) { data.extra_array_style = []; modified = true; }
   
-  // /search_hotquery - 热词轮询 (对齐 v1.75: stub 整响应可选)
+  // /search_hotquery - 热词轮询 (对齐 v1.75: 默认 stub 整响应为 {})
   if (url.includes("/search_hotquery")) {
-    if (data.hotqs) { data.hotqs = []; modified = true; }
-    if (data.items) { data.items = []; modified = true; }
-    // 可选: 完全 stub 模式 (更彻底，对齐 v1.75)
-    if (isEnabled("searchStubMode")) {
-      log("Stub /search_hotquery (v1.75 mode)");
-      return '{"success":true,"code":0,"hotqs":[],"items":[]}';
-    }
+    log("Stub /search_hotquery (v1.75 mode)");
+    return '{}';
   }
   
   // /search - 搜索结果页 (扩展 v1.75 仅删 expansion)

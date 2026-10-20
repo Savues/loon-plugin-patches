@@ -1,5 +1,5 @@
-#!name=拼多多去广告 v2.0.1
-#!desc=安全模式优先：字段级删除>整体Stub，高危开关默认关，一键风控模式。覆盖首页/信息流/搜索/百亿补贴/扫码页/个人中心/订单页广告与埋点拦截。v2.0.1: 搜索页增强(搜索发现/横幅/推荐/goods_list广告项)、/search_hotquery stub模式对齐v1.75。
+#!name=拼多多去广告 v2.0.2
+#!desc=安全模式优先：字段级删除>整体Stub，高危开关默认关，一键风控模式。覆盖首页/信息流/搜索/百亿补贴/扫码页/个人中心/订单页广告与埋点拦截。v2.0.2: /search_hotquery 默认 stub {} 对齐 v1.75、首页 search_bar_hot_query 删除整 key、搜索结果页全字段覆盖。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=Savues
 #!tag=去广告
@@ -32,8 +32,7 @@ Bot_custom = input,"",tag=🏠 自定义项(逗号分隔,按 link 包含匹配)
 removeFeedAds = switch,true,tag=📱 信息流广告过滤,desc=识别 goods_list[i].data.ad 字段(bkfl=1, ad_id, ads_from=0)精准过滤，保留分页结构
 
 # ===== 搜索/推荐去广告 =====
-removeSearchPromos = switch,true,tag=🔍 搜索推荐词/热词/结果页去广告,desc=清空 /api/polemon/gbdbpdc, /search_hotquery, /search 全字段(含搜索发现/横幅/推荐/goods_list广告项)
-searchStubMode = switch,false,tag=🔍 /search_hotquery Stub模式,desc=⚠️默认关！开启后完全 stub 响应为空对象，对齐 v1.75 行为，更彻底但风控风险略高
+removeSearchPromos = switch,true,tag=🔍 搜索推荐词/热词/结果页去广告,desc=清空 /api/polemon/gbdbpdc, /search_hotquery(stub{}), /search 全字段(含搜索发现/横幅/推荐/goods_list广告项)
 
 # ===== 个人中心/订单页 =====
 removePersonalAds = switch,true,tag=👤 个人中心去推广,desc=删月卡入口、banner、icon_set 等
@@ -54,10 +53,10 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeFeedAds,riskControlMode}, tag=信息流广告过滤
 
 # 搜索推荐词端点
-http-response ^https:\/\/api\.pinduoduo\.com\/api\/polemon\/gbdbpdc\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,searchStubMode,riskControlMode}, tag=搜索框推荐词
-http-response ^https:\/\/api\.pinduoduo\.com\/search_hotquery\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,searchStubMode,riskControlMode}, tag=搜索热词轮询
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/polemon\/gbdbpdc\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索框推荐词
+http-response ^https:\/\/api\.pinduoduo\.com\/search_hotquery\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索热词轮询
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/search_lego_m1_cards\/lego_view\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索语音面板
-http-response ^https:\/\/api\.pinduoduo\.com\/search\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,searchStubMode,riskControlMode}, tag=搜索结果页
+http-response ^https:\/\/api\.pinduoduo\.com\/search\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索结果页
 
 # 个人中心
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/philo\/personal\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removePersonalAds,riskControlMode}, tag=个人中心去推广
