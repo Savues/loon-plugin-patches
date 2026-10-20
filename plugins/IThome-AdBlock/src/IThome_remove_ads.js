@@ -64,10 +64,28 @@
     const AD_URL = /(zuihuimai|ruanmei\.com|sclick|jd\.com|taobao\.com|tmall\.com)/i;
 
     let modified = false;
-    const data = body.data;
 
-    // ---------- 主列表 ----------
-    if (data && Array.isArray(data.list)) {
+    // ---------- topmenu/getall：顶栏标签（关注/最新/热榜/事件/现场/发布会...） ----------
+    if (data && Array.isArray(data.showTopMenus)) {
+        const before = data.showTopMenus.length;
+        data.showTopMenus = data.showTopMenus.filter(m => {
+            const title = String(m?.title || '');
+            return !['关注', '最新', '热榜', '事件', '现场', '发布会', 'IT号', '评测'].includes(title);
+        });
+        if (data.showTopMenus.length !== before) modified = true;
+    }
+
+    // ---------- api/appsplash/get：开屏广告 ----------
+    if (data && data.list) {
+        const before = data.list.length;
+        data.list = data.list.filter(a => a?.type !== 'launch' && a?.type !== 'splash');
+        if (data.list.length !== before) modified = true;
+    }
+
+    const list = data?.list;
+
+    // ---------- 主列表 (feed) ----------
+    if (list && Array.isArray(list)) {
         const before = data.list.length;
         data.list = data.list.filter(item => {
             const ft = item?.feedType;

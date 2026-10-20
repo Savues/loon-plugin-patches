@@ -23,7 +23,7 @@ removePinnedArticles = switch, true, false, tag=移除置顶文章, desc=启用�
 request if ${url} ~= /^https?:\/\/dat\.ruanmei\.com\/ithome\/money\/acd\.json$/i then reject(404)
 
 [Script]
-response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/src/IThome_remove_ads.js?v=12", {${removeWebViewCards}, ${removeFeedAds}, ${removeBannerAds}, ${removeAllBanners}, ${removePinnedArticles}, ${removeEcommerceArticles}, ${removeEventCalendar}}) with tag="IT之家去广告", requires_body=true
+response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getall|getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?|appsplash\/get)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/src/IThome_remove_ads.js?v=13", {${removeWebViewCards}, ${removeFeedAds}, ${removeBannerAds}, ${removeAllBanners}, ${removePinnedArticles}, ${removeEcommerceArticles}, ${removeEventCalendar}}) with tag="IT之家去广告", requires_body=true
 
 [Rule]
 DOMAIN,knicks.jd.com,REJECT
