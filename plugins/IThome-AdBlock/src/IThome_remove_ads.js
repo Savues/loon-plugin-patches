@@ -59,13 +59,40 @@
     const data = body.data;
 
     // ---------- topmenu/getall：顶栏标签（关注/最新/热榜/事件/现场/发布会/IT号/评测/5G/鸿蒙/阳台/手机/数码家电/学院/VR/车/电脑/好物推荐/Win11...） ----------
+    // 服务端把正常标签移到 hideTopMenus，showTopMenus 只剩促销项（11.11、自动识别本机/苹果等）。
+    // 策略：仅当 hideTopMenus 里包含核心标签（最新/关注/热榜/事件）时才做合并恢复；
+    //       否则保留服务端原响应，只过滤 showTopMenus 里的促销项，避免核心标签丢失。
+    //       兜底：过滤后若少于 3 个标签，说明服务端没给核心标签，放弃修改，保留原响应。
     if (data && Array.isArray(data.showTopMenus)) {
-        const before = data.showTopMenus.length;
-        data.showTopMenus = data.showTopMenus.filter(m => {
-            const title = String(m?.title || '');
-            return !['关注', '最新', '热榜', '事件', '现场', '发布会', 'IT号', '评测', '5G', '鸿蒙', '阳台', '手机', '数码家电', '学院', 'VR', '车', '电脑', '好物推荐', 'Win11'].includes(title);
-        });
-        if (data.showTopMenus.length !== before) modified = true;
+        const coreTitles = new Set(['最新', '关注', '热榜', '事件', '现场', '发布会', 'IT号', '评测']);
+        const promoTitles = new Set(['11.11', '自动识别本机 (苹果)', '品牌', '热评']);
+
+        const show = data.showTopMenus || [];
+        const hide = data.hideTopMenus || [];
+
+        // 检查 hideTopMenus 是否包含核心标签
+        const hideHasCore = hide.some(m => coreTitles.has(String(m?.title || '')));
+
+        let unique;
+        if (hideHasCore) {
+            // 情况 A：hideTopMenus 有核心标签 → 合并恢复
+            const keepTitles = new Set([...coreTitles, '5G', '鸿蒙', '阳台', '手机', '数码家电', '学院', 'VR', '车', '电脑', '好物推荐', 'Win11',
+                'Windows', 'AI', '游戏电竞', '科普', '安卓', 'Linux', '行业前沿', '网络焦点', '投票', '专题']);
+            const restored = hide.filter(m => keepTitles.has(String(m?.title || '')));
+            const kept = show.filter(m => keepTitles.has(String(m?.title || '')));
+            const merged = [...kept, ...restored];
+            const seen = new Set();
+            unique = merged.filter(m => { const id = m?.id; if (seen.has(id)) return false; seen.add(id); return true; });
+        } else {
+            // 情况 B：hideTopMenus 无核心标签 → 仅过滤 showTopMenus 里的促销项，保留其余
+            unique = show.filter(m => !promoTitles.has(String(m?.title || '')));
+        }
+
+        // 兜底：过滤后若少于 3 个标签，说明服务端没给核心标签，放弃修改，保留原响应
+        if (unique.length >= 3 && unique.length !== show.length) {
+            data.showTopMenus = unique;
+            modified = true;
+        }
     }
 
     // ---------- api/appsplash/get：开屏广告 ----------
