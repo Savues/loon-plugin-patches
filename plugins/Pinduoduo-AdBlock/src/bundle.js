@@ -91,8 +91,8 @@ function filterHomepageHub(body) {
     }
   }
   
-  // 1.2 清空搜索热词
-  if (isEnabled("removeSearchHotQuery") && r.search_bar_hot_query) {
+  // 1.2 清空搜索热词 (键名统一为 removeSearchPromos)
+  if (isEnabled("removeSearchPromos") && r.search_bar_hot_query) {
     if (r.search_bar_hot_query.hotqs) r.search_bar_hot_query.hotqs = [];
     if (r.search_bar_hot_query.items) r.search_bar_hot_query.items = [];
     log("Cleared search_bar_hot_query");
@@ -343,7 +343,7 @@ function filterTracking(body, url) {
 // 5. 百亿补贴页搜索词 (HTML 页面)
 // ============================================
 function filterSubsidyPage(body) {
-  if (isDisabled("removeSearchHotQuery")) return body;
+  if (isDisabled("removeSearchPromos")) return body;
   
   // 仅替换 queryWords 数组字面量，不解析整页 HTML
   const out = body
