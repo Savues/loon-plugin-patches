@@ -96,6 +96,59 @@ function filterMarquee(body) {
   return body;
 }
 
+function filterTACServiceCall(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] TAC service call JSON parse failed:", e);
+    return body;
+  }
+
+  // Structure: { data: { "2019021101": { data: [{word: "..."}, ...] } } }
+  if (!data?.data || !isEnabled("removeSmallCards")) {
+    return body;
+  }
+
+  let modified = false;
+  for (const key of Object.keys(data.data)) {
+    const serviceData = data.data[key];
+    if (serviceData?.data && Array.isArray(serviceData.data) && serviceData.data.length > 0) {
+      console.log(`[Alimama-AdBlock] Clearing TAC service call ${key} (${serviceData.data.length} words)`);
+      serviceData.data = [];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
+function filterTACServiceSmartCall(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] TAC service smart call JSON parse failed:", e);
+    return body;
+  }
+
+  // Structure: { data: { wordList: [{word: "..."}, ...], template: {...} } }
+  if (!data?.data?.wordList || !Array.isArray(data.data.wordList) || !isEnabled("removeSmallCards")) {
+    return body;
+  }
+
+  if (data.data.wordList.length > 0) {
+    console.log(`[Alimama-AdBlock] Clearing TAC smart call wordList (${data.data.wordList.length} words)`);
+    data.data.wordList = [];
+    return JSON.stringify(data);
+  }
+
+  return body;
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alimama-AdBlock] No response body");
@@ -125,6 +178,28 @@ function main() {
     const newBody = filterMarquee(body);
     if (newBody !== body) {
       console.log("[Alimama-AdBlock] Marquee response modified");
+      $done({ body: newBody });
+      return;
+    }
+  }
+
+  // 3. 搜索框推荐词 - TAC 基础服务
+  if (url.includes("mtop.alimama.moon.provider.tac.service.call")) {
+    console.log("[Alimama-AdBlock] Processing TAC service call response, length:", body.length);
+    const newBody = filterTACServiceCall(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] TAC service call response modified");
+      $done({ body: newBody });
+      return;
+    }
+  }
+
+  // 4. 搜索框推荐词 - TAC 智能服务
+  if (url.includes("mtop.alimama.moon.provider.tac.service.smart.call")) {
+    console.log("[Alimama-AdBlock] Processing TAC smart call response, length:", body.length);
+    const newBody = filterTACServiceSmartCall(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] TAC smart call response modified");
       $done({ body: newBody });
       return;
     }
