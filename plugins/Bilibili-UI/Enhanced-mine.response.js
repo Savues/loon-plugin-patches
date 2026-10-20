@@ -23,45 +23,31 @@
     ALL: 5
   };
   let logLevel = LogLevel.WARN;
-  if (globalThis.$argument?.LogLevel) {
-    logLevel = LogLevel[globalThis.$argument.LogLevel] ?? LogLevel.WARN;
-  }
-  const log = (...args) => {
-    if (logLevel >= LogLevel.INFO) console.log('[Enhanced-Mine]', ...args);
-  };
-  const warn = (...args) => {
-    if (logLevel >= LogLevel.WARN) console.warn('[Enhanced-Mine]', ...args);
-  };
-  const error = (...args) => {
-    if (logLevel >= LogLevel.ERROR) console.error('[Enhanced-Mine]', ...args);
+
+  // Parse $argument (Loon passes arguments as array in order of lpx argument list)
+  // lpx order: MineEnable, MineHideIds, MineHideTitles, MineOrder, MineBlockUpper, MineBlockRecommend, MineBlockMore, MineSectionStyle, LogLevel
+  const rawArgs = globalThis.$argument || [];
+  const args = Array.isArray(rawArgs) ? rawArgs : [rawArgs];
+
+  const arg = {
+    MineEnable: args[0],
+    MineHideIds: args[1],
+    MineHideTitles: args[2],
+    MineOrder: args[3],
+    MineBlockUpper: args[4],
+    MineBlockRecommend: args[5],
+    MineBlockMore: args[6],
+    MineSectionStyle: args[7],
+    LogLevel: args[8]
   };
 
-  // PersistentStore wrapper (Loon/Shadowrocket/Stash/Egern)
-  const $store = {
-    read(key) {
-      try {
-        if (isLoon || isShadowrocket || isStash || isEgern) {
-          return $persistentStore.read(key);
-        }
-        if (isQX) return $prefs.valueForKey(key);
-        if (isSurge) return $persistentStore.read(key);
-      } catch (e) {}
-      return null;
-    },
-    write(key, value) {
-      try {
-        const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
-        if (isLoon || isShadowrocket || isStash || isEgern) {
-          return $persistentStore.write(str, key);
-        }
-        if (isQX) return $prefs.setValueForKey(str, key);
-        if (isSurge) return $persistentStore.write(str, key);
-      } catch (e) {
-        error('Store write failed:', e);
-      }
-      return false;
-    }
-  };
+  let logLevel = LogLevel.WARN;
+  if (args[8] && LogLevel[args[8]]) logLevel = LogLevel[args[8]];
+  if (arg.LogLevel && LogLevel[arg.LogLevel]) logLevel = LogLevel[arg.LogLevel];
+
+  const log = (...args) => { if (logLevel >= 3) console.log('[Enhanced-Mine]', ...args); };
+  const warn = (...args) => { if (logLevel >= 2) console.warn('[Enhanced-Mine]', ...args); };
+  const error = (...args) => { if (logLevel >= 1) console.error('[Enhanced-Mine]', ...args); };
 
   // Main handler
   const handleResponse = () => {
@@ -75,9 +61,7 @@
     }
 
     // Check if mine customization is enabled
-    const arg = globalThis.$argument || {};
-    if (!arg.MineEnable) {
-      log('Mine customization disabled');
+    if (!args[0]) { // MineEnable
       $done({});
       return;
     }
@@ -92,36 +76,24 @@
       const data = body.data;
 
       // Parse config from arguments
-      // Arguments order: MineEnable, MineHideIds, MineHideTitles, MineOrder, MineBlockUpper, MineBlockRecommend, MineBlockMore, MineSectionStyle
-      const hideIds = new Set((arg.MineHideIds || '').split(',').filter(Boolean).map(Number));
-      const hideTitles = new Set((arg.MineHideTitles || '').split(',').filter(Boolean));
-      const order = (arg.MineOrder || '').split(',').filter(Boolean).map(Number);
-      const blockUpper = !!arg.MineBlockUpper;
-      const blockRecommend = !!arg.MineBlockRecommend;
-      const blockMore = !!arg.MineBlockMore;
-      const sectionStyle = arg.MineSectionStyle;
-
-      log('Processing mine/ipad', {
-        hideIds: Array.from(hideIds),
-        hideTitles: Array.from(hideTitles),
-        order,
-        blockUpper,
-        blockRecommend,
-        blockMore,
-        sectionStyle
-      });
+      const hideIds = new Set((args[1] || '').split(',').filter(Boolean).map(Number));
+      const hideTitles = new Set((args[2] || '').split(',').filter(Boolean));
+      const order = (args[3] || '').split(',').filter(Boolean).map(Number);
+      const blockUpper = !!args[4];
+      const blockRecommend = !!args[5];
+      const blockMore = !!args[6];
+      const sectionStyle = args[7];
 
       // Fields to process (each with optional block flag)
       const fields = [
-        { key: 'ipad_upper_sections', block: blockUpper },
-        { key: 'ipad_recommend_sections', block: blockRecommend },
-        { key: 'ipad_more_sections', block: blockMore }
+        { key: 'ipad_upper_sections', block: !!args[4] },
+        { key: 'ipad_recommend_sections', block: !!args[5] },
+        { key: 'ipad_more_sections', block: !!args[6] }
       ];
 
       for (const f of fields) {
         if (f.block) {
           if (data[f.key]) {
-            log(`Blocking ${f.key}`);
             data[f.key] = [];
           }
           continue;
@@ -146,7 +118,6 @@
             const item = map.get(id);
             if (item) ordered.push(item);
           }
-          // Append remaining items not in order
           for (const item of arr) {
             if (!ordered.includes(item)) ordered.push(item);
           }
@@ -154,18 +125,15 @@
         }
 
         data[f.key] = arr;
-        log(`Processed ${f.key}: ${arr.length} items`);
       }
 
       // Optional: section style
-      if (sectionStyle !== undefined && data.ipad_section_style !== undefined) {
-        data.ipad_section_style = Number(sectionStyle);
-        log('Set ipad_section_style:', sectionStyle);
+      if (args[7] !== undefined && data.ipad_section_style !== undefined) {
+        data.ipad_section_style = Number(args[7]);
       }
 
       $done({ body: JSON.stringify(body) });
     } catch (e) {
-      error('Mine customization error:', e);
       $done({});
     }
   };
