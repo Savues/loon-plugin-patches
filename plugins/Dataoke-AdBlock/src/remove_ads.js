@@ -96,13 +96,17 @@ function main() {
 
   // ------------------------------------------------------------
   // 4. 搜索/推荐流: GET /search-v2 (含网关代理 /go_getway/proxy/search-v2)
-  //    响应: { data: { list: [...] } } - 商品列表
+  //    两种响应结构：
+  //    - dtk_go_app_api/v1/search-v2: { data: { list: [...] } }
+  //    - go_getway/proxy/search-v2: { data: { search: { list: [...] } } }
   //    广告特征: is_pure_push === "1"、is_pure_push === 1、特定 tags 标识
   //    策略: 保留正常商品，过滤纯推广/广告标识商品
   // ------------------------------------------------------------
   if (url.includes('/search-v2') && isEnabled('removeAdList')) {
-    if (body.data?.list && Array.isArray(body.data.list)) {
-      body.data.list = body.data.list.filter(item => {
+    // 支持两种响应结构
+    const listRef = body.data?.search?.list ?? body.data?.list;
+    if (Array.isArray(listRef)) {
+      const filtered = listRef.filter(item => {
         // 过滤纯推广商品：is_pure_push=1 且无正常佣金结构
         if (item.is_pure_push === "1" || item.is_pure_push === 1) {
           return false;
@@ -116,6 +120,12 @@ function main() {
         }
         return true;
       });
+      // 写回对应结构
+      if (body.data?.search?.list) {
+        body.data.search.list = filtered;
+      } else if (body.data?.list) {
+        body.data.list = filtered;
+      }
     }
   }
 
