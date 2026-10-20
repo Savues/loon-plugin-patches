@@ -1,4 +1,4 @@
-#!name=Alimama-AdBlock v1.3.0
+#!name=Alimama-AdBlock v1.4.0
 #!desc=阿里妈妈 Moon App 去广告 · 开屏/弹窗/小卡片/公告栏/埋点全拦截
 #!system=ios
 #!version=1.0.1
@@ -10,7 +10,8 @@ h2 = true
 [Argument]
 removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截 open_screen_site (开屏图/跳转/倒计时)
 removePopWindow = switch, true, false, tag=弹窗广告, desc=拦截 pop_window_site (弹窗/浮层)
-removeSmallCards = switch, true, false, tag=小卡片/公告栏, desc=拦截 small_handler_* / bulletin_board_* (首页小卡/公告/搜索词推荐)
+removeSmallCards = switch, true, false, tag=小卡片/公告栏/推荐词, desc=拦截 small_handler_* / bulletin_board_* / marquee / TAC / metax热词
+removePrivateDomain = switch, true, false, tag=私域动态, desc=拦截关注会员/私域动态 (union.pub.entry followMembers)
 blockTracking = switch, true, false, tag=埋点上报, desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com
 
 [Script]
@@ -19,6 +20,7 @@ http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框推荐词-TAC基础
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.smart\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框推荐词-TAC智能
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=首页搜索栏热词
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removePrivateDomain}, tag=私域动态/关注会员
 
 [Rewrite]
 # 埋点/错误上报/APM/实验分流 —— 直接 Reject

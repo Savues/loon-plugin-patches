@@ -179,6 +179,47 @@ function filterMetaxHomepage(body) {
   return body;
 }
 
+function filterUnionPubEntry(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] Union pub entry JSON parse failed:", e);
+    return body;
+  }
+
+  // Structure: { data: { followMembers: { resultList: [...] }, recommendTab: { resultList: [...] } } }
+  if (!data?.data || !isEnabled("removePrivateDomain")) {
+    return body;
+  }
+
+  let modified = false;
+
+  // 1. 私域动态 / 关注会员
+  if (data.data.followMembers?.resultList && Array.isArray(data.data.followMembers.resultList) && data.data.followMembers.resultList.length > 0) {
+    console.log(`[Alimama-AdBlock] Clearing private domain followMembers (${data.data.followMembers.resultList.length} items)`);
+    data.data.followMembers.resultList = [];
+    data.data.followMembers.totalCount = "0";
+    modified = true;
+  }
+
+  // 2. 推荐Tab 达人推荐 (可选，按需开启)
+  // 如果也要拦截推荐Tab，取消下面注释：
+  /*
+  if (data.data.recommendTab?.resultList && Array.isArray(data.data.recommendTab.resultList) && data.data.recommendTab.resultList.length > 0) {
+    console.log(`[Alimama-AdBlock] Clearing recommendTab (${data.data.recommendTab.resultList.length} items)`);
+    data.data.recommendTab.resultList = [];
+    data.data.recommendTab.hasMore = "false";
+    modified = true;
+  }
+  */
+
+  if (modified) {
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alimama-AdBlock] No response body");
@@ -241,6 +282,17 @@ function main() {
     const newBody = filterMetaxHomepage(body);
     if (newBody !== body) {
       console.log("[Alimama-AdBlock] Metax homepage response modified");
+      $done({ body: newBody });
+      return;
+    }
+  }
+
+  // 6. 私域动态 / 关注会员 - union.pub.entry
+  if (url.includes("mtop.alimama.union.pub.entry")) {
+    console.log("[Alimama-AdBlock] Processing union pub entry response, length:", body.length);
+    const newBody = filterUnionPubEntry(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] Union pub entry response modified");
       $done({ body: newBody });
       return;
     }
