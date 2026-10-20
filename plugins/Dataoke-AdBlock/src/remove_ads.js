@@ -129,17 +129,23 @@ function main() {
   //    - go_getway/proxy/search-v2: { data: { search: { list: [...] } } }
   //    广告特征: is_pure_push === "1"、is_pure_push === 1、特定 tags 标识
   //    策略: 保留正常商品，过滤纯推广/广告标识商品
+  //    修正: 仅当 is_pure_push=1 且缺少正常商品核心字段时才过滤，防止误伤普通商品
   // ------------------------------------------------------------
   if (url.includes('/search-v2') && isEnabled('removeAdList')) {
     // 支持两种响应结构
     const listRef = body.data?.search?.list ?? body.data?.list;
     if (Array.isArray(listRef)) {
       const filtered = listRef.filter(item => {
-        // 过滤纯推广商品：is_pure_push=1 且无正常佣金结构
-        if (item.is_pure_push === "1" || item.is_pure_push === 1) {
+        // 仅当 is_pure_push=1 且看起来不像正常商品时才过滤
+        // 正常商品特征: 有 goodsid/title/price/commission_rate 等核心字段
+        const isPurePush = item.is_pure_push === "1" || item.is_pure_push === 1;
+        const hasCoreFields = item.goodsid || item.id || item.title || item.price || item.commission_rate;
+        
+        if (isPurePush && !hasCoreFields) {
+          // 纯推广且无核心商品字段 -> 广告
           return false;
         }
-        // 过滤特定广告标签
+        // 过滤特定广告标签 (tags 数组中的 name 字段)
         if (item.tags && Array.isArray(item.tags)) {
           const hasAdTag = item.tags.some(t => 
             t.name && (t.name.includes('广告') || t.name.includes('推广') || t.name.includes('纯推'))
