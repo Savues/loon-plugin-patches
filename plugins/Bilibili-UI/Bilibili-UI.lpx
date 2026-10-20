@@ -33,14 +33,14 @@ Home.Bot_mall = switch,false,tag=[底部] 会员购
 Home.Bot_messages = switch,false,tag=[底部] 消息
 Home.Bot_mine = switch,true,tag=[底部] 我的
 # ===== 我的页 · 服务项（iPad HD 专用，网络驱动）=====
-Mine.Enable = switch,true,tag=[我的页] 启用我的页自定义
-Mine.HideIds = input,"",tag=[我的页] 隐藏 id（逗号分隔）,desc=如 751,755,763
-Mine.HideTitles = input,"",tag=[我的页] 隐藏标题（逗号分隔）,desc=如 投稿,我的关注,我的客服
-Mine.Order = input,"",tag=[我的页] 自定义顺序（id 逗号分隔）,desc=如 751,755,763
-Mine.BlockUpper = switch,false,tag=[我的页] 隐藏投稿区
-Mine.BlockRecommend = switch,false,tag=[我的页] 隐藏推荐区
-Mine.BlockMore = switch,false,tag=[我的页] 隐藏更多区
-Mine.SectionStyle = select,"0","0","1","2","3",tag=[我的页] 区块样式,desc=需真机验证取值含义
+MineEnable = switch,true,tag=[我的页] 启用我的页自定义
+MineHideIds = input,"",tag=[我的页] 隐藏 id（逗号分隔）,desc=如 751,755,763
+MineHideTitles = input,"",tag=[我的页] 隐藏标题（逗号分隔）,desc=如 投稿,我的关注,我的客服
+MineOrder = input,"",tag=[我的页] 自定义顺序（id 逗号分隔）,desc=如 751,755,763
+MineBlockUpper = switch,false,tag=[我的页] 隐藏投稿区
+MineBlockRecommend = switch,false,tag=[我的页] 隐藏推荐区
+MineBlockMore = switch,false,tag=[我的页] 隐藏更多区
+MineSectionStyle = select,"0","0","1","2","3",tag=[我的页] 区块样式,desc=需真机验证取值含义
 # ===== 其他 =====
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
