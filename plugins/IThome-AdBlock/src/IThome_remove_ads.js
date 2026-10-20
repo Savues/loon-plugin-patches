@@ -33,9 +33,10 @@
     const killCard     = pick('removeWebViewCards', 0, true);   // feedType 10004 活动 WebView 卡片（双11红包等）
     const killFeedAd   = pick('removeFeedAds',      1, true);   // 信息流广告
     const killBannerAd = pick('removeBannerAds',    2, true);   // 轮播图内的广告位
-    const killBanner   = pick('removeAllBanners',   3, false);  // 整个轮播图（10002）
-    const killPinned   = pick('removePinnedArticles', 4, false); // 置顶文章（10003）
+    const killBanner   = pick('removeAllBanners',   3, true);   // 整个轮播图（10002）
+    const killPinned   = pick('removePinnedArticles', 4, true); // 置顶文章（10003）
     const killEc       = pick('removeEcommerceArticles', 5, true); // 电商带货文章
+    const killEventCal = pick('removeEventCalendar', 6, true);      // 事件日历卡片（feedType 10029）
 
     // 电商带货文章特征（content HTML 内）。命中 ≥2 个不同特征即判定为带货文。
     // 实测：9 篇带货文命中 6-9 个，正常文章 0 个（2026-10-20 两份 feed 全量对照）。
@@ -75,6 +76,7 @@
             if (killBanner && ft === 10002) return false;   // 轮播图/横幅
             if (killPinned && ft === 10003) return false;   // 置顶文章
             if (killCard && ft === 10004) return false;     // 活动 WebView 卡片
+            if (killEventCal && ft === 10029) return false;  // 事件日历卡片
 
             // 兜底：按 URL 识别活动/广告卡片
             if (killCard && typeof fc.url === 'string' && AD_URL.test(fc.url)) return false;

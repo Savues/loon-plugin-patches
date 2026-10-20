@@ -1,7 +1,7 @@
 # IThome-AdBlock · IT之家去广告（修复 + 增强）
 
 上游：`https://kelee.one/Tool/Loon/Lpx/IThome_remove_ads.lpx`（可莉 / luestr，`#!date=2026-10-02`）
-当前版本：**v1.1**（2026-10-20）
+当前版本：**v1.2**（2026-10-20）
 
 | 文件 | 说明 |
 |---|---|
