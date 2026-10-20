@@ -1,7 +1,7 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.3.3
+// 版本: 1.4.0
 // 更新: 2026-10-20
 
 // Loon $argument 接收 boolean (true/false) - 来自 {${removeSplashAd}} 等展开
@@ -40,20 +40,30 @@ function main() {
   // ------------------------------------------------------------
   // 2. 首页运营位: GET /app-index-topic
   //    响应: { data: { last: [...], middle: [...], top: [...] } }
-  //    广告特征: banner 非空、jump 非空
-  //    处理: 清空 banner、jump、goods_pic，保留 topic_json 分类导航
+  //    广告特征: banner 非空、jump 非空、goods_pic 非空
+  //    处理分三类（三个独立开关）：
+  //      - 顶部Banner: banner 非空 -> removeTopBanner
+  //      - 其他运营位: jump/goods_pic 非空 -> removeIndexBanner
+  //      - (app-index-topic 无 splash 类型)
   // ------------------------------------------------------------
-  if (url.includes('/app-index-topic') && isEnabled('removeIndexBanner')) {
+  if (url.includes('/app-index-topic')) {
     if (body.data) {
       ['last', 'middle', 'top'].forEach(key => {
         if (Array.isArray(body.data[key])) {
-          body.data[key] = body.data[key].map(item => ({
-            ...item,
-            banner: '',
-            jump: {},
-            goods_pic: '',
-            activity_subtitle: '',
-          }));
+          body.data[key] = body.data[key].filter(item => {
+            const hasBanner = item.banner && item.banner !== '';
+            const hasJumpOrPic = item.jump || item.goods_pic;
+            
+            // 顶部Banner：由 removeTopBanner 控制
+            if (hasBanner && isEnabled('removeTopBanner')) {
+              return false;
+            }
+            // 其他运营位：由 removeIndexBanner 控制
+            if (hasJumpOrPic && isEnabled('removeIndexBanner')) {
+              return false;
+            }
+            return true;
+          });
         }
       });
     }
@@ -62,21 +72,27 @@ function main() {
   // ------------------------------------------------------------
   // 3. 首页运营位(备用): GET /get-index-topic-config
   //    响应: { data: [{...}, ...] } - 数组直接在 data 里
-  //    广告特征:
-  //      - 普通运营位: banner/topic_img 非空、jump 非空、topic_type === 2、is_hot === 1 -> 受 removeIndexBanner 控制
-  //      - 开屏类运营位: topic_type === 4、topic_img 非空 -> 受 removeSplashAd 控制（无论 removeIndexBanner 状态）
+  //    三类广告，三个独立开关：
+  //      1. 开屏类: topic_type === 4 -> removeSplashAd
+  //      2. 顶部Banner: banner 字段非空 -> removeTopBanner
+  //      3. 其他运营位: topic_type === 2、jump 非空、is_hot === 1 -> removeIndexBanner
   // ------------------------------------------------------------
   if (url.includes('/get-index-topic-config')) {
     if (Array.isArray(body.data)) {
       body.data = body.data.filter(item => {
-        const isSplashAd = item.topic_type === 4 || (item.topic_img && !item.banner && !item.jump);
-        const isRegularAd = item.banner || item.jump || item.topic_type === 2 || item.is_hot === 1;
+        const isSplash = item.topic_type === 4;
+        const isTopBanner = item.banner && item.banner !== '';
+        const isRegularAd = item.topic_type === 2 || item.jump || item.is_hot === 1;
         
-        // 开屏类广告：由 removeSplashAd 控制
-        if (isSplashAd && isEnabled('removeSplashAd')) {
+        // 开屏类：由 removeSplashAd 控制
+        if (isSplash && isEnabled('removeSplashAd')) {
           return false;
         }
-        // 普通运营位广告：由 removeIndexBanner 控制
+        // 顶部Banner：由 removeTopBanner 控制
+        if (isTopBanner && isEnabled('removeTopBanner')) {
+          return false;
+        }
+        // 其他运营位：由 removeIndexBanner 控制
         if (isRegularAd && isEnabled('removeIndexBanner')) {
           return false;
         }
