@@ -41,7 +41,6 @@
     LogLevel: args[8]
   };
 
-  let logLevel = LogLevel.WARN;
   if (args[8] && LogLevel[args[8]]) logLevel = LogLevel[args[8]];
   if (arg.LogLevel && LogLevel[arg.LogLevel]) logLevel = LogLevel[arg.LogLevel];
 
