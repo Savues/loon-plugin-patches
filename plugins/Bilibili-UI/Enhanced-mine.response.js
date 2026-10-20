@@ -1,39 +1,48 @@
-// V3 测试：我的页字段消费验证
+// V3.4 测试：我的页字段消费验证 - 可配置隐藏 ID
 // 目的：确认 x/v2/account/mine/ipad 的哪些字段驱动「我的」页渲染
-// 测试动作：同时删除四个区块的特定项，观察哪些有变化
+// 功能：可配置隐藏 ID（逗号分隔），默认移除 751/755/763/747
 
 if ($request.url.includes('x/v2/account/mine/ipad')) {
   try {
     let body = JSON.parse($response.body);
     if (!body || !body.data) { $done({}); return; }
 
+    // 参数：MineHideIds (index 1), 格式：'751,755,763,747'
+    const rawArgs = $argument || [];
+    const hideIdsStr = rawArgs[1] || '751,755,763,747';
+    const hideIds = new Set(hideIdsStr.split(',').filter(Boolean).map(Number));
+
+    let body = JSON.parse($response.body);
+    if (!body || !body.data) { $done({}); return; }
+
+    const data = body.data;
     let log = [];
 
-    // 1. 投稿区：删 id=751（投稿）
+    // 1. 投稿区：按配置隐藏
     if (body.data.ipad_upper_sections) {
       let before = body.data.ipad_upper_sections.length;
-      body.data.ipad_upper_sections = body.data.ipad_upper_sections.filter(it => it.id !== 751);
+      body.data.ipad_upper_sections = body.data.ipad_upper_sections.filter(it => !hideIds.has(it.id));
       log.push(`upper: ${before} -> ${body.data.ipad_upper_sections.length}`);
     }
 
-    // 2. 推荐区：删 id=755（我的关注）
+    // 2. 推荐区：按配置隐藏
     if (body.data.ipad_recommend_sections) {
       let before = body.data.ipad_recommend_sections.length;
-      body.data.ipad_recommend_sections = body.data.ipad_recommend_sections.filter(it => it.id !== 755);
+      body.data.ipad_recommend_sections = body.data.ipad_recommend_sections.filter(it => !hideIds.has(it.id));
       log.push(`recommend: ${before} -> ${body.data.ipad_recommend_sections.length}`);
     }
 
-    // 3. 更多区：删 id=763（我的客服）
+    // 3. 更多区：按配置隐藏
     if (body.data.ipad_more_sections) {
       let before = body.data.ipad_more_sections.length;
-      body.data.ipad_more_sections = body.data.ipad_more_sections.filter(it => it.id !== 763);
+      body.data.ipad_more_sections = body.data.ipad_more_sections.filter(it => !hideIds.has(it.id));
       log.push(`more: ${before} -> ${body.data.ipad_more_sections.length}`);
     }
 
-    // 4. 服务项网格：删 id=747（离线缓存）— 预期无效（死字段）
+    // 4. 服务项网格：按配置隐藏（死字段）
     if (body.data.ipad_sections) {
       let before = body.data.ipad_sections.length;
-      body.data.ipad_sections = body.data.ipad_sections.filter(it => it.id !== 747);
+      body.data.ipad_sections = body.data.ipad_sections.filter(it => !hideIds.has(it.id));
       log.push(`sections: ${before} -> ${body.data.ipad_sections.length}`);
     }
 
