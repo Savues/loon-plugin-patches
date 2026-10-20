@@ -30,23 +30,23 @@ removePrivateDomain = switch, true, false, tag=🌙Moon-私域动态, desc=拦�
 
 [Script]
 # === 批量广告分发 (Moon/淘宝/天猫/闲鱼通用) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSplashAd, removePopWindow, removeSmallCards}, tag=批量广告分发
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd, removePopWindow, removeSmallCards}, tag=批量广告分发
 
 # === NOAH 运营位 (Moon/淘宝/天猫通用) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.etao\.noah\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeNoahOps}, tag=NOAH运营位
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.etao\.noah\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeNoahOps}, tag=NOAH运营位
 
 # === TAC 搜索推荐 (通用) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC基础
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.smart\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC智能
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC基础
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.smart\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC智能
 
 # === 跨马灯热词 (通用) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框跑马灯热词
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框跑马灯热词
 
 # === MetaX 首页/Feed (Moon) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSmallCards, removeFeedKeywords}, tag=首页搜索栏热词+清空Feed
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards, removeFeedKeywords}, tag=首页搜索栏热词+清空Feed
 
 # === 私域动态/关注会员 (Moon) ===
-http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removePrivateDomain}, tag=私域动态/关注会员
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePrivateDomain}, tag=私域动态/关注会员
 
 # TODO: 淘宝/天猫/闲鱼特有接口待补充
 
