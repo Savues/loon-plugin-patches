@@ -1,11 +1,12 @@
 // V3.5 测试：我的页字段消费验证 - 可配置隐藏 ID
 // 目的：确认 x/v2/account/mine/ipad 的哪些字段驱动「我的」页渲染
-// 功能：可配置隐藏 ID（逗号分隔），默认移除 751/755/763/747
+// 功能：可配置隐藏 ID（逗号分隔），默认仅保留 历史记录(748)/收藏(749)/设置(764)
 
 if ($request.url.includes('x/v2/account/mine/ipad')) {
   try {
     // 参数：MineHideIds 通过 argument 传递，可能是数组或对象
-    let hideIdsStr = '751,755,763,747';
+    // 默认隐藏除 748/749/764 外的所有 ID
+    let hideIdsStr = '752,753,754,756,757,758,759,2541,760,965,750';
     if (Array.isArray($argument) && $argument.length > 0) {
       if (typeof $argument[0] === 'string') {
         hideIdsStr = $argument[0];
