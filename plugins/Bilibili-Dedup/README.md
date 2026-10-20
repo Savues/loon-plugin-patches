@@ -49,6 +49,7 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-10-20T22:45` | — | **v7.43** 修复 iPad「我的」页会员角标/伪装完全不生效。根因：`x/v2/account/mine/ipad` 这一个端点上，[Bilibili-UI] 也挂着一条 `http-response` 规则（`Enhanced-mine.response.js`）。**Loon 对同一请求只执行先命中的那一条**（仓库内另有实证：同端点 `[Rewrite]` 与 `[Script]` 同命中时也只跑 Rewrite），Bilibili-UI 的规则先命中并 `$done` → 本插件的 `vip.js` 整个不执行。抓包实证：响应里 `data.vip` 原样未改（`type:1,status:0`、`label.text=""`）、`data.avatar` 里 **0 个 `ICON_LAYER`**，而同包内开屏接口的插件注入正常，说明是规则被抢而非脚本本身出错。修法：`ipad_*_sections` 服务项过滤并入 `vip.js`（新参数 `MineHideIds`，默认值与原 Bilibili-UI 完全一致），Bilibili-UI v3.6.0 摘除该规则与参数；顺带修正 `filterSectionsV2` 返回值被丢弃导致「仅过滤服务项时不改写响应」的隐患 |
 | `2026-10-02T01:35` | — | **v7.24** `vip` 档换粉底大会员牌。上一版沿用官方灰底（理由是「该档权限等同非会员」），用户实测后要求换彩色，改用 `vip-basic-pink`，与另三个档位统一为粉底扁平。附带把「彩色昵称为何发灰」的抓包结论写进 README：`nickname_color` 字段已正确注入（`#FB7299`），但 App 端仍显示灰色 —— 28 个真实大会员样本中 27 个该字段为 `None`，说明彩色昵称是独立开通的功能、不随会员身份附带，**这是如实反映而非插件失灵**。功能零变化，`vip.js` 只改 1 个文件名 |
 | `2026-10-02T00:55` | — | **v7.23** 会员伪装换纯文字牌子图。用户实测「带图案的不好看」，十年/百年两档从火车版（`ten-cannon`）与 2023 活动带星版换成官方纯文字版 `vip-ten-pink` / `vip-hundred-pink`；`vip-assets/` 按官方 `label.image` 抓包补齐到 16 张并统一为 `vip-<档位>-<样式>.png` 命名，4 个旧名作废。**推翻一条旧结论**：此前记「App 走文字渲染、`image` 留空即可」，新抓包（1116 条）中 `x/v2/space` 触发 6 次 `/bfs/vip/` 图片请求，证明 `label.image` 确实生效。功能零变化，`vip.js` 只改 4 个文件名 |
 | `2026-09-29` | `—` | **v7.19**（本次为长期实验室迭代的合版）：会员伪装合并为单脚本 `vip.js`（226 → 139 行）；补上 `/x/v2/space/article` 专栏页与番剧首页 `/pgc/page/` 的去广告；`Search/DefaultWords` 与 `Teenagers/ModeStatus` 各补上一半未覆盖的主机；修空间页配色漂移、开关把字符串 `"false"` 当真、`[Script]` 漏 `https://` 前缀；删 7 条死规则与 7 张无引用牌子图。**全部经 12 份真机抓包 / 两台设备（国行 iPad + 国际版 iPhone）验证，累计 0 异常 0 误改** |
@@ -188,6 +189,8 @@ Push-notification permission popup.
 | `vipVerifyTitle` | input | 空 | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
 | `vipBadgeIcon` | select | 大会员 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
+| `MineInterHideIds` | input | `494,500,741,742,1028,3084` | [国际版我的页] `sections_v2` 隐藏 id（逗号分隔） |
+| `MineHideIds` | input | `751,…,747` | [iPad HD 我的页] `ipad_upper/recommend/more/sections` 隐藏 id，**默认仅保留 748历史记录 749收藏 764设置**。原 Bilibili-UI 功能，v7.43 并入（该插件的规则会抢走本脚本，故已摘除）；留空=全部显示 |
 | `vipLabelAnnual` | switch | 关 | 牌子配色覆盖：强制 label_theme=annual_vip，客户端按主题表渲染配色 → 任意主题（含绿鲤鱼小会员）的牌子变粉色年度款，覆盖 vipBg/vipFg |
 
 #### 头像角标机制（v7.33 终局，HAR 铁证）

@@ -1,5 +1,5 @@
-#!name=小破站界面增强 v3.5.1
-#!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。新增【我的页】服务项自定义：iPad HD (mine/ipad)。国际版 iPhone 由 Bilibili-Dedup v7.41+ 处理（合并到 vip.js 避免冲突）。需启用 MitM over HTTP/2。
+#!name=小破站界面增强 v3.6.0
+#!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。我的页服务项自定义（iPad HD）已于 v3.6.0 移交 Bilibili-Dedup（MineHideIds）——同端点两条规则 Loon 只跑先命中的那条，留在这里会让 Dedup 的会员角标彻底失效。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
@@ -7,7 +7,7 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-10-20 22:12:00
+#!date=2026-10-20 22:45:00
 # ==== v3.5.1 | 首页标签页/底栏（手机/国际版）· 我的页：仅 iPad HD（国际版移至 Bilibili-Dedup） ====
 
 [Argument]
@@ -34,11 +34,9 @@ Home.Bot_messages = switch,false,tag=[底部] 消息
 Home.Bot_mine = switch,true,tag=[底部] 我的
 # ===== 其他 =====
 LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
-MineHideIds = input,"751,752,753,754,755,756,757,758,759,760,763,965,2541,750,747",tag=[我的页·iPad HD] 隐藏 id（逗号分隔）,desc=默认仅保留 748历史记录 749收藏 764设置
 
 [Script]
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced.response.js, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
-http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine.response.js, requires-body=1, argument=[{MineHideIds}], tag=我的页服务项·iPad HD
 [Mitm]
 hostname=app.bilibili.com
 h2 = true

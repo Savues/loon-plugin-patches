@@ -35,6 +35,23 @@ if (A.MineInterHideIds) {
 }
 const mineInterHideIds = new Set(mineInterHideIdsStr.split(',').filter(Boolean).map(Number));
 
+// iPad HD「我的」页服务项隐藏 ID（ipad_upper/recommend/more/sections）。
+// 原属 Bilibili-UI（Enhanced-mine.response.js），该插件的 mine/ipad 规则与本脚本
+// 争抢同一端点——Loon 对同一请求只执行**先命中**的那一条（[Rewrite] 与 [Script]
+// 同命中时也只跑 Rewrite，仓库内已有实证）。Bilibili-UI 的规则排在前面时，
+// 它的脚本先 $done，本脚本整个不执行 → 会员伪装与头像角标全失效（2026-10-20
+// 用户 iPad 抓包实证：vip 字段原样、avatar 里 0 个 ICON_LAYER）。故功能并入本脚本，
+// Bilibili-UI 侧摘除该规则，两端各自只有一条 mine/ipad 规则。
+//
+// ⚠️ 取值用 hasOwnProperty 而非真值判断：Loon 的 [Argument] input 清空后传的是
+// 空字符串 ""（假值），真值判断会回落到默认隐藏列表 → 「留空=全部显示」不生效。
+const IPAD_HIDE_DEFAULT = '751,752,753,754,755,756,757,758,759,760,763,965,2541,750,747';
+const mineIpadArg = (Array.isArray(A) ? (A[0] || {}) : (A || {}));
+const mineIpadHideIdsStr = Object.prototype.hasOwnProperty.call(mineIpadArg, "MineHideIds")
+  ? String(mineIpadArg.MineHideIds)
+  : IPAD_HIDE_DEFAULT;
+const mineIpadHideIds = new Set(mineIpadHideIdsStr.split(',').filter(Boolean).map(Number));
+
 function filterSectionsV2(d) {
   try {
     if (!d.sections_v2 || !Array.isArray(d.sections_v2)) return false;
@@ -45,6 +62,24 @@ function filterSectionsV2(d) {
       if (filtered.length !== section.items.length) changed = true;
       return { ...section, items: filtered };
     });
+    return changed;
+  } catch (e) {
+    return false;
+  }
+}
+
+// iPad HD 我的页四大区块（与原 Enhanced-mine.response.js 逐字段等价）。
+const IPAD_SECTION_KEYS = ["ipad_upper_sections", "ipad_recommend_sections", "ipad_more_sections", "ipad_sections"];
+
+function filterIPadSections(d) {
+  try {
+    let changed = false;
+    for (const k of IPAD_SECTION_KEYS) {
+      const arr = d[k];
+      if (!Array.isArray(arr)) continue;
+      const kept = arr.filter(it => !(it && mineIpadHideIds.has(Number(it.id))));
+      if (kept.length !== arr.length) { d[k] = kept; changed = true; }
+    }
     return changed;
   } catch (e) {
     return false;
@@ -285,7 +320,11 @@ try {
     } else {
       // 国际版我的页：sections_v2 服务项过滤（与 VIP 伪装无关，始终生效）
       if (d.sections_v2) {
-        try { filterSectionsV2(d); } catch (e) {}
+        try { changed = filterSectionsV2(d) || changed; } catch (e) {}
+      }
+      // iPad HD 我的页：ipad_*_sections 服务项过滤（原 Bilibili-UI 功能，v7.43 并入）
+      if (IPAD_SECTION_KEYS.some(k => Array.isArray(d[k]))) {
+        try { changed = filterIPadSections(d) || changed; } catch (e) {}
       }
       // 我的页 VIP 伪装（非会员时）
       if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装

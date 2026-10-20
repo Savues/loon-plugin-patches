@@ -10,7 +10,12 @@
 |------|---------|------|------|
 | 首页标签页自定义 | iPhone / 国际版 | ✅ 可用 | 仅手机布局生效 |
 | 底部导航栏自定义 | iPhone / 国际版 | ✅ 可用 | 仅手机布局生效 |
-| **我的页服务项自定义** | **iPad HD** | ✅ **新增** | **网络驱动，完全可控** |
+
+> **我的页服务项自定义（iPad HD）已于 v3.6.0 移交 [Bilibili-Dedup](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-Dedup)。**
+> 原因：`x/v2/account/mine/ipad` 这一个端点上，Loon 对同一请求**只执行先命中的那一条规则**，
+> 两条 `http-response` 规则同时匹配时先到的脚本 `$done` 后整条管线即终止。本插件的规则排在前面时，
+> Bilibili-Dedup 的 `vip.js` 完全不会执行 —— 会员伪装与头像角标全部失效（2026-10-20 iPad 抓包实证：
+> `data.vip` 原样未改、`data.avatar` 里 0 个 `ICON_LAYER`）。故该功能并入 Dedup，参数名沿用 `MineHideIds`。
 
 ---
 
@@ -18,14 +23,15 @@
 
 ### iPad HD（哔哩哔哩 HD 3.71+）
 - **首页顶栏/底栏**：**完全本地化**，数据源为 Swift 类 `TabDisplayConfig`（`homeTabData`/`bottomTabData` 硬编码），**不走任何网络端点**，Loon 层面**无法修改**
-- **我的页**：走 `x/v2/account/mine/ipad` 端点，**网络驱动**，可完全自定义服务项
+- **我的页**：走 `x/v2/account/mine/ipad`，**网络驱动**；v3.6.0 起由 Bilibili-Dedup 统一处理（服务项过滤 + 会员伪装 + 头像角标）
 
 ### iPhone / 国际版（手机布局）
 - 首页顶栏/底栏走 `x/resource/show/tab/v2` 端点，插件原有功能完全生效
+- 我的页由 Bilibili-Dedup 处理（`sections_v2`）
 
 ---
 
-## 🎯 iPad HD「我的页」服务项自定义
+## 🎛️ iPad HD「我的页」服务项过滤（改由 Bilibili-Dedup 提供）
 
 ### 端点
 ```
@@ -40,7 +46,7 @@ x/v2/account/mine/ipad
 | `ipad_more_sections` | 更多服务区块 | 763 我的客服 / 764 设置 / 965 青少年守护 |
 | `ipad_sections` | 常用功能区块 | 747 离线缓存 / 748 历史记录 / 749 我的收藏 / 750 稍后再看 |
 
-### 配置参数
+### 配置参数（在 Bilibili-Dedup 插件里）
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -79,14 +85,18 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 ### 3. 配置参数
 插件安装后在 Loon 参数面板中调整：
 - **首页标签页/底栏**：仅手机布局有效
-- **我的页服务项**：iPad HD 专用，修改 `MineHideIds`
+- **我的页服务项**：iPad HD 专用，请到 Bilibili-Dedup 修改 `MineHideIds`
 - **日志等级**：调试用，默认 `WARN`
 
 ---
 
 ## 📝 更新日志
 
-### v3.4.1 (2026-10-20)
+### v3.6.0 (2026-10-20)
+- **移除**：`mine/ipad` 规则与 `MineHideIds` 参数（与 Bilibili-Dedup 争抢同一端点，导致后者的会员伪装/头像角标完全不执行）
+- 我的页服务项过滤功能已并入 Bilibili-Dedup `vip.js`，参数名与默认值不变
+
+### v3.5.1 (2026-10-20)
 - **新增**：iPad HD「我的页」服务项自定义（`MineHideIds`）
 - **修复**：脚本语法错误（重复声明导致静默失败）
 - **修正**：默认值覆盖所有已知 ID，默认仅保留 748/749/764
@@ -111,7 +121,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 
 - **插件源码**：[plugins/Bilibili-UI/](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-UI)
 - **上游项目**：[Biliverse Enhanced](https://github.com/luestr/ProxyResource)
-- **反编译分析仓库**：`/tmp/bili-splash-re/`（含 `AB_PLAN.md` 计划表）
+- **我的页/会员伪装**：[plugins/Bilibili-Dedup/](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-Dedup)
 
 ---
 
