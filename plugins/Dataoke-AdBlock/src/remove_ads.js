@@ -1,10 +1,10 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.0.1
+// 版本: 1.0.2
 // 更新: 2026-10-20
 
-// Loon $argument 接收 boolean (true/false) 而非中文标签
+// Loon $argument 接收 boolean (true/false) - 来自 {${removeSplashAd}} 等展开
 function isEnabled(key) {
   const v = $argument[key];
   return v === true || v === 'true';
