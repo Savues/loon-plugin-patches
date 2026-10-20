@@ -95,6 +95,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibi
 ### v3.6.0 (2026-10-20)
 - **移除**：`mine/ipad` 规则与 `MineHideIds` 参数（与 Bilibili-Dedup 争抢同一端点，导致后者的会员伪装/头像角标完全不执行）
 - 我的页服务项过滤功能已并入 Bilibili-Dedup `vip.js`，参数名与默认值不变
+- **已真机验证**：Bilibili-Dedup v7.43 + 本版本同时更新后，iPad「我的」页头像角标出现，服务项过滤行为不变
 
 ### v3.5.1 (2026-10-20)
 - **新增**：iPad HD「我的页」服务项自定义（`MineHideIds`）
