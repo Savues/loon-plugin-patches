@@ -1,16 +1,16 @@
 #!name=大淘客联盟去广告
-#!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(dt-k-search-ad-list)、新用户红包。6 独立开关，核心默认开、埋点推送默认关。
+#!desc=大淘客联盟/易店长 v4.0.42 去广告：开屏(all-config)、首页运营位(app-index-topic/get-index-topic-config)、信息流(dt-k-ad-*)、搜索广告(search-v2/dtk-search-ad-list)、新用户红包。6 独立开关，核心默认开、埋点推送默认关。
 #!author=Savues <https://github.com/Savues>
 #!tag=去广告,Dataoke
 #!system=iOS
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Dataoke-AdBlock
-#!date=2026-10-20 18:00:00
+#!date=2026-10-20 19:00:00
 
 [Argument]
 removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截启动页广告 (all-config advanced_strategy)
-removeIndexBanner = switch, true, false, tag=首页运营位, desc=拦截首页顶部/中部/底部运营位 Banner
-removeAdList = switch, true, false, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list
+removeIndexBanner = switch, true, false, tag=首页运营位, desc=拦截首页顶部/中部/底部运营位 Banner (app-index-topic, get-index-topic-config)
+removeAdList = switch, true, false, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list / search-v2
 removeNewUserGuide = switch, true, false, tag=新用户红包, desc=拦截新用户红包引导弹窗
 blockTracking = switch, false, true, tag=埋点上报, desc=拦截 logcoll 行为埋点 (默认关，防止影响数据统计)
 blockPushTags = switch, false, true, tag=推送标签, desc=拦截阿里云推送标签绑定
@@ -20,7 +20,7 @@ request if ${url} ~= /^https?:\/\/logcoll-v2\.ffquan\.cn\/sendEvent\?/i then rej
 request if ${url} ~= /^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\?/i then reject, enable={blockPushTags}
 
 [Script]
-response if ${url} ~= /^https?:\/\/dtkapi\.ffquan\.cn\/dtk_go_app_api\/v1\/(all-config|get-index-topic-config|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl)\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js", {${removeSplashAd}, ${removeIndexBanner}, ${removeAdList}, ${removeNewUserGuide}}) with tag="大淘客去广告", requires_body=true
+response if ${url} ~= /^https?:\/\/dtkapi\.ffquan\.cn\/dtk_go_app_api\/v1\/(all-config|get-index-topic-config|app-index-topic|search-v2|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl)\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js", {${removeSplashAd}, ${removeIndexBanner}, ${removeAdList}, ${removeNewUserGuide}}) with tag="大淘客去广告", requires_body=true
 
 [MitM]
 hostname=dtkapi.ffquan.cn, sr.ffquan.cn, logcoll-v2.ffquan.cn, mpush-api.aliyun.com, yy.ffquan.cn

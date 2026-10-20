@@ -1,7 +1,7 @@
 // Dataoke-AdBlock 主脚本
 // 大淘客联盟/易店长 v4.0.42 去广告规则
 // 作者: Savues
-// 版本: 1.0.2
+// 版本: 1.1.0
 // 更新: 2026-10-20
 
 // Loon $argument 接收 boolean (true/false) - 来自 {${removeSplashAd}} 等展开
@@ -38,15 +38,35 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 2. 首页运营位 Banner: GET /get-index-topic-config
+  // 2. 首页运营位: GET /app-index-topic
+  //    响应: { data: { last: [...], middle: [...], top: [...] } }
+  //    广告特征: banner 非空、jump 非空
+  //    处理: 清空 banner、jump、goods_pic，保留 topic_json 分类导航
+  // ------------------------------------------------------------
+  if (url.includes('/app-index-topic') && isEnabled('removeIndexBanner')) {
+    if (body.data) {
+      ['last', 'middle', 'top'].forEach(key => {
+        if (Array.isArray(body.data[key])) {
+          body.data[key] = body.data[key].map(item => ({
+            ...item,
+            banner: '',
+            jump: {},
+            goods_pic: '',
+            activity_subtitle: '',
+          }));
+        }
+      });
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 3. 首页运营位(备用): GET /get-index-topic-config
   //    响应: { data: [{...}, ...] } - 数组直接在 data 里
-  //    广告特征: banner 非空、jump 非空、topic_type === 2 (运营活动)、is_hot === 1
-  //    保留: 纯分类导航 (topic_type !== 2、无 jump)
+  //    广告特征: banner 非空、jump 非空、topic_type === 2、is_hot === 1
   // ------------------------------------------------------------
   if (url.includes('/get-index-topic-config') && isEnabled('removeIndexBanner')) {
     if (Array.isArray(body.data)) {
       body.data = body.data.filter(item => {
-        // 保留正常分类入口，过滤运营活动/广告位
         const isAd = item.banner || item.jump || item.topic_type === 2 || item.is_hot === 1;
         return !isAd;
       });
@@ -54,8 +74,32 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 3. 显式广告列表: /dtk-ad-banner-list, /dtk-ad-list, /dtk-search-ad-list
-  //    响应: { code: 1, data: { list: [...], banner: [...] } }
+  // 4. 搜索/推荐流: GET /search-v2
+  //    响应: { data: { list: [...] } } - 商品列表
+  //    广告特征: is_pure_push === "1"、is_pure_push === 1、特定 tags 标识
+  //    策略: 保留正常商品，过滤纯推广/广告标识商品
+  // ------------------------------------------------------------
+  if (url.includes('/search-v2') && isEnabled('removeAdList')) {
+    if (body.data?.list && Array.isArray(body.data.list)) {
+      body.data.list = body.data.list.filter(item => {
+        // 过滤纯推广商品：is_pure_push=1 且无正常佣金结构
+        if (item.is_pure_push === "1" || item.is_pure_push === 1) {
+          return false;
+        }
+        // 过滤特定广告标签
+        if (item.tags && Array.isArray(item.tags)) {
+          const hasAdTag = item.tags.some(t => 
+            t.name && (t.name.includes('广告') || t.name.includes('推广') || t.name.includes('纯推'))
+          );
+          if (hasAdTag) return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 5. 显式广告列表: /dtk-ad-banner-list, /dtk-ad-list, /dtk-search-ad-list
   // ------------------------------------------------------------
   if (isEnabled('removeAdList') &&
       (url.includes('/dtk-ad-banner-list') ||
@@ -69,7 +113,7 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 4. 新用户红包引导: /new-user-excitation-guide/red-packet-info
+  // 6. 新用户红包引导: /new-user-excitation-guide/red-packet-info
   // ------------------------------------------------------------
   if (url.includes('/new-user-excitation-guide/red-packet-info') && isEnabled('removeNewUserGuide')) {
     body.data = null;
@@ -78,7 +122,7 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 5. 工具配置: /get-tool-config (可选)
+  // 7. 工具配置: /get-tool-config
   // ------------------------------------------------------------
   if (url.includes('/get-tool-config') && isEnabled('removeAdList')) {
     if (body.data?.list && Array.isArray(body.data.list)) {
@@ -91,7 +135,7 @@ function main() {
   }
 
   // ------------------------------------------------------------
-  // 6. 用户模板: /user-tpl (可选)
+  // 8. 用户模板: /user-tpl
   // ------------------------------------------------------------
   if (url.includes('/user-tpl') && isEnabled('removeAdList')) {
     if (body.data?.tpl_list && Array.isArray(body.data.tpl_list)) {
