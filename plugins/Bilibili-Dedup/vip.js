@@ -141,6 +141,11 @@ const ICON_LAYERS = [
             day: { argb: "#FFFFFFFF" }, night: { argb: "#FF17181A" } } } } } } }
 ];
 
+// 认证闪电图标（HAR 实证的真实样本 URL，54x54 PNG；客户端会自行加 @54w_54h 处理参数）。
+// 国际版客户端读 official_verify.icon 渲染昵称前的闪电，缺字段就只显示文字。
+const VERIFY_ICON_UP = "https://i0.hdslb.com/bfs/activity-plat/static/20230828/e3b8ebec8e86f060b930a2c0536bb88b/72wejSxl9Z.png";
+const VERIFY_ICON_ORG = "https://i0.hdslb.com/bfs/activity-plat/static/20230828/e3b8ebec8e86f060b930a2c0536bb88b/QFMyNuatvi.png";
+
 // 给 avatar 新协议对象**写入**角标图层（v7.39：由「追加」升级为「替换」）。
 // 全员/点名彩蛋下其他用户（含真会员、藏品用户）已有自己的角标图层——
 // 追加会被 has 检查跳过、原样显示别人的角标，故先剥掉已有 ICON_LAYER 再
@@ -214,8 +219,10 @@ function patchSpace(d) {
     // 彩蛋：伪装认证标识（v7.38 合并为单选）。真实样本逐字段对照：
     //   黄 V（个人）：type:0 role:7，splice_title 前缀「bilibili UP主认证：」
     //   蓝 V（企业）：type:1 role:3，splice_title 前缀「bilibili机构认证-企业：」
-    // 注意**不写 icon**——抓包实证 App 从不请求 official_verify.icon，头像角标
-    // 走图层（local:3=黄V合成闪电 / local:4=企业蓝标，配合「头像角标样式」）。
+    // v7.40：**必须写 icon**——国际版（iPhone）客户端的认证闪电图标就是从
+    // official_verify.icon 网络加载的（HAR 267 实证请求 72wejSxl9Z.png@54w_54h...）；
+    // 早前「App 从不请求 icon」的结论只在 iPad/国内版成立（它们走 ICON_LAYER 本地图标）。
+    // 两条路径都保留：icon 给国际版画闪电，ICON_LAYER 给 iPad/国内画角标。
     // 兼容：旧版独立开关 vipFakeVerify 开启且新参数未选时按黄 V 处理。
     const VTYPE = (on(A.vipFakeVerify) && !A.vipVerify) ? "黄V·UP主认证" : A.vipVerify;
     if (VTYPE === "黄V·UP主认证" || VTYPE === "蓝V·企业认证") {
@@ -223,6 +230,7 @@ function patchSpace(d) {
       const org = VTYPE === "蓝V·企业认证";
       card.official_verify = Object.assign({}, card.official_verify || {}, {
         type: org ? 1 : 0, role: org ? 3 : 7, title: t, desc: t,
+        icon: org ? VERIFY_ICON_ORG : VERIFY_ICON_UP,
         splice_title: A.vipVerifyTitle
           ? (org ? "bilibili机构认证-企业：" : "bilibili UP主认证：") + t
           : ""

@@ -146,7 +146,7 @@ t("彩蛋·点名：命中与不命中（全员开关未开时不生效）", () 
   assert.strictEqual(json(r2).data.vip.vipStatus, 1, "点名命中");
 });
 
-t("彩蛋·认证标识：写 title/splice_title，不写 icon", () => {
+t("彩蛋·认证标识：写 title/splice_title/icon（icon 供国际版画闪电）", () => {
   const f = spaceNonMember();
   f.data.card.official_verify = { type: -1, role: 0, icon: "keep-me" };
   const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipFakeVerify: true } });
@@ -156,7 +156,7 @@ t("彩蛋·认证标识：写 title/splice_title，不写 icon", () => {
   assert.strictEqual(ov.title, "认证用户");
   assert.strictEqual(ov.desc, "认证用户");
   assert.strictEqual(ov.splice_title, "", "未填标题则不显示前缀行");
-  assert.strictEqual(ov.icon, "keep-me", "不得改写 icon");
+  assert.ok(/72wejSxl9Z\.png$/.test(ov.icon), "v7.40：icon 改写为黄闪电 URL（旧值 keep-me 被覆盖）");
 
   const r2 = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipFakeVerify: true, vipVerifyTitle: "美食" } });
   const ov2 = json(r2).data.card.official_verify;
@@ -578,5 +578,29 @@ t("审查·别人主页的专栏作者也被全员伪装（mine schema）", () =
   const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true } });
   const a = json(r).data.item[0].author;
   assert.strictEqual(a.vip.status, 1, "专栏作者跟随全员伪装");
+});
+
+// ---------- v7.40：认证闪电图标（国际版读 icon 字段） ----------
+t("认证·蓝V 写 icon（企业蓝闪电真实样本 URL）", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "蓝V·企业认证" } });
+  const ov = json(r).data.card.official_verify;
+  assert.ok(/QFMyNuatvi\.png$/.test(ov.icon), "蓝V icon = QFMyNuatvi.png，实际 " + ov.icon);
+});
+t("认证·黄V 写 icon（UP主黄闪电真实样本 URL）", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipVerify: "黄V·UP主认证" } });
+  const ov = json(r).data.card.official_verify;
+  assert.ok(/72wejSxl9Z\.png$/.test(ov.icon), "黄V icon = 72wejSxl9Z.png，实际 " + ov.icon);
+});
+t("认证·旧开关兼容路径同样带 icon", () => {
+  const f = spaceNonMember();
+  const r = run({ body: f, url: URL_SPACE, arg: { myMid: String(ME), vipFakeVerify: true } });
+  assert.ok(/72wejSxl9Z\.png$/.test(json(r).data.card.official_verify.icon));
+});
+t("认证·全员模式下别人主页也带 icon", () => {
+  const f = spaceNonMember(); f.data.card.mid = "999";
+  const r = run({ body: f, url: URL_SPACE, arg: { vipAllUsers: true, vipVerify: "蓝V·企业认证" } });
+  assert.ok(/QFMyNuatvi\.png$/.test(json(r).data.card.official_verify.icon));
 });
 console.log((process.exitCode ? "FAILED" : "OK") + "  " + pass + " cases");

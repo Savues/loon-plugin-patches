@@ -184,7 +184,7 @@ Push-notification permission popup.
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
-| `vipVerify` | select | 关 | 彩蛋·认证标识：黄V·UP主认证（type0/role7）/ 蓝V·企业认证（type1/role3，HAR 414 真实样本对照）。旧版 vipFakeVerify 开关值兼容（视作黄V） |
+| `vipVerify` | select | 关 | 彩蛋·认证标识：黄V·UP主认证（type0/role7）/ 蓝V·企业认证（type1/role3）。同时写 icon（国际版画闪电必需，HAR 实证）与 ICON_LAYER 角标（iPad/国内）。旧版 vipFakeVerify 开关值兼容 |
 | `vipVerifyTitle` | input | 空 | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
 | `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
 | `vipBadgeIcon` | select | 大会员 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
@@ -209,6 +209,11 @@ v7.33 开启开关后向 avatar 对象逐字段复刻纯年度大会员（Celest
 ICON_LAYER；响应已带角标图层（真会员）则不重复注入。附带事实：功能开关
 `ff_new_avatar_view_enabled` 在 Fawkes DD 数据（`i0.hdslb.com/bfs/fawkes/dd/...`，
 公开 CDN 无鉴权）里本就是 100% 全量（bucket 0~999/1000），无需实验注入。
+
+**v7.40 认证闪电图标（国际版修复）**：注入 `official_verify.icon`——iPhone 国际版客户端的
+黄/蓝闪电图标是从该字段**网络加载**的（HAR 实证请求 `72wejSxl9Z.png@54w_54h_1e_1c_85q.avif`），
+此前「App 从不请求 icon」的结论只在 iPad/国内版成立（它们走头像 ICON_LAYER 本地图标）。
+两条路径并存：icon 供国际版画闪电，ICON_LAYER 供 iPad/国内画角标。
 
 **v7.39 全员角标替换**：全员/点名下其他用户的角标由「追加」改为**替换**——
 真会员（大字）/藏品用户（GIF）原有的 ICON_LAYER 先剥掉再写入你选定的样式
