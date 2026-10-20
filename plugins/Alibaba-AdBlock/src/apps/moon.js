@@ -86,23 +86,10 @@ function handleMoonResponse(body, url) {
     return filterMarquee(body);
   }
 
-  // 5. MetaX 首页/Feed
+  // 5. MetaX 首页/Feed (热词 + Feed 清空)
+  // filterMetaxHomepage 内部会根据开关自动判断是否处理热词/Feed
   if (url.includes("mtop.alimama.moon.provider.metax.homepage.query")) {
-    let newBody = body;
-    
-    // 5a. 热词过滤 (removeSmallCards 控制)
-    if (isEnabled("removeSmallCards")) {
-      newBody = filterMetaxHomepage(newBody, MOON_METAX_CONFIG);
-    }
-    
-    // 5b. Feed 清空 (removeFeedKeywords 控制)
-    if (isEnabled("removeFeedKeywords")) {
-      // 需要单独处理 Feed 部分，复用 filterMetaxFeed
-      const { filterMetaxFeed, DEFAULT_METAX_CONFIG } = require('../core/metax-filter.js');
-      newBody = newBody; // filterMetaxHomepage 已包含 Feed 处理
-    }
-    
-    return newBody;
+    return filterMetaxHomepage(body, MOON_METAX_CONFIG);
   }
 
   // 6. 私域动态 / 关注会员
