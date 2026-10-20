@@ -7,9 +7,9 @@ if ($request.url.includes('x/v2/account/mine/ipad')) {
     let body = JSON.parse($response.body);
     if (!body || !body.data) { $done({}); return; }
 
-    // 参数：MineHideIds (index 1), 格式：'751,755,763,747'
+    // 参数：MineHideIds (index 0), 格式：'751,755,763,747'
     const rawArgs = $argument || [];
-    const hideIdsStr = rawArgs[1] || '751,755,763,747';
+    const hideIdsStr = rawArgs[0] || '751,755,763,747';
     const hideIds = new Set(hideIdsStr.split(',').filter(Boolean).map(Number));
 
     let body = JSON.parse($response.body);
