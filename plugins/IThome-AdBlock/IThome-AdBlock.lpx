@@ -1,5 +1,5 @@
 #!name=IT之家去广告（增强版）
-#!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、电商带货文章与置顶；补全首页/频道/热榜/事件等未覆盖端点。
+#!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、开屏广告、顶栏标签、电商带货文章与置顶；补全首页/频道/热榜/事件/顶栏/开屏等未覆盖端点。
 #!openUrl=https://apps.apple.com/app/id570610859
 #!author=Savues[https://github.com/Savues]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/IThome-AdBlock
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/IThome.png
-#!date=2026-10-20 12:20:00
+#!date=2026-10-20 16:30:00
 
 [Argument]
 removeWebViewCards = switch, true, false, tag=移除活动卡片（双11红包等）, desc=移除 feedType 10004 以及指向广告/活动域名的 WebView 卡片
