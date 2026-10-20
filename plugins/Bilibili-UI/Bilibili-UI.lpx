@@ -1,4 +1,4 @@
-#!name=小破站界面增强 v3.2
+#!name=小破站界面增强 v3.3
 #!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。新增【我的页】服务项自定义（iPad HD 专用，网络驱动）。需启用 MitM over HTTP/2。
 #!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
@@ -7,8 +7,8 @@
 #!system=iOS, iPadOS
 #!system_version=15
 #!loon_version=3.4.0(962)
-#!date=2026-10-20 12:00:00
-# ==== v3.2.0 | 首页标签页/底栏（仅手机布局）· 我的页服务项（iPad HD）=====
+#!date=2026-10-20 14:50:00
+# ==== v3.3.0 | 首页标签页/底栏（仅手机布局）· 我的页服务项（iPad HD）=====
 
 [Argument]
 # ===== 首页 · 标签页（多选）=====
