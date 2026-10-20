@@ -1,0 +1,16 @@
+#!name=我的页字段消费测试
+#!desc=V3 验证：确认 x/v2/account/mine/ipad 的哪些字段驱动「我的」页渲染。同时删除投稿/推荐/更多/服务项四个区块的特定项，观察哪些有变化。
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
+#!tag=测试,我的页
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!date=2026-10-20 12:00:00
+
+[Script]
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/test-mine-ipad.js, requires-body=1, tag=我的页字段测试
+[Mitm]
+hostname=app.bilibili.com
+h2 = true
