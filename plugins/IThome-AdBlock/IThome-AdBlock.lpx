@@ -1,12 +1,12 @@
 #!name=IT之家去广告（增强版）
 #!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、电商带货文章与置顶；补全首页/频道/热榜/事件等未覆盖端点。
 #!openUrl=https://apps.apple.com/app/id570610859
-#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md] / 增强 by Minis
+#!author=Savues[https://github.com/Savues]
 #!tag=去广告
 #!system=
 #!system_version=
 #!loon_version=3.5.1(998)
-#!homepage=https://hub.kelee.one
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/IThome-AdBlock
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/IThome.png
 #!date=2026-10-20 12:20:00
 
