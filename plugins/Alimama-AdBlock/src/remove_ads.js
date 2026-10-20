@@ -75,22 +75,29 @@ function filterBatchsite(body) {
 
 function main() {
   if (!$response || !$response.body) {
+    console.log("[Alimama-AdBlock] No response body");
     $done({});
     return;
   }
 
   const url = $request?.url || "";
+  console.log("[Alimama-AdBlock] Script triggered for:", url);
+  
   if (!url.includes("mtop.alimama.union.skyleap.distribution.batchsite")) {
+    console.log("[Alimama-AdBlock] URL not match, skip");
     $done({});
     return;
   }
 
   const body = typeof $response.body === "string" ? $response.body : $response.body.toString();
+  console.log("[Alimama-AdBlock] Processing batchsite response, length:", body.length);
   const newBody = filterBatchsite(body);
 
   if (newBody !== body) {
+    console.log("[Alimama-AdBlock] Response modified, items filtered");
     $done({ body: newBody });
   } else {
+    console.log("[Alimama-AdBlock] No items filtered");
     $done({});
   }
 }
