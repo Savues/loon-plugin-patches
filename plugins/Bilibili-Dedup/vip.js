@@ -36,15 +36,19 @@ if (A.MineInterHideIds) {
 const mineInterHideIds = new Set(mineInterHideIdsStr.split(',').filter(Boolean).map(Number));
 
 function filterSectionsV2(d) {
-  if (!d.sections_v2 || !Array.isArray(d.sections_v2)) return false;
-  let changed = false;
-  d.sections_v2 = d.sections_v2.map(section => {
-    if (!section.items || !Array.isArray(section.items)) return section;
-    const filtered = section.items.filter(it => !mineInterHideIds.has(it.id));
-    if (filtered.length !== section.items.length) changed = true;
-    return { ...section, items: filtered };
-  });
-  return changed;
+  try {
+    if (!d.sections_v2 || !Array.isArray(d.sections_v2)) return false;
+    let changed = false;
+    d.sections_v2 = d.sections_v2.map(section => {
+      if (!section.items || !Array.isArray(section.items)) return section;
+      const filtered = section.items.filter(it => !mineInterHideIds.has(it.id));
+      if (filtered.length !== section.items.length) changed = true;
+      return { ...section, items: filtered };
+    });
+    return changed;
+  } catch (e) {
+    return false;
+  }
 }
 
 // due_date 单位：【毫秒】—— 实测 B站原生响应为 1721577600000（=2024-07-21）。
@@ -281,14 +285,14 @@ try {
     } else {
       // 国际版我的页：sections_v2 服务项过滤（与 VIP 伪装无关，始终生效）
       if (d.sections_v2) {
-        changed = filterSectionsV2(d) || changed;
+        try { filterSectionsV2(d); } catch (e) {}
       }
       // 我的页 VIP 伪装（非会员时）
       if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
         d.vip = mine(d.vip);
         d.vip_type = 2;
-        if (BADGE) {
-          setBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
+        if (BADGE && d.avatar) {
+          try { setBadgeLayers(d.avatar); } catch (e) {}
         }
         changed = true;
       }
