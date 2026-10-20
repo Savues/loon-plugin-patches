@@ -39,6 +39,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
 | [IThome-AdBlock](plugins/IThome-AdBlock/) | IT之家去广告 · 补全首页 feed 端点 · 电商带货文过滤 · 事件日历卡片 · **顶栏标签过滤** · **开屏广告拦截** · **完全隐藏顶栏开关** · 附纯清单 lite | **v1.5** |
+| [Dataoke-AdBlock](plugins/Dataoke-AdBlock/) | 大淘客联盟/易店长去广告 · 开屏/首页运营位/信息流/搜索/新用户红包 · 6 独立开关 · 核心默认开、埋点推送默认关<br>Dataoke Union ad-block · splash/home/feed/search/new-user · 6 switches · core ON by default, tracking/push OFF | **v1.0** |
 | [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 网络层已验证，App 端加载未解决<br>Locally model swap · URL rewrite · network layer verified, App-side load unresolved | **v1.6** ⚠️ |
 
 ### 托管了脚本的插件
