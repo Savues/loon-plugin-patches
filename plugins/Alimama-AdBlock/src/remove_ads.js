@@ -149,6 +149,36 @@ function filterTACServiceSmartCall(body) {
   return body;
 }
 
+function filterMetaxHomepage(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] Metax homepage JSON parse failed:", e);
+    return body;
+  }
+
+  // Structure: { data: { container: {...}, data: { headerList: [...] } } }
+  // hotwords 在 headerList 中 type 为 42701_96 (moon_home_top_bar) 的项里
+  if (!data?.data?.data?.headerList || !Array.isArray(data.data.data.headerList) || !isEnabled("removeSmallCards")) {
+    return body;
+  }
+
+  let modified = false;
+  for (const item of data.data.data.headerList) {
+    if (item?.fields?.hotwords && Array.isArray(item.fields.hotwords) && item.fields.hotwords.length > 0) {
+      console.log(`[Alimama-AdBlock] Clearing metax homepage hotwords (${item.fields.hotwords.length} words)`);
+      item.fields.hotwords = [];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alimama-AdBlock] No response body");
@@ -200,6 +230,17 @@ function main() {
     const newBody = filterTACServiceSmartCall(body);
     if (newBody !== body) {
       console.log("[Alimama-AdBlock] TAC smart call response modified");
+      $done({ body: newBody });
+      return;
+    }
+  }
+
+  // 5. 首页搜索栏热词 - metax homepage
+  if (url.includes("mtop.alimama.moon.provider.metax.homepage.query")) {
+    console.log("[Alimama-AdBlock] Processing metax homepage query response, length:", body.length);
+    const newBody = filterMetaxHomepage(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] Metax homepage response modified");
       $done({ body: newBody });
       return;
     }
