@@ -1,24 +1,31 @@
-#!name=IT之家去广告（修复版）
-#!desc=过滤IT之家信息流广告和文末广告，自定义移除置顶和轮播图。修复：补全首页 feed 等未覆盖端点，解决双11红包等活动卡片漏拦截。
+#!name=IT之家去广告（增强版）
+#!desc=过滤IT之家信息流广告、首页轮播图广告、活动 WebView 卡片（如双11红包）、电商带货文章与置顶；补全首页/频道/热榜/事件等未覆盖端点。
 #!openUrl=https://apps.apple.com/app/id570610859
-#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md] / 修复 by Minis
+#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md] / 增强 by Minis
 #!tag=去广告
 #!system=
 #!system_version=
 #!loon_version=3.5.1(998)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/IThome.png
-#!date=2026-10-20 11:30:00
+#!date=2026-10-20 12:20:00
 
 [Argument]
-removePinnedArticles = switch, false, true, tag=移除置顶文章, desc=启用后将移除置顶文章
-removeAllBanners = switch, false, true, tag=移除全部横幅, desc=启用后将移除全部横幅
+removeWebViewCards = switch, true, false, tag=移除活动卡片（双11红包等）, desc=移除 feedType 10004 以及指向广告/活动域名的 WebView 卡片
+removeFeedAds = switch, true, false, tag=移除信息流广告, desc=移除 flag=2 或标记为「广告」的信息流条目
+removeBannerAds = switch, true, false, tag=移除轮播图内广告位, desc=移除轮播图 focusNewsData 中 isAd=true 的条目
+removeEcommerceArticles = switch, true, false, tag=移除电商带货文章, desc=移除正文含京东/淘宝联盟链接或带货商品卡的文章（含数码促销文，误杀可关）
+removeAllBanners = switch, false, true, tag=移除整个轮播图, desc=启用后将移除顶部轮播图（feedType 10002）
+removePinnedArticles = switch, false, true, tag=移除置顶文章, desc=启用后将移除置顶文章（feedType 10003）
 
 [Rewrite]
 request if ${url} ~= /^https?:\/\/dat\.ruanmei\.com\/ithome\/money\/acd\.json$/i then reject(404)
 
 [Script]
-response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?)/i then script("https://kelee.one/Resource/JavaScript/IThome/IThome_remove_ads.js", {${removeAllBanners}, ${removePinnedArticles}}) with tag="IT之家去广告", requires_body=true
+response if ${url} ~= /^https:\/\/napi\.ithome\.com\/api\/(news\/(indexv2\/iphone\/\d+|gethotbang\/\d+)|topmenu\/(getfeeds\?|gethomefeeds\?|getmenufeeds\/\d+\/\d+\/iphone\/\d+)|newsevent\/geteventfeed\?)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/IThome-AdBlock/src/IThome_remove_ads.js?v=11", {${removeWebViewCards}, ${removeFeedAds}, ${removeBannerAds}, ${removeAllBanners}, ${removePinnedArticles}, ${removeEcommerceArticles}}) with tag="IT之家去广告", requires_body=true
+
+[Rule]
+DOMAIN,knicks.jd.com,REJECT
 
 [MitM]
 hostname=napi.ithome.com, api.zuihuimai.com, dat.ruanmei.com
