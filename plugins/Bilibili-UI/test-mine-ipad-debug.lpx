@@ -1,0 +1,16 @@
+#!name=我的页字段消费测试 (Debug)
+#!desc=调试版：强制 DEBUG 日志，查看 Loon 日志里的 [Enhanced-Mine] 前缀
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
+#!tag=测试,我的页
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!date=2026-10-20 14:00:00
+
+[Script]
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine-debug.response.js, requires-body=1, argument=[{Mine.Enable},{Mine.HideIds},{Mine.HideTitles},{Mine.Order},{Mine.BlockUpper},{Mine.BlockRecommend},{Mine.BlockMore},{Mine.SectionStyle},{LogLevel}], tag=我的页字段测试-Debug
+[Mitm]
+hostname=app.bilibili.com
+h2 = true
