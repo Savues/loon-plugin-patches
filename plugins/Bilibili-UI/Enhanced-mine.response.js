@@ -7,9 +7,19 @@ if ($request.url.includes('x/v2/account/mine/ipad')) {
     let body = JSON.parse($response.body);
     if (!body || !body.data) { $done({}); return; }
 
-    // 参数：MineHideIds (index 0), 格式：'751,755,763,747'
+    // 参数：MineHideIds 通过 argument 传递，可能是数组或对象
     const rawArgs = $argument || [];
-    const hideIdsStr = rawArgs[0] || '751,755,763,747';
+    // 支持两种格式：数组 ['751,755...'] 或对象 {MineHideIds: '751,755...'}
+    let hideIdsStr = '751,755,763,747';
+    if (Array.isArray(rawArgs) && rawArgs.length > 0) {
+      if (typeof rawArgs[0] === 'string') {
+        hideIdsStr = rawArgs[0];
+      } else if (rawArgs[0] && typeof rawArgs[0] === 'object' && rawArgs[0].MineHideIds) {
+        hideIdsStr = rawArgs[0].MineHideIds;
+      }
+    } else if (rawArgs && typeof rawArgs === 'object' && rawArgs.MineHideIds) {
+      hideIdsStr = rawArgs.MineHideIds;
+    }
     const hideIds = new Set(hideIdsStr.split(',').filter(Boolean).map(Number));
 
     let body = JSON.parse($response.body);
