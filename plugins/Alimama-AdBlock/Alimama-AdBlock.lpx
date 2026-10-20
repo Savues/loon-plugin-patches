@@ -1,4 +1,4 @@
-#!name=Alimama-AdBlock v1.4.0
+#!name=Alimama-AdBlock v1.5.0
 #!desc=阿里妈妈 Moon App 去广告 · 开屏/弹窗/小卡片/公告栏/埋点全拦截
 #!system=ios
 #!version=1.0.1
@@ -11,6 +11,7 @@ h2 = true
 removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截 open_screen_site (开屏图/跳转/倒计时)
 removePopWindow = switch, true, false, tag=弹窗广告, desc=拦截 pop_window_site (弹窗/浮层)
 removeSmallCards = switch, true, false, tag=小卡片/公告栏/推荐词, desc=拦截 small_handler_* / bulletin_board_* / marquee / TAC / metax热词
+removeFeedKeywords = switch, false, true, tag=Feed关键词过滤, desc=拦截首页推荐流中含指定关键词的商品 (霸王何首乌等)
 removePrivateDomain = switch, true, false, tag=私域动态, desc=拦截关注会员/私域动态 (union.pub.entry followMembers)
 blockTracking = switch, true, false, tag=埋点上报, desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com
 

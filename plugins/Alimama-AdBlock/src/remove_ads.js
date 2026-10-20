@@ -179,6 +179,60 @@ function filterMetaxHomepage(body) {
   return body;
 }
 
+function filterMetaxFeedKeywords(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] Metax feed keywords JSON parse failed:", e);
+    return body;
+  }
+
+  // Structure: { data: { data: { bodyList: [...] } } }
+  // 过滤 bodyList 中 fields.newsList.recommend.resultList 的商品
+  if (!data?.data?.data?.bodyList || !Array.isArray(data.data.data.bodyList) || !isEnabled("removeFeedKeywords")) {
+    return body;
+  }
+
+  // 需要屏蔽的关键词 (硬编码，用户可自行修改脚本)
+  const BLOCKED_KEYWORDS = [
+    "霸王何首乌",
+    "霸王",
+    "何首乌",
+  ];
+
+  let totalRemoved = 0;
+
+  for (const bodyItem of data.data.data.bodyList) {
+    // 处理 newsList.recommend.resultList 结构
+    if (bodyItem?.fields?.newsList?.recommend?.resultList && Array.isArray(bodyItem.fields.newsList.recommend.resultList)) {
+      const originalLen = bodyItem.fields.newsList.recommend.resultList.length;
+      bodyItem.fields.newsList.recommend.resultList = bodyItem.fields.newsList.recommend.resultList.filter(item => {
+        const name = item?.itemName || "";
+        return !BLOCKED_KEYWORDS.some(kw => name.includes(kw));
+      });
+      totalRemoved += originalLen - bodyItem.fields.newsList.recommend.resultList.length;
+    }
+
+    // 也可能有其他推荐结构，如直接的 resultList
+    if (bodyItem?.fields?.resultList && Array.isArray(bodyItem.fields.resultList)) {
+      const originalLen = bodyItem.fields.resultList.length;
+      bodyItem.fields.resultList = bodyItem.fields.resultList.filter(item => {
+        const name = item?.itemName || item?.title || "";
+        return !BLOCKED_KEYWORDS.some(kw => name.includes(kw));
+      });
+      totalRemoved += originalLen - bodyItem.fields.resultList.length;
+    }
+  }
+
+  if (totalRemoved > 0) {
+    console.log(`[Alimama-AdBlock] Filtered feed keywords: removed ${totalRemoved} items`);
+    return JSON.stringify(data);
+  }
+
+  return body;
+}
+
 function filterUnionPubEntry(body) {
   let data;
   try {
@@ -279,7 +333,12 @@ function main() {
   // 5. 首页搜索栏热词 - metax homepage
   if (url.includes("mtop.alimama.moon.provider.metax.homepage.query")) {
     console.log("[Alimama-AdBlock] Processing metax homepage query response, length:", body.length);
-    const newBody = filterMetaxHomepage(body);
+    
+    // 5a. 热词过滤
+    let newBody = filterMetaxHomepage(body);
+    // 5b. Feed 关键词过滤
+    newBody = filterMetaxFeedKeywords(newBody);
+    
     if (newBody !== body) {
       console.log("[Alimama-AdBlock] Metax homepage response modified");
       $done({ body: newBody });
