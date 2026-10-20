@@ -1,6 +1,6 @@
 // V3 测试：我的页字段消费验证
-// 目的：确认 x/v2/account/mine/ipad 的哪些字段真的驱动「我的」页渲染
-// 测试动作：同时删除四个区块的特定项，观察哪些区块有变化
+// 目的：确认 x/v2/account/mine/ipad 的哪些字段驱动「我的」页渲染
+// 测试动作：同时删除四个区块的特定项，观察哪些有变化
 
 if ($request.url.includes('x/v2/account/mine/ipad')) {
   try {
