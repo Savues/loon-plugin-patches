@@ -21,7 +21,7 @@ MineSectionStyle = select,"0","0","1","2","3",tag=[我的页] 区块样式,desc=
 LogLevel = select,"DEBUG","OFF","ERROR","WARN","INFO","DEBUG","ALL",tag=[调试] 日志等级
 
 [Script]
-http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine\/ipad\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine-body-debug.response.js?v=1, argument=[{MineEnable},{MineHideIds},{MineHideTitles},{MineOrder},{MineBlockUpper},{MineBlockRecommend},{MineBlockMore},{MineSectionStyle},{LogLevel}], enable={MineEnable}, tag=我的页字段测试-BodyDebug
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/mine\/ipad requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/Enhanced-mine-body-debug.response.js?v=2, argument=[{MineEnable},{MineHideIds},{MineHideTitles},{MineOrder},{MineBlockUpper},{MineBlockRecommend},{MineBlockMore},{MineSectionStyle},{LogLevel}], enable={MineEnable}, tag=我的页字段测试-BodyDebug
 [Mitm]
 hostname=app.bilibili.com, app.biliapi.net
 h2 = true
