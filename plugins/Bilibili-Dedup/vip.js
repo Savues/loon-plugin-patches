@@ -26,6 +26,27 @@ const TARGET = Number(A.vipTargetMid) || 0;   // 点名的 UID，0=不点名
 const on = (v) => v === true || v === "true";
 const ALL = on(A.vipAllUsers);
 
+// 国际版我的页服务项隐藏 ID（sections_v2）
+let mineInterHideIdsStr = '494,500,741,742,1028,3084';
+if (A.MineInterHideIds) {
+  mineInterHideIdsStr = A.MineInterHideIds;
+} else if (Array.isArray(A) && A[0] && A[0].MineInterHideIds) {
+  mineInterHideIdsStr = A[0].MineInterHideIds;
+}
+const mineInterHideIds = new Set(mineInterHideIdsStr.split(',').filter(Boolean).map(Number));
+
+function filterSectionsV2(d) {
+  if (!d.sections_v2 || !Array.isArray(d.sections_v2)) return false;
+  let changed = false;
+  d.sections_v2 = d.sections_v2.map(section => {
+    if (!section.items || !Array.isArray(section.items)) return section;
+    const filtered = section.items.filter(it => !mineInterHideIds.has(it.id));
+    if (filtered.length !== section.items.length) changed = true;
+    return { ...section, items: filtered };
+  });
+  return changed;
+}
+
 // due_date 单位：【毫秒】—— 实测 B站原生响应为 1721577600000（=2024-07-21）。
 // 此前误采 zirawell 的秒级值 3818419199，与原生单位不一致。取 9999-12-30T23:59:59Z。
 const DUE = 253402214399000;
@@ -257,15 +278,22 @@ try {
   if (d) {
     if (space) {
       changed = patchSpace(d);
-    } else if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
-      d.vip = mine(d.vip);
-      d.vip_type = 2;
-      if (BADGE) {
-        setBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
+    } else {
+      // 国际版我的页：sections_v2 服务项过滤（与 VIP 伪装无关，始终生效）
+      if (d.sections_v2) {
+        changed = filterSectionsV2(d) || changed;
       }
-      changed = true;
+      // 我的页 VIP 伪装（非会员时）
+      if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
+        d.vip = mine(d.vip);
+        d.vip_type = 2;
+        if (BADGE) {
+          setBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
+        }
+        changed = true;
+      }
+      // 真实会员（status==1）不碰：角标图层服务端已下发，牌子是真实数据
     }
-    // 真实会员（status==1）不碰：角标图层服务端已下发，牌子是真实数据
   }
   $done(changed ? { body: JSON.stringify(j) } : {});
 } catch (e) {
