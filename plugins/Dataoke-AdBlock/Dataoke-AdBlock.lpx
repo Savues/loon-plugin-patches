@@ -9,7 +9,7 @@
 
 [Argument]
 removeSplashAd = switch, true, false, tag=开屏广告, desc=拦截启动页广告 (all-config advanced_strategy, get-index-topic-config topic_type=4)
-removeTopBanner = switch, true, false, tag=首页顶部Banner, desc=拦截首页顶部运营位 Banner (get-index-topic-config banner字段)
+removeTopBanner = switch, false, true, tag=首页顶部Banner, desc=拦截首页顶部运营位 Banner (get-index-topic-config banner字段)
 removeIndexBanner = switch, true, false, tag=首页运营位, desc=拦截首页其他运营位 (topic_type=2, jump, is_hot等)
 removeAdList = switch, true, false, tag=信息流广告, desc=拦截 dtk-ad-list / dtk-ad-banner-list / dtk-search-ad-list / search-v2
 removeNewUserGuide = switch, true, false, tag=新用户红包, desc=拦截新用户红包引导弹窗
