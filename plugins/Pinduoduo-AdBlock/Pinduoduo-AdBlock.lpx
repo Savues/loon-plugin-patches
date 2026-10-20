@@ -1,0 +1,96 @@
+#!name=拼多多去广告 v2.0.0
+#!desc=安全模式优先：字段级删除>整体Stub，高危开关默认关，一键风控模式。覆盖首页/信息流/搜索/百亿补贴/扫码页/个人中心/订单页广告与埋点拦截。
+#!openUrl=https://apps.apple.com/app/id1044283059
+#!author=Savues
+#!tag=去广告
+#!system=ios
+#!system_version=15.0
+#!loon_version=3.5.0
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
+#!date=2026-10-20
+
+[Argument]
+# ===== 全局安全开关 =====
+riskControlMode = switch,false,tag=🛡️ 风控模式(一键关闭所有激进拦截),desc=开启后插件完全放行，仅保留日志。遇到限流/功能异常时立即开启此项恢复。
+
+# ===== 首页去广告 =====
+removeHomepageAds = switch,true,tag=🏠 首页去广告总开关
+removeIconSet = switch,true,tag=🏠 删除营销活动图标(icon_set),desc=限时秒杀/9块9/现金大转盘/免费领礼物等 13 个营销入口
+removeSearchHotQuery = switch,true,tag=🏠 清空搜索框热词(search_bar_hot_query),desc=首页下发的 20 条热搜词 + 百亿补贴页 queryWords + /search_hotquery 轮询
+removeTopOptsImages = switch,true,tag=🏠 去除顶部标签图片(all_top_opts),desc=仅删 image/selected_image 字段，保留标签结构
+bottomCustom = switch,true,tag=🏠 启用底栏自定义
+Bot_index = switch,true,tag=🏠 首页
+Bot_chat = switch,true,tag=🏠 聊天
+Bot_personal = switch,true,tag=🏠 我的
+Bot_live = switch,false,tag=🏠 多多视频
+Bot_class = switch,false,tag=🏠 分类
+Bot_attendance = switch,false,tag=🏠 签到/提前优惠
+Bot_custom = input,"",tag=🏠 自定义项(逗号分隔,按 link 包含匹配)
+
+# ===== 信息流去广告 =====
+removeFeedAds = switch,true,tag=📱 信息流广告过滤,desc=识别 goods_list[i].data.ad 字段(bkfl=1, ad_id, ads_from=0)精准过滤，保留分页结构
+
+# ===== 搜索/推荐去广告 =====
+removeSearchPromos = switch,true,tag=🔍 搜索推荐词/热词清空,desc=清空 /api/polemon/gbdbpdc, /search_hotquery, /search expansion
+
+# ===== 个人中心/订单页 =====
+removePersonalAds = switch,true,tag=👤 个人中心去推广,desc=删月卡入口、banner、icon_set 等
+removeOrderPromos = switch,false,tag=📦 订单页去推广,desc=⚠️默认关！仅删订单详情/列表中的推广字段，不 stub 整响应
+
+# ===== 特殊页面 =====
+removeScanPageAds = switch,true,tag=📷 扫码取件页去广告,desc=替换 chunk 移除商品推荐模块
+removeSubsidyAds = switch,true,tag=💰 百亿补贴页去推广词,desc=复用 removeSearchHotQuery 开关
+
+# ===== 埋点/遥测拦截 (Script 方案，非 Rule enable=) =====
+blockTracking = switch,false,tag=📊 拦截埋点上报,desc=⚠️默认关！仅拦 /t.gif /pmm/defined /pmm/front_err 等上报路径；放行 /one-gateway-client/zone/v1/component/fetch 等配置下发
+
+[Script]
+# 首页 Hub (含 icon_set、search_bar_hot_query、all_top_opts、bottom_tabs、dy_module)
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeHomepageAds,removeIconSet,removeSearchHotQuery,removeTopOptsImages,bottomCustom,Bot_index,Bot_chat,Bot_personal,Bot_live,Bot_class,Bot_attendance,Bot_custom,riskControlMode}, tag=首页去广告+底栏自定义
+
+# 信息流广告 (/api/alexa/cells/hub/v3 等分页接口)
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeFeedAds,riskControlMode}, tag=信息流广告过滤
+
+# 搜索推荐词端点
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/polemon\/gbdbpdc\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索框推荐词
+http-response ^https:\/\/api\.pinduoduo\.com\/search_hotquery\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索热词轮询
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/search_lego_m1_cards\/lego_view\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索语音面板
+http-response ^https:\/\/api\.pinduoduo\.com\/search\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchPromos,riskControlMode}, tag=搜索结果页
+
+# 个人中心
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/philo\/personal\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removePersonalAds,riskControlMode}, tag=个人中心去推广
+
+# 订单页
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/order_detail_group\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeOrderPromos,riskControlMode}, tag=订单详情去推广
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/order_list_v4\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeOrderPromos,riskControlMode}, tag=订单列表去推广
+http-response ^https:\/\/api\.pinduoduo\.com\/order\/ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeOrderPromos,riskControlMode}, tag=订单页通用去推广
+
+# 埋点/遥测拦截 (仅上报路径，放行配置下发)
+http-response ^https:\/\/(th-a|th|th-b|ta|ta-a|apm|apm-a|abtk|meta)\.pinduoduo\.com\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=3, argument={blockTracking,riskControlMode}, tag=埋点上报拦截
+
+# 百亿补贴页 (HTML)
+http-response ^https:\/\/m\.pinduoduo\.net\/brand_activity_subsidy\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeSearchHotQuery,riskControlMode}, tag=百亿补贴页去推广词
+
+# 扫码取件页 (HTML)
+http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=5, argument={removeScanPageAds,riskControlMode}, tag=扫码取件页去广告
+
+# 预取接口 (不处理，仅记录)
+# http-response ^https:\/\/m\.pinduoduo\.net\/proxy\/api\/api\/pdd-fe-performance-group\/app-prefetch\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Pinduoduo-AdBlock/src/bundle.js, requires-body=true, timeout=3, argument={riskControlMode}, tag=预取接口
+
+[Rewrite]
+# 无需 Rewrite reject-dict，全部由 Script 处理 (避免 enable= 失效问题)
+
+[MitM]
+hostname = api.pinduoduo.com, m.pinduoduo.net, th-a.pinduoduo.com, th.pinduoduo.com, th-b.pinduoduo.com, ta.pinduoduo.com, ta-a.pinduoduo.com, apm.pinduoduo.com, apm-a.pinduoduo.com, abtk.pinduoduo.com, meta.pinduoduo.com, xg.pinduoduo.com, cdl-1.pddpic.com, cdl-p2.pddpic.com, cd-1.pddpic.com, promotion-1.pddpic.com, commimg-1.pddpic.com, static.pddpic.com, static-1.pddpic.com, img-1.pddpic.com, funimg-1.pddpic.com, pinduoduoimg.yangkeduo.com, cdn.pinduoduo.com, pfile-2.pddpic.com
+
+# ─────────────────────────────────────────────
+# 设计说明：
+# 1. 单文件 bundle.js，无 require() 依赖，Loon 兼容
+# 2. 字段级删除：icon_set 过滤营销ID、feed 识别 data.ad、search 清空数组字段
+# 3. 高危开关默认关：removeOrderPromos、blockTracking
+# 4. 风控模式一键关：riskControlMode=true 完全放行
+# 5. 埋点拦截用 Script 非 Rule，区分上报路径 vs 配置下发路径
+# 6. 绝不拦截：xg.pinduoduo.com (WebSocket推送)、登录/支付/下单链路
+# 7. 所有开关在 Loon 参数页可调，无需改文件
+# ─────────────────────────────────────────────
