@@ -5,8 +5,8 @@
 if ($request.url.includes('x/v2/account/mine/ipad')) {
   try {
     // 参数：MineHideIds 通过 argument 传递，可能是数组或对象
-    // 默认隐藏除 748/749/764 外的所有 ID
-    let hideIdsStr = '752,753,754,756,757,758,759,2541,760,965,750';
+    // 默认隐藏除 748/749/764 外的所有已知 ID（含你当前看到的 751/755/763/747）
+    let hideIdsStr = '751,752,753,754,755,756,757,758,759,760,763,965,2541,750,747';
     if (Array.isArray($argument) && $argument.length > 0) {
       if (typeof $argument[0] === 'string') {
         hideIdsStr = $argument[0];
