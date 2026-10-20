@@ -1,0 +1,52 @@
+#!name=小破站界面增强 v3.3
+#!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。新增【我的页】服务项自定义（iPad HD 专用，网络驱动）。需启用 MitM over HTTP/2。
+#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-UI/icon.png
+#!tag=界面增强,Bilibili
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!date=2026-10-20 15:00:00
+# ==== v3.3.0 | 首页标签页/底栏（仅手机布局）· 我的页服务项（iPad HD）=====
+
+[Argument]
+# ===== 首页 · 标签页（多选）=====
+Home.Switch = switch,true,tag=[首页] 启用自定义
+Home.Tab_2036 = switch,false,tag=[首页] 标签页 直播
+Home.Tab_2037 = switch,true,tag=[首页] 标签页 推荐
+Home.Tab_780 = switch,false,tag=[首页] 标签页 热门
+Home.Tab_545 = switch,false,tag=[首页] 标签页 番剧
+Home.Tab_774 = switch,true,tag=[首页] 标签页 动画（港澳台）
+Home.Tab_151 = switch,false,tag=[首页] 标签页 影视
+Home.Tab_801 = switch,true,tag=[首页] 标签页 韩综（港澳台）
+Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
+Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
+Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方开关一个都没开时生效。逗号分隔，可填接口下发的其他 id
+# ===== 底部 · 导航栏（多选，最多 6 个）=====
+Home.Bot_home = switch,true,tag=[底部] 首页
+Home.Bot_channel = switch,false,tag=[底部] 频道
+Home.Bot_dynamic = switch,true,tag=[底部] 动态
+Home.Bot_publish = switch,false,tag=[底部] 发布
+Home.Bot_ogv = switch,false,tag=[底部] 番剧
+Home.Bot_mall = switch,false,tag=[底部] 会员购
+Home.Bot_messages = switch,false,tag=[底部] 消息
+Home.Bot_mine = switch,true,tag=[底部] 我的
+# ===== 我的页 · 服务项（iPad HD 专用，网络驱动）=====
+MineEnable = switch,true,tag=[我的页] 启用我的页自定义
+MineHideIds = input,"",tag=[我的页] 隐藏 id（逗号分隔）,desc=如 751,755,763
+MineHideTitles = input,"",tag=[我的页] 隐藏标题（逗号分隔）,desc=如 投稿,我的关注,我的客服
+MineOrder = input,"",tag=[我的页] 自定义顺序（id 逗号分隔）,desc=如 751,755,763
+MineBlockUpper = switch,false,tag=[我的页] 隐藏投稿区
+MineBlockRecommend = switch,false,tag=[我的页] 隐藏推荐区
+MineBlockMore = switch,false,tag=[我的页] 隐藏更多区
+MineSectionStyle = select,"0","0","1","2","3",tag=[我的页] 区块样式,desc=需真机验证取值含义
+# ===== 其他 =====
+LogLevel = select,"WARN","OFF","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+
+[Script]
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? script-path=https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-UI/Enhanced.response.js, requires-body=1, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/account\/mine\/ipad\? script-path=https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/Bilibili-UI/Enhanced-mine.response.js, requires-body=1, argument=[{MineEnable},{MineHideIds},{MineHideTitles},{MineOrder},{MineBlockUpper},{MineBlockRecommend},{MineBlockMore},{MineSectionStyle},{LogLevel}], tag=我的页服务项
+[Mitm]
+hostname=app.bilibili.com, app.biliapi.net, grpc.biliapi.net
+h2 = true
