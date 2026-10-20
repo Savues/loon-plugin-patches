@@ -85,6 +85,19 @@ news\/indexv2\/iphone\/\d+ | news\/gethotbang\/\d+
 | `api/news/gethotbang/1` | 「热榜」 |
 | `api/newsevent/geteventfeed` | 「事件」 |
 
+## 设计边界：只删数据，不拦域名
+
+电商域名**一律不做网络层拦截**——`u.jd.com` / `s.click.taobao.com` / `uland.taobao.com` /
+`360buyimg.com` / `img.alicdn.com` 都是正常购物跳转与商品图 CDN，REJECT 会使用户点任何
+京东/淘宝商品链接都打不开。它们只作为**字符串特征**出现在两处，且只作用于 IT之家自己的响应体：
+
+* `EC_MARKERS`：在 `feedContent.content` 里计数，≥2 命中才把**这一条文章**从 feed JSON 里删掉；
+* `AD_URL`：只匹配 feed 条目自身的 `feedContent.url`（IT之家 活动 WebView 卡片），删的仍是条目。
+
+全插件唯一的域名级 REJECT 是 `knicks.jd.com`（京东开普勒**埋点上报**专用端点，不参与下单/跳转/图片链路）；
+唯一的 Rewrite reject 是上游原有的 `dat.ruanmei.com/ithome/money/acd.json`（IT之家自家广告位配置）。
+两者都与正常电商使用无关。**后续迭代请守住这条线：新增拦截前先确认该域名不承载任何购物功能。**
+
 ## 其它观察（未改）
 
 * `knicks.jd.com/log/server` —— 京东开普勒埋点，v1.1 起在 `[Rule]` 里 REJECT。
