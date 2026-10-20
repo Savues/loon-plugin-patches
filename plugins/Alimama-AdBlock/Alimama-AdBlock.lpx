@@ -1,4 +1,4 @@
-#!name=Alimama-AdBlock v1.0.2
+#!name=Alimama-AdBlock v1.1.0
 #!desc=阿里妈妈 Moon App 去广告 · 开屏/弹窗/小卡片/公告栏/埋点全拦截
 #!system=ios
 #!version=1.0.1
@@ -15,6 +15,7 @@ blockTracking = switch, true, false, tag=埋点上报, desc=拦截 gm.mmstat.com
 
 [Script]
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removeSplashAd, removePopWindow, removeSmallCards}, tag=阿里妈妈批量广告分发
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alimama-AdBlock/src/remove_ads.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框跑马灯热词
 
 [Rewrite]
 # 埋点/错误上报/APM/实验分流 —— 直接 Reject

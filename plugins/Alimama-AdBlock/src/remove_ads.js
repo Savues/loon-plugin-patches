@@ -73,6 +73,29 @@ function filterBatchsite(body) {
   return body;
 }
 
+function filterMarquee(body) {
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.log("[Alimama-AdBlock] Marquee JSON parse failed:", e);
+    return body;
+  }
+
+  // 响应结构：{ api, data: { result: [...] }, ret, v }
+  if (!data?.data?.result || !Array.isArray(data.data.result)) {
+    return body;
+  }
+
+  if (data.data.result.length > 0 && isEnabled("removeSmallCards")) {
+    console.log(`[Alimama-AdBlock] Clearing marquee result (${data.data.result.length} items)`);
+    data.data.result = [];
+    return JSON.stringify(data);
+  }
+
+  return body;
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alimama-AdBlock] No response body");
@@ -82,24 +105,33 @@ function main() {
 
   const url = $request?.url || "";
   console.log("[Alimama-AdBlock] Script triggered for:", url);
-  
-  if (!url.includes("mtop.alimama.union.skyleap.distribution.batchsite")) {
-    console.log("[Alimama-AdBlock] URL not match, skip");
-    $done({});
-    return;
-  }
 
   const body = typeof $response.body === "string" ? $response.body : $response.body.toString();
-  console.log("[Alimama-AdBlock] Processing batchsite response, length:", body.length);
-  const newBody = filterBatchsite(body);
 
-  if (newBody !== body) {
-    console.log("[Alimama-AdBlock] Response modified, items filtered");
-    $done({ body: newBody });
-  } else {
-    console.log("[Alimama-AdBlock] No items filtered");
-    $done({});
+  // 1. 批量广告分发
+  if (url.includes("mtop.alimama.union.skyleap.distribution.batchsite")) {
+    console.log("[Alimama-AdBlock] Processing batchsite response, length:", body.length);
+    const newBody = filterBatchsite(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] Batchsite response modified");
+      $done({ body: newBody });
+      return;
+    }
   }
+
+  // 2. 搜索框跑马灯热词
+  if (url.includes("mtop.taobao.union.marquee.query")) {
+    console.log("[Alimama-AdBlock] Processing marquee query response, length:", body.length);
+    const newBody = filterMarquee(body);
+    if (newBody !== body) {
+      console.log("[Alimama-AdBlock] Marquee response modified");
+      $done({ body: newBody });
+      return;
+    }
+  }
+
+  console.log("[Alimama-AdBlock] No matching handler or no changes");
+  $done({});
 }
 
 main();
