@@ -1,0 +1,66 @@
+#!name=Alibaba-AdBlock v2.0.0
+#!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/弹窗/小卡片/Feed/搜索推荐/跑马灯/TAC/NOAH/私域/埋点全拦截
+#!system=ios
+#!version=2.0.0
+#!author=Savues <https://github.com/Savues>
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
+
+[MITM]
+hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
+h2 = true
+
+[Argument]
+# === 全局开关 ===
+blockTracking = switch, true, false, tag=🔒埋点/APM/实验分流, desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com / tlog.mmstat.com
+
+# === 分类开关 (所有 App 生效) ===
+removeSplashAd = switch, true, false, tag=🚫开屏广告, desc=拦截 open_screen_site (开屏图/跳转/倒计时)
+removePopWindow = switch, true, false, tag=🚫弹窗广告, desc=拦截 pop_window_site (弹窗/浮层)
+removeSmallCards = switch, true, false, tag=🚫小卡片/公告/推荐词, desc=拦截 small_handler_* / bulletin_board_* / marquee / TAC / NOAH / metax热词
+removeNoahOps = switch, true, false, tag=🚫NOAH运营位, desc=拦截 noah.query 运营位 (moon_search_activation_dx_banner 等)
+removeTAC = switch, true, false, tag=🚫TAC搜索推荐, desc=拦截 tac.service.call / smart.call 搜索框推荐词
+
+# === Moon App 专属开关 ===
+removeFeedKeywords = switch, false, true, tag=🌙Moon-清空首页Feed, desc=清空 Moon 首页推荐流所有商品 (metax homepage bodyList)
+removePrivateDomain = switch, true, false, tag=🌙Moon-私域动态, desc=拦截 Moon 关注会员/私域动态 (union.pub.entry followMembers)
+
+# === 淘宝/天猫专属开关 (预留) ===
+# taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
+# taobaoRemoveGuessLike = switch, false, true, tag=🛒淘宝-猜你喜欢, desc=拦截淘宝首页猜你喜欢
+
+[Script]
+# === 批量广告分发 (Moon/淘宝/天猫/闲鱼通用) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSplashAd, removePopWindow, removeSmallCards}, tag=批量广告分发
+
+# === NOAH 运营位 (Moon/淘宝/天猫通用) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.etao\.noah\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeNoahOps}, tag=NOAH运营位
+
+# === TAC 搜索推荐 (通用) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC基础
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.tac\.service\.smart\.call script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeTAC}, tag=搜索框推荐词-TAC智能
+
+# === 跨马灯热词 (通用) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=搜索框跑马灯热词
+
+# === MetaX 首页/Feed (Moon) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removeSmallCards, removeFeedKeywords}, tag=首页搜索栏热词+清空Feed
+
+# === 私域动态/关注会员 (Moon) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/index.js, requires-body=true, timeout=30, argument={removePrivateDomain}, tag=私域动态/关注会员
+
+# TODO: 淘宝/天猫/闲鱼特有接口待补充
+
+[Rewrite]
+# === 埋点/错误上报/APM/实验分流 —— 直接 Reject ===
+^https?://gm\.mmstat\.com/ reject, enable={blockTracking}
+^https?://log\.mmstat\.com/ reject, enable={blockTracking}
+^https?://s-gm\.mmstat\.com/ reject, enable={blockTracking}
+^https?://px\.effirst\.com/ reject, enable={blockTracking}
+^https?://abtest\.alibaba\.com/ reject, enable={blockTracking}
+^https?://tlog\.mmstat\.com/ reject, enable={blockTracking}
+
+# 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
+# DOMAIN-SUFFIX, afpapi.alimama.com, REJECT
+
+[Task]
+# 无定时任务
