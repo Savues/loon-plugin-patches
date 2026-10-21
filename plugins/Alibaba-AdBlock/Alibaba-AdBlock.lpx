@@ -1,12 +1,12 @@
-#!name=Alibaba-AdBlock v3.9.1
+#!name=Alibaba-AdBlock v3.9.2
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.1
+#!version=3.9.2
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
 [MITM]
-hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, yixiu-abtest.alicdn.com, dinamicx.alibabausercontent.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
+hostname = acs.m.taobao.com, img.alicdn.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, yixiu-abtest.alicdn.com, dinamicx.alibabausercontent.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
 h2 = true
 
 [Argument]
@@ -115,6 +115,9 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 [Rewrite]
 # === 热启动开屏广告图片 (kelee 实证规则: 1080/1125 全屏尺寸广告素材, 含双11促销开屏图) ===
 request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(?:octopus|tps)-(?:1080|1125)-\d{4}\.(?:jpg|png)_(?:1\d{3}|9\d{2})x(?:\d|1\d{3}|9\d{2})q[59]0/i then reject_dict(200)
+
+# === 启动页活动专用图 (反编译 TBBootImage 内置配置实证: tps-{宽}-1624 全屏高, APNG/PNG) ===
+request if ${url} ~= /^https?:\/\/(?:gw|heic|img)\.alicdn\.com\/imgextra\/.*-tps-\d+-1624\.(?:apng|png|jpg|webp)/i then reject_dict(200)
 
 # === 开屏数据/弹窗营销接口 (kelee reject, 返回空 JSON 200) ===
 request if ${url} ~= /mtop\.xsd\.searchbar\.info\.get/i then reject_dict(200)
