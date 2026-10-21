@@ -116,12 +116,34 @@ r = run({ search_stub: true }, F2, st)
 t('名单未写', !st.kv.pddAdGoodsIds || JSON.parse(st.kv.pddAdGoodsIds).includes('1'))
 t('无改动时放行（$done({})）', r && Object.keys(r).length === 0, JSON.stringify(r))
 
-console.log('\n【5】stores 形态容错（fixture1，无 searchStore）')
+console.log('\n【5】tandy_vase.html 新模板（v1.82：URL + stores-dict 形态双修复）')
+const FT = readFileSync(new URL('./tandy-fixture.txt', import.meta.url), 'utf8')
+st = makeStore([])
+r = run({ search_stub: true, feed_ad: true }, FT, st)
+t('脚本正常返回且 HTML 被修改', !!r.body && r.body !== FT)
+t('8 个广告 goodsId 入库', JSON.stringify(idsOf(st)) === JSON.stringify([
+  '925737619964', '986125503923', '992912541277', '961719294261',
+  '962936956396', '734362509181', '740335689339', '627272059171']),
+  `实际 ${JSON.stringify(idsOf(st))})`)
+const rawT = parseRaw(r.body)
+t('三通道全部写入（价格词×8 / 销量×8 / 徽章×8）',
+  (r.body.match(/广告·/g) || []).length >= 16
+  && (r.body.match(/ad-badge\.png/g) || []).length === 8,
+  `广告· ${(r.body.match(/广告·/g) || []).length} 处 / 徽章 ${(r.body.match(/ad-badge\.png/g) || []).length} 处`)
+t('旧模板（brand_activity_subsidy）仍正常', (() => {
+  const s2 = makeStore([])
+  const r2 = run({ search_stub: true, feed_ad: true }, F2, s2)
+  return idsOf(s2).length === WANT.length && !!r2.body
+})())
+
+console.log('\n【7】stores 形态（fixture1，v1.79 时代误判「无广告」，实为收集器 bug）')
 st = makeStore([])
 r = run({ search_stub: true, feed_ad: true }, F1, st)
 t('脚本不崩、正常返回', r !== undefined)
-t('该形态无广告商品时不写库、不改 HTML', idsOf(st).length === 0
-  && (r.body === undefined || r.body === F1))
+t('现在能收集到 2 个广告 goodsId（含 Tafe 766485126873）',
+  JSON.stringify(idsOf(st)) === JSON.stringify(['1003242864291', '766485126873']),
+  `实际 ${JSON.stringify(idsOf(st))})`)
+t('HTML 三通道写入', !!r.body && (r.body.match(/ad-badge\.png/g) || []).length === 2)
 
 console.log('\n【6】存储不可用 —— 方案 1 静默放弃，三通道照常')
 const broken = { read: () => { throw new Error('x') }, write: () => { throw new Error('x') } }

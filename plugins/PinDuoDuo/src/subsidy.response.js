@@ -79,15 +79,26 @@ function parseRawData(body) {
   return null;
 }
 
-// 从 rawData 里收集带 ad 字段的商品（兼容 store / stores 两种形态）
+// 从 rawData 里收集带 ad 字段的商品
+// 已知三种形态（均为实测）：
+//   raw.store.tabStore…                    brand_activity_subsidy.html 旧模板
+//   raw.stores.store.tabStore…             tandy_vase.html 新模板（stores 是 dict）
+//   raw.stores[i].store.tabStore…          数组形态（容错预留）
 function collectAdGoods(raw) {
   const out = [];
   const stores = [];
-  if (raw && raw.store) stores.push(raw.store);
-  if (raw && raw.stores) for (const s of raw.stores) if (s) stores.push(s);
+  const pushStore = (st) => { if (st && typeof st === 'object' && st.tabStore) stores.push(st); };
+  if (raw && raw.store) pushStore(raw.store);
+  if (raw && raw.stores) {
+    if (Array.isArray(raw.stores)) {
+      for (const s of raw.stores) pushStore(s);
+    } else if (typeof raw.stores === 'object') {
+      pushStore(raw.stores);
+      pushStore(raw.stores.store);   // tandy_vase 实测：{ store: {…} }
+    }
+  }
   for (const st of stores) {
-    const ts = st && st.tabStore;
-    const tl = ts && Array.isArray(ts.tabList) ? ts.tabList : [];
+    const tl = st.tabStore && Array.isArray(st.tabStore.tabList) ? st.tabStore.tabList : [];
     for (const t of tl) {
       const sls = t && Array.isArray(t.subTabGoodsLists) ? t.subTabGoodsLists : [];
       for (const s of sls) {
