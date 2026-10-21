@@ -1,8 +1,9 @@
 /*
- * Alibaba-AdBlock v2.9.0 - Bundled Script for Loon
+ * Alibaba-AdBlock v3.0.0 - Bundled Script for Loon
  * 阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等
  * 单文件打包，无需 require() 支持
  * 更新: 2026-10-21
+ * v3.0.0: 新增 filterTaobaoAtmosphere (双11氛围皮肤禁用)
  * v2.9.0: 反编译新增接口处理 (newface.newget / aihome.tac / tmall.tac.gateway / idlecommerce.splash.async+config / adx.bid / game.iaa / user.strategy.get)
  */
 
@@ -375,6 +376,34 @@ function filterTaobaoSplashActivity(body) {
   }
   if (modified) {
     console.log("[Alibaba-AdBlock] Filtered Taobao splash activity");
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
+// 淘宝-双11氛围皮肤: acs.m.taobao.com/gw/mtop.wireless.skin.atmosphere.info
+// enable=true 时下发促销主题皮肤 (tabbar背景/我的页皮肤/首页背景/开屏氛围)
+function filterTaobaoAtmosphere(body) {
+  if (!isEnabled("removePopWindow")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  let modified = false;
+  if (data.data) {
+    if (data.data.enable) {
+      data.data.enable = false;
+      modified = true;
+    }
+    if (data.data.content) {
+      delete data.data.content;
+      modified = true;
+    }
+    if (data.data.version) {
+      data.data.version = "0";
+      modified = true;
+    }
+  }
+  if (modified) {
+    console.log("[Alibaba-AdBlock] Disabled Taobao atmosphere skin (双11氛围)");
     return JSON.stringify(data);
   }
   return body;
@@ -891,6 +920,10 @@ function handleTaobaoResponse(body, url) {
   // 新面孔开屏 (含 newget)
   if (url.includes("guide-acs.m.taobao.com/gw/mtop.taobao.wireless.home.newface.awesome")) {
     return isEnabled("removePopWindow") ? filterClearData(body) : body;
+  }
+  // 双11氛围皮肤 (开屏氛围/tabbar皮肤/我的页皮肤)
+  if (url.includes("mtop.wireless.skin.atmosphere.info")) {
+    return filterTaobaoAtmosphere(body);
   }
   // TAC 搜索 (反编译发现)
   if (url.includes("mtop.taobao.aihome.tac.execute") || url.includes("mtop.tmall.tac.gateway.execute")) {
