@@ -1,12 +1,9 @@
 /*
- * Alibaba-AdBlock v2.3.0 - Bundled Script for Loon
+ * Alibaba-AdBlock v2.9.0 - Bundled Script for Loon
  * 阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等
  * 单文件打包，无需 require() 支持
  * 更新: 2026-10-21
- * 新增: 淘宝/闲鱼开屏弹窗规则 (kelee.one 移植 + 反编译补充)
- * 修正: Loon Rewrite 语法 (Surge格式 -> Loon标准格式)
- * 修正: Rewrite 正则匹配 (去掉结尾 / 以匹配任意路径)
- * 修正: poplayer 匹配规则 (.*json -> .*)
+ * v2.9.0: 反编译新增接口处理 (newface.newget / aihome.tac / tmall.tac.gateway / idlecommerce.splash.async+config / adx.bid / game.iaa / user.strategy.get)
  */
 
 // ============================================
@@ -878,7 +875,7 @@ function handleMoonResponse(body, url) {
 }
 
 // ============================================
-// Taobao App 处理入口 (kelee.one 移植)
+// Taobao App 处理入口 (kelee.one 移植 + 反编译)
 // ============================================
 function handleTaobaoResponse(body, url) {
   // 开屏广告
@@ -888,8 +885,17 @@ function handleTaobaoResponse(body, url) {
   if (url.includes("guide-acs.m.taobao.com/gw/mtop.taobao.wireless.home.splash.awesome.get")) {
     return filterTaobaoSplashImage(body);
   }
-  if (url.includes("poplayer.template.alibaba.com/") && url.endsWith(".json")) {
+  if (url.includes("poplayer.template.alibaba.com/")) {
     return filterTaobaoSplashActivity(body);
+  }
+  // 新面孔开屏 (含 newget)
+  if (url.includes("guide-acs.m.taobao.com/gw/mtop.taobao.wireless.home.newface.awesome")) {
+    return isEnabled("removePopWindow") ? filterClearData(body) : body;
+  }
+  // TAC 搜索 (反编译发现)
+  if (url.includes("mtop.taobao.aihome.tac.execute") || url.includes("mtop.tmall.tac.gateway.execute")) {
+    if (!isEnabled("removeTAC")) return body;
+    return filterTACServiceCall(body);
   }
   // 弹窗/运营位 (清空 data 兜底)
   if (url.includes("mtop.alibaba.advertisementservice.getadv")) {
@@ -925,9 +931,6 @@ function handleTaobaoResponse(body, url) {
   if (url.includes("guide-acs.m.taobao.com/gw/mtop.taobao.volvo.secondfloor.getconfig")) {
     return isEnabled("removePopWindow") ? filterClearData(body) : body;
   }
-  if (url.includes("guide-acs.m.taobao.com/gw/mtop.taobao.wireless.home.newface.awesome.get")) {
-    return isEnabled("removePopWindow") ? filterClearData(body) : body;
-  }
   return null;
 }
 
@@ -935,12 +938,18 @@ function handleTaobaoResponse(body, url) {
 // Xianyu App 处理入口 (kelee.one 移植 + 反编译)
 // ============================================
 function handleXianyuResponse(body, url) {
-  // 开屏广告
-  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash.ads")) {
+  // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash")) {
     return filterXianyuSplashAds(body);
   }
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.adx.bid")) {
+    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+  }
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.game.iaa")) {
+    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+  }
   // 弹窗/推荐位 (清空 data)
-  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.user.strategy.list")) {
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.user.strategy")) {
     return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.item.recommend.list")) {
