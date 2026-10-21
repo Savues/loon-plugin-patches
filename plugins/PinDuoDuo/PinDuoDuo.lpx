@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.90
+#!name=拼多多去广告(修复版) v1.91
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 22:30:00
+#!date=2026-10-21 23:10:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -157,5 +157,7 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # 30.【v1.90】徽章恢复 530×150（官方百补徽章同比例）——v1.89 的 106×50
 #      宽高比 1.57:1 与官方 3.53:1 不一致，渲染器按宽适配时高度放大 2.2 倍
 #      显得巨大；同比例才能渲染出同高度。内容「广告」居中放大（140pt）。
+# 31.【v1.91】徽章素材更换为用户自备（530×150，半透明黑底白字，原图提供）
+#      ——红底白字视觉过重，用户选定更低调的黑底样式；仍内联 data URI。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
