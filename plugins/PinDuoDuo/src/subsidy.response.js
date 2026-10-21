@@ -156,14 +156,20 @@ try {
                 && (x.url === AD_BADGE_URL || x.text === AD_BADGE.text))) {
               g.titleTop.unshift(Object.assign({}, AD_BADGE)); touched++;
             }
-            // 通道④：图片徽章数组（主瀑布流槽位）。ltIcon 实测是单个 URL 字符串，
-            // 转数组时保留原值，不能清空。
-            for (const key of ['goodsFlagIcon', 'ltIcon']) {
-              if (typeof g[key] === 'string' && g[key]) g[key] = [g[key]];
-              if (!Array.isArray(g[key])) g[key] = [];
-              if (g[key].indexOf(AD_BADGE_URL) === -1) {
-                g[key].unshift(AD_BADGE_URL); touched++;
-              }
+            // 通道④：goodsFlagIcon（原生徽章数组，头部插入即可，组件按行渲染）
+            // 通道⑤：ltIcon 是【单个 URL 字符串】，组件会 join(',') 拼数组——
+            //   v1.83 曾把它转成数组导致拼出 `badge.png,原URL` 的 404 碎图
+            //   （iPad 实测）。改为直接替换成徽章 URL：左上角的促销图标
+            //   原本就占着这个位置，换成「广告」徽章意图更明确。
+            if (!Array.isArray(g.goodsFlagIcon)) g.goodsFlagIcon = [];
+            if (g.goodsFlagIcon.indexOf(AD_BADGE_URL) === -1) {
+              g.goodsFlagIcon.unshift(AD_BADGE_URL); touched++;
+            }
+            if (typeof g.ltIcon === 'string') {
+              if (g.ltIcon !== AD_BADGE_URL) { g.ltIcon = AD_BADGE_URL; touched++; }
+            } else if (Array.isArray(g.ltIcon)) {
+              // 容错：若上游某天改成数组，替换首元素而不是 join 炸弹
+              if (g.ltIcon[0] !== AD_BADGE_URL) { g.ltIcon[0] = AD_BADGE_URL; touched++; }
             }
           }
 

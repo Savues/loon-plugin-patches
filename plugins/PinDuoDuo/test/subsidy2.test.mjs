@@ -73,9 +73,8 @@ for (const g of adGoods) {
   t(`${g.goodsId} ③ 徽章头部`, g.titleTop[0] && g.titleTop[0].text === '广告'
     && g.titleTop[0].url === 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png')
   t(`${g.goodsId} ④ goodsFlagIcon 头部`, String(g.goodsFlagIcon[0]).includes('ad-badge.png'))
-  t(`${g.goodsId} ④ ltIcon 头部（原 URL 保留在数组里）`,
-  Array.isArray(g.ltIcon) && String(g.ltIcon[0]).includes('ad-badge.png')
-    && g.ltIcon.length >= 2)
+  t(`${g.goodsId} ⑤ ltIcon 整体替换为徽章 URL（不是数组！）`,
+    g.ltIcon === 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png')
 }
 t('官方百补徽章仍在（不误伤）',
   adGoods.every(g => g.titleTop.some(x => x.type === 'area221_bybt')
