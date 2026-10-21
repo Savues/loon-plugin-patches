@@ -1,0 +1,2145 @@
+{
+ "has_more": true,
+ "data": {
+  "ext": {
+   "image_enhance": true,
+   "image_vqr": "2/cache/1"
+  },
+  "goods_list": [
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-30/6a54d5a8-60f1-41c8-a3b8-fe73982694e3.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-09-30/6a54d5a8-60f1-41c8-a3b8-fe73982694e3.jpeg.a.jpeg",
+     "sales": 170,
+     "event_type": 0,
+     "price": 5129,
+     "link_url": "goods.html?goods_id=1011377117024&_oak_rcto=YWJcZOAMCOlEhOZDNYl_1KiFlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=36fb11b111dd05b8cfb0bfc26ef19948&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-09-30/6a54d5a8-60f1-41c8-a3b8-fe73982694e3.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_2365_101_0&_oc_refer_ad=1",
+     "id": 1011377117024,
+     "group": {
+      "price_info": "23.65",
+      "price": 5129,
+      "promo_price": 2365,
+      "global_min_price": 5129,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 5129,
+      "customer_num": 2,
+      "price_str": "23.65"
+     },
+     "price_info": "23.65",
+     "goods_name": "黄金厚切炸猪排1200g厚切猪扒冷冻油炸半成品速食空气炸锅摆摊",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "OAAOMJCFa4vO72DyTBTHJg+KTksgtGx0xuS6v0JrGvcDCG9+snlnzXFjLA2rEVIJHLtNx6afvu2CEKwG0FtAbnnD8Hkg0/O1X+q0ktAoL6dcOtod/uSR3Q7bI1pGuWqs00zh8Ef1Z7P6wEL0Bc8VZvVmMUZJaPMlHAK0t6ihqG1TGJbtfSZHEdCFOLzskPLBwmZR9UI+yi7GjKlm2gAOqbGO3dF/6o8dKPrWfyHTeFNt3mzQdegFVMpPjSZO7wFg",
+      "pubinfo": "{\"item\":\"x7/BRXgNF3HA8BB+xmWv7frzT0VanCAV7f0ZObfPNMkMf7rDPUAA/gjCVVckZJQQIEMHZGJrGVHnnOLxn33cjxxclIn6HJds/3Ed16ZAYelNF+fC8YRpOQY0JTwwe537jDq/MH9FSPu/3XRuRyk7uwALYnfKFpLEAPyTmLbDucT+DEpWTaiueEiVA78nOcTfD6BHPoJjfMhvB+NwyiALvPxFssepkdXUGAFlrlyo5ZMUoe+j+HkYWxAQxcx1rZGPR4nuHzW+AnCvEM+jubNWo13YrqqDpvzuV7gqee102c+0PBll2deGwLryVV0qUQCr3czK0dUYNyk7qDB/wLvPhT04CUR+EmMlqRBNHJLkBCuVYJGdoEaZy5wsxGAHu4b7hktwD+jQX5SbV/BkeptG751AGzK+2ce3e9JT9mn9xeu9s1a9qQByxIz5yw+5RJ1A/BS7iQpCtIeLolxgSTeiHQRilke5cGj0lxgrGa0myavLQgzdFXISW5DYX9UxLMp6BKGqObz+2gNoSDDzVO1JXDj7jEHZvI2f6gGBRQRmBIi8sS8A8NQkuAaekhCmixu7+TD2HCDONml/SuMX/ce8mw\\u003d\\u003d\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "CEKLMtYsBzTezp0MLs91NZmyMtC85tyPCLa/GFnYop8kJ7lmfrkuvB2EWLEZFKz2snx356fV1nrAvS+GHqDsUNrBXadfZrvAsDZraTYExSvcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10235552532,\"is_tr\":1}",
+      "mark": "GVKUOb+QEXli/e6U3MIIvPT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1011377117024,
+     "quality": 90,
+     "min_on_sale_group_price": 5129,
+     "normal_price": 7590,
+     "icon_list": [
+      {
+       "width": 129,
+       "id": 90116,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/rec/a451da28-2a37-49b0-b27c-bc6c0e2cf4ac.png",
+       "height": 42
+      },
+      {
+       "width": 108,
+       "id": 10024,
+       "tag_series": 2,
+       "url": "https://funimg.pddpic.com/hot_friends/1753bf07-5378-4f13-a373-4b48c2265631.png",
+       "height": 42
+      }
+     ],
+     "market_price": 19090,
+     "price_type": 2,
+     "short_name": "黄金厚切炸猪排1200g厚切猪扒冷冻油炸半成品速食空气炸锅摆摊",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 0,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "aqthupxNnZsAp2s56FMmDw==",
+       "sid": 506,
+       "ept_arec_i": "x12GND6KVkiWMR1RuIdO7A==",
+       "tag_list_track": [
+        "1&9",
+        "1&24"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbQdz6cLdc6-3X7ArIcDs0ZoV5RWj5IMG37yOhuTmFsCPg==",
+       "icon_list_track": [
+        "2&90116",
+        "2&10024"
+       ],
+       "t": 1011377117024,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 0,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-30/6a54d5a8-60f1-41c8-a3b8-fe73982694e3.jpeg.a.jpeg",
+     "icon": {
+      "width": 129,
+      "id": 90116,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/rec/a451da28-2a37-49b0-b27c-bc6c0e2cf4ac.png",
+      "height": 42
+     },
+     "near_group": {
+      "bubble": "差你成团",
+      "list": [
+       {
+        "group_order_id": 3476177356214300000,
+        "avatar": "https://avatar3.pddpic.com/avatar/default/1.png"
+       }
+      ]
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "type": 1,
+       "text": "坏了包赔",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&9"
+      },
+      {
+       "type": 1,
+       "text": "发货前可快速退款",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&24"
+      }
+     ],
+     "activity_type": 101,
+     "sales_tip": "广告·本店已拼5236件",
+     "quantity": 100,
+     "display_price": "23.65",
+     "cnt": 170,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080310727800,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已抢170件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1011377117024&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：速食菜/料理包/快手菜"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1011377117024,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/deepexplain/bg_replace/ailora/afb22c9d7c3e41789f28e156f511f35d.jpg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/deepexplain/bg_replace/ailora/afb22c9d7c3e41789f28e156f511f35d.jpg",
+     "sales": 305,
+     "event_type": 2,
+     "price": 16600,
+     "link_url": "goods.html?goods_id=1010550526772&_oak_rcto=YWIsSQ_fiCUdt8yR5YYnPL3wlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oak_ai_label=1&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=c6c14769de58d77c0939b6a1777af041&_oak_gallery=https://img.pddpic.com/deepexplain/bg_replace/ailora/afb22c9d7c3e41789f28e156f511f35d.jpg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_7850_1_9&_oc_refer_ad=1",
+     "id": 1010550526772,
+     "group": {
+      "price_info": "78.5",
+      "price": 16600,
+      "promo_price": 7850,
+      "global_min_price": 16600,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 16600,
+      "customer_num": 2,
+      "price_str": "78.5"
+     },
+     "price_info": "78.5",
+     "goods_name": "【大宇】水暖毯电暖除螨除湿单双人电褥子遥控水循环静音电热2026新款",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "Ld5EsIvK36UVuQDNuDgaXLiRT/7afSxPpf2tnoKthKoTqIKUH6yVPflBGSdHFf7fuxn1w2KxLv+mGxzOH7RA1CyCU+N9mxNwUb/kNmU4fhZtdEcAv/JUqXEPfuI1Ad8TUrDR9KA3VlmeUkUfFoZKs/S4I8n2qyxPVIDNyeS5FIs3GrRjWG97VHwfk6hgT7NBn2sL6CFPgn2YjQbWr7dAYGaAz2UCxKzbtEW4yEGwZ+wwGFJyEpqez4Ws93Fro1SO",
+      "pubinfo": "{\"item\":\"OIQYJd8ISIkCqed2OIoyICf84GUa5V6QsguZkUzlCtfRTPkfKxS19qQoUmWWiPco+IRJ0/Q4RsnyGH/FUG0sm8rojeAr/MxSROMNie6kRUyoESpE/OPneJg2p42ltBPTM6JfeMv4M0CSPzEQIiouYJC3sctdErELVDrU86IX0Ca7ZN3RBjQC/wX5J1ZHAxVoLjU4q7oxb/Mq7D5HKQXUibMS0tNEvTPkApTncidDIXmF52pDL05abAKCVU422tlDlP2Br4Mea3nmz2vuKrsaZ1On0foctX+OOEMuTio91vqGIOBUYikiWQaJ02VIvKHUMQ+CFZP2Iq8aexvtBw1g4/ymMaYeR5tvxMPlOlzZk+X+vt7iOS6+X+6NBdt6lkBRecf4750n2JzZ+I56i3jnWnkCP59lxA0JdUx2dVY+5btsWFFRkifN2mxV/k1M4RCAJIlPyDLKmbLPYDGK4u/4RakTgTlREa5r6qkQSkY1wTLul1cLYS0JzcYNCOFGtGEPh8Vh5JxAdfOM1LehQS1YuEVELg8uSRxIWkooJgo5rsIDKXCohFyIu2dH47VkS//S\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "cfg302/y+Fiortr6bgUjcbo3RfZC2bZqYNgRsx0cJYdl8DX/RavMDwot3AKVWOxsL8BcyzdNt/Wi1/WXbsF01fMDuG5ngMuzVbgJEqM+nykXbp9AV6NGJarepuxI6QaM",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10202909941,\"is_tr\":1}",
+      "mark": "8owKCg1UnjTZAYYqnWKeFPT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1010550526772,
+     "quality": 90,
+     "min_on_sale_group_price": 16600,
+     "normal_price": 30900,
+     "icon_list": [
+      {
+       "width": 156,
+       "id": 20001,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/bybt/6d7e6f48-9cd7-4730-93dc-7ae875e446be.png.slim.png",
+       "height": 42
+      },
+      {
+       "width": 78,
+       "id": 0,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/bybt/c7a5230f-a279-43e9-b1d0-7b505c4ac557.png.slim.png",
+       "height": 42
+      }
+     ],
+     "market_price": 44000,
+     "price_type": 2,
+     "short_name": "大宇水暖毯电暖除螨除湿单双人电褥子遥控水循环静音电热2026新款",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "jGgSRy4cfC5xzTrzibXImA==",
+       "sid": 506,
+       "ept_arec_i": "U0dHgZ3kJ2E423sf+Nt53w==",
+       "tag_list_track": [
+        "1&159",
+        "6&51",
+        "2&90061",
+        "2&90023&3283504454046010801",
+        "2&90014",
+        "1&20",
+        "1&17"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbQgUGkIRUh1pFB_8ZMiigoEV5RWj5IMG37yOhuTmFsCPg==",
+       "icon_list_track": [
+        "2&20001",
+        "2&0"
+       ],
+       "t": 1010550526772,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 1,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/deepexplain/bg_replace/ailora/afb22c9d7c3e41789f28e156f511f35d.jpg",
+     "icon": {
+      "width": 156,
+      "id": 20001,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/bybt/6d7e6f48-9cd7-4730-93dc-7ae875e446be.png.slim.png",
+      "height": 42
+     },
+     "near_group": {
+      "bubble": "差你成团",
+      "list": [
+       {
+        "group_order_id": 3476504092497833500,
+        "avatar": "https://avatar3.pddpic.com/a/Q0NuM051WXFHS1lzRDIyK2xUdXhjbncrQWM1Q3BSTjVJUT09djA0-1719643835?imageMogr2/thumbnail/100x"
+       },
+       {
+        "group_order_id": 3476368941535861000,
+        "avatar": "https://avatar3.pddpic.com/a/Q09HOFFvejVQSFZLaDcvM0JvKzlVSEhlNXlvOVhXZk9Wdz09djA0-1760703591?imageMogr2/thumbnail/100x"
+       }
+      ]
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "type": 1,
+       "text": "赠送全保换新",
+       "text_color": "#25B513",
+       "tag_track_info": "1&159"
+      },
+      {
+       "text": "772人收藏",
+       "text_color": "#E02E24",
+       "tag_track_info": "6&51"
+      },
+      {
+       "url": "http://images.pinduoduo.com/mrk/2025-01-19/8b4b8ad5-08a2-4a8d-b3e8-b941cf61e037.png",
+       "width": 36,
+       "text": "预计1天内抢完",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90061",
+       "height": 36
+      },
+      {
+       "url": "https://commimg.pddpic.com/upload/ios_live_activity/1eca9ff3-e16f-43ab-bc1e-6c142e71dd0a.png",
+       "tag_show_exclusive": "1",
+       "width": 36,
+       "text": "百亿补贴·水暖毯畅销榜第7名",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90023&3283504454046010801",
+       "height": 36
+      },
+      {
+       "text": "即将售罄",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90014"
+      },
+      {
+       "type": 1,
+       "text": "分期付款",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&20"
+      },
+      {
+       "type": 1,
+       "text": "顺丰包邮",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&17"
+      }
+     ],
+     "activity_type": 1,
+     "sales_tip": "广告·已抢305件",
+     "quantity": 100,
+     "display_price": "78.5",
+     "cnt": 305,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080312825000,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已抢305件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1010550526772&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：水暖毯"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1010550526772,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-06-12/782f4258-d898-42db-9f6f-36c0e1b1781a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-06-12/782f4258-d898-42db-9f6f-36c0e1b1781a.jpeg",
+     "sales": 2418,
+     "event_type": 0,
+     "price": 1841,
+     "link_url": "goods.html?goods_id=965610811417&_oak_rcto=YWJWinBjRN0BoV6B_lQ4PM5elQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=e34016b08282007942922a57f0385a0e&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-06-12/782f4258-d898-42db-9f6f-36c0e1b1781a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_1002_101_0&_oc_refer_ad=1",
+     "id": 965610811417,
+     "group": {
+      "price_info": "10.02",
+      "price": 1841,
+      "promo_price": 1002,
+      "global_min_price": 1841,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 1841,
+      "customer_num": 2,
+      "price_str": "10.02"
+     },
+     "price_info": "10.02",
+     "goods_name": "男士内裤纯棉四角短裤【4条装】",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "REWYyYxV+SK9Urvh/xnEvrZ+Pys1ZehHt+A2nOjYavcP13i9WoqfgdRX8WtxpDzdYlTQ9+JcmP0BnKTMjOBKdFLZV4SKaQ19Vxc9wDwtEfGil2xWmtydKJu9MAY/B7b8pyQf8yD8pn1vdeb98hRNUDRmGSA0uDkDUWTFgxI54X6UNWaWDsgFQVUYU03aZbvn/Q9gF3e/yo48Kb1AzjYAWHNL8B4bg0rBvW9IPi5q3w+2nWy2VH0Lvejv7H92gPpZ",
+      "pubinfo": "{\"item\":\"EZMhNdmJxrY9c+7+wkMN6XUcdzB+aTMo8T13Gqzk/4j8jBGEwbAhNhCjBBx8DmSJqqJzNVYhh+dEb3nBrV4kw8qPP+Wf4Bi90DPEfa5V6aKAauGv+AGonDU47fSPwlp94xLSyl68DtnjHGPqNFwjKAbc2Z4vtbgFM4plZerjce/gqpfHAGVjJl+FhdndHxkp1MVRmKypcm5qvah79O+o4m+54+KLV5y/ej8zPhPKqGfmQ1Dsj5KfEL8OP2SKH5dYyF6HhPbsY5o36vYoMlo+uVUvXIbNfrgaS8RXWcTxGACS/WlwCUn8JuusVH1O79enptRc7aqi9jazP7DpibAHhNtcZ/jSDyIDNmXhL2zs+rGVYJGdoEaZy5wsxGAHu4b7+1i7ZErdXCgUNopxMNvNt2qDtdDuDeb5Rcrd2/VF4j8Qq41ddmCMtQ4p7ROfGS1Td9PpMtb8kbISClJfItBT5TJ41fF45AydwFL8I2CQViLq3zpjEHcrnZ4GMFV3xZ6tK2Efc0CQlWUIApwNbmcBe8+mUPeuu6Ha/iBHv/6KWjX5X6sTRCOs24MYdh6+2zFC+TD2HCDONml/SuMX/ce8mw\\u003d\\u003d\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "Cz/XR1dELO23wN9O2pBz54fCTyZyew+j4g2jtnDjEw+djEQENgQ8hZJG1kTBjhSDQiQlCdTCH+oR2/cAMp3O2iPG1CSHlXZgY+6tqaz3XtfcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":9708447179,\"is_tr\":1}",
+      "mark": "IhHsz8fvmusbX2OAkFin3vT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 965610811417,
+     "quality": 90,
+     "min_on_sale_group_price": 1841,
+     "normal_price": 5990,
+     "icon_list": [
+      {
+       "width": 129,
+       "id": 90116,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/rec/a451da28-2a37-49b0-b27c-bc6c0e2cf4ac.png",
+       "height": 42
+      },
+      {
+       "width": 126,
+       "id": 20013,
+       "tag_series": 2,
+       "url": "https://commimg.pddpic.com/oms_img_ng/2026-10-13/108157db-c671-42b9-a363-bf4a0bc3c114.png",
+       "height": 45
+      }
+     ],
+     "market_price": 7190,
+     "price_type": 2,
+     "short_name": "男士内裤纯棉四角短裤【4条装】",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 0,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "KMNcnEKz6R7Y9kFBCWBX7A==",
+       "sid": 506,
+       "ept_arec_i": "8D0xJf4MCz/C0vtxwnMo9g==",
+       "tag_list_track": [
+        "6&1201",
+        "1&169",
+        "1&40",
+        "1&3"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbRvIpzC-wDP7upLjq7OxOMa1d1DPpQaE9T2ZQaJ7_XHLA==",
+       "icon_list_track": [
+        "2&90116",
+        "2&20013"
+       ],
+       "t": 965610811417,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 2,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-06-12/782f4258-d898-42db-9f6f-36c0e1b1781a.jpeg",
+     "icon": {
+      "width": 129,
+      "id": 90116,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/rec/a451da28-2a37-49b0-b27c-bc6c0e2cf4ac.png",
+      "height": 42
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "text": "规格:颜色随机4条装",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "6&1201"
+      },
+      {
+       "type": 1,
+       "text": "已包邮",
+       "text_color": "#25B513",
+       "tag_track_info": "1&169"
+      },
+      {
+       "type": 1,
+       "url": "https://funimg.pddpic.com/common/transac_subsidiary/863ff256-89b2-4b7b-906f-8e8c6b9e2b22.png.slim.png",
+       "width": 36,
+       "text": "先用后付",
+       "text_color": "#25B513",
+       "tag_track_info": "1&40",
+       "height": 36
+      },
+      {
+       "type": 1,
+       "url": "https://promotion.pddpic.com/promo/index/16710387-837f-48c1-9088-f8849af25a0c.png",
+       "width": 30,
+       "text": "退货包运费",
+       "text_color": "#25B513",
+       "tag_track_info": "1&3",
+       "height": 36
+      }
+     ],
+     "activity_type": 101,
+     "sales_tip": "广告·已抢9632条",
+     "quantity": 100,
+     "display_price": "10.02",
+     "cnt": 2418,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080314922100,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5.5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已抢9632条",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=965610811417&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：平角裤"
+      }
+     },
+     "special_tag_info": {
+      "append_text": {
+       "text": "退货包运费"
+      },
+      "background_color": {},
+      "coupon_refresh": false,
+      "icon": {
+       "width": 45,
+       "url": "https://promotion.pddpic.com/promo/baiyibutie/5d5e6bad-f753-49a7-bac9-22e33c4355af.png.slim.png",
+       "height": 54
+      },
+      "main_text": {
+       "text": "大促直降31元"
+      },
+      "special_tag_style": 1,
+      "down_grade_text": {
+       "text": "直降31元"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 965610811417,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-18/6a21e386-79bc-4b6b-ad4b-13bea520ab4d.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-09-18/6a21e386-79bc-4b6b-ad4b-13bea520ab4d.jpeg.a.jpeg",
+     "sales": 11,
+     "event_type": 0,
+     "price": 5980,
+     "link_url": "goods.html?goods_id=1018574382247&_oak_rcto=YWJFqoRV3E1BCRgNufQjdw1_lQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=aaa36c3246b1299edf81b9f1a263cd80&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-09-18/6a21e386-79bc-4b6b-ad4b-13bea520ab4d.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_3289_3_0&_oc_refer_ad=1",
+     "id": 1018574382247,
+     "group": {
+      "price_info": "32.89",
+      "price": 5980,
+      "promo_price": 3289,
+      "global_min_price": 5980,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 5980,
+      "customer_num": 2,
+      "price_str": "32.89"
+     },
+     "price_info": "32.89",
+     "goods_name": "【甲泰康】 盐酸阿莫罗芬搽剂 5%*2.5ml/瓶/盒 治疗灰指甲杀菌抑菌专治灰指甲真菌感染甲癣甲真菌病2.5ml大规格",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "Xe08iXMtsYvdYwYHyf4C157cy7toekYWG9DQxsXi/R+I0zGiCCAOvb6PiPnIF3Vl7GXf5FxaPL3wyMkQNdp1AGgkzY/YFJ/Cu6djAjsTwvTdTso1GfcIkXQFFjqo5/9PDunyWU9IPYXbnnjAxHOzjGw4+hfoHnU2h0KuhGzU+n4DkccKtnGaHtA7cqwi/PrEPsKZJjITSFwVc2Useb7LNg8lrDk9oBnpQsgpqsv2DE+3EvrmJl8f3i0WrRtnO/Fu",
+      "pubinfo": "{\"item\":\"stL1djhDeQDGKXNlAebpKL1ncZS9/XJMzup8Jo+hx8NxIRe1j6u98wa6ia0BOiD+UzCabBNpANnS84y3wTwpBZ9BaMd/HBfr4SmO2JoWvbxO1XpeXk5VL152ExTMwYMvGKrrPhymCiftmR1twvUO4RRrpvcXnJZIIU/r7JH9vI5f2JiK3/aw0LmMv2x1NJ9hmCFv6xHJrUuEeWX5xDeSKsTDK+83dFbdp39u+UhMUMKB8sBIxVtFlZo1kgCVf06iT6CNdLfkDQ7Xx9d+ammm2/9t8NhfZyRmLE6a9zhUU3L0t7fwqZo25tQqaNqvpGT6gvNnx6A1SiZ96E/wbNaYU2TNMOTuYPn5Bx3EO82qhVImJQqCUT3rf6o+EqfVOAZK1oxqPYUoDqyOAHIpBBRNRsszpNbmJA1NXWs+PKC79NNVnbJsPe3lius9kwMaiTPby30POkEAK5LSLw7hHn52FFah0hNhC1+vKqWOciNAStemftuBpmd1k4RUxDyMaV/W5LgQgS93c4tFI+fNLrkdifkw9hwgzjZpf0rjF/3HvJs\\u003d\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "JwiI0I3yBzNZ0m/sdYGesecDzU8Dz3lVuOus9Aragq0pqOW0r7FI8Klc46pdrBunBT68Oo/Rj3w5j4fsJ/W2xDe3teLwLbT5ap7kvWl5QxjcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10306931946,\"is_tr\":1}",
+      "mark": "0QyysIB1MYUKHvHJQ9chyvT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1018574382247,
+     "quality": 90,
+     "min_on_sale_group_price": 5980,
+     "normal_price": 9700,
+     "icon_list": [
+      {
+       "width": 117,
+       "id": 10,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/index/962149d1-b03a-47fb-be05-7f289e14ed3b.png",
+       "height": 45
+      }
+     ],
+     "market_price": 28100,
+     "price_type": 2,
+     "short_name": "甲泰康 盐酸阿莫罗芬搽剂 5%*2.5ml/瓶/盒 治疗灰指甲杀菌抑菌专治灰指甲真菌感染甲癣甲真菌病2.5ml大规格",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "WtI9pVWJGmfeuYIkGv_f6w==",
+       "sid": 506,
+       "ept_arec_i": "TbiQaE1XDR1oKbWFIjkxhg==",
+       "tag_list_track": [
+        "4&28",
+        "1&80",
+        "1&36"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbQle4Y91sKGgJHv_hir7bvh1d1DPpQaE9T2ZQaJ7_XHLA==",
+       "icon_list_track": [
+        "2&10"
+       ],
+       "t": 1018574382247,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 3,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-18/6a21e386-79bc-4b6b-ad4b-13bea520ab4d.jpeg.a.jpeg",
+     "icon": {
+      "width": 117,
+      "id": 10,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/index/962149d1-b03a-47fb-be05-7f289e14ed3b.png",
+      "height": 45
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "text": "即将恢复95.8元",
+       "text_color": "#E02E24",
+       "tag_track_info": "4&28"
+      },
+      {
+       "type": 1,
+       "text": "保密发货",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&80"
+      },
+      {
+       "type": 1,
+       "text": "正品险",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&36"
+      }
+     ],
+     "activity_type": 3,
+     "sales_tip": "广告·本店已拼5661件",
+     "quantity": 100,
+     "display_price": "32.89",
+     "cnt": 11,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080317019300,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5.5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已拼11件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1018574382247&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：皮肤科用药"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1018574382247,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "券后",
+     "hd_thumb_url": "https://img.pddpic.com/garner-api-new/aigc-img/white-img/e824f617338ded5752a553fb794196d4-3262d-1785811840.png",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/garner-api-new/aigc-img/white-img/e824f617338ded5752a553fb794196d4-3262d-1785811840.png",
+     "sales": 78,
+     "event_type": 0,
+     "price": 65000,
+     "link_url": "goods.html?goods_id=984980965769&_oak_rcto=YWJoKPyEd-i3E-UzgoYIlxKNlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oak_gallery_token=e902c6bcd17b6e2643dec58111ee8a58&_oak_gallery=https://img.pddpic.com/garner-api-new/aigc-img/white-img/e824f617338ded5752a553fb794196d4-3262d-1785811840.png&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_58050_101_0",
+     "id": 984980965769,
+     "group": {
+      "price_info": "580.5",
+      "price": 65000,
+      "promo_price": 58050,
+      "global_min_price": 65000,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 65000,
+      "customer_num": 2,
+      "price_str": "580.5"
+     },
+     "price_info": "580.5",
+     "goods_name": "【铭匠】AF35mm F1.8II二代大光圈相机自动镜头适用索尼E尼康Z富士X口",
+     "is_app": 0,
+     "label_list": [],
+     "goods_id": 984980965769,
+     "quality": 90,
+     "min_on_sale_group_price": 65000,
+     "normal_price": 158100,
+     "icon_list": [
+      {
+       "width": 78,
+       "id": 10014,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/gexinghua/0ac91857-db53-4a63-9c25-3fba32284e8f.png",
+       "height": 42
+      },
+      {
+       "width": 117,
+       "id": 10,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/index/962149d1-b03a-47fb-be05-7f289e14ed3b.png",
+       "height": 45
+      }
+     ],
+     "market_price": 169900,
+     "price_type": 2,
+     "short_name": "铭匠AF35mm F1.8II二代大光圈相机自动镜头适用索尼E尼康Z富士X口",
+     "need_ad_logo": false,
+     "track_info": {
+      "p_rec": {
+       "eptx": "vqtpiBh/V44zt07o/shTvg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 2,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "1joOszr8uzKXRgxlB8Jb7Q==",
+       "sid": 506,
+       "ept_arec_i": "CrcA9LiAU78uqQZLWEvQQg==",
+       "tag_list_track": [
+        "1&159",
+        "1&75",
+        "6&51",
+        "2&90148",
+        "3&11",
+        "4&23",
+        "2&90014",
+        "1&1000001",
+        "1&20"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 1010506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "arec_data",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "icon_list_track": [
+        "2&10014",
+        "2&10"
+       ],
+       "t": 984980965769,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 4,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "券后"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/garner-api-new/aigc-img/white-img/e824f617338ded5752a553fb794196d4-3262d-1785811840.png",
+     "icon": {
+      "width": 78,
+      "id": 10014,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/gexinghua/0ac91857-db53-4a63-9c25-3fba32284e8f.png",
+      "height": 42
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "赠送全保换新",
+       "text_color": "#25B513",
+       "tag_track_info": "1&159"
+      },
+      {
+       "type": 1,
+       "url": "https://promotion.pddpic.com/promo/jczf/fbcc7b02-cf32-4445-b410-6098a494653b.png",
+       "width": 36,
+       "text": "免费送货上门",
+       "text_color": "#25B513",
+       "tag_track_info": "1&75",
+       "height": 36
+      },
+      {
+       "text": "536人收藏",
+       "text_color": "#E02E24",
+       "tag_track_info": "6&51"
+      },
+      {
+       "text": "已缴纳保证金",
+       "text_color": "#25B513",
+       "tag_track_info": "2&90148"
+      },
+      {
+       "text": "我关注的店",
+       "text_color": "#E02E24",
+       "tag_track_info": "3&11"
+      },
+      {
+       "url": "https://promotion.pddpic.com/promo/index/b278bc54-3d10-4d94-bef3-bafd812b3f53.png",
+       "width": 36,
+       "text": "立减5元",
+       "text_color": "#E02E24",
+       "tag_track_info": "4&23",
+       "height": 36
+      },
+      {
+       "text": "即将售罄",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90014"
+      },
+      {
+       "type": 1,
+       "text": "正品发票",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&1000001"
+      },
+      {
+       "type": 1,
+       "text": "3期免息",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&20"
+      }
+     ],
+     "activity_type": 101,
+     "sales_tip": "本店已拼3396件",
+     "quantity": 100,
+     "display_price": "580.5",
+     "cnt": 78,
+     "personalize_coupon_info": {
+      "coupon_id": -1,
+      "background_color": {
+       "left_background_color": "#E02E24",
+       "right_background_color": "#1A1A1A"
+      },
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#FFFFFF",
+       "text_bold": false,
+       "text": "平台优惠9折"
+      },
+      "coupon_style": 10,
+      "coupon_bg_icon": {
+       "width": 60,
+       "url": "https://promotion.pddpic.com/promo/hub_monthly_card/b017919e-ceea-4f0a-901e-fffdf5d3e5d4.png.slim.png",
+       "height": 54
+      }
+     },
+     "fallback_sales_tip": "已抢78件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=984980965769&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：单反单电镜头"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 984980965769,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "券后",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/f56dac8b-9f41-4736-a41a-c79be00d26cd.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/f56dac8b-9f41-4736-a41a-c79be00d26cd.jpeg.a.jpeg",
+     "sales": 0,
+     "event_type": 0,
+     "price": 33150,
+     "link_url": "goods.html?goods_id=1018257669662&_oak_rcto=YWJLo6cgsL7GQRU097ZdQqNqlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=4e54d1b71540add7ac55b8652dee0fa6&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-10-19/f56dac8b-9f41-4736-a41a-c79be00d26cd.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_29835_101_0&_oc_refer_ad=1",
+     "id": 1018257669662,
+     "group": {
+      "price_info": "298.35",
+      "price": 33150,
+      "promo_price": 29835,
+      "global_min_price": 33150,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 33150,
+      "customer_num": 2,
+      "price_str": "298.35"
+     },
+     "price_info": "298.35",
+     "goods_name": "李小鹿捡漏 万播T2 Max超高清智能投影仪解码4K投墙1080P投影仪",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "k9VcmdMz3yjvfNkopIUxPz/Y8XfCcIFE3L66VYoCZcUc8gYSw8aJnd2IQ6nvr68bDrwOS89YEVVaO/9mVx2c4gcG3FXdh0r56gZSy3AUh/RKxifOH8IVKwsBoF8psCog/fFqsX+pl4zPOr1EQt7u1A9+QLKmuGTjdk+qI1ViXPJyOKYtrYhAt7RazpMrwuVtSL+sPjl8209D9raPpG4LAyc/1mg9+0y26AVT2mGhesu+tOleEbPFy1jMx3LL4+ng",
+      "pubinfo": "{\"item\":\"RbCUd5gy6n/2+SwoWMEKhQVZcbvIsGhu+QvkTWZ1aTTGrtA3SvxSJ/hlvVDoQYMbJJxXDboflvpDiyL9uVOasJEk0oOtZjp0O4PZA4WTxBRT/+bQBR25d8iqfqyCtuIkE/YjHJptQLdUsIYws6e+YxkdLoLTWfoIDxBTW7O1DKHK5xPdxvj1LM2PKGe3hMjHTS0fEnP3EzS2Wxpa4oWXnA7F6WOwpG7wY6QEhm9FkH04SW44UHx/6lNOTUyb6jf2MG+c7SVfzGl0RDLQso7Zq+inbwvRZ/kdjLd/LZ/cOiLGa6ga5wEV4dcuGxVoKiUrK9vB4UgL2qVl/nV8jeGFxYCwynVQfOwjh1IwcZVhfg1Qe3B5U768GiXu7Gb7T17y0OVLnZhxsik/7FT8UYEzJg8MPM5j9vgBV6L40Nuh/8gF7f1NYYKDpaWrFOA58vYGBLcdoMFdu/tyfzS6YNvIUDZfea9CjOIRFZuGSpxSngm6XTg9d0FU/4Z450bVVBq+YFuG9mSh0f8PUgNqmwEGLq9IHiog888M3xx/JjtXf13r2j6VLeDePkj+q4qtU992\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "qTGBt+rAzHJ+vA++op0iFosOm3TknjcX5JR8Kp43hFMZ5JyKyR71dZfOFhV5Y0fdhJvpUN5iEnIyhOyhY0/SBcJE1VFgCWmZcy9SJBMIJxncajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10303537753,\"is_tr\":1}",
+      "mark": "/tIGMsPMI7Rr1YxCZINISPT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1018257669662,
+     "quality": 90,
+     "min_on_sale_group_price": 33150,
+     "normal_price": 44900,
+     "icon_list": [
+      {
+       "width": 126,
+       "id": 20013,
+       "tag_series": 2,
+       "url": "https://commimg.pddpic.com/oms_img_ng/2026-10-13/108157db-c671-42b9-a363-bf4a0bc3c114.png",
+       "height": 45
+      }
+     ],
+     "market_price": 100000,
+     "price_type": 2,
+     "short_name": "李小鹿捡漏 万播T2 Max超高清智能投影仪解码4K投墙1080P投影仪",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "vqtpiBh/V44zt07o/shTvg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "4Lp-aa6DKUKFGSVDcEnhxQ==",
+       "sid": 506,
+       "ept_arec_i": "ZSh7FMAEaMOHO3Ts8DeidA==",
+       "tag_list_track": [
+        "2&90014",
+        "1&20",
+        "1&12"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "icon_list_track": [
+        "2&20013"
+       ],
+       "t": 1018257669662,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 5,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "券后"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/f56dac8b-9f41-4736-a41a-c79be00d26cd.jpeg.a.jpeg",
+     "icon": {
+      "width": 126,
+      "id": 20013,
+      "tag_series": 2,
+      "url": "https://commimg.pddpic.com/oms_img_ng/2026-10-13/108157db-c671-42b9-a363-bf4a0bc3c114.png",
+      "height": 45
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "text": "即将售罄",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90014"
+      },
+      {
+       "type": 1,
+       "text": "分期付款",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&20"
+      },
+      {
+       "type": 1,
+       "text": "24小时发货",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&12"
+      }
+     ],
+     "activity_type": 101,
+     "sales_tip": "广告·本店已拼7952件",
+     "quantity": 50,
+     "display_price": "298.35",
+     "cnt": 0,
+     "personalize_coupon_info": {
+      "coupon_id": -1,
+      "background_color": {
+       "left_background_color": "#E02E24",
+       "right_background_color": "#1A1A1A"
+      },
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#FFFFFF",
+       "text_bold": false,
+       "text": "平台优惠9折"
+      },
+      "coupon_style": 10,
+      "coupon_bg_icon": {
+       "width": 60,
+       "url": "https://promotion.pddpic.com/promo/hub_monthly_card/b017919e-ceea-4f0a-901e-fffdf5d3e5d4.png.slim.png",
+       "height": 54
+      }
+     },
+     "fallback_sales_tip": "",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1018257669662&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：投影仪"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1018257669662,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-10/6413202a-e51e-49b3-8ea1-65deea2c5d51.png.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-10-10/6413202a-e51e-49b3-8ea1-65deea2c5d51.png.a.jpeg",
+     "sales": 5,
+     "event_type": 0,
+     "price": 5839,
+     "link_url": "goods.html?goods_id=1014504840284&_oak_rcto=YWKXLDujGdih10l-2WS-a0x8lQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=79d59056ef4687a1a35a1094ed814b78&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-10-10/6413202a-e51e-49b3-8ea1-65deea2c5d51.png.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_1920_3_0&_oc_refer_ad=1",
+     "id": 1014504840284,
+     "group": {
+      "price_info": "19.2",
+      "price": 5839,
+      "promo_price": 1920,
+      "global_min_price": 5839,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 5839,
+      "customer_num": 2,
+      "price_str": "19.2"
+     },
+     "price_info": "19.2",
+     "goods_name": "适配小米空气净化滤芯抗菌4Pro除尘除霾除甲醛复合双筒清新空气",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "S1kl7A+L9WG9RwVCblhAHRdMCrsG5fqV2hDOFVXKSHhT0uXXe6Au/b/2iv9IsZl3RNvIsd0brpGl1nA9RVEcEoQWUIpitHXQZy8CFe8pxi1h3FxcNufstuaLjSakd3hyrgYttaBYvVKbgaagYO9pntfeutAnz0zAyyqNcWqOdQkvSlyqg0KC78FqqlbBNEZ8qtEnYS8AYT641zM6XeiHWzojzcxClRqwQpE6KnyeO0y7dEMCT5He7HczegWgHsH5",
+      "pubinfo": "{\"item\":\"BxgvHM00mdWLtL5luhSfAs7VjxYzsrMY183WaaLxmasejI1bykAbZZtA4G13Qcq7fL8tOABRPfeeIDg22Urs/3gTE9QFJao9XO8VWPDtAy7KtXx6Y8OWlPTj3zBE33ciTckR+htw+Do5365iojiXL14jLLAtfj79SgC7uNO+zLKZIksovKZz0lZXzHq8/QSXBn3if3Ml1BH8H1ayw93F9X0DOrNY8eqXkUR7jrd9C+2ip3sYnAX0Fb6kBobpOWG7zowqbJFgcgZmNran+Fn1jrCHAxaFZ7SGiW1W779YQOa0/XKUfFdojW+mfzHBlC+lVhpo5H5+5jFFEYJj8aDYzF5teo7lVMU2anSOImRvkah0v8QhMiLChEU/pQrJdAQr0XTYWlGqGsdrH/hsZoXftx70m9ktrfE0MhznDP6cTjhx7NQAACOI4quu9Qc3ExMQmdEx8v92MVtHpVr9w3DZPy5c1KjgYmQfXXNRWYxSMR8P1Nztw/CcHNfGNt3RwLYgB/mptPHHaj+3aGQc3Uen3iskFReEH71QttiWnoTfkAI\\u003d\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "zQwAzLSRm7sXghqdj7hN7aR/tf0Erwp7uRILY5eeZ3iSLuboqP9Fox6kwEdl+n5OJq49zBsGBOpJLWQdw9zbCzQCqobqPhn81PkNvzXlgsXcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10261930446,\"is_tr\":1}",
+      "mark": "UhwEG50XaFPuhwt5x9DmVPT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1014504840284,
+     "quality": 90,
+     "min_on_sale_group_price": 5839,
+     "normal_price": 8678,
+     "icon_list": [
+      {
+       "width": 117,
+       "id": 10,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/index/962149d1-b03a-47fb-be05-7f289e14ed3b.png",
+       "height": 45
+      }
+     ],
+     "market_price": 21740,
+     "price_type": 2,
+     "short_name": "适配小米空气净化滤芯抗菌4Pro除尘除霾除甲醛复合双筒清新空气",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "HNTfRqb5N0Gicc4V4aTIpQ==",
+       "sid": 506,
+       "ept_arec_i": "Lm6Eaf7WmPVQl5xzk/9gWw==",
+       "tag_list_track": [
+        "1&40",
+        "4&5",
+        "4&28",
+        "1&3"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbR3Tu_2BdMfL-Z3kVxy4nIjV5RWj5IMG37yOhuTmFsCPg==",
+       "icon_list_track": [
+        "2&10"
+       ],
+       "t": 1014504840284,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 6,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-10/6413202a-e51e-49b3-8ea1-65deea2c5d51.png.a.jpeg",
+     "icon": {
+      "width": 117,
+      "id": 10,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/index/962149d1-b03a-47fb-be05-7f289e14ed3b.png",
+      "height": 45
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "type": 1,
+       "url": "https://funimg.pddpic.com/common/transac_subsidiary/863ff256-89b2-4b7b-906f-8e8c6b9e2b22.png.slim.png",
+       "width": 36,
+       "text": "先用后付",
+       "text_color": "#25B513",
+       "tag_track_info": "1&40",
+       "height": 36
+      },
+      {
+       "url": "https://promotion.pddpic.com/promo/index/b278bc54-3d10-4d94-bef3-bafd812b3f53.png",
+       "width": 36,
+       "text": "立减20元",
+       "text_color": "#E02E24",
+       "tag_track_info": "4&5",
+       "height": 36
+      },
+      {
+       "text": "即将恢复原价",
+       "text_color": "#E02E24",
+       "tag_track_info": "4&28"
+      },
+      {
+       "type": 1,
+       "url": "https://promotion.pddpic.com/promo/index/16710387-837f-48c1-9088-f8849af25a0c.png",
+       "width": 30,
+       "text": "退货包运费",
+       "text_color": "#25B513",
+       "tag_track_info": "1&3",
+       "height": 36
+      }
+     ],
+     "activity_type": 3,
+     "sales_tip": "广告·本店已拼431件",
+     "quantity": 100,
+     "display_price": "19.2",
+     "cnt": 5,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080319116400,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已拼5件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1014504840284&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：净化/加湿抽湿机配件"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1014504840284,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/335d03de-497f-4ca3-8562-ecbc93486b3b.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/335d03de-497f-4ca3-8562-ecbc93486b3b.jpeg.a.jpeg",
+     "sales": 30,
+     "event_type": 0,
+     "price": 2390,
+     "link_url": "goods.html?goods_id=1016527331494&_oak_rcto=YWK78TKHfFi9QtdDeFv5D4QZlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=4ef1701ade0de58a1b0cff76c28454d8&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-10-19/335d03de-497f-4ca3-8562-ecbc93486b3b.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_1315_null_null&_oc_refer_ad=1",
+     "id": 1016527331494,
+     "group": {
+      "price_info": "13.15",
+      "price": 2390,
+      "promo_price": 1315,
+      "global_min_price": 2390,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 2390,
+      "customer_num": 2,
+      "price_str": "13.15"
+     },
+     "price_info": "13.15",
+     "goods_name": "【飞毛腿】适用苹果18/17/16多巴胺液态肤感内置磁吸防摔大孔手机壳",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "PgNZf0cltNvZ670AH26l0xrFnBlDy4fhc+1dgV8NIbsqs/obKj4EuqDcgKHrps9MIyFqlTvT+0FRDtdRxkCLkJsMSWBbOovP9Er91VnClebLiVtrZ7M2OjUfdtCbak4N3y9Bq6srxPCwP391XeMxKiE9xrdhY2DWS+vx9KUYJA0899W/+sPHRu5ed09aN9EEiX6RZEcPpyCoORKdWuA3F90SSjxiv9ppTwjaDXSldfYzjPZngAcvYiu0OouDrzsw",
+      "pubinfo": "{\"item\":\"RLNAtmuHJCLVvAUUWRoh8vtxLr6hrBvEaXnsa7fweKPLFtnSXf1tFj4vi20Elsc1NOZ+ve38KniyRHKijIsosJsuSsUR/bvphlsmqJfxinnuVqF8e3oveNgjcO/DDsnEm6ppKL7ttm5C6rxnR2IQazvbcccOZ5BD1BBEm3Q05mCOKdpoPUmzmm9hq2O8UDu4my5KxRH9u+mGWyaol/GKee5WoXx7ei942CNw78MOycSC+r7OM9YlaEhaPRRgznAbrp9thhDs9Iar0P2/AgH6pocDUon1jgZg9E4K7iCu1e7dr1biDHp1jW18bMw31kvZ19rSloa9f+ySiYqy9NhySDsZuZ/pHRG6RrEpBUJ5urLoJ94xhy8dz2remqrh+APi/7sVU5hikTp5Uxt4wFT1ji102T21ApFhbmoUkVhgWgXYts5BnNHnhg5/MmWjkpBBscZ8+UFyUkhuAjPQu3aII+dg4HXJvoSkaylDqUnr2oKAtOtTZ0Vx5gooWHYtA3vtgSCOdKyPjQISHHqePJ3n4A\\u003d\\u003d\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "IX4WfJxRgRwYYGbGIuiDnGbi5YHMgo8DoYIrKGOT4u2hi3Oal8tNTj6JFDPtTfeGi9bBxj0RxLJla2PaBbLcLnncq0DJje9trfFkPh1sFxrcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10284330216,\"is_tr\":1}",
+      "mark": "jhpj5/qvDyuCWMo9u9+ON/T7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1016527331494,
+     "quality": 90,
+     "min_on_sale_group_price": 2390,
+     "normal_price": 2490,
+     "icon_list": [],
+     "market_price": 2590,
+     "price_type": 2,
+     "short_name": "飞毛腿适用苹果18/17/16多巴胺液态肤感内置磁吸防摔大孔手机壳",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 0,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "ch9-otiGRrfZODm33VroUA==",
+       "sid": 506,
+       "ept_arec_i": "pyBsy/P5rxPc9cHpHZ0B8w==",
+       "tag_list_track": [
+        "1&40",
+        "1&36",
+        "1&12"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbTcDf_29k7yM6hP2bD6xtto1d1DPpQaE9T2ZQaJ7_XHLA==",
+       "t": 1016527331494,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 7,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-10-19/335d03de-497f-4ca3-8562-ecbc93486b3b.jpeg.a.jpeg",
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "type": 1,
+       "url": "https://funimg.pddpic.com/common/transac_subsidiary/863ff256-89b2-4b7b-906f-8e8c6b9e2b22.png.slim.png",
+       "width": 36,
+       "text": "先用后付",
+       "text_color": "#25B513",
+       "tag_track_info": "1&40",
+       "height": 36
+      },
+      {
+       "type": 1,
+       "text": "正品险",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&36"
+      },
+      {
+       "type": 1,
+       "text": "24小时发货",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&12"
+      }
+     ],
+     "sales_tip": "广告·已拼30件",
+     "quantity": 100,
+     "display_price": "13.15",
+     "cnt": 30,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080321213600,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时5.5折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已拼30件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1016527331494&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：手机保护套/壳"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1016527331494,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-07/ad27bf47-b36a-4e00-9614-1c01e6ded822.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-09-07/ad27bf47-b36a-4e00-9614-1c01e6ded822.jpeg.a.jpeg",
+     "sales": 112,
+     "event_type": 0,
+     "price": 1690,
+     "link_url": "goods.html?goods_id=1002686222304&_oak_rcto=YWJAIxrPa2tQVAJN9BJwWctElQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=2acd543b49c82bc9fe87ac966edf1ed7&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-09-07/ad27bf47-b36a-4e00-9614-1c01e6ded822.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_990_43_0&_oc_refer_ad=1",
+     "id": 1002686222304,
+     "group": {
+      "price_info": "9.9",
+      "price": 1690,
+      "promo_price": 990,
+      "global_min_price": 1690,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 1690,
+      "customer_num": 2,
+      "price_str": "9.9"
+     },
+     "price_info": "9.9",
+     "goods_name": "【8种口味】谷小椒麻辣拌调料500g袋装餐饮门店同款拌面酱料批发",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "Tsy8iNXu1b50ryceC0+wjRD6HRANuvLnr71fMsDfsudOBZJvBEjJ6n6Oq2wItsMtO7CgH9TIeLpkI9oeKgEd8TseViUdO1JfI3G5xmZ+T5jl2twR1diFcFkJwbwdvneduF8ZBxOXPQ61GI1vKru0n92Jh/0OJhuhvPZlK4y73VlS5sk1WlNK1baoIBaTd9YqxtqAqciT2XP+2+ucg7vRYs0BH3kZxVs1Zhar+/1tQvYw0R4/6j2JaK2E0DuS/HmG",
+      "pubinfo": "{\"item\":\"vpxUxUMk9Ga+GLoHCmU6wjBGaKczFXUzwMVdD9ZOVHgG02nuBevinAgcmu2fKzc2QvtERlykE64SrbUeb8laDfGaCZ1EI/O4y7+rrRIXIRYAh9nyfkQhZSyG5iVhyX/Rs7tp6CaSkP1TVDy2hg1nDhA091hyq4x/6OXnFJWOSv0FQlxZmLSd3lhG1lH/davg1v8edqJssFnTz/WRbgeC/5hMriT7SECQtD65f5qKHKM9/OqiAmReRt9ewSTUAxp8E60hv8bXz2CJurPXZobiL4cWwlQPoSFOp4go6wvSXAFFIYU7XzCA7rvH3QjM3eWFVzk5bBYK3SYmlLNIheHhNQe4SQO6+R/fKWBj5TE8cWHwpXmdRmrLAK/7Akf3HNFprPwBl97PUNokW2/rZaoafgT0Yr88jrNBXTEUgdBiSC5DPuT4z1FWd0EhqHa0H7Cx\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "AbRPoLeOtpFBFjpyGBnYHTZM6oolORAZsmLzVj++yMZi33kYfm4l0MbNEuIvbo025D7qwEKUbQj0/sVohLT9+o41wDTLYRsabHRPXCjbh8bcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10118511823,\"is_tr\":1}",
+      "mark": "ziIIKysmNfuYrRxqanELO/T7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1002686222304,
+     "quality": 90,
+     "min_on_sale_group_price": 1690,
+     "normal_price": 2500,
+     "icon_list": [
+      {
+       "width": 192,
+       "id": 10014,
+       "tag_series": 2,
+       "url": "https://img.pddpic.com/aid-image/brand_black_label_combine/6639856546f74a119fd36f4d0d6e5b37.png",
+       "height": 42
+      }
+     ],
+     "market_price": 2600,
+     "price_type": 2,
+     "short_name": "【8种口味】谷小椒麻辣拌调料500g袋装餐饮门店同款拌面酱料批发",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "91k-HeqevrM_oPwVnVE6Fg==",
+       "sid": 506,
+       "ept_arec_i": "X5FY/uMPxHmuVIpoEtxWiQ==",
+       "tag_list_track": [
+        "6&211",
+        "1&169",
+        "1&40",
+        "4&19",
+        "1&3",
+        "1&15"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "P-tEQo2Ve0LavsH0PtwrF0CLTj0zWxadieHY6uE6oniZ6uimc6dC-B-G-sgamy5Kre312yg1gRoPbrs_ZliBSg==",
+       "icon_list_track": [
+        "2&10014"
+       ],
+       "t": 1002686222304,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 8,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-07/ad27bf47-b36a-4e00-9614-1c01e6ded822.jpeg.a.jpeg",
+     "icon": {
+      "width": 192,
+      "id": 10014,
+      "tag_series": 2,
+      "url": "https://img.pddpic.com/aid-image/brand_black_label_combine/6639856546f74a119fd36f4d0d6e5b37.png",
+      "height": 42
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "text": "品牌好评百万",
+       "text_color": "#E02E24",
+       "tag_track_info": "6&211"
+      },
+      {
+       "type": 1,
+       "text": "已包邮",
+       "text_color": "#25B513",
+       "tag_track_info": "1&169"
+      },
+      {
+       "type": 1,
+       "url": "https://funimg.pddpic.com/common/transac_subsidiary/863ff256-89b2-4b7b-906f-8e8c6b9e2b22.png.slim.png",
+       "width": 36,
+       "text": "先用后付",
+       "text_color": "#25B513",
+       "tag_track_info": "1&40",
+       "height": 36
+      },
+      {
+       "url": "https://promotion.pddpic.com/promo/index/b278bc54-3d10-4d94-bef3-bafd812b3f53.png",
+       "width": 36,
+       "text": "立减2元",
+       "text_color": "#E02E24",
+       "tag_track_info": "4&19",
+       "height": 36
+      },
+      {
+       "type": 1,
+       "url": "https://promotion.pddpic.com/promo/index/16710387-837f-48c1-9088-f8849af25a0c.png",
+       "width": 30,
+       "text": "退货包运费",
+       "text_color": "#25B513",
+       "tag_track_info": "1&3",
+       "height": 36
+      },
+      {
+       "type": 1,
+       "text": "假一赔十",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&15"
+      }
+     ],
+     "activity_type": 43,
+     "sales_tip": "广告·品牌热销285.3万+件",
+     "quantity": 100,
+     "display_price": "9.9",
+     "cnt": 112,
+     "personalize_coupon_info": {
+      "coupon_id": 863285019797406800,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时优惠5元"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已拼112件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1002686222304&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：预制菜调料/菜谱式调料"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1002686222304,
+    "type": 0
+   },
+   {
+    "data": {
+     "price_prefix_info": "最后60分钟",
+     "hd_thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-22/4a924650-c2d6-4be8-9fd9-8b3604b3f87e.jpeg.a.jpeg",
+     "customer_num": 2,
+     "hd_url": "https://img.pddpic.com/mms-goods-image/2026-09-22/4a924650-c2d6-4be8-9fd9-8b3604b3f87e.jpeg.a.jpeg",
+     "sales": 145,
+     "event_type": 0,
+     "price": 2390,
+     "link_url": "goods.html?goods_id=1008437291571&_oak_rcto=YWJ_l-T2NSlvJhMExqFjNl2zlQGHoOK7foPf9sz4gxd1-j_t8JcY91f1&_oc_trace_mark=199&_oc_adinfo=eyJwYWdlX3NuIjoxMDAwMiwic2NlbmVfaWQiOjUwNn0=&_oak_gallery_token=ddc7376fcaed1dcdcf83bd357f071420&_oak_gallery=https://img.pddpic.com/mms-goods-image/2026-09-22/4a924650-c2d6-4be8-9fd9-8b3604b3f87e.jpeg.a.jpeg&_oak_list_price_sign=shb1_mvhyrgzjyRV36_11_1434_34_0&_oc_refer_ad=1",
+     "id": 1008437291571,
+     "group": {
+      "price_info": "14.34",
+      "price": 2390,
+      "promo_price": 1434,
+      "global_min_price": 2390,
+      "price_type": 2,
+      "avg_price": 0,
+      "group_price": 2390,
+      "customer_num": 2,
+      "price_str": "14.34"
+     },
+     "price_info": "14.34",
+     "goods_name": "【皓轩】官方适用45W苹果17Promax全系列冰速头氮化镓闪充手机数据线",
+     "is_app": 0,
+     "label_list": [],
+     "ad": {
+      "bkfl": 1,
+      "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+      "pkinfo": "fKanQnEm+9ZdPmaMEB1vJ4fPpzE9e4EtxXqyqwazJVPSTH1So7VLN/21nU9Duf5Asu0ggrBQi9Lcn65G/GSjPYXquZ4liZmwc3oZANVddFM/CrxnGJWirRlmWkGrQALu9p6PGcOmhQEFZCWUho04xzKgjHV/aHauen0fy/2cdSpjYmxu+MTTA9syjFZPawAeFTzcNpGYNYUR/4hQoWBKj+ZzXmuWs6n01SyBCXEPcnmSiQtSkofbb0hnjmaov/gw",
+      "pubinfo": "{\"item\":\"+4fQmHl4aWF0XgKwWM9kFEYjieGVTVdoPDg47HuwM0HRYYZtLCXaYA02PNQxiJZPVFeMxeUVX2bufU/L4JzGZUSOFE4ZZicdD5En6eOXnYKpq352JUyZ0TaZNZ+KmQlZFXrR2rG9igy1EBcPI+0YUd1I5kC1/t8GhnhGN/AqygbeNH8GTrCJgsSuF5fe0fiOViPRITHdzocC7ACF8CEly0cXoXIbRbKocb1uyuTjK+ViDsJ1xzGzVrwkFoE2cmy5j9ijudnIaMUOSJ6YDlw2OyiEtre6UOeq73Yl8dxgbzS57QeAeh/xauME1anv1ktVI/MWRFTBv6sQlA43lVl/5tvNGOp7NhI39zM4dPr09JN0v8QhMiLChEU/pQrJdAQrIFslCrtSSMnGRcfx4h4VxlpZjZjIse8pObt3Mg6qrdS6ogBMbR8RCpg2+260QNW5FzeQwGpRPXfN+4R4M2Apd5lrnjLsDk5S0oak6YqSOdNpK3isBkO8kKpY4bnCCSgtTWmjCQnvoKhRIH+ebJ/zaE1F25nm8q1ZBn54CpSdGP58YU1fFFyf4vh7iTkvzRV3\",\"req\":\"Q0mH477BS8GXYQlQlvfYCw\\u003d\\u003d\"}",
+      "nbid": "cZdXbywjWcb5VvhmSWP0YvCSXfY7M7v24yNqMBkeZynMhFOSoT4ov8tWQH5BqsB+JHaewcBAT8Gsw3LRzzGH9jJ8d7yqCNkKJ9yqPaCdHkXcajqXI0RpqwhlRZKSihW0",
+      "openinfo": "{\"ads_from\":0,\"ad_id\":10178209250,\"is_tr\":1}",
+      "mark": "MW64qFNkv1mulFAe7oTFKPT7Ae7DXeDOrV6JY7K1A3E=",
+      "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv"
+     },
+     "goods_id": 1008437291571,
+     "quality": 90,
+     "min_on_sale_group_price": 2390,
+     "normal_price": 8000,
+     "icon_list": [
+      {
+       "width": 156,
+       "id": 20001,
+       "tag_series": 2,
+       "url": "https://promotion.pddpic.com/promo/bybt/6d7e6f48-9cd7-4730-93dc-7ae875e446be.png.slim.png",
+       "height": 42
+      },
+      {
+       "width": 159,
+       "id": 10014,
+       "tag_series": 2,
+       "url": "https://img.pddpic.com/aid-image/brand_black_label_combine/0a7757b613984fc181f48341928e1916.png",
+       "height": 42
+      }
+     ],
+     "market_price": 8100,
+     "price_type": 2,
+     "short_name": "皓轩官方适用45W苹果17Promax全系列冰速头氮化镓闪充手机数据线",
+     "need_ad_logo": true,
+     "track_info": {
+      "p_rec": {
+       "eptx": "hEOtKNGqhF1fr9sQrIp3Eg==",
+       "eventid": "617ae579cd3911f1bb4f75508de93d9d",
+       "specialSalesTip": 6,
+       "list_id": "homepage_cell_6716796686217_1571310228",
+       "bk": -1,
+       "mid": 106,
+       "main_img_src": 1,
+       "pid": 506,
+       "sub_stage": 1,
+       "ept_arec": "yv6GLb-jjOJw-WUR827etA==",
+       "sid": 506,
+       "ept_arec_i": "CMAHsCPlN+bSMYt761k/Jg==",
+       "tag_list_track": [
+        "1&72",
+        "1&40",
+        "2&90014",
+        "1&36",
+        "1&12"
+       ],
+       "sgid": 20,
+       "set": "shb1",
+       "org": "arec",
+       "g": "arec_data",
+       "scene_id": 506,
+       "join_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "g3": "arec",
+       "m": "ads",
+       "search_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "app_name": "homepage_cell",
+       "en_info": "u0n1Ji0qctljxycDSRO2oJCyZ3SqW6bpGlR1mf34JbRuNgaIzpZ6BAel_e9CXgkcPuDwzzmoSZY3anIR_UMRGA==",
+       "icon_list_track": [
+        "2&20001",
+        "2&10014"
+       ],
+       "t": 1008437291571,
+       "stage": 2,
+       "llt": "1783221132",
+       "idx": 9,
+       "request_id": "tc5obhdK7NdPpD9uHQ0P2ph_hUnGQ0RGbm3_FdxRiJpMm3avSK_1Imh2_4CO-Hgv",
+       "pentos": 1,
+       "ts": "1792578175750"
+      }
+     },
+     "personalize_tag_list": [],
+     "price_prefix_content": {
+      "short_price_prefix": {
+       "content": "券后"
+      },
+      "long_price_prefix": {
+       "content": "最后60分钟"
+      }
+     },
+     "thumb_url": "https://img.pddpic.com/mms-goods-image/2026-09-22/4a924650-c2d6-4be8-9fd9-8b3604b3f87e.jpeg.a.jpeg",
+     "icon": {
+      "width": 156,
+      "id": 20001,
+      "tag_series": 2,
+      "url": "https://promotion.pddpic.com/promo/bybt/6d7e6f48-9cd7-4730-93dc-7ae875e446be.png.slim.png",
+      "height": 42
+     },
+     "near_group": {
+      "bubble": "差你成团",
+      "list": [
+       {
+        "group_order_id": 3476533484075341300,
+        "avatar": "https://avatar3.pddpic.com/a/Q052R0R0cGZJckhlY2dVN05oTUtMcW9qME5OQVU5SUc4dz09djA0-1701615964?imageMogr2/thumbnail/100x"
+       }
+      ]
+     },
+     "tag_style": 1,
+     "tag_list": [
+      {
+       "type": 1,
+       "text": "广告",
+       "text_color": "#E02E24"
+      },
+      {
+       "type": 1,
+       "text": "预计后天送达",
+       "text_color": "#25B513",
+       "tag_track_info": "1&72"
+      },
+      {
+       "type": 1,
+       "url": "https://funimg.pddpic.com/common/transac_subsidiary/863ff256-89b2-4b7b-906f-8e8c6b9e2b22.png.slim.png",
+       "width": 36,
+       "text": "先用后付",
+       "text_color": "#25B513",
+       "tag_track_info": "1&40",
+       "height": 36
+      },
+      {
+       "text": "即将售罄",
+       "text_color": "#E02E24",
+       "tag_track_info": "2&90014"
+      },
+      {
+       "type": 1,
+       "text": "正品险",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&36"
+      },
+      {
+       "type": 1,
+       "text": "24小时发货",
+       "text_color": "#9C9C9C",
+       "tag_track_info": "1&12"
+      }
+     ],
+     "activity_type": 34,
+     "sales_tip": "广告·已抢145件",
+     "quantity": 100,
+     "display_price": "14.34",
+     "cnt": 145,
+     "personalize_coupon_info": {
+      "coupon_id": 863285080323310700,
+      "coupon_icon": {
+       "width": 12,
+       "url": "https://funimg.pddpic.com/hot_friends/2ee60b18-bee0-4199-9bd8-166877280838.png.slim.png",
+       "height": 12
+      },
+      "coupon_text": {
+       "color": "#E02E24",
+       "text": "限时6折"
+      },
+      "tag_track_info": "4&29",
+      "coupon_style": 1,
+      "coupon_end_time": {
+       "color": "#E02E24",
+       "time": 1792581776000
+      }
+     },
+     "fallback_sales_tip": "已抢145件",
+     "dislike_reason": {
+      "find_same_goods": {
+       "link_url": "search_bbk.html?source=10434&goods_id=1008437291571&scene=img&bbk_scene=rec_sim&self_info=1",
+       "tips": "查看相似商品"
+      },
+      "dislike_goods": {
+       "type": 0,
+       "tips": "不喜欢该商品"
+      },
+      "dislike_image": {
+       "type": 2,
+       "tips": "图片引起不适"
+      },
+      "dislike_cat": {
+       "type": 1,
+       "tips": "不想看：手机数据线"
+      }
+     },
+     "goods_type": 1
+    },
+    "feeds_id": 1008437291571,
+    "type": 0
+   }
+  ],
+  "preload_strategy": {
+   "buffer": 4
+  },
+  "intel_req_rules": {
+   "refresh_invisible_buffer": 8,
+   "session_length_limit": 20,
+   "refresh_cfg": {
+    "refresh_all": [
+     1,
+     2,
+     3
+    ]
+   },
+   "encrypt": false,
+   "trigger_conditions": [
+    {
+     "stay_time_threshold": 3,
+     "type": "gpv"
+    },
+    {
+     "type": "goods_fav"
+    },
+    {
+     "type": "mall_fav"
+    },
+    {
+     "type": "pay"
+    },
+    {
+     "req_intvl_threshold": 900,
+     "type": "req_intvl"
+    },
+    {
+     "leave_intvl_threshold": 300,
+     "type": "leave_intvl",
+     "trigger_moment": [
+      2
+     ]
+    },
+    {
+     "type": "search"
+    }
+   ],
+   "version": "asr.1.0.0.17",
+   "refresh_type_cdt": {
+    "time_intvl_refresh_all": [
+     {
+      "req_intvl_threshold": 1800,
+      "leave_intvl_threshold": 300,
+      "type": "req_intvl",
+      "trigger_moment": [
+       1
+      ]
+     },
+     {
+      "req_intvl_threshold": 900,
+      "leave_intvl_threshold": 300,
+      "type": "req_intvl",
+      "trigger_moment": [
+       2,
+       3
+      ]
+     },
+     {
+      "leave_intvl_threshold": 300,
+      "type": "leave_intvl",
+      "trigger_moment": [
+       2
+      ]
+     }
+    ],
+    "time_intvl_refresh_invisible": []
+   },
+   "scene_range_type": 1
+  },
+  "refresh_strategy": {
+   "t_enable": false,
+   "enable": true,
+   "dis_ref_unshowed": false,
+   "buffer": 8
+  }
+ },
+ "org": "arec"
+}

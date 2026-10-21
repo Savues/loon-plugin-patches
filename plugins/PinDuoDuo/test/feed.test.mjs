@@ -117,4 +117,29 @@ store = makeStore(['1'])
 runStore({}, real, store)
 t('feed_ad 关 → 不写库', !store.kv.pddAdGoodsIds || JSON.parse(store.kv.pddAdGoodsIds).includes('1'))
 
+console.log('\n【7】v1.84：fallback_sales_tip（另一台设备首页抓包的真实漏网）')
+const F2c = JSON.parse(readFileSync(new URL('./cells-fixture2.json', import.meta.url), 'utf8'))
+const ads2 = F2c.data.goods_list.filter(g => g.data.ad)
+t('fixture2：10 商品 / 9 广告 / 8 个带非空 fallback_sales_tip',
+  F2c.data.goods_list.length === 10 && ads2.length === 9
+  && ads2.filter(g => g.data.fallback_sales_tip).length === 8,
+  `广告 ${ads2.length}，空串 fallback ${ads2.filter(g => !g.data.fallback_sales_tip).length} 个`)
+let o7 = run({ feed_ad: true }, F2c)
+let g7 = (o7.body || o7).data.goods_list
+t('带 fallback 的广告商品全带前缀（空串的跳过）',
+  g7.filter(x => x.data.ad && x.data.fallback_sales_tip)
+    .every(x => x.data.fallback_sales_tip.startsWith('广告·')))
+t('正常商品（铭匠镜头）零改动', (() => {
+  const nor = g7.find(x => !x.data.ad)
+  return nor && !nor.data.sales_tip.startsWith('广告·')
+    && !nor.data.fallback_sales_tip.startsWith('广告·')
+})())
+t('原 sales_tip 前缀仍在', g7.filter(x => x.data.ad)
+  .every(x => x.data.sales_tip.startsWith('广告·')))
+// 幂等
+o7 = run({ feed_ad: true }, (o7.body || o7))
+g7 = (o7.body || o7).data.goods_list
+t('fallback 前缀不叠加', g7.filter(x => x.data.ad)
+  .every(x => !x.data.fallback_sales_tip.startsWith('广告·广告·')))
+
 done()

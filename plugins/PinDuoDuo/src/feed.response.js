@@ -67,9 +67,13 @@ try {
       d.tag_list.unshift({ type: 1, text: AD_TEXT, text_color: AD_COLOR });
     }
 
-    // 3) 销量灰字前缀（幂等：跑两遍不会叠两个「广告·」）
-    if (typeof d.sales_tip === 'string' && d.sales_tip && !d.sales_tip.startsWith(AD_TEXT + '·')) {
-      d.sales_tip = AD_TEXT + '·' + d.sales_tip;
+    // ② 卡片销量行（含备用文案 fallback_sales_tip：实测客户端在这类商品上
+    //    渲染的是它而不是 sales_tip——2026-10-21 另一台设备首页抓包证实，
+    //    「黄金厚切炸猪排」卡片显示的「已抢170件」就是它）
+    for (const key of ['sales_tip', 'fallback_sales_tip']) {
+      if (typeof d[key] === 'string' && d[key] && !d[key].startsWith(AD_TEXT + '·')) {
+        d[key] = AD_TEXT + '·' + d[key];
+      }
     }
 
     marked++;
