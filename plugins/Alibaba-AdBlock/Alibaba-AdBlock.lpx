@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.10
+#!name=Alibaba-AdBlock v3.9.11
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.10
+#!version=3.9.11
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -53,9 +53,6 @@ response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union
 response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, tag="淘宝-开屏活动"
 
 
-
-# === 搜索框轮播词: 拒绝容器模板 -> DX 容器失败 -> 原生搜索栏 fallback (空白+可点+无词) ===
-request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i then reject_dict(200)
 
 # === 双11氛围皮肤 (enable=true 时替换开屏/tabbar/我的页皮肤为促销素材) ===
 response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.wireless\.skin\.atmosphere\.info/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removePopWindow}}) with enable=${removePopWindow}, requires_body=true, tag="淘宝-双11氛围皮肤"
@@ -133,6 +130,9 @@ request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.stream\./i then rej
 request if ${url} ~= /tb-webb-widget-cloud\/search_door_trending_nine_square_gridList\//i then reject_dict(200)
 request if ${url} ~= /tb-webb-widget\/search_door_guess_discovery\//i then reject_dict(200)
 request if ${url} ~= /tb-webb-widget-cloud\/search_door_trending_hot_textList\//i then reject_dict(200)
+
+# === 搜索框轮播词: 拒绝容器模板 -> DX 容器失败 -> 原生搜索栏 fallback (空白+可点+无词) ===
+request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/[0-9a-f]{32}\.json/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.tab\.two\.guang\.live\.status/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.iliad\.usertask\.tasks\.liveroom\.entry/i then reject_dict(200)
