@@ -40,8 +40,9 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 const AD_KEY = 'pddAdGoodsIds';
 const AD_CAP = 200;
 const AD_PREFIX = '广告·';
-// 徽章托管在本仓库（与「百亿补贴」官方徽章同尺寸 530×150，渲染约 53×15pt）
-const AD_BADGE_URL = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/assets/ad-badge.png';
+// 徽章托管：v1.85 起 jsdelivr CDN（国内可达）—— raw.githubusercontent.com
+// 在部分线路上不可达，iPad 实测徽章图加载失败出现 WebKit 碎图占位符
+const AD_BADGE_URL = 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png';
 const AD_BADGE = { text: '广告', type: 'area_ad_mark_selfhost', url: AD_BADGE_URL };
 
 // ── $persistentStore 名单合并（write(value, key)，值在前——仓库踩过的坑）──

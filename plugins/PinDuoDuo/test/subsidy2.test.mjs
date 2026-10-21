@@ -71,7 +71,7 @@ for (const g of adGoods) {
     `实际 ${g.activityPriceWord}`)
   t(`${g.goodsId} ② 销量行前缀`, (g.salesTip || '').startsWith('广告·'), `实际 ${g.salesTip}`)
   t(`${g.goodsId} ③ 徽章头部`, g.titleTop[0] && g.titleTop[0].text === '广告'
-    && g.titleTop[0].url === 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/assets/ad-badge.png')
+    && g.titleTop[0].url === 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png')
   t(`${g.goodsId} ④ goodsFlagIcon 头部`, String(g.goodsFlagIcon[0]).includes('ad-badge.png'))
   t(`${g.goodsId} ④ ltIcon 头部（原 URL 保留在数组里）`,
   Array.isArray(g.ltIcon) && String(g.ltIcon[0]).includes('ad-badge.png')
