@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v2.3.0
+#!name=Alibaba-AdBlock v2.4.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/弹窗/小卡片/Feed/搜索推荐/跑马灯/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=2.3.0
+#!version=2.4.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -53,7 +53,7 @@ http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.cloudvide
 http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.splash\.awesome\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏图片
 http-response ^https?:\/\/poplayer\.template\.alibaba\.com\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏活动
 
-# === 淘宝弹窗/运营位 Reject (kelee.one 高价值) ===
+# === 淘宝弹窗/运营位 (kelee.one 高价值接口 -> Body Rewrite 兜底) ===
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alibaba\.advertisementservice\.getadv\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-广告服务
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.etao\.config\.query\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-营销配置
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimusic\.common\.mobileservice\.startinit\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-音乐初始化
@@ -98,28 +98,44 @@ http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.trade\.f
 # TODO: 天猫/淘宝主版/淘宝直播/特价版特有接口待补充
 
 [Rewrite]
-# === 埋点/错误上报/APM/实验分流 —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/gm\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/log\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/px\.effirst\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com/i then reject, enable={blockTracking}
+# === 埋点/错误上报/APM/实验分流 —— 直接 Reject (简化正则，仅匹配域名) ===
+request if ${url} ~= /gm\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /log\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /s-gm\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /px\.effirst\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /abtest\.alibaba\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /tlog\.mmstat\.com/i then reject, enable={blockTracking}
 
-# === 广告投放/埋点域名 (kelee.one + 反编译) —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ut\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ems\.youku\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com/i then reject, enable={blockTracking}
+# === 广告投放/埋点域名 —— 直接 Reject ===
+request if ${url} ~= /adashx\.m\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /h-adashx\.ut\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /ut\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /ossgw\.alicdn\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /ems\.youku\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /hudong\.alicdn\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /hudong\.tbcdn\.cn/i then reject, enable={blockTracking}
 
-# === 闲鱼专用开屏/启动广告上报 (反编译发现) —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
+# === 闲鱼专用开屏/启动广告上报 —— 直接 Reject ===
+request if ${url} ~= /acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i then reject, enable={blockTracking}
+request if ${url} ~= /acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
+
+# === 兜底：DOMAIN-SUFFIX 风格 (Loon 支持) ===
+DOMAIN-SUFFIX, gm.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, log.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, px.effirst.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, abtest.alibaba.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, tlog.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ut.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ems.youku.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, hudong.alicdn.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT, enable={blockTracking}
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
-# request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com/i then reject, enable={blockTracking}
+# request if ${url} ~= /afpapi\.alimama\.com/i then reject, enable={blockTracking}
 
 [Task]
 # 无定时任务
