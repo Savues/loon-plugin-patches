@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.17
+#!name=Alibaba-AdBlock v3.9.18
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.17
+#!version=3.9.18
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -163,11 +163,38 @@ request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gatewa
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources/i then reject_dict(200)
 
+# === 跨 App 广告/氛围/弹窗缺口补齐 (4 款 App 二进制覆盖审计) ===
+# 闲鱼: 开屏广告体系 / 直播广告素材 / 鱼池弹窗
+request if ${url} ~= /mtop\.taobao\.idlecommerce\.splash\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.idle\.live\.home\.ads\.material\.get/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.idle\.fishpool\.poplayerinfo/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.idlefish\.device\.log\.launch\.report/i then reject, enable={blockTracking}
+# 天猫: 消息箱广告 / 开屏 / 首页氛围 / CPS 链接
+request if ${url} ~= /mtop\.tmall\.messagebox\.(scr)?[Aa]dvert/i then reject_dict(200)
+request if ${url} ~= /mtop\.tmall\.rpm\.splash\.query/i then reject_dict(200)
+request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.atmosphere\.query/i then reject_dict(200)
+request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject, enable={blockTracking}
+# 淘宝直播: 弹窗投放系统 / 直播广告任务 / 启动屏 / 搜索氛围
+request if ${url} ~= /mtop\.livex\.delivery\.poplayer\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livex\.grow\.advertise\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livexshow\.launchscreen\.pullResource/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livex\.vcore\.search\.searchAtmosphere/i then reject_dict(200)
+# 跨 App 通用: 氛围资源 (节日皮肤) / 追踪队列 / 登录启动
+request if ${url} ~= /mtop\.taobao\.wireless\.homepage\.loadAtmosphere/i then reject_dict(200)
+request if ${url} ~= /mtop\.tblive\.live\.atmosphere\.resource\.list/i then reject_dict(200)
+request if ${url} ~= /mtop\.tblive\.live\.detail\.sendUserAtmosphere/i then reject_dict(200)
+request if ${url} ~= /mtop\.trace\.queue/i then reject, enable={blockTracking}
+# 特价版: 淘特/淘宝特价运营上报
+request if ${url} ~= /mtop\.gaia\.tjb\.growth\.union\.telattr/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.ltao\.growth\.report/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.useroperation\.reportloginresource/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.interaction\.ifgateway\.sharerewards/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject, enable={blockTracking}
+
 # === 各 App 独有广告上报 (二进制差分审计: 闲鱼/天猫/特价版/直播) ===
 request if ${url} ~= /mtop\.idle\.ad\./i then reject, enable={blockTracking}
 request if ${url} ~= /mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
 request if ${url} ~= /mtop\.cainiao\.guoguo\.(ads\.|nbnetflow\.ads\.)/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.aliyun\.tjb\.growth\.union\.telattr/i then reject, enable={blockTracking}
 request if ${url} ~= /mtop\.taote\.billow2\.ads\.event\.upload/i then reject, enable={blockTracking}
 request if ${url} ~= /mtop\.diantao\.game\.thirdad\.task\.detail/i then reject, enable={blockTracking}
 request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject, enable={blockTracking}
