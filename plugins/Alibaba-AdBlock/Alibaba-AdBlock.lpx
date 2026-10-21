@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.3
+#!name=Alibaba-AdBlock v3.9.4
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.3
+#!version=3.9.4
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -128,8 +128,7 @@ request if ${url} ~= /mtop\.taobao\.clientpaas\.spotlightsearch\.get/i then reje
 request if ${url} ~= /mtop\.relationrecommend\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wsearch\.commonApi/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.stream\./i then reject_dict(200)
-request if ${url} ~= /tb-webb-widget-cloud\/search_door_trending_nine_square_gridList\//i then reject_dict(200)
-request if ${url} ~= /tb-webb-widget\/search_door_guess_discovery\//i then reject_dict(200)
+request if ${url} ~= /search_door_(trending|guess)/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/[0-9a-f]{32}\.json/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.tab\.two\.guang\.live\.status/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.iliad\.usertask\.tasks\.liveroom\.entry/i then reject_dict(200)
