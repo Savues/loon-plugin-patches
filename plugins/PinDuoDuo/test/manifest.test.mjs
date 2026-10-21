@@ -75,7 +75,7 @@ const viaArg = [...lpx.matchAll(/argument=\[([^\]]+)\]/g)]
   .flatMap(mm => (mm[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)))
 const referenced = [...new Set(viaEnable.concat(viaArg))]
 
-t('声明 12 个开关 + 1 个输入', declared.length === 12 && inputs.length === 1,
+t('声明 13 个开关 + 1 个输入', declared.length === 13 && inputs.length === 1,
   `开关 ${declared.length} 个: ${declared.join(',')} / 输入 ${inputs.join(',')}`)
 t('每个声明项都被引用', declared.every(d => referenced.includes(d)),
   `未被引用: ${declared.filter(d => !referenced.includes(d)).join(',') || '无'}`)
