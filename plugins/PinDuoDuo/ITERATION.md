@@ -258,3 +258,62 @@ v1.77 要在 `/api/oak/integration/render` 上挂响应脚本，但该端点已�
 
 **明确不加的**：`search_suggest`（无推广词证据）、开屏 `cappuccino/splash`
 （服务端常态回 `{"size":0}`）、百补列表的文字型标记（真机证伪）。
+
+---
+
+## 十五、省钱月卡 H5 拆解（v1.93，2026-10-22 抓包 `shared-33DB198B_474`，638 条）
+
+页面 `m.pinduoduo.net/hub_monthly_card.html`（378 KB，React + styled-components，
+bundle `hub_monthly_card_*.js` 858 KB）与 `hub_renew_manage.html`。
+
+### 15.1 「签到领好礼」的随机券：**服务端指派，插件无从优化**
+
+- 数据源 `POST /api/wizard/jaina/coupon/stats` → `private.mixtureCouponInfo.dailyLotteryCoupon`
+  - `couponList` 一次下发 **9 张候选券**（面额 20/27/44/47/49/61/62/78/90 元，门槛满 350–1199）
+  - 字段：`autoClaim:true`、`isAlgo:true`、`claimType:0`、`promotionType:276`、
+    `mcardRec`（推荐位埋点，含 `coupon_rec_id`/`idx`/`round`）
+  - 分两类：`month_card_coupon_type`（月卡券）与 `universal_bybt_no_self`（全场通用含百补）
+- 领取 `POST /api/wizard/jaina/lottery/coupon/claim` 请求体**只有 `anti_content`，没有 coupon_id**
+  → 拿哪张券完全由服务端算法决定；前端那点「随机」是 `hub_module_lucky_draw_everyday_coupons_*.js`
+  （33 KB）里的扫描光效 + 翻牌（`canFlip`/`flipped`/`onFlipAniEnd`）
+- 页面侧配置键（CMS 下发，可在 rawData 里看到）：`common.showDailyLotteryCouponScanning`、
+  `common.banDailyLotteryCouponScanning`、`common.dailyLotteryCouponItemScan`、
+  `common.dailyLotteryCouponItemScanTime`、`common.dailyLotteryCouponItemScanStyle`
+- **结论：不做**。改展示只会让自己看到一张拿不到的券。
+
+### 15.2 全屏动效的「跳过」：**可以替用户点，且等效**
+
+- 动效本体：`static.pddpic.com/upload/hub_monthly_card/20251205/172902/lottie/data.json`
+  （Lottie 750×1624 / 92 帧），图层里**烘焙**了「跳过.png」「补贴额度有限 活动5分钟后失效.png」
+  「给下一位用户.png」等图案 → 视觉上的跳过按钮在动画里，可点的按钮是 DOM
+- 按钮由模块 `hub_popup_limit_expire_73598_*.js` 渲染，文案走 i18n
+  `mobile-hub.csp.popup_skip`（zh=跳过 / en=Skip）；其 `onClick` 做三件事：
+  清倒计时 → `dispatchEvent` → `emphasizeLimitExpirePopupDone:true` + `subsidyCountDownVisible:true`
+  → **点跳过 = 动效跑完**，不丢任何东西
+- `react_common_*.js` 另有一族通用跳过组件（`sc-zpklgs-0/1/2`，`::after{content:var(--skip-text,'跳过')}`，
+  `position:fixed;top:.5rem;right:.16rem` 右上角变体），一并兜住
+- 实现 `src/hub_skip.response.js`：往 HTML 注入自执行脚本，命中「跳过」（文本节点或
+  `::after` computed content）就走 `pointerdown`→`mousedown`→`pointerup`→`mouseup`→`click`
+  完整序列（H5 按钮多挂 pointer/touch，只调 `element.click()` 会哑火）；
+  要求可见 + 尺寸 2~260×2~140 px，最多 4 次、120 秒收工
+- 开关 `auto_skip`（默认开）；钩 `hub_monthly_card.html` + `hub_renew_manage.html`
+
+### 15.3 顺带发现：多个商品流端点带 `ad` 但未打标（**待评估，未做**）
+
+| 端点 | 广告条数 | 结构 |
+|---|---|---|
+| `/api/wizard/naga/selected/goods` | 2–9 条/次（7 次） | **扁平**，`goods_list[].ad` 直接是对象 |
+| `/api/wizard/gather/homepage/goods` | 12 | 扁平/其它形态 |
+| `hub_monthly_card.html` 的 rawData | 5 | H5 内联 |
+| `/api/caterham/v3/query/personal` | 9 | 个人中心 |
+| `/api/alexa/homepage/hub` | 2 | 首页 |
+
+与已覆盖的 `cells/hub/v3`（`data.ad` 对象）、百补（转义字符串）三者形态不同，
+若要覆盖需在 `feed.response.js` 的收集器加「扁平形态」分支。
+
+### 15.4 方法论提醒
+
+**HAR 抓不到「点击」本身**，只能抓点击产生的请求。判断某个按钮点没点，看的是
+「点击后应出现的请求」有没有出现（本例：`lottery/coupon/claim` 在模块 JS 加载后 1 秒内
+出现，且 rawData 里 `autoClaim:true`，证明是自动领取而非点击触发）；
+真正要在客户端「替用户点」，只能靠往 H5 响应体注入脚本 —— 这两件事别混为一谈。

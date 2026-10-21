@@ -1,0 +1,27 @@
+oid 0===i?"undefined":t(i)))return i;var o={};for(var a in"[object Array]"===Object.prototype.toString.call(i)&&(o=[]),i)if(i.hasOwnProperty(a)){var c=i[a];if("function"==typeof c){var l=++e;n[l]={func:c},o[a]="__aimi_function_"+l}else"object"===(void 0===c?"undefined":t(c))&&null!==c?o[a]=r(c):o[a]=c}return o}(a),i(r,o,a,d)},callbackFromNative:function(e,n,t){r.callback(e,n,t)},removeCallback:function(e){delete n[e]},decodeFunctions:function(e){if("object"===(void 0===e?"undefined":t(e))){var n=function(n){if(!e.hasOwnProperty(n))return"continue";var i,o,a,c=e[n];if("string"==typeof c&&0===c.indexOf("__aimi_function_")){var l=c.substring("__aimi_function_".length).split("_");3===l.length&&(i=parseInt(l[0]),o=parseInt(l[1]),a=parseInt(l[2]),isNaN(i)||isNaN(o)||isNaN(a)||(e[n]=function(e,n){r.callNative("AMBridgeAPI","callback",{bridge_id:o,context_id:a,call_id:i,error_code:e,response:n})}))}else"object"===(void 0===c?"undefined":t(c))&&r.decodeFunctions(c)};for(var i in e)n(i)}}}}(),window.pinbridge=n;var r=n,i=r.callbackFromNative,o=r.callNative,a=r.check,c=r.callback,l=r.decodeFunctions,d=r.removeCallback,u=n;return e.callNative=o,e.callback=c,e.callbackFromNative=i,e.check=a,e.decodeFunctions=l,e.default=u,e.removeCallback=d,e}({});</script><script>(function loadScriptByRafInline(urls, isAsync, isIOS) {
+  function loadScript(list) {
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < list.length; i++) {
+      var script = document.createElement('script');
+      script.src = list[i];
+      script.crossOrigin = 'anonymous';
+      script.async = isAsync;
+      fragment.appendChild(script);
+    }
+    document.body.appendChild(fragment);
+  }
+  function scriptDelayLoad(list) {
+    (window.requestAnimationFrame || window.webkitRequestAnimationFrame || setTimeout)(function () {
+      loadScript(list);
+    });
+  }
+  function callback() {
+    var visible = (document.visibilityState || document.webkitVisibilityState) === 'visible';
+    (isIOS && visible ? scriptDelayLoad : loadScript)(urls);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', callback);
+  } else {
+    callback();
+  }
+})(["https://static.pddpic.com/assets/js/hub_module_lucky_draw_everyday_coupons_62df9818efc4a4fd.js","https://static.pddpic.com/assets/js/hub_module_portal_coupon_mhg_597629fca3f1a180.js","https://static.pddpic.com/assets/js/hub_module_pre_send_coupon_entrance_e622dc057c19610f.js","https://static.pddpic.com/assets/js/runtime_0e66ef30be30bcfb.js","https://static.pddpic.com/assets/js/react_common_ab4828b98bfe43f7.js","https://static.pddpic.com/assets/js/react_pdd_4786c4516716a232.js","https://static.pddpic.com/assets/js/react_module_2458289a648752de.js","https://static.pddpic.com/assets/js/hub_monthly_card_b555d046c52df929.js"], false, true);</script><script src="https://static.pddpic.com/assets/js/error_logger_inline_1.9.0.js" async="" crossorigin="anonymous"></script><script>window;</script></body></html>

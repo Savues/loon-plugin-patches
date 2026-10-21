@@ -75,7 +75,8 @@ const viaArg = [...lpx.matchAll(/argument=\[([^\]]+)\]/g)]
   .flatMap(mm => (mm[1].match(/\{(\w+)\}/g) || []).map(x => x.slice(1, -1)))
 const referenced = [...new Set(viaEnable.concat(viaArg))]
 
-t('声明 13 个开关 + 1 个输入', declared.length === 13 && inputs.length === 1,
+// v1.93 起新增 auto_skip（月卡页自动跳过动效）
+t('声明 14 个开关 + 1 个输入', declared.length === 14 && inputs.length === 1,
   `开关 ${declared.length} 个: ${declared.join(',')} / 输入 ${inputs.join(',')}`)
 t('每个声明项都被引用', declared.every(d => referenced.includes(d)),
   `未被引用: ${declared.filter(d => !referenced.includes(d)).join(',') || '无'}`)
@@ -166,6 +167,8 @@ t('homepage/hub 不再有 [Rewrite] 规则', hubRules.length === 0,
   `仍有 ${hubRules.length} 条：${hubRules.map(x => x.slice(0, 50)).join(' | ')}`)
 t('不再有 homepage/hub 的 json-del', !hubRules.some(l => /json-del|json-jq/.test(l)))
 t('homepage/hub 挂在 [Script] 上', section('SCRIPT').some(l => /homepage/.test(l) && /script-path=/.test(l)))
+t('月卡 H5 自动跳过挂在 [Script] 上',
+  section('SCRIPT').some(l => /hub_skip\.response\.js/.test(l) && /hub_monthly_card/.test(l) && /hub_renew_manage/.test(l)))
 t('脚本指向本仓库', /Savues\/loon-plugin-patches.*homepage\.response\.js/.test(lpx))
 const argM = lpx.match(/homepage\.response\.js[^\n]*argument=\[([^\]]+)\]/)
 t('脚本带 argument 列表', !!argM, argM ? '' : '未找到 argument=')

@@ -24,7 +24,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
-| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 信息流+百补图片角标 · 拦截全可关<br>Ad-block · custom bottom bar · feed-ad tagging · all stubs switchable | **v1.92** |
+| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 信息流+百补图片角标 · 月卡 H5 自动跳过动效 · 拦截全可关<br>Ad-block · custom bottom bar · feed-ad tagging · month-card auto-skip · all stubs switchable | **v1.93** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.1** |
 | [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修三处上游缺陷<br>AgentRouter check-in · cron off by default · three upstream bugs fixed | **v1.13** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
@@ -390,7 +390,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
-| [PinDuoDuo/ITERATION.md](plugins/PinDuoDuo/ITERATION.md) | v1.74→v1.92 复盘 + **排障手册**：风控由浏览节奏触发（含封禁链路回放）、`enable=` 在 `[Rule]`/`[Rewrite]` 上是死开关、同端点 Rewrite 抢跑 Script、广告三层判据与各打标点的真机渲染结论、图片角标五条铁律、读 HAR 要点与假警报、红线清单、开发流程规约 · Attribution, dead `enable=`, tagging architecture & troubleshooting playbook |
+| [PinDuoDuo/ITERATION.md](plugins/PinDuoDuo/ITERATION.md) | v1.74→v1.93 复盘 + **排障手册**：风控由浏览节奏触发（含封禁链路回放）、`enable=` 在 `[Rule]`/`[Rewrite]` 上是死开关、同端点 Rewrite 抢跑 Script、广告三层判据与各打标点的真机渲染结论、图片角标五条铁律、读 HAR 要点与假警报、红线清单、开发流程规约 · Attribution, dead `enable=`, tagging architecture & troubleshooting playbook |
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [Locally-HF-Swap/README.md](plugins/Locally-HF-Swap/README.md) | Locally 换模型插件：3 种 URL 形态的实测结论 + 两个正则坑 · Model-swap plugin: measured URL shapes & two regex traps |
 | [Locally-HF-Swap/EXPERIMENT.md](plugins/Locally-HF-Swap/EXPERIMENT.md) | **完整实验记录**：四个坑、两处 mock 误判、判读 Loon HAR 的方法，以及为何到此为止<br>Full post-mortem: four traps, two mock mistakes, how to read a Loon HAR, why it stops here |

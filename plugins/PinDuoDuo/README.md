@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.92** · 14 项配置 / 14 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-21T20:20`
+**v1.93** · 15 项配置 / 15 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T01:30`
 
 | | 中文 | English |
 |---|---|---|
@@ -74,7 +74,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 ## 开关 · Switches
 
-14 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
+15 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
 
 ### [高危] 会改写服务端下发内容的拦截
 
@@ -86,6 +86,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
+| `auto_skip` | 开 | 省钱月卡 / 续费管理 H5 的**全屏补贴动效**：自动点掉右上角「跳过」 | 想自己看完动效时 |
 
 > **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。
 > 这两项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。
@@ -267,6 +268,7 @@ node test/manifest.test.mjs      # 54 用例，清单层
 node test/homepage.test.mjs      # 37 用例，首页脚本
 node test/stub.test.mjs          # 60 用例，拦截开关
 node test/stub-wiring.test.mjs   # 40 用例，清单与脚本接线
+node test/hub-skip.test.mjs      # 21 用例，月卡自动跳过注入
 ```
 
 清单层覆盖：开关声明与引用双向一致、三条高风险规则确已移除、
@@ -340,10 +342,12 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `src/homepage.response.js` | 首页去广告 + 底栏自定义（**自研**） | Purpose-built script |
 | `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
 | `src/subsidy.response.js` | 百亿补贴页搜索框去推广词（**自研**） | Subsidy page search-box scrubber |
+| `src/hub_skip.response.js` | 月卡 H5 自动点「跳过」动效（**自研**） | Month-card H5 auto-skip injector |
 | `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
 | `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
 | `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
 | `test/stub-wiring.test.mjs` | 40 个清单与脚本接线用例 | 40 wiring tests |
+| `test/hub-skip.test.mjs` | 21 个月卡自动跳过用例 | 21 auto-skip tests |
 | `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |
 
 校验托管脚本完整性：

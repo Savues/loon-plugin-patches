@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.92
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）。
+#!name=拼多多去广告(修复版) v1.93
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 23:45:00
+#!date=2026-10-22 01:30:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -18,6 +18,7 @@ phantom_stub = switch,false,false,tag=[高危] 屏蔽 phantom 风控模块,desc=
 order_stub = switch,true,false,tag=[高危] 屏蔽订单列表,desc=关掉后订单页会显示真实订单;若不想在订单页看到列表可关
 search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
 feed_ad = switch,true,tag=[信息流] 给广告商品打「广告」标,desc=只标记不删除;靠服务端自己的 data.ad 字段识别,正常推荐零误伤
+auto_skip = switch,true,tag=[月卡] 自动点掉全屏动效的「跳过」,desc=省钱月卡/续费页的补贴动效（右上角跳过）自动点掉;点跳过与动效跑完等效，不影响发券
 # ===== 底栏自定义 =====
 bottom_custom = switch,true,tag=[底栏] 启用自定义底栏
 Bot_index = switch,true,tag=[底栏] 首页
@@ -79,6 +80,8 @@ http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/arist
 http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js, requires-body=true, tag=移除扫码取件页面商品推荐及弹窗
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/homepage.response.js, requires-body=true, argument=[{api_stub},{search_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
 http-response ^https:\/\/m\.pinduoduo\.net\/(brand_activity_subsidy|tandy_vase)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy.response.js, requires-body=true, argument=[{search_stub},{feed_ad}], timeout=5, tag=百亿补贴搜索框去推广词+广告打标
+
+http-response ^https:\/\/m\.pinduoduo\.net\/(hub_monthly_card|hub_renew_manage)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_skip.response.js, requires-body=true, argument=[{auto_skip}], timeout=5, tag=月卡页面自动跳过动效
 
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/detail.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=详情页广告打标
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=信息流广告打标
@@ -164,5 +167,14 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #      三层广告判据 / 各打标点真机渲染结论 / 图片角标五条铁律 /
 #      Loon 通用守则（enable= 死开关、Rewrite 抢跑 Script）/ 读 HAR 要点 /
 #      红线清单 / 开发流程规约（shared 目录不持久化等）。文档改动，无行为变化。
+# 34.【v1.93】省钱月卡/续费页自动点「跳过」：新增 src/hub_skip.response.js，
+#      钩 m.pinduoduo.net/hub_monthly_card.html 与 hub_renew_manage.html，
+#      往 HTML 里注入一小段自执行脚本，命中「跳过」（文本或 ::after 内容）
+#      就模拟 pointerdown/mousedown/pointerup/mouseup/click 整串事件。
+#      判据来自 2026-10-22 抓包：全屏补贴动效 = hub_popup_limit_expire 弹窗
+#      （Lottie 750×1624/92 帧，图层烘焙「跳过.png」），其 onClick 做的是
+#      清倒计时 + emphasizeLimitExpirePopupDone=true + 显示补贴倒计时，
+#      与动效自然跑完等效；签到领好礼（每日抽奖券）本身 autoClaim=true，
+#      领取接口只带 anti_content，跳过动效不影响发券。开关 auto_skip（默认开）。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
