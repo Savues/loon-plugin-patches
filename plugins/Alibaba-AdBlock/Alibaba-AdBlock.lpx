@@ -1,12 +1,12 @@
-#!name=Alibaba-AdBlock v2.0.0
+#!name=Alibaba-AdBlock v2.1.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/弹窗/小卡片/Feed/搜索推荐/跑马灯/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=2.0.0
+#!version=2.1.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
 [MITM]
-hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
+hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
 h2 = true
 
 [Argument]
@@ -48,7 +48,54 @@ http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider
 # === 私域动态/关注会员 (Moon) ===
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePrivateDomain}, tag=私域动态/关注会员
 
-# TODO: 淘宝/天猫/闲鱼特有接口待补充
+# === 淘宝开屏/弹窗 (kelee.one + 反编译) ===
+http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.cloudvideo\.video\.query\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏视频
+http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.splash\.awesome\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏图片
+http-response ^https?:\/\/poplayer\.template\.alibaba\.com\/.*\.json script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏活动
+
+# === 淘宝弹窗/运营位 Reject (kelee.one 高价值) ===
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alibaba\.advertisementservice\.getadv\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-广告服务
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.etao\.config\.query\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-营销配置
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimusic\.common\.mobileservice\.startinit\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-音乐初始化
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.etao\.noah\.query\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeNoahOps, removePopWindow}, tag=淘宝-NOAH开屏
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.film\.mtopadvertiseapi\.queryadvertise\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-影视广告
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gateway\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-O2O广告
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-欢迎页
+http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-旅行活动
+http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.volvo\.secondfloor\.getconfig\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-二楼配置
+http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.newface\.awesome\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-新面孔
+
+# === 闲鱼开屏/弹窗 (kelee.one + 反编译) ===
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlecommerce\.splash\.ads\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=闲鱼-开屏广告
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.user\.strategy\.list\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-用户策略
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.item\.recommend\.list\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-商品推荐
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.local\.near\.by\.corner\.info\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-附近角落
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.item\.buy\.feeds\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-购买Feed
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\.shade\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-搜索遮罩
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.playboy\.recommend\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=闲鱼-玩家推荐
+
+# === 闲鱼首页/内容过滤 (kelee.one jq 规则移植为 JS) ===
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.nextfresh\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-首页刷新
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.widget\.refresh\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-Widget刷新
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.home\.whale\.modulet\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-鲸鱼模块
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.community\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-社区
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.newitem\.page\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-新商品页
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.local\.flow\.plat\.section\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-本地流量
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.local\.home\.top\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-本地顶部
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.local\.home\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-本地首页
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.user\.page\.my\.adapter\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-我的页面
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.circle\.list\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-圈子列表
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.magic\.home\.page\.list\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-魔法首页
+http-response ^https?:\/\/g-acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-搜索去广告
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\.discover\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-搜索发现
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.item\.search\.activate\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-搜索激活
+http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.trade\.full\.info\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSmallCards}, tag=闲鱼-交易详情
+
+# === 反编译补充：闲鱼专用开屏/启动广告上报 (直接 Reject) ===
+# 这些是上报接口，直接 Reject 更高效
+# TODO: 在 Rewrite 中添加
+
+# TODO: 天猫/淘宝主版/淘宝直播/特价版特有接口待补充
 
 [Rewrite]
 # === 埋点/错误上报/APM/实验分流 —— 直接 Reject ===
@@ -58,6 +105,25 @@ http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.en
 ^https?://px\.effirst\.com/ reject, enable={blockTracking}
 ^https?://abtest\.alibaba\.com/ reject, enable={blockTracking}
 ^https?://tlog\.mmstat\.com/ reject, enable={blockTracking}
+
+# === 广告投放/埋点域名 (kelee.one + 反编译) —— 直接 Reject ===
+^https?://adashx\.m\.taobao\.com/ reject, enable={blockTracking}
+^https?://h-adashx\.ut\.taobao\.com/ reject, enable={blockTracking}
+^https?://ut\.taobao\.com/ reject, enable={blockTracking}
+^https?://ossgw\.alicdn\.com/ reject, enable={blockTracking}
+^https?://ems\.youku\.com/ reject, enable={blockTracking}
+^https?://hudong\.alicdn\.com/ reject, enable={blockTracking}
+
+# === 闲鱼专用开屏/启动广告上报 (反编译发现) —— 直接 Reject ===
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.click/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.expose/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.click/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.expose/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.redirect/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.report/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.code\.restore/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.scene\.restore/ reject, enable={blockTracking}
+^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.xyflowin\.upload/ reject, enable={blockTracking}
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
 # DOMAIN-SUFFIX, afpapi.alimama.com, REJECT
