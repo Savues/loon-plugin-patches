@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.18
+#!name=Alibaba-AdBlock v3.9.19
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.18
+#!version=3.9.19
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -162,6 +162,14 @@ request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.film\.mtopadver
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gateway\.get/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources/i then reject_dict(200)
+
+# === 开屏图接口 acs 变体 (guide-acs 之外的同接口) + 特价版运营触达 ===
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.splash\.awesome\.get/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.awesome\.(get|newget)/i then reject_dict(200)
+request if ${url} ~= /mtop\.aplatform\.ltao\.get/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.useroperation\.(getubaplaninfo|outsidetouchmatch|touchmatch)/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.userflow\.peidecision/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.interaction\.conner\.application\.moveline\.jupipe/i then reject, enable={blockTracking}
 
 # === 跨 App 广告/氛围/弹窗缺口补齐 (4 款 App 二进制覆盖审计) ===
 # 闲鱼: 开屏广告体系 / 直播广告素材 / 鱼池弹窗
