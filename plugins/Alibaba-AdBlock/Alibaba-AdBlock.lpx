@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.1.1
+#!name=Alibaba-AdBlock v3.2.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=3.1.1
+#!version=3.2.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -113,6 +113,8 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(?:octopus|tps)-(?:1080|1125)-\d{4}\.(?:jpg|png)_(?:1\d{3}|9\d{2})x(?:\d|1\d{3}|9\d{2})q[59]0/i then reject_dict(200), enable={removeSplashAd}
 
 # === 开屏数据/弹窗营销接口 (kelee reject, 返回空 JSON 200) ===
+request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.tab\.two\.guang\.live\.status/i then reject_dict(200), enable={removePopWindow}
+request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.iliad\.usertask\.tasks\.liveroom\.entry/i then reject_dict(200), enable={removePopWindow}
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.splash\.awesome\.get/i then reject_dict(200), enable={removeSplashAd}
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.newface\.awesome\.(get|newget)/i then reject_dict(200), enable={removePopWindow}
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.cloudvideo\.video\.query/i then reject_dict(200), enable={removeSplashAd}
