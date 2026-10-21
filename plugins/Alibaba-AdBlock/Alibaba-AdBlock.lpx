@@ -1,7 +1,7 @@
 #!name=Alibaba-AdBlock v3.9.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=3.9.1
+#!version=3.9.1-test393only
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -54,6 +54,9 @@ response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com/i then scrip
 
 # === 搜索框轮播词: 替换搜索栏容器模板为补丁版 (绑定失效, UI 完好) ===
 response if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version\/.*\.zip/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/rollback-v3.9.1/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSearchWords}}) with enable=${removeSearchWords}, requires_body=true, binary_body_mode=true, tag="淘宝-搜索框轮播词"
+
+# === 测试: 仅 v3.9.3 规则 (doudi IDs) ===
+request if ${url} ~= /O1CN01xvtBxdhcjQF1chua|O1CN01YelGPQ24a0Mo9ODI6/i then reject_dict(200)
 
 # === 双11氛围皮肤 (enable=true 时替换开屏/tabbar/我的页皮肤为促销素材) ===
 response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.wireless\.skin\.atmosphere\.info/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/rollback-v3.9.1/plugins/Alibaba-AdBlock/src/bundle.js", {${removePopWindow}}) with enable=${removePopWindow}, requires_body=true, tag="淘宝-双11氛围皮肤"
