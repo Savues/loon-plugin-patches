@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.77
+#!name=拼多多去广告(修复版) v1.78
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告商品打「广告」标（不删除）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 15:20:00
+#!date=2026-10-21 15:50:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -139,6 +139,13 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #     ① need_ad_logo=true（客户端原生角标）② tag_list 插入红字「广告」
 #     ③ sales_tip 加「广告·」前缀。三路并行，真机验证后可收敛。
 # 17.【v1.77】新增 detail.response.js：详情页广告打标（写法 1，用户确认）。
+# 18.【v1.78】详情页滚动条补漏（真机报告：本店已拼4.8万件那帧没打标）。
+#     价格区滚动条有两套数据源：desc_labels_rich（两行，已打）和
+#     desc_labels_for_carousel（逐帧独立下发，v1.77 漏了）——本店已拼
+#     只在后者里。另把「快要抢光」纳入正则（原正则只认已拼/已抢/已售/总售），
+#     新覆盖：desc_labels 全部帧、first_desc_label、carousel 每帧、
+#     sku_section 两个 suffix 列表（已抢678个/快要抢光；零差评不误伤）、
+#     new_bottom_section.right_button 副标题。
 #     详情页响应里没有任何广告标记（bkfl/openinfo/ad_id 全部 0 次，实测），
 #     广告身份只在信息流里。feed.response.js 打标时把广告 goods_id 写进
 #     $persistentStore（环形 200 条，write(value,key) 值在前——仓库踩过的坑），

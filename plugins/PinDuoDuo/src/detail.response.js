@@ -39,7 +39,9 @@ const AD_TITLE = '【广告】';
 const AD_COLOR = '#E02E24';
 const AD_KEY = 'pddAdGoodsIds';
 const AD_CAP = 200;
-const SALES = /(已拼|已抢|已售|总售)/;
+// 销量/紧迫感文案。v1.77 只认「已拼|已抢|已售|总售」，漏了「快要抢光」
+// （面包诱惑实测：SKU 侧栏、底部按钮副标题、desc_labels 第二帧都是它）。
+const SALES = /(已拼|已抢|已售|总售|抢光|仅剩)/;
 
 // ── $persistentStore 名单读取（read(key)）────────────────────
 function loadAdIds() {
@@ -107,12 +109,30 @@ try {
         }
       }
 
-      // ui.new_price_section.desc_labels[]
+      // ui.new_price_section.desc_labels[] —— v1.78 起全部条目都打标：
+      // 实测（面包诱惑）这是滚动条的帧列表，每条是独立一帧，
+      // 只标销量帧会漏「快要抢光」帧。此处全部加前缀。
       const np = j.ui && j.ui.new_price_section;
       if (np && Array.isArray(np.desc_labels)) {
         for (let i = 0; i < np.desc_labels.length; i++) {
-          if (typeof np.desc_labels[i] === 'string' && SALES.test(np.desc_labels[i])) {
+          if (typeof np.desc_labels[i] === 'string' && np.desc_labels[i]) {
             np.desc_labels[i] = prefixOnce(np.desc_labels[i]); marked = true;
+          }
+        }
+      }
+
+      // ui.new_price_section.first_desc_label（首帧）
+      if (np && typeof np.first_desc_label === 'string' && np.first_desc_label) {
+        np.first_desc_label = prefixOnce(np.first_desc_label); marked = true;
+      }
+
+      // ui.new_price_section.desc_labels_for_carousel —— 滚动条的另一套数据源，
+      // 每个元素是独立一帧（实测：「本店已拼4.8万件」只在它里面下发）。
+      // 每帧自带颜色，逐元素加前缀而不是插头元素（头元素不会跟着轮播）。
+      if (np && Array.isArray(np.desc_labels_for_carousel)) {
+        for (const el of np.desc_labels_for_carousel) {
+          if (el && typeof el === 'object' && typeof el.txt === 'string' && el.txt) {
+            el.txt = prefixOnce(el.txt); marked = true;
           }
         }
       }
@@ -128,6 +148,33 @@ try {
       const pd = j.ui && j.ui.pull_down_title_section;
       if (pd && Array.isArray(pd.second_line_rich_list) && pd.second_line_rich_list.length) {
         if (insertRich(pd.second_line_rich_list)) marked = true;
+      }
+
+      // ui.sku_section 的两个 suffix 列表（SKU 行内滚动文案）
+      const skuSec = j.ui && j.ui.sku_section;
+      const markSuffix = (node) => {
+        if (!node || !Array.isArray(node.show_content)) return;
+        for (const sc of node.show_content) {
+          if (sc && typeof sc === 'object' && typeof sc.text === 'string' && SALES.test(sc.text)) {
+            sc.text = prefixOnce(sc.text); marked = true;
+          }
+        }
+      };
+      if (skuSec) {
+        markSuffix(skuSec.sku_suffix_display);
+        if (Array.isArray(skuSec.sku_suffix_display_list)) {
+          for (const node of skuSec.sku_suffix_display_list) markSuffix(node);
+        }
+      }
+
+      // ui.new_bottom_section.right_button.title（底部购买按钮副标题）
+      const rb = j.ui && j.ui.new_bottom_section && j.ui.new_bottom_section.right_button;
+      if (rb && Array.isArray(rb.title)) {
+        for (const el of rb.title) {
+          if (el && typeof el === 'object' && typeof el.txt === 'string' && SALES.test(el.txt)) {
+            el.txt = prefixOnce(el.txt); marked = true;
+          }
+        }
       }
 
       // 兜底：整个详情页没有销量文案 → 标题前缀，保证不丢标
