@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.11
+#!name=Alibaba-AdBlock v3.9.12
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.11
+#!version=3.9.12
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -133,6 +133,11 @@ request if ${url} ~= /tb-webb-widget-cloud\/search_door_trending_hot_textList\//
 
 # === 搜索框轮播词: 拒绝容器模板 -> DX 容器失败 -> 原生搜索栏 fallback (空白+可点+无词) ===
 request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i then reject_dict(200)
+
+# === 小时级分发 (hourly delivery) — 搜索框轮播词的定时下发源 (反编译: hourlyDeleviry ... request fail 容忍失败) ===
+request if ${url} ~= /mtop\.taobao\.hourly\.delivery\.config\./i then reject_dict(200)
+request if ${url} ~= /mtop\.xsd\.searchbar\.info\.get/i then reject_dict(200)
+request if ${url} ~= /hourly_arrv\./i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/[0-9a-f]{32}\.json/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.tab\.two\.guang\.live\.status/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.iliad\.usertask\.tasks\.liveroom\.entry/i then reject_dict(200)
