@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.15
+#!name=Alibaba-AdBlock v3.9.16
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.15
+#!version=3.9.16
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -159,6 +159,17 @@ request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.film\.mtopadver
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gateway\.get/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources/i then reject_dict(200)
+
+# === 各 App 独有广告上报 (二进制差分审计: 闲鱼/天猫/特价版/直播) ===
+request if ${url} ~= /mtop\.idle\.ad\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.cainiao\.guoguo\.(ads\.|nbnetflow\.ads\.)/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.aliyun\.tjb\.growth\.union\.telattr/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taote\.billow2\.ads\.event\.upload/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.diantao\.game\.thirdad\.task\.detail/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.aliad\.a\.business\.ad\.event\.report/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.alibaba\.tmall\.app\.ad\.event\.report/i then reject, enable={blockTracking}
 
 # === 广告点击/曝光/结算上报 (二进制审计补齐: ali.ad.settle / alimama trace / topshow / o2o ad / 淘金币广告) ===
 request if ${url} ~= /mtop\.ali\.ad\.settle\./i then reject, enable={blockTracking}
