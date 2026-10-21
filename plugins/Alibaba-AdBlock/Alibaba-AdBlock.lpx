@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.14
+#!name=Alibaba-AdBlock v3.9.15
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.14
+#!version=3.9.15
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -159,6 +159,20 @@ request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.film\.mtopadver
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gateway\.get/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources/i then reject_dict(200)
+
+# === 广告点击/曝光/结算上报 (二进制审计补齐: ali.ad.settle / alimama trace / topshow / o2o ad / 淘金币广告) ===
+request if ${url} ~= /mtop\.ali\.ad\.settle\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.alimama\.(adsdk\.customize\.cps\.track|cps\.trace\.adsdk\.send|cps\.initiativeaction\.save|union\.trace2?)/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.alimama\.topshow\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.o2o\.ad\.(action|exposure)\.get/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.life\.ad\.click\.get/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taobao\.coin\.advertise\.click\.add/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.tmall\.jiuxi\.activity\.ad\.upstream\.report\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.uzjump\.business\.cps\.click\.add/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taobao\.livex\.business\.taolive\.ad\.monitor/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.iliad\.hotitem\.subscribe/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.iliad\.interact\.common\.queryBenefitMarquee/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.com\.taobao\.tbtrace\.commission\./i then reject, enable={blockTracking}
 
 # === 埋点/错误上报/APM/实验分流 —— 直接 Reject (完整 URL 匹配，照抄 Dataoke 格式) ===
 request if ${url} ~= /^https?:\/\/gm\.mmstat\.com/i then reject, enable={blockTracking}
