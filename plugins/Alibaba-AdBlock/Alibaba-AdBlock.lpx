@@ -136,7 +136,6 @@ request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i t
 
 # === 小时级分发 (hourly delivery) — 搜索框轮播词的定时下发源 (反编译: hourlyDeleviry ... request fail 容忍失败) ===
 request if ${url} ~= /mtop\.taobao\.hourly\.delivery\.config\./i then reject_dict(200)
-request if ${url} ~= /mtop\.xsd\.searchbar\.info\.get/i then reject_dict(200)
 request if ${url} ~= /hourly_arrv\./i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/[0-9a-f]{32}\.json/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.tab\.two\.guang\.live\.status/i then reject_dict(200)
