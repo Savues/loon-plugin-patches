@@ -1075,6 +1075,95 @@ function handleXianyuResponse(body, url) {
 // ============================================
 // 统一入口
 // ============================================
+
+// ============================================
+// 橙色配置 (orange.tbcdn.cn) 营销内容清洗 (v3.9.14)
+// orange 响应是 protobuf, 内含 JSON 字符串 (字节级处理, 长度严格不变)
+// 目标: 清空搜索门营销词 / 节日氛围背景图 / 营销跳转
+// ============================================
+function bytesToLatin1(u8) {
+  let s = "";
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+  return s;
+}
+function latin1ToBytes(s) {
+  const u8 = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i) & 0xFF;
+  return u8;
+}
+function blankJsonValue(s, key, mode) {
+  // 兼容两种形态: 普通 JSON "key":"value" 与嵌套字符串内的转义形式 \"key\":\"value\"
+  // 使用搜索偏移, 避免替换后重复命中同一处 (否则只处理第一个出现位置)
+  const plain = '"' + key + '":"';
+  const escMarker = '\\"' + key + '\\":\\"';
+  let changed = false;
+  let from = 0;
+  for (let guard = 0; guard < 40; guard++) {
+    let idx = s.indexOf(plain, from);
+    let esc = false;
+    if (idx < 0) {
+      idx = s.indexOf(escMarker, from);
+      esc = true;
+      if (idx < 0) break;
+    }
+    const marker = esc ? escMarker : plain;
+    const vStart = idx + marker.length;
+    let end = vStart;
+    while (end < s.length) {
+      const c = s[end];
+      if (!esc && c === "\\") { end += 2; continue; }
+      if (c === '"') break;
+      end++;
+    }
+    if (end >= s.length) break;
+    // 转义形式下结束引号前的反斜杠必须保留 (否则嵌套 JSON 失效)
+    let valEnd = end;
+    if (esc && end > vStart && s[end - 1] === "\\") valEnd = end - 1;
+    const val = s.slice(vStart, valEnd);
+    if (!val.length) { from = vStart + 1; continue; }
+    let rep;
+    if (mode === "url" && val.indexOf("http") === 0) {
+      const p = val.indexOf("//") + 2;
+      rep = val.slice(0, p) + new Array(val.length - p + 1).join("x");
+    } else {
+      rep = new Array(val.length + 1).join(" ");
+    }
+    s = s.slice(0, vStart) + rep + s.slice(valEnd);
+    from = vStart + rep.length;
+    changed = true;
+  }
+  return s;
+}
+
+const ORANGE_SCRUB_TARGETS = [
+  ["searchDoorVoiceHint", "text"],
+  ["searchCoudanRedirectUrl", "url"],
+  ["immersedBackgroundImgUrl", "url"],
+  ["banner_url", "url"],
+  ["backgroundImage", "url"],
+  ["backgroundImageWithTab", "url"]
+];
+function scrubOrangeConfig(bodyBytes) {
+  try {
+    let s = bytesToLatin1(bodyBytes);
+    let changed = 0;
+    for (const t of ORANGE_SCRUB_TARGETS) {
+      const before = s;
+      s = blankJsonValue(s, t[0], t[1]);
+      if (s !== before) changed++;
+    }
+    if (changed === 0) {
+      console.log("[Alibaba-AdBlock] Orange config: no marketing fields matched");
+      return null;
+    }
+    console.log("[Alibaba-AdBlock] Orange config scrubbed, fields:", changed);
+    return latin1ToBytes(s);
+  } catch (e) {
+    console.log("[Alibaba-AdBlock] Orange scrub failed, pass through:", e);
+    return null;
+  }
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alibaba-AdBlock] No response body");
@@ -1093,6 +1182,20 @@ function main() {
     }
   }
   
+  // 橙色配置 (orange.tbcdn.cn): 清洗营销内容 (protobuf 字节级, 长度不变)
+  if (url.indexOf("orange.tbcdn.cn/") >= 0) {
+    if (isEnabled("removeSplashAd")) {
+      const raw = ($response.bodyBytes || ($response.body instanceof Uint8Array ? $response.body : null));
+      if (raw) {
+        const scrubbed = scrubOrangeConfig(raw);
+        if (scrubbed) {
+          $done({ body: scrubbed });
+          return;
+        }
+      }
+    }
+  }
+
   // 按域名/路径分发
   let newBody = null;
   if (url.includes("acs.m.taobao.com") || url.includes("guide-acs.m.taobao.com") || url.includes("poplayer.template.alibaba.com")) {
