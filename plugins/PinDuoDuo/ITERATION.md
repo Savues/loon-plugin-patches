@@ -1,4 +1,4 @@
-# PinDuoDuo 迭代记录 v1.74 → v1.78（2026-09-30 ~ 10-21）
+# PinDuoDuo 迭代记录 v1.74 → v1.92（2026-09-30 ~ 10-21）
 
 > 这一段迭代的主题不是「多拦了什么」，而是用**五份真机抓包 + 一份反编译**
 > 把「插件到底该拦什么」重新钉了一遍。两次方向性修正、一个死开关、
@@ -112,3 +112,149 @@ v1.77 要在 `/api/oak/integration/render` 上挂响应脚本，但该端点已�
 
 **明确不加的**：`search_suggest`（无推广词证据）、开屏 `cappuccino/splash`
 （服务端常态回 `{"size":0}`，v1.76 后 BlockAds 退场未观察到广告回潮）。
+
+---
+
+# 第二部分：广告打标体系（v1.79 → v1.92）与排障手册
+
+> 2026-10-21 一天内从 v1.79 做到 v1.92，全部结论都经过真机消融。
+> 这一部分写给「以后插件出问题时」的自己和任何人。
+
+## 八、广告识别体系（三层判据，缺一不可）
+
+打标的全部依据是**服务端自己打的付费标记**，我们只是把它读出来重新显示。
+
+| 场景 | 数据位置 | 形态 |
+|---|---|---|
+| 信息流 `/api/alexa/cells/hub/v3` | `data.goods_list[].data.ad` | **对象** |
+| 百补列表 `tandy_vase.html` / `brand_activity_subsidy.html` | `window.rawData` → `…list[].ad` | **转义 JSON 字符串**（字段名 camelCase：`goodsId`）|
+| 商品详情 `/api/oak/integration/render` | —— | **不存在**（`bkfl`/`openinfo`/`ad_id` 实测 0 次）|
+
+```json
+"ad": { "bkfl": 1,                      // 广告恒为 1
+        "openinfo": { "ads_from": 0,    // 0 = 竞价广告
+                      "ad_id": 7123468285,   // 竞价投放单元 ID
+                      "is_tr": 1 },
+        "nbid": "…", "mark": "…" }      // 结算归因 ID 与签名
+```
+
+**判定规则只有一条**：存在 `ad` 字段即广告。正常推荐没有这个键——
+五份抓包、上百条商品零例外。**不要用文案匹配**（「已抢」「本店已拼」正常商品也有）。
+
+**旁证**：拼多多把客户端原生的广告角标开关 `need_ad_logo` 对所有商品
+（含广告）统一下发 `false` —— 判定信息它都有，只是不给用户看。
+
+## 九、打标架构：三段式 + 跨端点名单
+
+```
+信息流(cells/hub/v3) ─┐
+百补列表(subsidy/tandy)─┴→ 广告 goodsId 名单（$persistentStore）──→ 详情页打标
+        │                                                              ▲
+        └────────────→ 列表页图片角标（直接改 HTML/JSON）───────────────┘
+```
+
+- **名单键**：`pddAdGoodsIds`，环形 200 条，新 id 在前
+- **`$persistentStore.write(value, key)` 参数是「值在前键在后」** ——
+  写反了不报错、但 `read` 永远回 null（仓库在 Splash-Festival v37 踩过）
+- 详情页响应里没有任何广告标记，只能靠名单关联。**从历史记录直接进详情不会打标**
+  （名单是刷列表时才写入的）——这是设计使然，不是 bug
+
+### 各打标点的真实渲染结论（真机消融，别再试第二遍）
+
+| 位置 | 字段 | 真机结果 |
+|---|---|---|
+| 信息流卡片 | `sales_tip` / **`fallback_sales_tip`** / `tag_list` / `need_ad_logo` | ✅ 全部可见（**fallback 是客户端实际渲染的那个**）|
+| 详情页销量行 | `goods.side_sales_tip`、`sku[*].side_car_labels[*].text`、`desc_labels[]`、`desc_labels_rich`、`pull_down_title_section` | ✅ 全部可见 |
+| 详情页滚动条 | `desc_labels_rich`（行）+ `desc_labels_for_carousel`（**逐帧**）| ✅ 两套都要改 |
+| 百补列表 | `tagInfoList` 插标签 | ❌ 数据层写入成功但**不渲染**（死代码，v1.80 删除）|
+| 百补列表 | `activityPriceWord` 价格词 / `salesTip` 销量行 / `titleTop` 徽章 | ❌ 主瀑布流不读（只有优惠券子列表读 titleTop）|
+| 百补列表 | **`goodsFlagIcon`（数组）/ `ltIcon`（字符串）** | ✅ 商品图左上角，手机+平板均可见（最终方案）|
+
+## 十、图片角标的五条铁律（每一条都是真机踩出来的）
+
+1. **宽高比决定渲染大小**。渲染器按宽度适配：宽高比 1.57:1 的徽章会被放大
+   2.2 倍显得巨大。要和官方「百亿补贴」角标一样大，就必须用官方比例
+   **530×150（3.53:1）**。改尺寸时必须连比例一起改。
+2. **`ltIcon` 是单个 URL 字符串**，H5 组件会 `join(',')` 把它当数组拼——
+   v1.83 转成数组后拼出 `badge.png,原URL` 的畸形 URL → 404 → WebKit 碎图。
+   改字段形态前先看它在**普通商品**上是什么类型。
+3. **`goodsFlagIcon` 是原生数组**，组件按徽章行逐项渲染，头部插入即可。
+4. **不要依赖外部 CDN**：`raw.githubusercontent.com` 在部分线路不可达
+   （iPad 碎图）；`cdn.jsdelivr.net/gh/...@main` 有缓存延迟（旧图被缓存到次日）。
+   最终方案是 **data URI 内联**（3.4KB → base64 写进脚本），零网络、零缓存、
+   设备无关。资产源文件保留在 `src/assets/` 备查。
+5. **留白也要画**：整张画布透明、红框只包住文字，可以控制视觉重量；
+   但画布尺寸必须保持官方比例，否则又回到第 1 条。
+
+## 十一、Loon 插件开发的通用守则（本插件踩过的坑）
+
+1. **`enable=` 只在 `[Script]` 上有效**。官方手册只有 `script.md` 记载它；
+   `rule.md` / `rewrite.md` / `plugin.md` / `general.md` 全文没有。
+   挂在 `[Rule]` 或 `[Rewrite]` 上是**死开关**（规则等于无条件生效）——
+   v1.75 删除了 `telemetry_stub` 与 8 条 `[Rule]`，v1.5 迁走了 20 条 `[Rewrite]`。
+   **写一个不生效的开关比不写更糟。**
+2. **同一端点上 `[Rewrite]` 与 `[Script]` 同时命中时只跑 `[Rewrite]`**。
+   要在该端点做响应改写，必须把 `[Rewrite]` 的活并进脚本（v1.77 处理
+   `oak/integration/render` 的 json-del 时验证）。
+3. **脚本必须单文件**，不能依赖模块系统。
+4. **每次改脚本必跑 `node --check`** —— v1.88 曾因内联 data URI 时残留
+   `=='';` 双重引号导致 SyntaxError，被其它测试失败掩盖了好几轮。
+5. **开关巡检**：任何时刻 `[Argument]` 声明的开关都必须真的接线
+   （`enable={}` 或 `argument=[{}]`），`manifest.test.mjs` 有断言守着。
+
+## 十二、排查手册（下次出问题照着做）
+
+### 读 HAR 的要点
+- Loon HAR 的 `response.content.text` 可能是 **base64**，必须解码后再搜
+- **搜中文文案时不要设 body 长度上限** —— 第一版就漏了所有 >300KB 的响应，
+  差点误判「抓包里没有这个字符串」
+- `_loon` 字段是金矿：`rule`（命中的规则）、`policy`、`script`（跑过的脚本）、
+  `rewrite`（生效的复写）、`modifiedResponse`、`serverIPAddress`
+- 请求阶段就返回假响应的记录，`script` 是空数组——这是「[Rewrite] 抢跑」的铁证
+
+### 常见假警报（别浪费时间）
+- `error_code: 1000000` 是拼多多的**成功码**（`{"success":true,...}`），不是错误
+- 百补页第一份响应常是 `stores` 形态（骨架/另一状态），第二份才是完整页
+- 客户端「已抢xxx件」可能是 `fallback_sales_tip` 而不是 `sales_tip`
+- 服务端 `{"result":{}}`（84B）是正常空结果，不是失败
+
+### 别碰的红线（两次逆向 + 抓包双实证）
+- `xg.pinduoduo.com/ngrtt/zqog` —— 消息推送 WebSocket（101）
+- `phantom/*`（`obtain_captcha` / `user_verify` / `gbdbpdv`）—— 验证码链路
+- `polemon/gbdbpdc` —— 登录/验证策略（**注意：ire 仓库的
+  `REVERSE_ENGINEERING.md` 把它标成「搜索框推荐词」是错的**，真机响应是
+  `access_array` + 找回账号/遇到问题，与 `psnl_*` 同链）
+
+### 风控归因（重要经验，避免误改插件）
+四份抓包对照结论：**限制访问由浏览节奏触发，与响应改写无关**。
+快速翻页（115 个商品页/10.5 分钟、中位间隔 3.5s、每页触发下单预渲染）
+→ 5 次验证码 → 第 4 次 `user_verify` 失败 → `429 REFUSE` →
+`goods.status=5`「已售罄」软封。同一账号正常速度浏览（中位 36.7s）零信号。
+
+## 十三、开发流程规约（血泪）
+
+1. **`/var/minis/shared` 目录写入偶发不持久化**：`write_text` 报成功、
+   当场回读也对，下一轮读又是旧内容。**关键文件改动必须在 `/tmp` 的
+   git worktree（真实文件系统）里做**，或至少用 `git diff` 行数验证落盘。
+2. **批量 `str.replace` 必须带 `assert old in t`** —— 无断言时锚点不匹配会
+   静默跳过，v1.85→v1.86 的版本号/changelog 就是这样连环丢的。
+3. **验收正则先拿已知样本自证**：查 `#26.【` 而实际格式是 `# 26. 【`
+   （空格+点），连续多轮「缺失」全是误报。
+4. **push 后从 `origin/main` 重新拉取终验**，不信本地工作区。
+5. **提交后 `git show HEAD --stat` 核对文件数** —— 预期 5 个文件却只有 2 个，
+   就是写入没落盘。
+6. **测试只能证明数据层正确，不能证明 UI 渲染**。每个新打标点都必须真机消融，
+   数据层断言通过 ≠ 用户能看见（v1.80 的 tagInfoList 就是活教材）。
+
+## 十四、当前开关地图（v1.92）
+
+| 开关 | 默认 | 管辖 |
+|---|---|---|
+| `api_stub` | 开 | 13 条会场/推荐端点 stub |
+| `chat_stub` / `phantom_stub` / `order_stub` | 关 | 各自独立的高危项 |
+| `search_stub` | 开 | 搜索词三源 + `/search` expansion + 百补 `queryWords` |
+| `feed_ad` | 开 | 广告打标：信息流四字段 + 详情页销量文案 + 百补图片角标 + 名单 |
+| `bottom_custom` + 6 个 `Bot_*` | 开 | 底栏自定义 |
+
+**明确不加的**：`search_suggest`（无推广词证据）、开屏 `cappuccino/splash`
+（服务端常态回 `{"size":0}`）、百补列表的文字型标记（真机证伪）。
