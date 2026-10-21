@@ -13,8 +13,8 @@ const F2 = readFileSync(new URL('./subsidy2-fixture2.txt', import.meta.url), 'ut
 const BADGE = readFileSync(new URL('../src/assets/ad-badge.png', import.meta.url))
 // PNG 魔数 + 尺寸（IHDR），防止资产被意外替换成非图片
 t('徽章资产是合法 PNG', BADGE[0] === 0x89 && BADGE[1] === 0x50 && BADGE[2] === 0x4E && BADGE[3] === 0x47)
-t('徽章资产尺寸 530×150（与官方百补徽章同比例）',
-  BADGE.readUInt32BE(16) === 530 && BADGE.readUInt32BE(20) === 150)
+t('徽章资产尺寸 236×150（v1.87 收窄容纳「广告」二字）',
+  BADGE.readUInt32BE(16) === 236 && BADGE.readUInt32BE(20) === 150)
 
 const makeStore = (initial) => {
   const kv = initial ? { pddAdGoodsIds: JSON.stringify(initial) } : {}
@@ -67,23 +67,18 @@ for (const t2 of rawOut.store.tabStore.tabList)
       (typeof g.ad === 'string' ? adGoods : norGoods).push(g)
 t('返回体里 ad 商品 4 个', adGoods.length === 4, `实际 ${adGoods.length}`)
 for (const g of adGoods) {
-  t(`${g.goodsId} ① 价格词前缀`, (g.activityPriceWord || '').startsWith('广告·'),
-    `实际 ${g.activityPriceWord}`)
-  t(`${g.goodsId} ② 销量行前缀`, (g.salesTip || '').startsWith('广告·'), `实际 ${g.salesTip}`)
-  t(`${g.goodsId} ③ 徽章头部`, g.titleTop[0] && g.titleTop[0].text === '广告'
-    && g.titleTop[0].url === 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png')
-  t(`${g.goodsId} ④ goodsFlagIcon 头部`, String(g.goodsFlagIcon[0]).includes('ad-badge.png'))
-  t(`${g.goodsId} ⑤ ltIcon 整体替换为徽章 URL（不是数组！）`,
+  t(`${g.goodsId} goodsFlagIcon 头部`, String(g.goodsFlagIcon[0]).includes('ad-badge.png'))
+  t(`${g.goodsId} ltIcon 整体替换为徽章 URL（不是数组！）`,
     g.ltIcon === 'https://cdn.jsdelivr.net/gh/Savues/loon-plugin-patches@main/plugins/PinDuoDuo/src/assets/ad-badge.png')
+  t(`${g.goodsId} 价格词/销量行/titleTop 不再改动（v1.87 移除）`,
+    !String(g.activityPriceWord || '').startsWith('广告·')
+    && !String(g.salesTip || '').startsWith('广告·')
+    && !(g.titleTop || []).some(x => x.text === '广告'))
 }
 t('官方百补徽章仍在（不误伤）',
-  adGoods.every(g => g.titleTop.some(x => x.type === 'area221_bybt')
-    && g.goodsFlagIcon.some(u => String(u).includes('baiyi'))))
-t('普通商品四通道零改动',
-  norGoods.every(g => !(g.activityPriceWord || '').startsWith('广告·')
-    && !(g.salesTip || '').startsWith('广告·')
-    && !(g.titleTop || []).some(x => x.text === '广告')
-    && !String(g.ltIcon || '').includes('ad-badge')
+  adGoods.every(g => g.goodsFlagIcon.some(u => String(u).includes('baiyi'))))
+t('普通商品零改动',
+  norGoods.every(g => !String(g.ltIcon || '').includes('ad-badge')
     && !(g.goodsFlagIcon || []).some(u => String(u).includes('ad-badge'))))
 t('职责 1 照常：queryWords 已清空',
   JSON.stringify(rawOut.store.searchStore.queryWords) === '[]')
@@ -129,10 +124,10 @@ t('8 个广告 goodsId 入库', JSON.stringify(idsOf(st)) === JSON.stringify([
   '962936956396', '734362509181', '740335689339', '627272059171']),
   `实际 ${JSON.stringify(idsOf(st))})`)
 const rawT = parseRaw(r.body)
-t('四通道全部写入（价格词×16 / 徽章：titleTop8+flagIcon8+ltIcon8=24）',
-  (r.body.match(/广告·/g) || []).length >= 16
-  && (r.body.match(/ad-badge\.png/g) || []).length === 24,
-  `广告· ${(r.body.match(/广告·/g) || []).length} 处 / 徽章 ${(r.body.match(/ad-badge\.png/g) || []).length} 处`)
+t('仅图片角标（tandy 8 广告：flagIcon8 + ltIcon8 = 16 处，无文字标记）',
+  (r.body.match(/ad-badge\.png/g) || []).length === 16
+  && (r.body.match(/广告·/g) || []).length === 0,
+  `徽章 ${(r.body.match(/ad-badge\.png/g) || []).length} 处 / 文字 ${(r.body.match(/广告·/g) || []).length} 处`)
 t('旧模板（brand_activity_subsidy）仍正常', (() => {
   const s2 = makeStore([])
   const r2 = run({ search_stub: true, feed_ad: true }, F2, s2)
@@ -146,15 +141,15 @@ t('脚本不崩、正常返回', r !== undefined)
 t('现在能收集到 2 个广告 goodsId（含 Tafe 766485126873）',
   JSON.stringify(idsOf(st)) === JSON.stringify(['1003242864291', '766485126873']),
   `实际 ${JSON.stringify(idsOf(st))})`)
-t('HTML 四通道写入（2 广告 × 3 处徽章位）',
-  !!r.body && (r.body.match(/ad-badge\.png/g) || []).length === 6)
+t('HTML 写入（fixture1 的 2 广告 × 2 处徽章位）',
+  !!r.body && (r.body.match(/ad-badge\.png/g) || []).length === 4)
 
 console.log('\n【6】存储不可用 —— 方案 1 静默放弃，三通道照常')
 const broken = { read: () => { throw new Error('x') }, write: () => { throw new Error('x') } }
 r = run({ search_stub: true, feed_ad: true }, F2, broken)
 b = r.body
 t('脚本不崩、body 正常返回', !!b)
-t('四通道照常注入', (b.match(/广告·/g) || []).length >= 8
-  && (b.match(/ad-badge\.png/g) || []).length === 12)
+t('照常注入', (b.match(/ad-badge\.png/g) || []).length === 8
+  && (b.match(/广告·/g) || []).length === 0)
 
 done()

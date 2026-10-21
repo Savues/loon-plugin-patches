@@ -138,25 +138,12 @@ try {
           const ids = goods.map((g) => String(g.goodsId)).filter((x) => x && x !== 'undefined');
           if (ids.length) mergeIds(ids);
 
-          // v1.81 三通道 + v1.82 通道④（真机消融：titleTop 只在优惠券子列表渲染，
-          // 主精选瀑布流不读它；主列表的「百亿补贴」logo 来自 goodsFlagIcon/ltIcon
-          // 图片数组——把徽章插到同一槽位，「广告」就会排在官方 logo 前面）
+          // v1.87（用户确认）：只保留图片角标（商品图左上角）——
+          // ① 价格词/② 销量行/③ titleTop 三通道真机证伪（列表不可见/冗余），
+          // 全部移除；goodsFlagIcon/ltIcon 真机验证可见（手机+平板）。
           let touched = 0;
           for (const g of goods) {
-            if (typeof g.activityPriceWord === 'string' && g.activityPriceWord
-                && !g.activityPriceWord.startsWith(AD_PREFIX)) {
-              g.activityPriceWord = AD_PREFIX + g.activityPriceWord; touched++;
-            }
-            if (typeof g.salesTip === 'string' && g.salesTip
-                && !g.salesTip.startsWith(AD_PREFIX)) {
-              g.salesTip = AD_PREFIX + g.salesTip; touched++;
-            }
-            if (!Array.isArray(g.titleTop)) g.titleTop = [];
-            if (!g.titleTop.some((x) => x && typeof x === 'object'
-                && (x.url === AD_BADGE_URL || x.text === AD_BADGE.text))) {
-              g.titleTop.unshift(Object.assign({}, AD_BADGE)); touched++;
-            }
-            // 通道④：goodsFlagIcon（原生徽章数组，头部插入即可，组件按行渲染）
+            // 通道④：goodsFlagIcon（原生徽章数组，头部插入，组件按行渲染）
             // 通道⑤：ltIcon 是【单个 URL 字符串】，组件会 join(',') 拼数组——
             //   v1.83 曾把它转成数组导致拼出 `badge.png,原URL` 的 404 碎图
             //   （iPad 实测）。改为直接替换成徽章 URL：左上角的促销图标
