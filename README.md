@@ -20,12 +20,11 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 |---|---|---|
 | [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.12** |
 | [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签<br>SponsorBlock standalone · 自动跳/只提醒两档 · 类别中文化 · · 整篇软广单独提醒 · fully configurable | **v1.6** |
-| [Splash-Festival](plugins/Splash-Festival/) | B 站开屏品牌皮肤 · **22 官方 + 51 历史共 73 个皮肤**随时展示 · 不挑日期 · 可屏蔽 · 自动节日（含农历）/轮换/随机 · 显示模式/方向/Logo/时长全可配<br>Bilibili splash skins · 22 current + 51 historical, any day, block, auto/festival/rotate/random, mode/dir/logo/duration configurable | **v40.3** |
-| [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关（仅手机/国际版布局）<br>Home tabs & bottom nav switches | **v3.6.0** |
+| [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
-| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 信息流广告打标 · 拦截全可关<br>Ad-block · custom bottom bar · feed-ad tagging · all stubs switchable | **v1.85** |
+| [PinDuoDuo](plugins/PinDuoDuo/) | 拼多多去广告 · 底栏可自定义 · 信息流广告打标 · 拦截全可关<br>Ad-block · custom bottom bar · feed-ad tagging · all stubs switchable | **v1.86** |
 | [QuarkCheckIn](plugins/QuarkCheckIn/) | 夸克网盘每日签到领空间 · 无 MITM<br>Quark Drive daily check-in · no MITM | **v1.1** |
 | [AgentRouter](plugins/AgentRouter/) | AgentRouter 签到 · 自动签到默认关闭 · 修三处上游缺陷<br>AgentRouter check-in · cron off by default · three upstream bugs fixed | **v1.13** |
 | [AntiRevoke](plugins/AntiRevoke/) | 屏蔽证书吊销状态检查 · 6 组开关可关<br>Cut certificate revocation checks · 6 group switches | **v1.0** |
@@ -38,8 +37,6 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 | [Spotify-Dedup](plugins/Spotify-Dedup/) | Spotify 去广告 · 三来源合并 · 35 项账号属性 + 5 条 Rewrite<br>Spotify ad-block, three sources merged, 35 properties and 5 rewrites | **v1.4** |
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
-| [IThome-AdBlock](plugins/IThome-AdBlock/) | IT之家去广告 · 补全首页 feed 端点 · 电商带货文过滤 · 事件日历卡片 · **顶栏标签过滤** · **开屏广告拦截** · **完全隐藏顶栏开关** · 附纯清单 lite | **v1.5** |
-| [Dataoke-AdBlock](plugins/Dataoke-AdBlock/) | 大淘客联盟/易店长去广告 · 开屏/首页运营位/信息流/搜索/新用户红包 · 6 独立开关 · 核心默认开、埋点推送默认关<br>Dataoke Union ad-block · splash/home/feed/search/new-user · 6 switches · core ON by default, tracking/push OFF | **v1.0** |
 | [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 网络层已验证，App 端加载未解决<br>Locally model swap · URL rewrite · network layer verified, App-side load unresolved | **v1.6** ⚠️ |
 
 ### 托管了脚本的插件
@@ -411,8 +408,5 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 - 仅供个人学习研究 · For personal study and research
 - 收录不代表推荐或背书 · Inclusion is not an endorsement
 - 上游作者不愿收录请提 issue 即下架 · Open an issue to opt out
-
-上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
- 上游作者不愿收录请提 issue 即下架 · Open an issue to opt out
 
 上游版权与许可全部适用 · Upstream copyrights and licenses apply in full.
