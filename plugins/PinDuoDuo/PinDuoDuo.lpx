@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.87
+#!name=拼多多去广告(修复版) v1.88
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 21:15:00
+#!date=2026-10-21 21:45:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -148,5 +148,8 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #      三通道（真机证伪/冗余），只保留商品图左上角图片角标
 #      （goodsFlagIcon 头插 + ltIcon 替换）；徽章宽度收窄 530→236，
 #      正好容纳「广告」二字。
+# 28.【v1.88】徽章内联为 data URI（零网络依赖）——jsdelivr @main 有缓存延迟
+#      （曾把旧 530×150 缓存到次日），raw 域部分线路不可达，data URI 彻底
+#      消除 CDN/缓存/设备差异；资产源文件仍在 src/assets/ 备查。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
