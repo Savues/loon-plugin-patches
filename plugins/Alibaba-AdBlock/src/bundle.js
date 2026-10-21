@@ -1164,6 +1164,22 @@ function scrubOrangeConfig(bodyBytes) {
   }
 }
 
+
+// ============================================
+// 弹窗调度器 (poplayer.template.alibaba.com/popcdn/*/config.json)
+// 结构: {sc: 场景->弹窗ID (118), ac: 弹窗ID->配置 (793), version}
+// 清空 ac = 客户端无任何弹窗可选 -> 未来新增广告弹窗也自动免疫
+// ============================================
+function scrubPopcdnSchedule(body) {
+  const data = safeParse(body);
+  if (!data || typeof data !== "object" || !data.ac) return null;
+  const n = Object.keys(data.ac).length;
+  if (n === 0) return null;
+  data.ac = {};
+  console.log("[Alibaba-AdBlock] Cleared poplayer schedule, entries:", n);
+  return JSON.stringify(data);
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alibaba-AdBlock] No response body");
