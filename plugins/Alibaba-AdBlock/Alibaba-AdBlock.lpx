@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v2.2.0
+#!name=Alibaba-AdBlock v2.3.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/弹窗/小卡片/Feed/搜索推荐/跑马灯/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=2.2.0
+#!version=2.3.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -51,7 +51,7 @@ http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.en
 # === 淘宝开屏/弹窗 (kelee.one + 反编译) ===
 http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.cloudvideo\.video\.query\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏视频
 http-response ^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.splash\.awesome\.get\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏图片
-http-response ^https?:\/\/poplayer\.template\.alibaba\.com\/.*\.json script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏活动
+http-response ^https?:\/\/poplayer\.template\.alibaba\.com\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removeSplashAd}, tag=淘宝-开屏活动
 
 # === 淘宝弹窗/运营位 Reject (kelee.one 高价值) ===
 http-response ^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alibaba\.advertisementservice\.getadv\/.* script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js, requires-body=true, timeout=30, argument={removePopWindow}, tag=淘宝-广告服务
@@ -99,34 +99,27 @@ http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.trade\.f
 
 [Rewrite]
 # === 埋点/错误上报/APM/实验分流 —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/gm\.mmstat\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/log\.mmstat\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/px\.effirst\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/gm\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/log\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/px\.effirst\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com/i then reject, enable={blockTracking}
 
 # === 广告投放/埋点域名 (kelee.one + 反编译) —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ut\.taobao\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ems\.youku\.com\//i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ut\.taobao\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ems\.youku\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com/i then reject, enable={blockTracking}
 
 # === 闲鱼专用开屏/启动广告上报 (反编译发现) —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.click/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.expose/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.click/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.expose/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.redirect/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.report/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.code\.restore/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.scene\.restore/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.xyflowin\.upload/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
-# request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com\//i then reject, enable={blockTracking}
+# request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com/i then reject, enable={blockTracking}
 
 [Task]
 # 无定时任务

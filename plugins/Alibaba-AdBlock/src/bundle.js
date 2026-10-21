@@ -1,10 +1,12 @@
 /*
- * Alibaba-AdBlock v2.2.0 - Bundled Script for Loon
+ * Alibaba-AdBlock v2.3.0 - Bundled Script for Loon
  * 阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等
  * 单文件打包，无需 require() 支持
  * 更新: 2026-10-21
  * 新增: 淘宝/闲鱼开屏弹窗规则 (kelee.one 移植 + 反编译补充)
  * 修正: Loon Rewrite 语法 (Surge格式 -> Loon标准格式)
+ * 修正: Rewrite 正则匹配 (去掉结尾 / 以匹配任意路径)
+ * 修正: poplayer 匹配规则 (.*json -> .*)
  */
 
 // ============================================
