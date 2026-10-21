@@ -13,8 +13,8 @@ const F2 = readFileSync(new URL('./subsidy2-fixture2.txt', import.meta.url), 'ut
 const BADGE = readFileSync(new URL('../src/assets/ad-badge.png', import.meta.url))
 // PNG 魔数 + 尺寸（IHDR），防止资产被意外替换成非图片
 t('徽章资产是合法 PNG', BADGE[0] === 0x89 && BADGE[1] === 0x50 && BADGE[2] === 0x4E && BADGE[3] === 0x47)
-t('徽章资产尺寸 236×150（v1.87 收窄容纳「广告」二字；已内联为 data URI，资产仅备查）',
-  BADGE.readUInt32BE(16) === 236 && BADGE.readUInt32BE(20) === 150)
+t('徽章资产尺寸 106×50（v1.89：高度收至 50px，已内联 data URI，资产仅备查）',
+  BADGE.readUInt32BE(16) === 106 && BADGE.readUInt32BE(20) === 50)
 
 const makeStore = (initial) => {
   const kv = initial ? { pddAdGoodsIds: JSON.stringify(initial) } : {}
