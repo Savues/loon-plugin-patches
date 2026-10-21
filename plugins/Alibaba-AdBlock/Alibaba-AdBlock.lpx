@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.7.0
+#!name=Alibaba-AdBlock v3.8.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=3.7.0
+#!version=3.8.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -114,6 +114,7 @@ request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/
 
 # === 开屏数据/弹窗营销接口 (kelee reject, 返回空 JSON 200) ===
 request if ${url} ~= /mtop\.xsd\.searchbar\.info\.get/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.clientpaas\.spotlightsearch\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.relationrecommend\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wsearch\.commonApi/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.stream\./i then reject_dict(200)
