@@ -20,8 +20,14 @@
  *
  *   方案 2（tagInfoList 打标）已于 v1.80 移除：2026-10-21 真机实测注入成功
  *   （响应数据层 4 个标签全在）但列表页不可见 —— H5 卡片渲染器不消费
- *   我们注入的该标签，属死代码。百补列表页的可见打标需另找渲染点
- *   （H5 是 hermes/lego 前端，字段到 UI 的映射未知），暂缓。
+ *   我们注入的该标签，属死代码。
+ *
+ *   v1.81 三通道打标（用户确认全上，真机消融后收敛）——改广告商品：
+ *     ① activityPriceWord  价格正前方「券后」→「广告·券后」（用户点名的位置）
+ *     ② salesTip           卡片销量行「已抢3680件」→「广告·已抢3680件」
+ *     ③ titleTop 头部插红底白字「广告」PNG（托管本仓库 assets/ad-badge.png，
+ *       与官方百亿补贴徽章同槽位 530×150）——需要真机验证 H5 是否加载
+ *       非拼多多域名的图片；不渲染也无副作用。
  *
  *   解析失败（如另一页面形态 stores、骨架屏）→ 职责 2 整体跳过，职责 1 照常。
  *
@@ -33,6 +39,10 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 
 const AD_KEY = 'pddAdGoodsIds';
 const AD_CAP = 200;
+const AD_PREFIX = '广告·';
+// 徽章托管在本仓库（与「百亿补贴」官方徽章同尺寸 530×150，渲染约 53×15pt）
+const AD_BADGE_URL = 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/assets/ad-badge.png';
+const AD_BADGE = { text: '广告', type: 'area_ad_mark_selfhost', url: AD_BADGE_URL };
 
 // ── $persistentStore 名单合并（write(value, key)，值在前——仓库踩过的坑）──
 function mergeIds(newIds) {
@@ -112,8 +122,35 @@ try {
       try {
         const goods = collectAdGoods(parsed.obj);
         if (goods.length) {
+          // 方案 1：名单入库（详情页打标依赖它）
           const ids = goods.map((g) => String(g.goodsId)).filter((x) => x && x !== 'undefined');
-          if (ids.length) mergeIds(ids);   // 只做方案 1（名单），不改 HTML 本体
+          if (ids.length) mergeIds(ids);
+
+          // v1.81：三通道打标（用户确认全上，真机消融后收敛）
+          // 通道① 价格正前方：activityPriceWord「券后」→「广告·券后」
+          // 通道② 卡片销量行：salesTip「已抢3680件」→「广告·已抢3680件」
+          // 通道③ 徽章行：titleTop 头部插红底白字「广告」PNG（与官方百补徽章同槽位）
+          let touched = 0;
+          for (const g of goods) {
+            if (typeof g.activityPriceWord === 'string' && g.activityPriceWord
+                && !g.activityPriceWord.startsWith(AD_PREFIX)) {
+              g.activityPriceWord = AD_PREFIX + g.activityPriceWord; touched++;
+            }
+            if (typeof g.salesTip === 'string' && g.salesTip
+                && !g.salesTip.startsWith(AD_PREFIX)) {
+              g.salesTip = AD_PREFIX + g.salesTip; touched++;
+            }
+            if (!Array.isArray(g.titleTop)) g.titleTop = [];
+            if (!g.titleTop.some((x) => x && typeof x === 'object'
+                && (x.url === AD_BADGE_URL || x.text === AD_BADGE.text))) {
+              g.titleTop.unshift(Object.assign({}, AD_BADGE)); touched++;
+            }
+          }
+
+          if (touched) {
+            const next = body.slice(0, parsed.start) + JSON.stringify(parsed.obj) + body.slice(parsed.end);
+            if (next !== body) body = next;
+          }
         }
       } catch (e) { /* 职责 2 失败不影响职责 1 */ }
     }

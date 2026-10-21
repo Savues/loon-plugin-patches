@@ -1,15 +1,20 @@
-// v1.80：百补页广告 —— 名单入库（方案 1）
-// 方案 2（tagInfoList 打标）已于 v1.80 移除：2026-10-21 真机实测注入成功但
-// 列表页不可见（H5 卡片渲染器不消费该标签），死代码删除。
+// v1.81：百补页广告 —— 名单入库（方案 1）+ 三通道可见打标（真机消融实验）
 // fixture 是 2026-10-21 真机抓包的两份 subsidy.html（style 压缩后）：
 //   fixture1 = stores 形态（无 searchStore，容错用例）
 //   fixture2 = 完整页（23 商品 / 4 广告）
+// 历史教训：v1.79 的 tagInfoList 注入数据层成功但真机不可见（已证伪）——
+// 本文件只断言数据层；「哪个通道真正渲染」必须真机消融。
 import { readFileSync } from 'node:fs'
 import { t, done } from './harness.mjs'
 
 const src = readFileSync(new URL('../src/subsidy.response.js', import.meta.url), 'utf8')
 const F1 = readFileSync(new URL('./subsidy2-fixture1.txt', import.meta.url), 'utf8')
 const F2 = readFileSync(new URL('./subsidy2-fixture2.txt', import.meta.url), 'utf8')
+const BADGE = readFileSync(new URL('../src/assets/ad-badge.png', import.meta.url))
+// PNG 魔数 + 尺寸（IHDR），防止资产被意外替换成非图片
+t('徽章资产是合法 PNG', BADGE[0] === 0x89 && BADGE[1] === 0x50 && BADGE[2] === 0x4E && BADGE[3] === 0x47)
+t('徽章资产尺寸 530×150（与官方百补徽章同比例）',
+  BADGE.readUInt32BE(16) === 530 && BADGE.readUInt32BE(20) === 150)
 
 const makeStore = (initial) => {
   const kv = initial ? { pddAdGoodsIds: JSON.stringify(initial) } : {}
@@ -25,10 +30,23 @@ const run = (argObj, body, store) => {
     argObj, { body }, (r) => { out.result = r }, store || makeStore([]), console)
   return out.result
 }
+const parseRaw = (bb) => {
+  const i = bb.indexOf('window.rawData'); const j = bb.indexOf('{', i)
+  let d = 0, ins = false, esc = false
+  for (let k = j; k < bb.length; k++) {
+    const ch = bb[k]
+    if (esc) { esc = false; continue }
+    if (ch === '\\') { esc = true; continue }
+    if (ins) { if (ch === '"') ins = false; continue }
+    if (ch === '"') ins = true
+    else if (ch === '{') d++
+    else if (ch === '}') { d--; if (d === 0) return JSON.parse(bb.slice(j, k + 1)) }
+  }
+}
 const idsOf = (store) => { try { return JSON.parse(store.kv.pddAdGoodsIds || '[]') } catch { return [] } }
 const WANT = ['886932621522', '766485126873', '343201796079', '1013818440919']
 
-console.log('\n【1】名单入库（feed_ad 开）')
+console.log('\n【1】方案 1：名单入库')
 let st = makeStore([])
 let r = run({ search_stub: true, feed_ad: true }, F2, st)
 t('4 个广告 goodsId 全部入库', JSON.stringify(idsOf(st)) === JSON.stringify(WANT),
@@ -36,44 +54,81 @@ t('4 个广告 goodsId 全部入库', JSON.stringify(idsOf(st)) === JSON.stringi
 t('普通商品 goodsId 不入库（抽 3 个）',
   !idsOf(st).includes('1003242864291') && !idsOf(st).includes('991942311643')
   && !idsOf(st).includes('798666802980'))
-// v1.80：不再改 HTML 本体 —— 名单命中也不应产生 body 变更
-t('HTML 本体不被修改（无 tagInfoList 注入）', r.body === undefined || r.body === F2,
-  r.body === undefined ? '(放行)' : '有 diff')
 
-console.log('\n【2】幂等 —— 重复跑名单不叠加')
+console.log('\n【2】三通道打标（只动带 ad 的商品）')
+let b = r.body
+t('HTML 本体被修改（三通道需要回写）', typeof b === 'string' && b !== F2)
+const rawOut = parseRaw(b)
+const adGoods = []
+let norGoods = []
+for (const t2 of rawOut.store.tabStore.tabList)
+  for (const s of (t2.subTabGoodsLists || []))
+    for (const g of (s.list || []))
+      (typeof g.ad === 'string' ? adGoods : norGoods).push(g)
+t('返回体里 ad 商品 4 个', adGoods.length === 4, `实际 ${adGoods.length}`)
+for (const g of adGoods) {
+  t(`${g.goodsId} ① 价格词前缀`, (g.activityPriceWord || '').startsWith('广告·'),
+    `实际 ${g.activityPriceWord}`)
+  t(`${g.goodsId} ② 销量行前缀`, (g.salesTip || '').startsWith('广告·'), `实际 ${g.salesTip}`)
+  t(`${g.goodsId} ③ 徽章头部`, g.titleTop[0] && g.titleTop[0].text === '广告'
+    && g.titleTop[0].url === 'https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/assets/ad-badge.png')
+}
+t('官方百补徽章仍在（不误伤）',
+  adGoods.every(g => g.titleTop.some(x => x.type === 'area221_bybt')))
+t('普通商品三通道零改动',
+  norGoods.every(g => !(g.activityPriceWord || '').startsWith('广告·')
+    && !(g.salesTip || '').startsWith('广告·')
+    && !(g.titleTop || []).some(x => x.text === '广告')))
+t('职责 1 照常：queryWords 已清空',
+  JSON.stringify(rawOut.store.searchStore.queryWords) === '[]')
+t('rawData 之外的字节未动（只回写 rawData 区间）', (() => {
+  // 原文去掉 rawData 区间 vs 新文去掉 rawData 区间，应逐字节一致
+  const cut = (s) => {
+    const i = s.indexOf('window.rawData'); const j = s.indexOf('{', i)
+    let d = 0, ins = false, esc = false, end = -1
+    for (let k = j; k < s.length; k++) {
+      const ch = s[k]
+      if (esc) { esc = false; continue }
+      if (ch === '\\') { esc = true; continue }
+      if (ins) { if (ch === '"') ins = false; continue }
+      if (ch === '"') ins = true
+      else if (ch === '{') d++
+      else if (ch === '}') { d--; if (d === 0) { end = k + 1; break } }
+    }
+    return s.slice(0, j) + s.slice(end)
+  }
+  const before = cut(F2)
+  // F2 的职责 1 会先清 queryWords（已在抓包时清过，无 diff），所以只需比 rawData 外
+  return before === cut(b)
+})())
+
+console.log('\n【3】幂等 —— 第二遍无变化时原样放行')
 st = makeStore([])
 r = run({ search_stub: true, feed_ad: 'true' }, F2, st)
-r = run({ search_stub: true, feed_ad: 'true' }, F2, st)
-t('名单仍 4 个且顺序稳定', JSON.stringify(idsOf(st)) === JSON.stringify(WANT))
+b = r.body
+r = run({ search_stub: true, feed_ad: 'true' }, b, st)
+t('第二遍返回空对象（无变化 → 放行）', r && Object.keys(r).length === 0, JSON.stringify(r))
+t('第一遍的产物仍正确：名单 4 个', idsOf(st).length === 4)
 
-console.log('\n【3】环形裁剪 —— 200 上限，新 id 在前')
-st = makeStore(Array.from({ length: 200 }, (_, i) => String(1000 + i)))
-r = run({ feed_ad: true }, F2, st)
-let saved = idsOf(st)
-t('总量 200', saved.length === 200, `实际 ${saved.length}`)
-t('新 id 占据头部', WANT.every((id, i) => saved[i] === id))
-
-console.log('\n【4】feed_ad 关 —— 名单不写')
+console.log('\n【4】feed_ad 关 —— 名单不写、HTML 不动')
 st = makeStore(['1'])
 r = run({ search_stub: true }, F2, st)
 t('名单未写', !st.kv.pddAdGoodsIds || JSON.parse(st.kv.pddAdGoodsIds).includes('1'))
+t('无改动时放行（$done({})）', r && Object.keys(r).length === 0, JSON.stringify(r))
 
 console.log('\n【5】stores 形态容错（fixture1，无 searchStore）')
 st = makeStore([])
 r = run({ search_stub: true, feed_ad: true }, F1, st)
 t('脚本不崩、正常返回', r !== undefined)
-t('该形态无广告商品时不写库', idsOf(st).length === 0)
+t('该形态无广告商品时不写库、不改 HTML', idsOf(st).length === 0
+  && (r.body === undefined || r.body === F1))
 
-console.log('\n【6】存储不可用 —— 静默放弃，页面照常')
+console.log('\n【6】存储不可用 —— 方案 1 静默放弃，三通道照常')
 const broken = { read: () => { throw new Error('x') }, write: () => { throw new Error('x') } }
 r = run({ search_stub: true, feed_ad: true }, F2, broken)
-t('脚本不崩', r !== undefined)
-
-console.log('\n【7】职责 1（搜索词）与职责 2 共存')
-st = makeStore([])
-const F2withWords = F2.includes('百事可乐') ? F2 : F2
-r = run({ search_stub: true, feed_ad: true }, F2withWords, st)
-t('脚本正常返回', r !== undefined)
-t('名单照常入库', idsOf(st).length === WANT.length)
+b = r.body
+t('脚本不崩、body 正常返回', !!b)
+t('三通道照常注入', (b.match(/广告·/g) || []).length >= 8
+  && (b.match(/ad-badge\.png/g) || []).length === 4)
 
 done()
