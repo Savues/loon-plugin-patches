@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.5
+#!name=Alibaba-AdBlock v3.9.6
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.5
+#!version=3.9.6
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -19,7 +19,7 @@ removePopWindow = switch, true, false, tag=🚫弹窗广告, desc=拦截 pop_win
 removeSmallCards = switch, true, false, tag=🚫小卡片/公告/推荐词, desc=拦截 small_handler_* / bulletin_board_* / marquee / TAC / NOAH / metax热词
 removeNoahOps = switch, true, false, tag=🚫NOAH运营位, desc=拦截 noah.query 运营位 (moon_search_activation_dx_banner 等)
 removeTAC = switch, true, false, tag=🚫TAC搜索推荐, desc=拦截 tac.service.call / smart.call 搜索框推荐词
-removeSearchWords = switch, true, false, tag=🚫搜索框轮播词, desc=替换搜索栏容器模板, 移除 ACCS 下发的轮播营销词 (充电桩/一次性手套等)
+removeSearchWords = switch, false, true, tag=🚫搜索框轮播词(实验), desc=⚠️实验性:破坏轮播词同时会导致搜索栏无法点击, 保持关闭! (模板补丁方案已验证不可行)
 
 # === Moon App 专属开关 ===
 removeFeedKeywords = switch, false, true, tag=🌙Moon-清空首页Feed, desc=清空 Moon 首页推荐流所有商品 (metax homepage bodyList)
