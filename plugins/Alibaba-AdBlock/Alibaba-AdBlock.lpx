@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v2.5.0
+#!name=Alibaba-AdBlock v2.6.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/弹窗/小卡片/Feed/搜索推荐/跑马灯/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=2.5.0
+#!version=2.6.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -114,21 +114,6 @@ request if ${url} ~= /hudong\.tbcdn\.cn/i then reject, enable={blockTracking}
 # === 闲鱼专用开屏/启动广告上报 —— 直接 Reject ===
 request if ${url} ~= /acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i then reject, enable={blockTracking}
 request if ${url} ~= /acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
-
-# === 兜底：DOMAIN-SUFFIX 风格 (Loon 原生支持，最高优先级) ===
-DOMAIN-SUFFIX, gm.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, log.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, px.effirst.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, abtest.alibaba.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, tlog.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ut.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ems.youku.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, hudong.alicdn.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT, enable={blockTracking}
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
 # request if ${url} ~= /afpapi\.alimama\.com/i then reject, enable={blockTracking}
