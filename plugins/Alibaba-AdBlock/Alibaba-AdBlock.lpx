@@ -1,12 +1,12 @@
-#!name=Alibaba-AdBlock v3.1.0
+#!name=Alibaba-AdBlock v3.1.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=ios
-#!version=3.1.0
+#!version=3.1.1
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
 [MITM]
-hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
+hostname = acs.m.taobao.com, guide-acs.m.taobao.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, yixiu-abtest.alicdn.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
 h2 = true
 
 [Argument]
