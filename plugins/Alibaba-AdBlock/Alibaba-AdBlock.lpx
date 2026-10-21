@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.9.7
+#!name=Alibaba-AdBlock v3.9.8
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.9.7
+#!version=3.9.8
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -20,7 +20,7 @@ removeSmallCards = switch, true, false, tag=🚫小卡片/公告/推荐词, desc
 removeNoahOps = switch, true, false, tag=🚫NOAH运营位, desc=拦截 noah.query 运营位 (moon_search_activation_dx_banner 等)
 removeTAC = switch, true, false, tag=🚫TAC搜索推荐, desc=拦截 tac.service.call / smart.call 搜索框推荐词
 removeSearchWords = switch, false, true, tag=🚫搜索框轮播词(实验), desc=⚠️实验性:破坏轮播词同时会导致搜索栏无法点击, 保持关闭! (模板补丁方案已验证不可行)
-nativeSearchBar = switch, false, true, tag=🚫搜索框轮播词(原生栏实验), desc=拒绝下载 DX 搜索栏容器模板, 强制走原生搜索栏 fallback (空白+可点+无轮播词); 若首页搜索栏异常则关闭
+nativeSearchBar = switch, false, true, tag=🚫搜索框轮播词(原生栏实验), desc=v3.9.8 起规则无条件生效( reject_dict 不支持 enable 子句), 此开关仅作标记; 若首页搜索栏异常需反馈
 
 # === Moon App 专属开关 ===
 removeFeedKeywords = switch, false, true, tag=🌙Moon-清空首页Feed, desc=清空 Moon 首页推荐流所有商品 (metax homepage bodyList)
@@ -54,7 +54,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union
 response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, tag="淘宝-开屏活动"
 
 # === 搜索框轮播词: 原生栏实验 — 拒绝容器模板, 强制 DX 容器加载失败走原生 fallback ===
-request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i then reject_dict(200), enable={nativeSearchBar}
+request if ${url} ~= /m_h_v7_uone_second_pit_searchbar_slim_protocol_version/i then reject_dict(200)
 
 # === 双11氛围皮肤 (enable=true 时替换开屏/tabbar/我的页皮肤为促销素材) ===
 response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.wireless\.skin\.atmosphere\.info/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removePopWindow}}) with enable=${removePopWindow}, requires_body=true, tag="淘宝-双11氛围皮肤"
