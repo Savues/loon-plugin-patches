@@ -5,8 +5,8 @@ import { t, done } from './harness.mjs'
 
 const BADGE = readFileSync(new URL('../src/assets/ad-badge.png', import.meta.url))
 t('是合法 PNG（魔数）', BADGE[0] === 0x89 && BADGE[1] === 0x50 && BADGE[2] === 0x4E && BADGE[3] === 0x47)
-t('尺寸 106×50（v1.89 收窄：高度 50px，容纳「广告」二字）',
-  BADGE.readUInt32BE(16) === 106 && BADGE.readUInt32BE(20) === 50)
+t('尺寸 530×150（v1.90：恢复官方徽章比例——宽高比一致才能渲染出同高度）',
+  BADGE.readUInt32BE(16) === 530 && BADGE.readUInt32BE(20) === 150)
 t('体积合理（<8KB）', BADGE.length < 8192, `实际 ${BADGE.length} B`)
 
 const script = readFileSync(new URL('../src/subsidy.response.js', import.meta.url), 'utf8')
