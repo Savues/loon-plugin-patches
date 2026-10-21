@@ -26,70 +26,6 @@ const TARGET = Number(A.vipTargetMid) || 0;   // 点名的 UID，0=不点名
 const on = (v) => v === true || v === "true";
 const ALL = on(A.vipAllUsers);
 
-// 国际版我的页服务项隐藏 ID（sections_v2）
-// 默认隐藏：离线缓存(494)/钱包(741)/NFT(1028)/稍后再看(3084)
-// 保留：联系客服(500)/稿件管理(742)
-let mineInterHideIdsStr = '494,741,1028,3084';
-if (A.MineInterHideIds) {
-  mineInterHideIdsStr = A.MineInterHideIds;
-} else if (Array.isArray(A) && A[0] && A[0].MineInterHideIds) {
-  mineInterHideIdsStr = A[0].MineInterHideIds;
-}
-const mineInterHideIds = new Set(mineInterHideIdsStr.split(',').filter(Boolean).map(Number));
-
-// iPad HD「我的」页服务项隐藏 ID（ipad_upper/recommend/more/sections）。
-// 原属 Bilibili-UI（Enhanced-mine.response.js），该插件的 mine/ipad 规则与本脚本
-// 争抢同一端点——Loon 对同一请求只执行**先命中**的那一条（[Rewrite] 与 [Script]
-// 同命中时也只跑 Rewrite，仓库内已有实证）。Bilibili-UI 的规则排在前面时，
-// 它的脚本先 $done，本脚本整个不执行 → 会员伪装与头像角标全失效（2026-10-20
-// 用户 iPad 抓包实证：vip 字段原样、avatar 里 0 个 ICON_LAYER）。故功能并入本脚本，
-// Bilibili-UI 侧摘除该规则，两端各自只有一条 mine/ipad 规则。
-//
-// ⚠️ 取值用 hasOwnProperty 而非真值判断：Loon 的 [Argument] input 清空后传的是
-// 空字符串 ""（假值），真值判断会回落到默认隐藏列表 → 「留空=全部显示」不生效。
-// 默认隐藏：推荐服务(755-760,2541)/更多服务-青少年守护(965)/常用功能-离线缓存(747)/稍后再看(750)
-// 保留：创作中心全组(751-754)/我的客服(763)/历史记录(748)/收藏(749)/设置(764)
-const IPAD_HIDE_DEFAULT = '755,756,757,758,759,760,2541,965,747,750';
-const mineIpadArg = (Array.isArray(A) ? (A[0] || {}) : (A || {}));
-const mineIpadHideIdsStr = Object.prototype.hasOwnProperty.call(mineIpadArg, "MineHideIds")
-  ? String(mineIpadArg.MineHideIds)
-  : IPAD_HIDE_DEFAULT;
-const mineIpadHideIds = new Set(mineIpadHideIdsStr.split(',').filter(Boolean).map(Number));
-
-function filterSectionsV2(d) {
-  try {
-    if (!d.sections_v2 || !Array.isArray(d.sections_v2)) return false;
-    let changed = false;
-    d.sections_v2 = d.sections_v2.map(section => {
-      if (!section.items || !Array.isArray(section.items)) return section;
-      const filtered = section.items.filter(it => !mineInterHideIds.has(it.id));
-      if (filtered.length !== section.items.length) changed = true;
-      return { ...section, items: filtered };
-    });
-    return changed;
-  } catch (e) {
-    return false;
-  }
-}
-
-// iPad HD 我的页四大区块（与原 Enhanced-mine.response.js 逐字段等价）。
-const IPAD_SECTION_KEYS = ["ipad_upper_sections", "ipad_recommend_sections", "ipad_more_sections", "ipad_sections"];
-
-function filterIPadSections(d) {
-  try {
-    let changed = false;
-    for (const k of IPAD_SECTION_KEYS) {
-      const arr = d[k];
-      if (!Array.isArray(arr)) continue;
-      const kept = arr.filter(it => !(it && mineIpadHideIds.has(Number(it.id))));
-      if (kept.length !== arr.length) { d[k] = kept; changed = true; }
-    }
-    return changed;
-  } catch (e) {
-    return false;
-  }
-}
-
 // due_date 单位：【毫秒】—— 实测 B站原生响应为 1721577600000（=2024-07-21）。
 // 此前误采 zirawell 的秒级值 3818419199，与原生单位不一致。取 9999-12-30T23:59:59Z。
 const DUE = 253402214399000;
@@ -321,26 +257,15 @@ try {
   if (d) {
     if (space) {
       changed = patchSpace(d);
-    } else {
-      // 国际版我的页：sections_v2 服务项过滤（与 VIP 伪装无关，始终生效）
-      if (d.sections_v2) {
-        try { changed = filterSectionsV2(d) || changed; } catch (e) {}
+    } else if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
+      d.vip = mine(d.vip);
+      d.vip_type = 2;
+      if (BADGE) {
+        setBadgeLayers(d.avatar);              // 我的页头像新协议：data.avatar
       }
-      // iPad HD 我的页：ipad_*_sections 服务项过滤（原 Bilibili-UI 功能，v7.43 并入）
-      if (IPAD_SECTION_KEYS.some(k => Array.isArray(d[k]))) {
-        try { changed = filterIPadSections(d) || changed; } catch (e) {}
-      }
-      // 我的页 VIP 伪装（非会员时）
-      if (d.vip && d.vip.status == 0) {   // 非会员 → 完整伪装
-        d.vip = mine(d.vip);
-        d.vip_type = 2;
-        if (BADGE && d.avatar) {
-          try { setBadgeLayers(d.avatar); } catch (e) {}
-        }
-        changed = true;
-      }
-      // 真实会员（status==1）不碰：角标图层服务端已下发，牌子是真实数据
+      changed = true;
     }
+    // 真实会员（status==1）不碰：角标图层服务端已下发，牌子是真实数据
   }
   $done(changed ? { body: JSON.stringify(j) } : {});
 } catch (e) {
