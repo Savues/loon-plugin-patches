@@ -18,10 +18,10 @@
  *   pddAdGoodsIds 名单（环形 200，write(value,key) 值在前——仓库踩过的坑），
  *   详情页 detail.response.js 查名单自动打标（复用 v1.77 链路）。
  *
- *   方案 2（真机实验）：给广告商品的 tagInfoList 头部插 {"text":"广告",...}
- *   ——与「退货包运费/假一赔十」完全同构的纯文字标签行，普通商品也带此字段
- *   （1~3 项），React 渲染器对条目数不敏感。渲染与否真机说了算，
- *   失败无副作用（方案 1 独立生效）。
+ *   方案 2（tagInfoList 打标）已于 v1.80 移除：2026-10-21 真机实测注入成功
+ *   （响应数据层 4 个标签全在）但列表页不可见 —— H5 卡片渲染器不消费
+ *   我们注入的该标签，属死代码。百补列表页的可见打标需另找渲染点
+ *   （H5 是 hermes/lego 前端，字段到 UI 的映射未知），暂缓。
  *
  *   解析失败（如另一页面形态 stores、骨架屏）→ 职责 2 整体跳过，职责 1 照常。
  *
@@ -33,7 +33,6 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 
 const AD_KEY = 'pddAdGoodsIds';
 const AD_CAP = 200;
-const AD_TAG = { text: '广告', type: 0, tag_id: 0, tag_series: 1 };
 
 // ── $persistentStore 名单合并（write(value, key)，值在前——仓库踩过的坑）──
 function mergeIds(newIds) {
@@ -113,23 +112,8 @@ try {
       try {
         const goods = collectAdGoods(parsed.obj);
         if (goods.length) {
-          // 方案 1：名单入库
           const ids = goods.map((g) => String(g.goodsId)).filter((x) => x && x !== 'undefined');
-          if (ids.length) mergeIds(ids);
-
-          // 方案 2：tagInfoList 头部插「广告」（幂等：已有同名标签就跳过）
-          let injected = 0;
-          for (const g of goods) {
-            if (!Array.isArray(g.tagInfoList)) g.tagInfoList = [];
-            if (!g.tagInfoList.some((x) => x && typeof x === 'object' && x.text === AD_TAG.text)) {
-              g.tagInfoList.unshift(Object.assign({}, AD_TAG)); injected++;
-            }
-          }
-
-          if (injected) {
-            const next = body.slice(0, parsed.start) + JSON.stringify(parsed.obj) + body.slice(parsed.end);
-            if (next !== body) body = next;
-          }
+          if (ids.length) mergeIds(ids);   // 只做方案 1（名单），不改 HTML 本体
         }
       } catch (e) { /* 职责 2 失败不影响职责 1 */ }
     }

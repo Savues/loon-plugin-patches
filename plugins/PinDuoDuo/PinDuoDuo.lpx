@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.79
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页+百亿补贴页广告商品打「广告」标（不删除）。
+#!name=拼多多去广告(修复版) v1.80
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告进名单（详情页自动标）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 16:45:00
+#!date=2026-10-21 17:15:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -132,7 +132,7 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #     这与第 12 条是同一个根因（enable= 只在 script.md 有记载，rule.md 全文没有），
 #     v1.5 当时只迁走了 [Rewrite] 上的 20 条，漏了 [Rule] 上的 8 条。
 #     写一个不生效的开关比不写更糟：用户以为关掉了，实际一直在拦。
-# 16.【v1.76】新增 feed.response.js：给信息流+详情页+百亿补贴页广告商品打「广告」标（不删除）。
+# 16.【v1.76】新增 feed.response.js：给信息流+详情页广告打标可见；百补页广告进名单（详情页自动标）。
 #     依据 2026-10-21 反编译 + 冷启动 HAR：广告项带 data.ad（bkfl=1 / openinfo.ad_id），
 #     正常推荐没有该字段；且服务端把客户端原生的 need_ad_logo 统一压成 false ——
 #     拼多多故意不显示广告标。脚本只对带 data.ad 的项生效：
@@ -156,6 +156,9 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #     没有销量文案的商品回落标题前缀「【广告】」。
 #     原 oak/integration/render 那条 [Rewrite] json-del 并进本脚本（见 [Rewrite] 段注释）。
 # 19.【v1.79】subsidy.response.js 新增第二职责：百补列表页广告打标（方案 1+2，用户确认）。
+# 20.【v1.80】移除方案 2（tagInfoList 打标）——真机证伪：注入成功但列表页不可见，
+#     H5 卡片渲染器不消费该标签，死代码。方案 1（名单）真机验证有效
+#     （Tafe 饼干从百补入口进详情，「广告·已抢4.4万+袋」可见）。
 #     2026-10-21 快照实测：rawData.store.tabStore.tabList[*].subTabGoodsLists
 #     [*].list[*] 里 23 商品 4 广告（ad 字段为转义 JSON 串，bkfl=1+openinfo.ad_id，
 #     与 feed 同构），此前无任何标识。
