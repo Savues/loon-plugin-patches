@@ -99,34 +99,34 @@ http-response ^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.trade\.f
 
 [Rewrite]
 # === 埋点/错误上报/APM/实验分流 —— 直接 Reject ===
-^https?://gm\.mmstat\.com/ reject, enable={blockTracking}
-^https?://log\.mmstat\.com/ reject, enable={blockTracking}
-^https?://s-gm\.mmstat\.com/ reject, enable={blockTracking}
-^https?://px\.effirst\.com/ reject, enable={blockTracking}
-^https?://abtest\.alibaba\.com/ reject, enable={blockTracking}
-^https?://tlog\.mmstat\.com/ reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/gm\.mmstat\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/log\.mmstat\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/px\.effirst\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com\//i then reject, enable={blockTracking}
 
 # === 广告投放/埋点域名 (kelee.one + 反编译) —— 直接 Reject ===
-^https?://adashx\.m\.taobao\.com/ reject, enable={blockTracking}
-^https?://h-adashx\.ut\.taobao\.com/ reject, enable={blockTracking}
-^https?://ut\.taobao\.com/ reject, enable={blockTracking}
-^https?://ossgw\.alicdn\.com/ reject, enable={blockTracking}
-^https?://ems\.youku\.com/ reject, enable={blockTracking}
-^https?://hudong\.alicdn\.com/ reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ut\.taobao\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/ems\.youku\.com\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com\//i then reject, enable={blockTracking}
 
 # === 闲鱼专用开屏/启动广告上报 (反编译发现) —— 直接 Reject ===
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.click/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.expose/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.click/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.expose/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.redirect/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.report/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.code\.restore/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.scene\.restore/ reject, enable={blockTracking}
-^https?://acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.xyflowin\.upload/ reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.click/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.expose/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.click/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.failed\.batch\.expose/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.redirect/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.app\.launch\.report/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.code\.restore/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.scene\.restore/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\.xyflowin\.upload/i then reject, enable={blockTracking}
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
-# DOMAIN-SUFFIX, afpapi.alimama.com, REJECT
+# request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com\//i then reject, enable={blockTracking}
 
 [Task]
 # 无定时任务
