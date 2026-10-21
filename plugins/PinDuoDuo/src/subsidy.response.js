@@ -137,10 +137,9 @@ try {
           const ids = goods.map((g) => String(g.goodsId)).filter((x) => x && x !== 'undefined');
           if (ids.length) mergeIds(ids);
 
-          // v1.81：三通道打标（用户确认全上，真机消融后收敛）
-          // 通道① 价格正前方：activityPriceWord「券后」→「广告·券后」
-          // 通道② 卡片销量行：salesTip「已抢3680件」→「广告·已抢3680件」
-          // 通道③ 徽章行：titleTop 头部插红底白字「广告」PNG（与官方百补徽章同槽位）
+          // v1.81 三通道 + v1.82 通道④（真机消融：titleTop 只在优惠券子列表渲染，
+          // 主精选瀑布流不读它；主列表的「百亿补贴」logo 来自 goodsFlagIcon/ltIcon
+          // 图片数组——把徽章插到同一槽位，「广告」就会排在官方 logo 前面）
           let touched = 0;
           for (const g of goods) {
             if (typeof g.activityPriceWord === 'string' && g.activityPriceWord
@@ -155,6 +154,15 @@ try {
             if (!g.titleTop.some((x) => x && typeof x === 'object'
                 && (x.url === AD_BADGE_URL || x.text === AD_BADGE.text))) {
               g.titleTop.unshift(Object.assign({}, AD_BADGE)); touched++;
+            }
+            // 通道④：图片徽章数组（主瀑布流槽位）。ltIcon 实测是单个 URL 字符串，
+            // 转数组时保留原值，不能清空。
+            for (const key of ['goodsFlagIcon', 'ltIcon']) {
+              if (typeof g[key] === 'string' && g[key]) g[key] = [g[key]];
+              if (!Array.isArray(g[key])) g[key] = [];
+              if (g[key].indexOf(AD_BADGE_URL) === -1) {
+                g[key].unshift(AD_BADGE_URL); touched++;
+              }
             }
           }
 

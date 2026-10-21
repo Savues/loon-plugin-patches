@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.82
+#!name=拼多多去广告(修复版) v1.83
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告三通道打标（价格词/销量行/徽章）+进名单。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 18:10:00
+#!date=2026-10-21 19:00:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -161,6 +161,10 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #     （Tafe 饼干从百补入口进详情，「广告·已抢4.4万+袋」可见）。
 # 21.【v1.81】百补列表页三通道打标（用户点名价格位置，确认全上）——
 # 22.【v1.82】真机「列表完全不可见」根因修复（两个叠加问题）：
+# 23.【v1.83】通道④（真机消融结论：titleTop 只在优惠券子列表渲染，主精选
+#     瀑布流不读）——往 goodsFlagIcon / ltIcon 头部插徽章 URL。
+#     这两个是主列表「百亿补贴」logo 的图片来源数组，同槽位插入后
+#     「广告」应排在官方 logo 前面。仅数据层改动，断言含零误伤。
 #     ① 百补页模板换了：真实列表页是 tandy_vase.html（775KB），
 #        v1.81 的注入全打在 brand_activity_subsidy.html（旧模板）上
 #        → [Script] URL 正则扩为 (brand_activity_subsidy|tandy_vase)
