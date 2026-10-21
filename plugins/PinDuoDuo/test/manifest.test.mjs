@@ -187,7 +187,7 @@ t('pddpic 广告图 CDN 仍被拦截',
 t('MITM 域名未削减', /hostname\s*=\s*api\.pinduoduo\.com,\s*m\.pinduoduo\.net/.test(lpx))
 const rw = section('REWRITE')
 // 原 28 条：2 条 homepage/hub + 21 条接口拦截均已移交脚本
-t('[Rewrite] 剩 5 条纯去广告规则', rw.length === 5, `实际 ${rw.length} 条`)
+t('[Rewrite] 剩 4 条纯去广告规则', rw.length === 4, `实际 ${rw.length} 条 — oak/integration/render 已并进 detail.response.js（v1.77）`)
 
 // ── 7. 外部资源收敛（脚本层的第三方依赖）─────────────────────
 console.log('\n【7】外部资源收敛')

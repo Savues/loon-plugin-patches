@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.76** · 14 项配置 / 14 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-21T14:30`
+**v1.77** · 14 项配置 / 14 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-21T15:20`
 
 | | 中文 | English |
 |---|---|---|
@@ -85,7 +85,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
-| `feed_ad` | 开 | `/api/alexa/cells/hub/v3` 信息流**广告打标**（不删除） | 不想在信息流里分辨广告时 |
+| `feed_ad` | 开 | 信息流 + 详情页**广告打标**（不删除） | 不想分辨广告时 |
 
 > **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。
 > 这两项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。

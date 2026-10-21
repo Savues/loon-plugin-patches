@@ -29,6 +29,17 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 
 const AD_TEXT = '广告';
 const AD_COLOR = '#E02E24';
+const AD_KEY = 'pddAdGoodsIds';
+const AD_CAP = 200;
+
+// ── $persistentStore 名单写入（write(value, key)，值在前键在后！）────
+// ⚠️ 这是仓库里踩过的坑（Splash-Festival v37）：write(key, value) 不报错
+// 但等于把键名当值存，read 永远回 null。此处签名必须值在前。
+function recordIds(ids) {
+  try {
+    $persistentStore.write(JSON.stringify(ids.slice(0, AD_CAP)), AD_KEY);
+  } catch (e) { /* 存储不可用不阻断打标 */ }
+}
 
 try {
   if (!on(A.feed_ad)) { $done({}); return; }
@@ -62,6 +73,25 @@ try {
     }
 
     marked++;
+  }
+
+  // 把本屏广告 goods_id 记进名单（新在前，去重，环形裁到 AD_CAP）
+  if (typeof $persistentStore !== 'undefined' && marked > 0) {
+    let prev = [];
+    try {
+      const raw = $persistentStore.read(AD_KEY);
+      const arr = raw ? JSON.parse(String(raw)) : [];
+      if (Array.isArray(arr)) prev = arr.map(String);
+    } catch (e) { prev = []; }
+    const now = [];
+    for (const cell of list) {
+      const d2 = cell && cell.data;
+      if (!d2 || !d2.ad || d2.goods_id === undefined) continue;
+      const gid = String(d2.goods_id);
+      if (now.indexOf(gid) === -1) now.push(gid);
+    }
+    for (const g of prev) if (now.indexOf(g) === -1 && now.length < AD_CAP) now.push(g);
+    recordIds(now);
   }
 
   if (!marked) { $done({}); return; }   // 这一屏没有广告，原样放行，省一次序列化

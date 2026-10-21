@@ -23,6 +23,22 @@ function run(argObj, payload) {
   return r
 }
 
+// 带持久化存储的运行（detail.response.js 依赖 feed 写入的名单）
+function runStore(argObj, payload, store) {
+  const out = {}
+  const fn = new Function('$argument', '$response', '$done', '$persistentStore', 'console', src)
+  fn(argObj, { body: JSON.stringify(payload) }, (r) => { out.result = r }, store, console)
+  return out.result
+}
+const makeStore = (initial) => {
+  const kv = initial ? { pddAdGoodsIds: JSON.stringify(initial) } : {}
+  return {
+    read: (k) => (k in kv ? kv[k] : null),
+    write: (v, k) => { kv[k] = String(v); return true },
+    kv,
+  }
+}
+
 console.log('\n【1】feed_ad 开 —— 只打标，不删商品')
 let o = run({ feed_ad: true }, real)
 let g = (o.body || o).data.goods_list
@@ -76,5 +92,29 @@ const noAd = JSON.parse(JSON.stringify(real))
 noAd.data.goods_list = noAd.data.goods_list.filter(g => !g.data.ad)
 o = run({ feed_ad: true }, noAd)
 t('全正常 → 放行（省一次序列化）', Object.keys(o.result || {}).length === 0)
+
+console.log('\n【6】广告名单写入 $persistentStore（供 detail.response.js 读取）')
+const adIds = real.data.goods_list.filter(g => g.data.ad).map(g => String(g.data.goods_id))
+let store = makeStore([])
+runStore({ feed_ad: true }, real, store)
+let saved = JSON.parse(store.kv.pddAdGoodsIds)
+t('5 个广告 goods_id 全部入库', saved.length === 5 && adIds.every(id => saved.includes(id)),
+  `实际 ${saved}`)
+runStore({ feed_ad: true }, real, store)   // 再跑一遍
+saved = JSON.parse(store.kv.pddAdGoodsIds)
+t('重复跑不产生重复 id', saved.length === 5, `实际 ${saved.length}`)
+// 环形裁剪：预填 200 条旧 id，新一屏进来应裁掉最旧的 5 条
+const old = Array.from({ length: 200 }, (_, i) => String(1000 + i))
+store = makeStore(old)
+runStore({ feed_ad: true }, real, store)
+saved = JSON.parse(store.kv.pddAdGoodsIds)
+t('环形裁剪：总量不超过 200', saved.length === 200, `实际 ${saved.length}`)
+t('新 id 在最前', adIds.includes(saved[0]) && adIds.includes(saved[4]))
+t('最旧的 5 条被挤出（列表尾部 1195-1199）',
+  !saved.includes('1195') && !saved.includes('1199') && saved.includes('1000'))
+// 关开关不写库
+store = makeStore(['1'])
+runStore({}, real, store)
+t('feed_ad 关 → 不写库', !store.kv.pddAdGoodsIds || JSON.parse(store.kv.pddAdGoodsIds).includes('1'))
 
 done()
