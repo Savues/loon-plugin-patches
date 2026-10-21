@@ -30,7 +30,9 @@ const RULES = [
   ['order_stub', 'stub', '/api/caterham/v3/query/my_order_group'],
 
   ['search_stub', 'stub', '/search_hotquery'],
+  ['search_stub', 'stub', '/search_suggest'],
   ['search_stub', 'del', '/search', ['expansion']],
+  ['search_stub', 'del', '/api/polemon/gbdbpdc', ['access_array', 'extra_array', 'tip1', 'tip2', 'text', 'history', 'degrade', 'extra_array_style', 'more_options', 'float_bar_array']],
 
   ['api_stub', 'stub', '/api/aristotle/unrated_order_for_unreceived_tab'],
   ['api_stub', 'stub', '/api/aristotle/query_order_list_tabs_element'],
