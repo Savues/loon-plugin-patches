@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.86
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告三通道打标（价格词/销量行/徽章）+进名单。
+#!name=拼多多去广告(修复版) v1.87
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-21 20:00:00
+#!date=2026-10-21 21:15:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -144,5 +144,9 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # 26. 【v1.86】ltIcon 类型修复（iPad 碎图真正根因）：ltIcon 是单个 URL 字符串，
 #     H5 组件把数组 join(',') 拼成一个 URL 再请求——v1.83 转数组后拼出
 #     `badge.png,原URL` → 404 碎图。改为直接替换成徽章 URL（占位意图更明确）。
+# 27.【v1.87】百补列表收敛（用户确认）：移除 ①价格词 ②销量行 ③titleTop
+#      三通道（真机证伪/冗余），只保留商品图左上角图片角标
+#      （goodsFlagIcon 头插 + ltIcon 替换）；徽章宽度收窄 530→236，
+#      正好容纳「广告」二字。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
