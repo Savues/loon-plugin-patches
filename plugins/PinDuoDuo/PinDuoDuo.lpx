@@ -88,11 +88,11 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 
 # ─────────────────────────────────────────────
 # 修复说明（上游脚本仅改 1 行远程依赖 URL；homepage/stub/detail/feed/subsidy
-# 五个脚本中前两个为托管、后四个为本仓库自研，依据逐条如下）
+# 五个脚本中前两个为托管、其余为本仓库自研，依据逐条如下）
 #  1. 新增 [Argument] 开关：chat_stub / telemetry_stub
 #     （telemetry 已于 v1.75 删除——它挂的是 [Rule]，enable= 在那里无效，见 15）
 #  2. 4 条聊天与推荐端点挂 enable={chat_stub}，可关以恢复聊天刷新
-#  3. homepage/hub 的 jq 空值崩溃缺陷——已由自研脚本取代（见 10）
+#  3. homepage/hub 的 jq 空值崩溃缺陷——已由自研脚本取代（见 13）
 #  4. 移除 1 条 QUIC REJECT（api 的 ALPN 只协商 h2，不触发）
 #  5. 移除 DOMAIN, xg.pinduoduo.com REJECT——实测是消息推送 WebSocket 通道
 #  6. 移除上游 2 条裸 IP REJECT（正则对不上真实路径，且与 HTTPDNS 拦截重复）
@@ -121,8 +121,8 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # 18. 【v1.78】详情页滚动条补漏：价格区滚动条有两套数据源，
 #     desc_labels_for_carousel（逐帧下发）v1.77 漏了；正则补「抢光/仅剩」。
 # 19. 【v1.79】subsidy.response.js 新增百补职责（方案 1）：
-#     百补列表 rawData 里 23 商品 4 广告（ad 字段转义 JSON 串，与 feed 同构），
-#     广告 goodsId 并进 $persistentStore 名单 → 百补进详情自动打标。
+#     百补列表 rawData 里广告商品（ad 字段转义 JSON 串，与 feed 同构），
+#     goodsId 并进 $persistentStore 名单 → 百补进详情自动打标。
 # 20. 【v1.80】移除 tagInfoList 打标——真机证伪：数据层注入成功但列表页
 #     不可见（H5 卡片渲染器不消费该标签），死代码。
 # 21. 【v1.81】百补列表三通道：① activityPriceWord 价格词前缀（用户点名）
@@ -133,7 +133,7 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #     [Script] 正则扩为二者；② 新模板 rawData 顶层是 stores 且为 dict
 #     （stores.store.tabStore…），旧收集器 for...of 对象抛 TypeError 被静默
 #     吞掉 → collectAdGoods 三形态归一。副作用修正：v1.79「stores 形态无广告」
-#     实为收集器 bug（fixture1 实际含 2 个广告商品）。
+#     实为收集器 bug（该页实际含 2 个广告商品）。
 # 23. 【v1.83】通道④：titleTop 只在优惠券子列表渲染，主瀑布流不读——
 #     主列表「百亿补贴」logo 来自 goodsFlagIcon（数组）/ltIcon（字符串），
 #     头部插徽章 URL。
