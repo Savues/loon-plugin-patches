@@ -3,7 +3,7 @@
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.26** · 17 参数 / 5 Rule / 14 Rewrite / 6 Script / 5 MITM 域名 · 更新 `2026-10-10`
+**v7.44** · 21 参数 / 5 Rule / 14 Rewrite / 6 Script / 5 MITM 域名 · 更新 `2026-10-21`
 
 | | 中文 | English |
 |---|---|---|
@@ -15,6 +15,7 @@
 | 历史 | 见 [迭代记录](../../BILIBILI-ITERATION.md) | see the post-mortem |
 
 > ⚠️ **v7.26 起「空降助手」已移出本插件**（参数 `sponsorBlock` 与 `DM/DmSegMobile` 规则均已删除，chronos 引擎包 ×6 已迁至 `plugins/Bilibili-Airborne/chronos/`）。需要跳广告请装 [Bilibili-Airborne](https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Bilibili-Airborne)，**两个插件不要同时开**（会重复注入空降弹幕）。本文第六、七章保留为历史机制档案。
+> ⚠️ **v7.23 修复（2026-10-21）**：迁移时漏删了 `protobuf.response.js` 内嵌的 chronos URL 改写（`ii()`），导致服务端换包后 App 下载 404、**弹幕整体丢失**。现 `ii()` 已停用，第六章所述「URL 改指本仓库」的行为不再生效，仅作历史档案。
 > 踩坑过程 → [迭代记录](../../BILIBILI-ITERATION.md)。
 
 
@@ -49,6 +50,8 @@
 
 | 时间 | 提交 | 变更 |
 |---|---|---|
+| `2026-10-21T23:30` | `6761fa0` | 🔴 **修复本插件导致的弹幕丢失**（间歇性，`bili-inter` iPhone 上最明显；关闭插件即恢复）。根因：`protobuf.response.js` 在 `ViewProgressReply`/`PlayerOnline` 处理器调用的 `ii()` 会把 `chronos` 字段的**弹幕引擎包** URL 改写到 `plugins/Bilibili-Airborne/chronos/<md5>.zip` 并清 `sign`——v7.26 迁移只移走了规则与 zip 资产，这段内嵌劫持漏了。服务端更新引擎包后 md5 不在映射表，按 UA 回落 `inter=8c3feda2…zip`，**而该文件并不在仓库中 → App 下载 404 → 弹幕引擎初始化失败 → 无弹幕**（App 连续重试，HAR 中 404 与失败播放同秒；间歇性是因为 chronos 仅在换包/引擎初始化时触发）。修法：`ii()` 改为 no-op，官方 md5/file/sign 原样透传，chronos 注入职责完全归 [Bilibili-Airborne] 插件；`protobuf.response.js?v=723`。排查方法（本地回放脚本对比 in/out 字节、以 `$httpClient` 外呼与 `activityMeta` 清空作脚本指纹、4 连 404 定位）见迭代记录 |
+| `2026-10-21T00:40` | `79b5138` | **v7.44** 调整 iPad/国际版「我的」页默认隐藏列表（`MineHideIds`/`MineInterHideIds` 默认值微调） |
 | `2026-10-20T22:45` | `a437833` | **v7.43** 修复 iPad「我的」页会员角标/伪装完全不生效。根因：`x/v2/account/mine/ipad` 这一个端点上，[Bilibili-UI] 也挂着一条 `http-response` 规则（`Enhanced-mine.response.js`）。**Loon 对同一请求只执行先命中的那一条**（仓库内另有实证：同端点 `[Rewrite]` 与 `[Script]` 同命中时也只跑 Rewrite），Bilibili-UI 的规则先命中并 `$done` → 本插件的 `vip.js` 整个不执行。抓包实证：响应里 `data.vip` 原样未改（`type:1,status:0`、`label.text=""`）、`data.avatar` 里 **0 个 `ICON_LAYER`**，而同包内开屏接口的插件注入正常，说明是规则被抢而非脚本本身出错。修法：`ipad_*_sections` 服务项过滤并入 `vip.js`（新参数 `MineHideIds`，默认值与原 Bilibili-UI 完全一致），Bilibili-UI v3.6.0 摘除该规则与参数；顺带修正 `filterSectionsV2` 返回值被丢弃导致「仅过滤服务项时不改写响应」的隐患。**已真机验证**（2026-10-20T23:47 抓包：`vip.type=2/status=1`、`avatar` 4 层含 2 个 `ICON_LAYER`（local 4 企业认证）、`ipad_sections` 仍正确过滤为 748/749/764） |
 | `2026-10-02T01:35` | — | **v7.24** `vip` 档换粉底大会员牌。上一版沿用官方灰底（理由是「该档权限等同非会员」），用户实测后要求换彩色，改用 `vip-basic-pink`，与另三个档位统一为粉底扁平。附带把「彩色昵称为何发灰」的抓包结论写进 README：`nickname_color` 字段已正确注入（`#FB7299`），但 App 端仍显示灰色 —— 28 个真实大会员样本中 27 个该字段为 `None`，说明彩色昵称是独立开通的功能、不随会员身份附带，**这是如实反映而非插件失灵**。功能零变化，`vip.js` 只改 1 个文件名 |
 | `2026-10-02T00:55` | — | **v7.23** 会员伪装换纯文字牌子图。用户实测「带图案的不好看」，十年/百年两档从火车版（`ten-cannon`）与 2023 活动带星版换成官方纯文字版 `vip-ten-pink` / `vip-hundred-pink`；`vip-assets/` 按官方 `label.image` 抓包补齐到 16 张并统一为 `vip-<档位>-<样式>.png` 命名，4 个旧名作废。**推翻一条旧结论**：此前记「App 走文字渲染、`image` 留空即可」，新抓包（1116 条）中 `x/v2/space` 触发 6 次 `/bfs/vip/` 图片请求，证明 `label.image` 确实生效。功能零变化，`vip.js` 只改 4 个文件名 |
@@ -343,7 +346,7 @@ plugins/Bilibili-Dedup/
 
 plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本
     ├── protobuf.request.js     62 KB
-    ├── protobuf.response.js    95 KB  ⚠️ chronos URL 已改指 Bilibili-Airborne/chronos（保留兼容，本插件不再传 sponsorBlock）
+    ├── protobuf.response.js    95 KB  ⚠️ chronos URL 改写（ii()）已于 v7.23 修复版停用（2026-10-21，曾致弹幕 404/丢失），本插件不再传 sponsorBlock
     ├── adblock.bundle.js      842 KB
     ├── adblock-hotsearch.js   817 B
 
@@ -365,7 +368,7 @@ plugins/Bilibili-Dedup/upstream/            # 3 个上游脚本
 `protobuf.response.js` **仅改动 1 处 URL**（下方说明）。版本固定在 BiliUniverse `v0.6.24`，
 其余取自 kokoryh 提交 `master` 当时的快照。图标是唯一做过尺寸压缩的文件。
 
-### 唯一的改动：`protobuf.response.js` 的 chronos 地址
+### 唯一的改动：`protobuf.response.js` 的 chronos 地址（⚠️ 已于 2026-10-21 停用）
 
 空降助手需要 App 加载一个引擎包，原地址硬编码在 `ii()` 里：
 
