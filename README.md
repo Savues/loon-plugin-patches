@@ -393,6 +393,7 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |
+| [PinDuoDuo/ITERATION.md](plugins/PinDuoDuo/ITERATION.md) | v1.74→v1.78 复盘：**风控由浏览节奏触发**（含封禁链路回放）、`enable=` 在 `[Rule]`/`[Rewrite]` 上是死开关、信息流+详情页广告打标的三层结构 · Risk-control attribution, dead `enable=`, ad-tagging architecture |
 | [QuarkCheckIn/README.md](plugins/QuarkCheckIn/README.md) | 夸克签到插件：逆向结论 + 四次踩坑记录 · Check-in plugin: reverse-engineering notes & post-mortems |
 | [Locally-HF-Swap/README.md](plugins/Locally-HF-Swap/README.md) | Locally 换模型插件：3 种 URL 形态的实测结论 + 两个正则坑 · Model-swap plugin: measured URL shapes & two regex traps |
 | [Locally-HF-Swap/EXPERIMENT.md](plugins/Locally-HF-Swap/EXPERIMENT.md) | **完整实验记录**：四个坑、两处 mock 误判、判读 Loon HAR 的方法，以及为何到此为止<br>Full post-mortem: four traps, two mock mistakes, how to read a Loon HAR, why it stops here |
