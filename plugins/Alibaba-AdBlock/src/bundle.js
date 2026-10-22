@@ -1303,7 +1303,7 @@ function main() {
   }
   
   // 橙色配置 (orange.tbcdn.cn): 清洗营销内容 (protobuf 字节级, 长度不变)
-  if (url.indexOf("orange.tbcdn.cn/") >= 0) {
+  if (url.indexOf("orange.tbcdn.cn/") >= 0 || url.indexOf("dorangesource.alicdn.com/") >= 0) {
     if (isEnabled("removeSplashAd")) {
       const raw = ($response.bodyBytes || ($response.body instanceof Uint8Array ? $response.body : null));
       if (raw) {

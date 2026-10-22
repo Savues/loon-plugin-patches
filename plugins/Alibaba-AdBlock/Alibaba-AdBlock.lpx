@@ -1,12 +1,12 @@
-#!name=Alibaba-AdBlock v3.11.0
+#!name=Alibaba-AdBlock v3.11.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.11.0
+#!version=3.11.1
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
 [MITM]
-hostname = acs.m.taobao.com, img.alicdn.com, guide-acs.m.taobao.com, orange.tbcdn.cn, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, yixiu-abtest.alicdn.com, dinamicx.alibabausercontent.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
+hostname = acs.m.taobao.com, img.alicdn.com, guide-acs.m.taobao.com, orange.tbcdn.cn, dorangesource.alicdn.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, yixiu-abtest.alicdn.com, dinamicx.alibabausercontent.com, gm.mmstat.com, log.mmstat.com, s-gm.mmstat.com, px.effirst.com, abtest.alibaba.com, tlog.mmstat.com
 h2 = true
 
 [Argument]
@@ -53,7 +53,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union
 response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/popcdn/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removePopWindow}}) with enable=${removePopWindow}, requires_body=true, tag="阿里弹窗-调度器清空"
 
 # === 橙色配置营销清洗 (orange.tbcdn.cn, protobuf 内嵌 JSON, 字节级等长替换) ===
-response if ${url} ~= /^https?:\/\/orange\.tbcdn\.cn/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, binary_body_mode=true, tag="阿里橙配-营销清洗"
+response if ${url} ~= /^https?:\/\/(?:orange|dorangesource)\.tbcdn\.cn|^https?:\/\/dorangesource\.alicdn\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, binary_body_mode=true, tag="阿里橙配-营销清洗"
 
 # === 淘宝开屏/弹窗 (kelee.one + 反编译) ===
 response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, tag="淘宝-开屏活动"
