@@ -1195,6 +1195,54 @@ const ORANGE_SCRUB_TARGETS = [
   ["enableSearchbarLoopControl", "false"],
   ["enableSearchBarAnimation", "false"]
 ];
+// ============================================
+// 弹窗调度器清洗 (poplayer.template.alibaba.com/popcdn/*/config.json)
+// 结构: {sc: 场景->弹窗ID (118), ac: 弹窗ID->配置 (785), version}
+// 策略: sc 清空 (0 场景可触发) + cdnId 全改 0 (模板失效) + url 破坏 host
+//       ac 保持条数 (>0, 避免 App 判定 "content count == 0" 为错误配置)
+// ============================================
+function scrubPopcdnSchedule(body) {
+  if (!body) return null;
+  console.log("[Alibaba-AdBlock] popcdn scrub enter, len:", body.length);
+  if (typeof body !== "string") {
+    try { body = bytesToLatin1(body); } catch (e) { body = ""; }
+  }
+  let s = body;
+  let cdnChanged = 0;
+  s = s.replace(/"cdnId":"[0-9a-fA-F]{32}"/g, function () {
+    cdnChanged++;
+    return '"cdnId":"00000000000000000000000000000000"';
+  });
+  let urlChanged = 0;
+  s = s.replace(/"(url|weexUrl)":"(https?:\/\/)([^"\/]{3})/g, function (m, k, p, host) {
+    urlChanged++;
+    return '"' + k + '":"' + p + 'xxx' + host.slice(3);
+  });
+  const ki = s.indexOf('"sc"');
+  let scCleared = false;
+  if (ki >= 0) {
+    const colon = s.indexOf(":", ki);
+    const objStart = s.indexOf("{", colon);
+    if (objStart >= 0) {
+      let depth = 0, objEnd = -1;
+      for (let p = objStart; p < s.length; p++) {
+        if (s[p] === "{") depth++;
+        else if (s[p] === "}") { depth--; if (depth === 0) { objEnd = p + 1; break; } }
+      }
+      if (objEnd > 0) { s = s.slice(0, objStart) + "{}" + s.slice(objEnd); scCleared = true; }
+    }
+  }
+  console.log("[Alibaba-AdBlock] popcdn scrub: cdnId=" + cdnChanged + " url=" + urlChanged + " scCleared=" + scCleared);
+  if (!cdnChanged && !urlChanged && !scCleared) return null;
+  const check = safeParse(s);
+  if (!check) {
+    console.log("[Alibaba-AdBlock] popcdn scrub invalid JSON, fallback minimal");
+    return '{"sc":{},"ac":{},"version":"0"}';
+  }
+  console.log("[Alibaba-AdBlock] poplayer schedule sanitized: sc=" + Object.keys(check.sc || {}).length + " ac=" + Object.keys(check.ac || {}).length);
+  return s;
+}
+
 function scrubOrangeConfig(bodyBytes) {
   try {
     const s0 = bytesToLatin1(bodyBytes);
