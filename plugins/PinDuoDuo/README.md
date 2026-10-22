@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.94** · 15 项配置 / 16 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T03:10`
+**v1.95** · 15 项配置 / 16 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T18:30`
 
 | | 中文 | English |
 |---|---|---|

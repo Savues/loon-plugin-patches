@@ -30,4 +30,15 @@ t('分页接口脚本也内联了同一份徽章',
 t('生成脚本在仓库里（可复现资产）',
   readFileSync(new URL('../tools/make-badge.py', import.meta.url), 'utf8').includes('make_corner'))
 
+// v1.95：角标改回用户自备的那张图（530×150 横幅）—— 但横幅塞进近方形角标槽会被
+// 拉变形，所以生成脚本从原图里取出用户自己的字形，竖排叠进 184×208 画布。
+const SRC_BADGE = readFileSync(new URL('../src/assets/ad-badge-src.png', import.meta.url))
+t('用户原始横幅图在仓库里（530×150）',
+  SRC_BADGE[0] === 0x89 && SRC_BADGE[1] === 0x50
+  && SRC_BADGE.readUInt32BE(16) === 530 && SRC_BADGE.readUInt32BE(20) === 150)
+t('生成脚本读的是用户原图', (() => {
+  const py = readFileSync(new URL('../tools/make-badge.py', import.meta.url), 'utf8')
+  return py.includes('ad-badge-src.png') && py.includes('make_corner')
+})())
+
 done()

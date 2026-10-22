@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.94
+#!name=拼多多去广告(修复版) v1.95
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效；百补列表广告角标改走商品图左上角官方角标槽（手机版可见）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-22 03:10:00
+#!date=2026-10-22 18:30:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -198,5 +198,14 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #        20 条里 10 条带 ad），给广告条目写 lt_icon 并把 goods_id 并进
 #        pddAdGoodsIds 名单（详情页自动打标）—— 旧版本只改 HTML，
 #        手机上往下翻的广告商品一条角标都没有。
+# 36.【v1.95】百补广告角标换回用户自备的那张图（手机版显示已确认正常）：
+#      角标资产改用用户 v1.92 提供的原图（530×150 半透明黑底 + 白字「广告」），
+#      存为 src/assets/ad-badge-src.png 作为唯一美术源；
+#      但横幅（宽高比 3.53）直接塞进近方形角标槽（0.46×0.52rem，比例 0.885）
+#      会被拉变形 → 生成脚本 tools/make-badge.py 从原图里**取出用户自己的字形**
+#      （不重新排字体，保留原字形与抗锯齿），竖排叠进 184×208 画布，
+#      底色 (0,0,0,134)、白字 alpha 沿用原图。输出 src/assets/ad-badge.png。
+#      附带修复：v1.94 漏提交 tools/make-badge.py（badge-asset 用例在干净克隆上
+#      会 ENOENT）—— 本次一并补齐，并把「用户原图在仓库里」也纳入断言。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
