@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.27.0
+#!name=Alibaba-AdBlock v3.28.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.27.0
+#!version=3.28.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -143,7 +143,7 @@ request if ${url} ~= /O1CN01xvtBxdhcjQF1chua|O1CN01YelGPQ24a0Mo9ODI6/i then reje
 request if ${url} ~= /mtop\.xsd\.searchbar\.info\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.clientpaas\.spotlightsearch\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.relationrecommend\./i then reject_dict(200)
-request if ${url} ~= /mtop\.taobao\.wsearch\.commonApi/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.wsearch\.common(Api)?/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.stream\./i then reject_dict(200)
 # 用完整组件名做子串匹配 (覆盖三种资源形式: muise/main.v20.wlm / weex/home.v20.wlm / ms_xxx@ver.wlm 资源包)
 # 安全: 三个完整组件名均不出现在 searchBoxUrl 等点击目标中 (已用 gateway 缓存验证, 不会误伤搜索栏)
