@@ -1063,6 +1063,56 @@ function filterXianyuSearchWords(body) {
   return body;
 }
 
+
+// 闲鱼搜索域精细处理 (按接口分派)
+// 实测结构:
+//  search.suggest (可能在找): data.picTextEntryInfoVOList[{label,redirect,preTitleIcon}] = 图文广告位
+//                            data.dynamicList[{data:{suggest,trackParams:{tpp_bucket_id}}}] = 动态投放
+//                            data.items[{suggest,rn}] = 搜索联想 (功能, 保留)
+//  search.activate.tablist (热搜榜顶栏): data.tabList[{apiName, rankStyleType:HOT_RANK}]
+//  search.activate.industrylist (行业词): data.resultList / data.list
+//  search.shade (搜索框展示): data.singleShadeWords + multiWordsForMarquee
+//  search.discover / item.search.activate: 已由通用词清理处理
+function filterXianyuSearchDomain(body, url) {
+  if (!isEnabled("fishRemoveSearchAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  const d = data.data;
+  if (!d || typeof d !== "object") return body;
+  let modified = false;
+
+  if (url.includes("search.suggest")) {
+    // 可能在找: 图文广告位 + 动态投放 (保留 items 搜索联想)
+    for (const k of ["picTextEntryInfoVOList", "dynamicList", "users"]) {
+      if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
+    }
+    if (d.bucketId) { d.bucketId = ""; modified = true; }
+    if (d.trackParams) { d.trackParams = {}; modified = true; }
+  }
+  if (url.includes("search.activate.tablist")) {
+    // 热搜榜顶栏 Tab
+    if (Array.isArray(d.tabList) && d.tabList.length) { d.tabList = []; modified = true; }
+  }
+  if (url.includes("search.activate.industrylist")) {
+    // 行业词/分类词位
+    for (const k of ["resultList", "list", "industryList", "items"]) {
+      if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
+    }
+  }
+  if (url.includes("search.shade")) {
+    if (Array.isArray(d.singleShadeWords) && d.singleShadeWords.length) { d.singleShadeWords = []; modified = true; }
+    if (d.multiWordsForMarquee) { d.multiWordsForMarquee = false; modified = true; }
+    if (d.multiWordsExpectedCount) { d.multiWordsExpectedCount = 0; modified = true; }
+    if (d.bucketId) { d.bucketId = ""; modified = true; }
+    if (d.trackParams) { d.trackParams = {}; modified = true; }
+  }
+  if (modified) {
+    console.log("[Alibaba-AdBlock] Cleared Xianyu search domain: " + (url.split("/gw/")[1] || "").split("/")[0]);
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash")) {
@@ -1086,6 +1136,12 @@ function handleXianyuResponse(body, url) {
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.item.buy.feeds")) {
     return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+  }
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.shade")
+      || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.suggest")
+      || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.activate.tablist")
+      || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.activate.industrylist")) {
+    return filterXianyuSearchDomain(body, url);
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.shade")) {
     return filterXianyuSearchWords(body);
