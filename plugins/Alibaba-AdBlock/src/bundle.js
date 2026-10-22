@@ -1200,8 +1200,19 @@ function filterLiveSearchDomain(body, url) {
   }
   if (url.indexOf("search.guidehotlist") >= 0) {
     // 直播热卖榜 (tabs -> taobaolive_duke_search_hot_list 模板)
+    // ★ 实际结构是三层 data: data.data.data.{selectedPos, tabs, userFootPrint}
+    //   tabs          = 直播热卖榜
+    //   userFootPrint = 足迹补贴板块 (与 tabs 同级, 不是 tabs 的子项!)
     if (d.data && Array.isArray(d.data.tabs) && d.data.tabs.length) { d.data.tabs = []; modified = true; }
     if (Array.isArray(d.tabs) && d.tabs.length) { d.tabs = []; modified = true; }
+    // userFootPrint 与 tabs 同级 (都在 d.data 下), 双路径兼容不同版本
+    if (d.data && d.data.userFootPrint) { d.data.userFootPrint = {}; modified = true; }
+    const inner = d.data && d.data.data;
+    if (inner && typeof inner === "object") {
+      if (inner.userFootPrint) { inner.userFootPrint = {}; modified = true; }
+      if (Array.isArray(inner.tabs) && inner.tabs.length) { inner.tabs = []; modified = true; }
+    }
+    if (d.userFootPrint) { d.userFootPrint = {}; modified = true; }
   }
 
   if (modified) {
