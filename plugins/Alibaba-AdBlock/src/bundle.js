@@ -1159,6 +1159,10 @@ function filterXianyuSearchDomain(body, url) {
 
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
+  // Oliver 投放平台批量下发 (阿里投放系统, 反编译确认存在)
+  if (url.includes("mtop.taobao.idle.oliver.") || url.includes("mtop.taobao.idle.oliver")) {
+    return isEnabled("removePopWindow") ? filterClearData(body) : body;
+  }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash")) {
     return filterXianyuSplashAds(body);
   }
@@ -1183,6 +1187,8 @@ function handleXianyuResponse(body, url) {
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.shade")
       || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.suggest")
+      || url.includes("mtop.taobao.idle.trend.search.shade")
+      || url.includes("mtop.taobao.idle.trend.search.suggest")
       || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.activate.tablist")
       || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.activate.industrylist")) {
     return filterXianyuSearchDomain(body, url);
@@ -1193,7 +1199,8 @@ function handleXianyuResponse(body, url) {
   // 闲鱼自有搜索接口族 (hotRankList / 搜索建议 / 猜你可能在找)
   // ★ item.search.activate 必须在此之前处理 (它含 idlemtopsearch.item.search. 前缀,
   //   会被下面的 filterXianyuSearchWords 抢先匹配 → filterXianyuSearchActivate 成死代码)
-  if (url.includes("idlemtopsearch.item.search.activate")) {
+  if (url.includes("idlemtopsearch.item.search.activate")
+      || url.includes("mtop.taobao.idle.trend.search.activate")) {
     return filterXianyuSearchActivate(body);
   }
   if (url.includes("mtop.taobao.idle.search.") || url.includes("mtop.taobao.idleitem.tbsearch")
