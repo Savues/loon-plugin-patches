@@ -31,6 +31,9 @@
 | 18 | **直播氛围** | Rewrite `reject_dict(200)` | `mtop.tblive.live.atmosphere.resource.list` / `.detail.sendUserAtmosphere` | `liveRemoveAds` |
 | 19 | **云袭广告监测平台** | Rewrite 整域 reject | `*.yunxish.com` / `*.iggrowth.cn`（6 个域） | `blockTracking` |
 | 20 | **阿里妈妈广告追踪** | Rewrite reject | `mtop.taobao.livex.business.taolive.ad.monitor` | `blockTracking` |
+| 21 | **首页视频流广告** | Script 清 `dataList[].data.data.liveList[0].ad` | `mtop.taobao.livexshow.homepage.{videolist,tabmenu}` | `liveRemoveAds` |
+| 22 | **权益广告** | Script 清 `liveBenefitAdInfo.pushData.ad` | 同上（tabmenu 内） | `liveRemoveAds` |
+| 23 | **推荐视频流广告** | Script 清 `data.model[].ad` | `mtop.taobao.livexshow.recommend.slide.lives` | `liveRemoveAds` |
 
 ### 1.2 搜索门（与淘宝共用组件）
 
@@ -86,6 +89,31 @@ Library/Preferences/com.taobao.live.plist → teenprotect_lastshow_secondinterva
 纯本地机制（记录上次展示时间 → 控制间隔 → 只弹一次），**无任何 mtop 接口** → 插件层不可达，只能删该 Preferences 键重置。
 
 ---
+
+## 二·补、直播首页/推荐视频流广告结构（v3.37.6/3.37.7）
+
+```
+① 首页视频流   livexshow.homepage.videolist     260KB
+   livexshow.homepage.tabmenu      321KB
+   广告路径: dataList[N].data.data.liveList[0].ad
+     内嵌 adType:"LIVE" + pCode:"home_livelist_other" + ownerId
+     标记   m_ext=__TANX_M_EXT__  (阿里妈妈 Tanx 投放)
+   正常项: isAd="0" 且【无 ad 对象】← 判别依据
+
+② 权益广告 (对象非数组)
+   videoListDatas.liveBenefitAdInfo.pushData.ad   → 整体置 {}
+
+③ 推荐视频流   livexshow.recommend.slide.lives  74KB
+   广告路径: data.model[N].ad   ← 数组名是 model (非 dataList)
+```
+
+实现 `filterLiveHomeFeed`：递归处理 `dataList` 与 `model` 两种数组名 + `liveBenefitAdInfo`。
+
+**效果**：videolist 260696→209361 / tabmenu 321488→192984 / slide.lives 74033→29784（adType 全归零）
+
+> 注：直播 App 广告面广（用户反馈"界面上无数广告"），当前已覆盖 23 种形态，
+> **未覆盖**：`livex.vcore.series.videos.query`(328KB) / `page.pkg.config.list`(143KB,配置) /
+> `common.video.query`(49KB) / `live.column.entry`(25KB) —— 经检测**无广告标记**，未处理。
 
 ## 三、已知限制
 

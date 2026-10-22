@@ -1,6 +1,6 @@
 # Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> **版本 v3.9.20** · 2026-10-22
+> **版本 v3.37.7** · 2026-10-23
 > 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
 > 运行环境：Loon (iOS / iPadOS)
 
@@ -25,7 +25,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 | 项 | 数量 |
 |----|------|
 | Rewrite 规则 | **117** |
-| Response Script 规则 | **57** |
+| Response Script 规则 | **58** |
 | MITM 域名 | **24** |
 | 开关 | **15** (另 2 个已注释备用: taobaoRemoveLiveAds / taobaoRemoveGuessLike) |
 | bundle.js | ~62 KB（单文件） |
@@ -177,6 +177,21 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 ---
 
+## 📅 近期修复与验证状态（2026-10-23）
+
+| 版本 | 内容 | 验证 |
+|------|------|------|
+| v3.37.3 |  数组形态兼容（**所有 Script 规则此前全部失效**）| ✅ |
+| v3.37.4 | 联盟 metax 规则补 （私域横幅）| ✅ HAR: bannerList=0 无 TANX |
+| v3.37.5 | 闲鱼 7 处「规则开关 ↔ 代码判断」不匹配 | ✅ HAR: idle.user.strategy.list 35858B→2B |
+| v3.37.6 | 直播首页视频流广告（livexshow.homepage.*）| ✅ HAR: adType 8/24→0 |
+| v3.37.7 | 直播推荐视频流广告（livexshow.recommend.slide.lives）| ✅ 74033→29784B |
+| tools |  规则自检 | ✅ 58 条规则 0 缺口 |
+
+**当前状态**：闲鱼 ✅ 全绿 · 淘宝联盟 ✅ 全绿 · 淘宝直播 ⏸ 已覆盖 23 形态（界面广告多，暂停）· 淘宝主 App ⚠️ 待回归 · 天猫/特价版 ⏳ 未测
+
+---
+
 ## ⚠️ Loon 开发铁律（血泪教训）
 
 | # | 规则 | 事故 |
@@ -190,6 +205,8 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 | 7 | **规则域名用 `(?:acs\|guide-acs)`** | 见第 4 条 |
 | 8 | **`[Script]` 段内不能放 Rewrite 动作**（反之亦然）| 跨段错放被静默忽略 |
 | 9 | **改 bundle.js 后必做调用点检查** | 区间替换曾把 `scrubPopcdnSchedule` 函数冲掉 → 脚本整体失效 |
+| 10 | **★ 规则参数必须覆盖代码里所有 `isEnabled()` key** | v3.37.4/3.37.5 两起事故：规则传 `fishRemovePopup`，代码判 `removePopWindow` → **过滤器静默不执行**。必跑 `tools/check_switch_keys.py` |
+| 11 | **★ `$argument` 可能是数组形态 `[{...}]`** | v3.37.3：`$argument[key]` 直接取值恒 undefined → 所有 Script 规则失效。`isEnabled` 需兼容 Array/Object 两形态 |
 
 ---
 
@@ -273,7 +290,9 @@ node -e "new Function(require('fs').readFileSync('src/bundle.js','utf8'))"
 grep -c "function scrubPopcdnSchedule" src/bundle.js   # 应为 1
 grep -c "scrubPopcdnSchedule(" src/bundle.js           # 应为 2
 # 5. 段位置: request 在 [Rewrite], response 在 [Script]
-# 6. 版本号 +1
+# 6. ★ 规则开关自检 (v3.37.4/5 事故后必跑)
+python3 tools/check_switch_keys.py     # 退出码 0 = 通过
+# 7. 版本号 +1
 ```
 
 ---

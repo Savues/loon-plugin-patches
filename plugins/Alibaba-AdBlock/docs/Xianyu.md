@@ -115,6 +115,39 @@ BeiZi (贝子)  —— 第三方广告 SDK
 
 ---
 
+## 二·补、★ 2026-07-23 两起「开关不匹配」事故（必读）
+
+### 事故模式
+规则的脚本参数 `{${开关A}}` 与代码里 `isEnabled("开关B")` **key 不一致**
+→ 脚本 `$argument` 里没有该 key → 判断恒 false → **过滤器静默不执行**
+→ 广告照常显示，**无任何报错、日志也不报**
+
+### 事故 1 (v3.37.4, 联盟 metax)
+规则参数 `{removeSmallCards, removeFeedKeywords}` 缺 `removePrivateDomain`
+→ 私域横幅清理代码读不到开关 → 永不执行
+
+### 事故 2 (v3.37.5, 闲鱼弹窗类 7 条全灭)
+| 接口 | 规则传 | 代码判断 |
+|------|--------|---------|
+| idlecommerce.adx.bid | fishRemoveSplash | removePopWindow |
+| idlecommerce.game.iaa.ads | fishRemoveSplash | removePopWindow |
+| idle.user.strategy.list/get | fishRemovePopup | removePopWindow |
+| idle.item.recommend.list | fishRemovePopup | removePopWindow |
+| idle.local.near.by.corner.info | fishRemovePopup | removePopWindow |
+| idle.item.buy.feeds | fishRemovePopup | removePopWindow |
+| idle.playboy.recommend | fishRemovePopup | removePopWindow |
+
+旁证：早期 HAR 里 `idle.user.strategy.list` 返回 **35858B 完整数据**——
+当时误判为"未被拦截是正确的"，实为该 bug。修复后 **size=2** ✅
+
+### 根治手段
+```bash
+python3 tools/check_switch_keys.py    # 扫描全部 Script 规则 × 代码分支, 报缺口; 0=通过
+```
+**每次新增/修改 Script 规则后必跑。**
+
+---
+
 ## 四、维护指引
 
 ### 4.1 kelee 规则对照

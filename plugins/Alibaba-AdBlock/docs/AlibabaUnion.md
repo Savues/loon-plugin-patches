@@ -19,8 +19,9 @@
 | 4 | **首页小卡片** `small_handler_*_site` | Script 同上 | 同上 | `removeSmallCards` |
 | 5 | **公告位** `bulletin_board_*_site` | Script 同上 | 同上 | `removeSmallCards` |
 | 6 | **搜索框推荐词** `searchDomeWord_site` | Script 同上 | 同上 | `removeSmallCards` |
-| 7 | **搜索框滚动词** | Script 递归清 `fields.hotwords[]` | `mtop.alimama.moon.provider.metax.homepage.query` | `removeSmallCards` |
-| 8 | **首页 Feed 清空** | Script 清 `type=58536_33` 卡片 | 同上 | `removeFeedKeywords` |
+| 7 | **搜索框滚动词** | Script 递归清任意层 `hotwords[]` | `mtop.alimama.moon.provider.metax.homepage.query` | `removeSmallCards` |
+| 8 | **私域动态横幅** | Script 递归清任意层 `bannerList[]` | 同上 | `removePrivateDomain` |
+| 9 | **首页 Feed 清空** | Script 清 `type=58536_33` 卡片 | 同上 | `removeFeedKeywords` |
 | 9 | **NOAH 运营位** | Script + Rewrite | `mtop.etao.noah.query` | `removeNoahOps` |
 | 10 | **营销配置** | Rewrite `reject_dict(200)` | `mtop.alimama.etao.config.query` | `removePopWindow` |
 | 11 | **私域动态/关注会员** | Script 清 `data` | `mtop.alimama.union.pub.entry` | `removePrivateDomain` |
@@ -56,6 +57,18 @@
               "backgroundImageUrl": "...-tps-750-1200.png" } } ← 首页背景图
 ```
 **注意**：`backgroundImageUrl` 是**正常业务**（首页背景），图片规则**不能**拦 750×1200。
+
+**私域动态横幅**（v3.37.4 定位）：
+```
+bodyList[5].tabList[0].dataList[0].fields.floorMappingList[0]
+  .siteMappingList[0].siteData.bannerList = 23 项
+    每项 { id, pic: "...-tps-1404-288.jpg", jumpUrl: "https://mo.m.taobao.com/union2/*" }
+```
+→ 清理用**全树递归**（`clearMetaxBannerList`），因为路径深度不定（4~6 层）。
+
+> ⚠️ **踩坑 (v3.37.4)**：清理代码依赖 `removePrivateDomain`，但该规则的脚本参数只写了
+> `{removeSmallCards, removeFeedKeywords}` → **脚本读不到 key → 清理永不执行**。
+> 已在 v3.37.4 补上。**新增/修改规则后必须跑 `tools/check_switch_keys.py`**。
 
 ### 2.3 Flutter + ACCS 双通道
 ```
@@ -97,3 +110,16 @@ mtop.alimama.copilot.*    AI 搜索
 mtop.alimama.union.exp.shunt*  搜索分流
 ```
 新增规则时**务必**用 `(?:acs|guide-acs)\.m\.taobao\.com`（联盟走 guide-acs，v3.36.0 前全部漏网）。
+
+### 4.3 ★ 改完规则必跑自检
+```bash
+python3 tools/check_switch_keys.py     # 退出码 0 = 通过
+```
+检查「规则参数 `{${开关}}`」是否覆盖「代码分支里所有 `isEnabled()`」——
+key 不匹配时**静默失效、零报错**（v3.37.4/3.37.5 两起事故均因此）。
+
+### 4.4 验证状态
+| 版本 | 验证项 | 结果 |
+|------|--------|------|
+| v3.37.4 | 私域横幅清理 | ✅ HAR 实证 `bannerList=0` `hotwords=0` 无 TANX |
+| v3.37.4 | 联盟全量广告扫描 | ✅ 零广告标记 |
