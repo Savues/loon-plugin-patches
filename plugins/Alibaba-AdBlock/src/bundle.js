@@ -1022,9 +1022,10 @@ function filterXianyuSearchWords(body) {
   const d = data.data;
   if (!d || typeof d !== "object") return body;
   let modified = false;
+  // ★ 只清【广告/投放】类词表; 不含 suggestList/searchSuggest/suggestWords (搜索联想是功能)
   const WORDS_KEYS = ["singleShadeWords", "multiWords", "multiWordsList", "hotRankList", "hotList",
-    "searchSuggest", "suggestList", "suggestWords", "guessWords", "guessList", "hotWords",
-    "mayInterestWords", "relatedWords", "recommendWords", "wordList", "shadeWords", "searchWords"];
+    "guessWords", "guessList", "hotWords", "mayInterestWords", "relatedWords",
+    "recommendWords", "wordList", "shadeWords", "searchWords", "keywords"];
   for (const k of WORDS_KEYS) {
     if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
   }
@@ -1052,8 +1053,9 @@ function filterXianyuSearchWords(body) {
       const kl = k.toLowerCase();
       // ★ keywords: 搜索下拉投放词表 (实测每项带 pass_through_for_search/matchName/tpp_ab_id)
       //   联想词在 data.suggest / data.items, 不在 keywords → 不会误删
+      // ★ 不清 suggestword/searchsuggest/suggestlist (打字联想是功能, 必须保留)
       if (Array.isArray(v) && v.length && (kl.includes("hotword") || kl.includes("shadeword")
-          || kl.includes("suggestword") || kl.includes("guessword") || kl.includes("marquee")
+          || kl.includes("guessword") || kl.includes("marquee")
           || kl.includes("searchword") || kl.includes("wordlist") || kl === "keywords")) {
         node[k] = []; hit = true;
       } else if (deepClear(v, depth + 1)) { hit = true; }
