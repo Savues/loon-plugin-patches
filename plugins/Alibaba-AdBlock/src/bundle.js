@@ -1255,6 +1255,17 @@ function main() {
     }
   }
 
+  // 弹窗调度器: 清空 sc 场景映射 + 改坏模板/落地页 (sc=0 弹窗永不触发)
+  if (url.indexOf("poplayer.template.alibaba.com/popcdn/") >= 0) {
+    if (isEnabled("removePopWindow")) {
+      const cleaned = scrubPopcdnSchedule(body);
+      if (cleaned !== null) {
+        $done({ body: cleaned });
+        return;
+      }
+    }
+  }
+
   // 按域名/路径分发
   let newBody = null;
   if (url.includes("acs.m.taobao.com") || url.includes("guide-acs.m.taobao.com") || url.includes("poplayer.template.alibaba.com")) {
