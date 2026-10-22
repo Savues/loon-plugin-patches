@@ -1135,25 +1135,35 @@ function blankJsonValue(s, key, mode) {
   return s;
 }
 
-// 布尔开关长度中立翻转 (orange 线上格式为字符串值):
-//   "key":"false" -> "key":"true"   (7->7 完全等长, 最理想)
-//   "key":false   -> "key":true    + 尾随空格 (5->4+1, JSON 空白合法)
-function flipJsonBool(s, key) {
-  const forms = [
-    // 字符串形式: "false"(7) -> "true "(7) 等长; NSString.boolValue 按首字符判定仍为 YES
-    { m: '"' + key + '":"false"', r: '"' + key + '":"true "' },
-    { m: '"' + key + '":"false","', r: '"' + key + '":"true ","' },
-    { m: '"' + key + '":false', r: '"' + key + '":true ' },
-    { m: '\\"' + key + '\\":\\"false\\"', r: '\\"' + key + '\\":\\"true\\"' }
-  ];
+// 布尔开关长度中立设置 (orange 线上格式为字符串值):
+//   字符串形式 "key":"false"(7) <-> "key":"true "(7)  /  "key":"true"(6) <-> "key":"fals "(6)
+//   布尔形式   "key":false(5)   -> "key":true  + 尾随空格(5)   (JSON 空白合法)
+//               "key":true(4)    -> "key":null(4)               (null 为假值, 长度不变)
+function setJsonBool(s, key, wantTrue) {
+  const q = '"';
+  const forms = wantTrue
+    ? [
+        // 字符串形式: "false"(7) -> "true "(7); boolValue 按首字符判定为 YES
+        { m: q + key + q + ':"false"', r: q + key + q + ':"true "' },
+        // 布尔形式: false(5) -> true + 尾随空格(5), JSON 空白合法
+        { m: q + key + q + '":false', r: q + key + q + '":true ' },
+        { m: '\\"' + key + '\\":\\"false\\"', r: '\\"' + key + '\\":\\"true \\"' }
+      ]
+    : [
+        // 字符串形式: "true"(6) -> "fals"(6) 等长; boolValue 与 isEqualToString:@"true" 均为假
+        { m: q + key + q + ':"true"', r: q + key + q + ':"fals"' },
+        // 转义形式同样等长
+        { m: '\\"' + key + '\\":\\"true\\"', r: '\\"' + key + '\\":\\"fals\\"' }
+        // 注意: 布尔形式 true->null 省略, NSNull 响应 boolValue 会崩溃
+      ];
   for (const f of forms) {
     const idx = s.indexOf(f.m);
     if (idx < 0) continue;
     if (f.r.length !== f.m.length) {
-      console.log("[Alibaba-AdBlock] bool flip length mismatch, skip:", key);
+      console.log("[Alibaba-AdBlock] bool set length mismatch, skip:", key);
       continue;
     }
-    console.log("[Alibaba-AdBlock] orange bool flipped:", key);
+    console.log("[Alibaba-AdBlock] orange bool set:", key, "->", wantTrue ? "true" : "false");
     return s.slice(0, idx) + f.r + s.slice(idx + f.m.length);
   }
   return s;
@@ -1166,99 +1176,112 @@ const ORANGE_SCRUB_TARGETS = [
   ["banner_url", "url"],
   ["backgroundImage", "url"],
   ["backgroundImageWithTab", "url"],
-  // 搜索域开关: 关闭热词更新/其他tab提示/实时联想/激活数据
-  ["closeHotwordsUpdate", "bool"],
-  ["closeOtherTabSearchHint", "bool"],
-  ["closeSuggestRealTime", "bool"],
-  ["closeSuggestRealTime2016", "bool"],
-  ["closeSuggestRealTime2017", "bool"],
-  ["closeSuggestRealTime2018", "bool"],
-  ["closeSuggestRealTime2019", "bool"],
-  ["closeActivateData", "bool"],
-  ["closeActivateData2016", "bool"],
-  ["closeActivateData2017", "bool"],
-  ["closeActivateData2018", "bool"],
-  ["closeActivateData2019", "bool"]
+  // 搜索域开关: 关闭热词更新/其他tab提示/实时联想/激活数据 (置 true)
+  ["closeHotwordsUpdate", "true"],
+  ["closeOtherTabSearchHint", "true"],
+  ["closeSuggestRealTime", "true"],
+  ["closeSuggestRealTime2016", "true"],
+  ["closeSuggestRealTime2017", "true"],
+  ["closeSuggestRealTime2018", "true"],
+  ["closeSuggestRealTime2019", "true"],
+  ["closeActivateData", "true"],
+  ["closeActivateData2016", "true"],
+  ["closeActivateData2017", "true"],
+  ["closeActivateData2018", "true"],
+  ["closeActivateData2019", "true"],
+  // 搜索缓存/轮播总开关: 置 false (关闭搜索词缓存与搜索门缓存)
+  ["enableSearchTextCache", "false"],
+  ["enableSearchDoorCache", "false"],
+  ["enableSearchbarLoopControl", "false"],
+  ["enableSearchBarAnimation", "false"]
 ];
 function scrubOrangeConfig(bodyBytes) {
   try {
-    let s = bytesToLatin1(bodyBytes);
-    let changed = 0;
+    const s0 = bytesToLatin1(bodyBytes);
+    const edits = [];
     for (const t of ORANGE_SCRUB_TARGETS) {
-      const before = s;
-      if (t[1] === "bool") s = flipJsonBool(s, t[0]);
-      else s = blankJsonValue(s, t[0], t[1]);
-      if (s !== before) changed++;
+      const key = t[0];
+      const mode = t[1];
+      // 找出 "key" 后面的值起始位置 (兼容普通与转义引号形式)
+      const forms = [
+        { pre: '"' + key + '":', esc: false },
+        { pre: '"' + key + '": ', esc: false },
+        { pre: '\\"' + key + '\\":\\"', esc: true }
+      ];
+      for (const f of forms) {
+        const idx = s0.indexOf(f.pre);
+        if (idx < 0) continue;
+        const vStart = idx + f.pre.length;
+        const q = f.esc ? '\\"' : '"';
+        // 值以引号包裹 (字符串) 或为裸 true/false/null (布尔)
+        if (s0[vStart] === '"' || (f.esc && s0[vStart] === "\\")) {
+          const qStart = vStart;
+          let vEnd = vStart + 1;
+          while (vEnd < s0.length) {
+            if (s0[vEnd] === "\\") { vEnd += 2; continue; }
+            if (s0[vEnd] === '"') break;
+            vEnd++;
+          }
+          if (vEnd >= s0.length) continue;
+          const inner = s0.slice(vStart + 1, vEnd);
+          let newInner = null;
+          if (mode === "text") {
+            newInner = new Array(inner.length + 1).join(" ");
+          } else if (mode === "url") {
+            if (inner.indexOf("http") === 0) {
+              const p = inner.indexOf("//") + 2;
+              newInner = inner.slice(0, p) + new Array(inner.length - p + 1).join("x");
+            }
+          } else {
+            const wantTrue = mode === "true";
+            if (wantTrue && inner === "false") newInner = "true ";
+            else if (!wantTrue && inner === "true") newInner = "fals";
+          }
+          if (newInner !== null) {
+            const oldPart = s0.slice(vStart, vEnd + 1);
+            const newPart = s0[vStart] + newInner + s0[vEnd];
+            if (newPart.length === oldPart.length) {
+              edits.push({ idx: vStart, len: oldPart.length, txt: newPart, key: key });
+            } else {
+              console.log("[Alibaba-AdBlock] orange edit length mismatch, skip:", key);
+            }
+          }
+          break;
+        } else {
+          // 裸布尔值
+          const bare = s0.slice(vStart, vStart + 6);
+          const isTrue = bare.indexOf("true") === 0;
+          const isFalse = bare.indexOf("false") === 0;
+          if ((mode === "true" && isFalse) || (mode === "false" && isTrue)) {
+            const wantTrue = mode === "true";
+            // false(5) -> true +空格(5) 等长; true(4) -> 需等长假值, 但 null 有 NSNull 崩溃风险, 故跳过
+            if (wantTrue) {
+              edits.push({ idx: vStart, len: 5, txt: "true ", key: key });
+            } else {
+              console.log("[Alibaba-AdBlock] orange bool false-form skipped (NSNull risk):", key);
+            }
+          }
+          break;
+        }
+      }
     }
-    if (changed === 0) {
+    if (edits.length === 0) {
       console.log("[Alibaba-AdBlock] Orange config: no marketing fields matched");
       return null;
     }
-    console.log("[Alibaba-AdBlock] Orange config scrubbed, fields:", changed);
+    // 从后往前应用, 保证索引有效
+    edits.sort(function (a, b) { return b.idx - a.idx; });
+    let s = s0;
+    for (const e of edits) {
+      s = s.slice(0, e.idx) + e.txt + s.slice(e.idx + e.len);
+      console.log("[Alibaba-AdBlock] orange field sanitized:", e.key);
+    }
+    console.log("[Alibaba-AdBlock] Orange config scrubbed, fields:", edits.length);
     return latin1ToBytes(s);
   } catch (e) {
     console.log("[Alibaba-AdBlock] Orange scrub failed, pass through:", e);
     return null;
   }
-}
-
-
-// ============================================
-// 弹窗调度器 (poplayer.template.alibaba.com/popcdn/*/config.json)
-// 结构: {sc: 场景->弹窗ID (118), ac: 弹窗ID->配置 (793), version}
-// 清空 ac = 客户端无任何弹窗可选 -> 未来新增广告弹窗也自动免疫
-// ============================================
-function scrubPopcdnSchedule(body) {
-  if (!body) return null;
-  console.log("[Alibaba-AdBlock] popcdn scrub enter, len:", body.length);
-  if (typeof body !== "string") {
-    try { body = bytesToLatin1(body); } catch (e) { body = ""; }
-  }
-  let s = body;
-  // 1) 模板哈希全部指向不存在的资源 (同长度替换, 32位hex)
-  let cdnChanged = 0;
-  s = s.replace(/"cdnId":"[0-9a-fA-F]{32}"/g, function (m) {
-    cdnChanged++;
-    return '"cdnId":"00000000000000000000000000000000"';
-  });
-  // 2) 弹窗落地页 URL 指向无效主机 (同长度, 破坏 host 首段)
-  let urlChanged = 0;
-  s = s.replace(/"(url|weexUrl)":"(https?:\/\/)([^"\/]{3})/g, function (m, k, p, host) {
-    urlChanged++;
-    return '"' + k + '":"' + p + 'xxx' + host.slice(3);
-  });
-  // 3) 清空 sc 场景映射 (场景->弹窗ID), 弹窗永不触发; 保留 ac 以免 content count==0 被判错误
-  const scKey = '"sc"';
-  const ki = s.indexOf(scKey);
-  let scCleared = false;
-  if (ki >= 0) {
-    const colon = s.indexOf(":", ki);
-    const objStart = s.indexOf("{", colon);
-    if (objStart >= 0) {
-      let depth = 0, objEnd = -1;
-      for (let p = objStart; p < s.length; p++) {
-        if (s[p] === "{") depth++;
-        else if (s[p] === "}") { depth--; if (depth === 0) { objEnd = p + 1; break; } }
-      }
-      if (objEnd > 0) {
-        s = s.slice(0, objStart) + "{}" + s.slice(objEnd);
-        scCleared = true;
-      }
-    }
-  }
-  console.log("[Alibaba-AdBlock] popcdn scrub: cdnId=" + cdnChanged + " url=" + urlChanged + " scCleared=" + scCleared);
-  if (!cdnChanged && !urlChanged && !scCleared) {
-    console.log("[Alibaba-AdBlock] popcdn: nothing matched, pass through");
-    return null;
-  }
-  // 校验仍是合法 JSON
-  const check = safeParse(s);
-  if (!check) {
-    console.log("[Alibaba-AdBlock] popcdn scrub invalid JSON, fallback minimal");
-    return '{"sc":{},"ac":{},"version":"0"}';
-  }
-  console.log("[Alibaba-AdBlock] poplayer schedule sanitized: sc=" + Object.keys(check.sc || {}).length + " ac=" + Object.keys(check.ac || {}).length);
-  return s;
 }
 
 function main() {
