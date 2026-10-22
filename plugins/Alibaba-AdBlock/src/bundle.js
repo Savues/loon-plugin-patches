@@ -431,7 +431,7 @@ function filterClearData(body) {
 
 // 闲鱼-开屏广告: acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash.ads
 function filterXianyuSplashAds(body) {
-  if (!isEnabled("removeSplashAd")) return body;
+  if (!isEnabled("fishRemoveSplash")) return body;
   const data = safeParse(body);
   if (!data) return body;
   // 清空广告数据
@@ -445,7 +445,7 @@ function filterXianyuSplashAds(body) {
 
 // 闲鱼-首页刷新: idlehome.home.nextfresh - 保留 kingkongDo，去除 homeMultiBanner/mamaAD
 function filterXianyuHomeNextFresh(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   let modified = false;
@@ -484,7 +484,7 @@ function filterXianyuHomeNextFresh(body) {
 
 // 闲鱼-Widget刷新: idlehome.widget.refresh.get - 保留 kingkongDo
 function filterXianyuWidgetRefresh(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.homeTopList && Array.isArray(data.data.homeTopList)) {
@@ -500,7 +500,7 @@ function filterXianyuWidgetRefresh(body) {
 
 // 闲鱼-鲸鱼模块: idle.home.whale.modulet - 保留 fish_home_miniapp
 function filterXianyuWhaleModulet(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.container?.sections && Array.isArray(data.data.container.sections)) {
@@ -516,7 +516,7 @@ function filterXianyuWhaleModulet(body) {
 
 // 闲鱼-社区: idlehome.home.community - 保留特定 template
 function filterXianyuCommunity(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.feedsList && Array.isArray(data.data.feedsList)) {
@@ -535,7 +535,7 @@ function filterXianyuCommunity(body) {
 
 // 闲鱼-新商品页: idlehome.home.newitem.page - 去除 banner/mamaAD
 function filterXianyuNewItemPage(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.sections && Array.isArray(data.data.sections)) {
@@ -554,7 +554,7 @@ function filterXianyuNewItemPage(body) {
 
 // 闲鱼-本地流量平台: idle.local.flow.plat.section - 保留 fish_city_kingkong
 function filterXianyuLocalFlow(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.data?.components && Array.isArray(data.data.data.components)) {
@@ -573,7 +573,7 @@ function filterXianyuLocalFlow(body) {
 
 // 闲鱼-本地首页顶部: idle.local.home.top - 保留 fish_home_second_stage_top_cardV3
 function filterXianyuLocalHomeTop(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.data?.components && Array.isArray(data.data.data.components)) {
@@ -589,7 +589,7 @@ function filterXianyuLocalHomeTop(body) {
 
 // 闲鱼-本地首页: idle.local.home - 去除 ads，保留 common
 function filterXianyuLocalHome(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.sections && Array.isArray(data.data.sections)) {
@@ -609,7 +609,7 @@ function filterXianyuLocalHome(body) {
 
 // 闲鱼-我的页面: idle.user.page.my.adapter - 复杂过滤
 function filterXianyuMyPage(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveMyPage")) return body;
   const data = safeParse(body);
   if (!data) return body;
   let modified = false;
@@ -664,7 +664,7 @@ function filterXianyuMyPage(body) {
 
 // 闲鱼-圈子列表: idlehome.home.circle.list
 function filterXianyuCircleList(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   let modified = false;
@@ -701,7 +701,7 @@ function filterXianyuCircleList(body) {
 
 // 闲鱼-魔法首页: idlehome.magic.home.page.list - 删除 topList
 function filterXianyuMagicHome(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveHomeAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.topList) {
@@ -714,7 +714,7 @@ function filterXianyuMagicHome(body) {
 
 // 闲鱼-搜索去广告 (g-acs): idlemtopsearch.search - 删除广告 resultList
 function filterXianyuSearchAds(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveSearchAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   let modified = false;
@@ -741,7 +741,7 @@ function filterXianyuSearchAds(body) {
 
 // 闲鱼-搜索发现: idlemtopsearch.search.discover - 去除 MarketHotSpot
 function filterXianyuSearchDiscover(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveSearchAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.resultList && Array.isArray(data.data.resultList)) {
@@ -757,7 +757,7 @@ function filterXianyuSearchDiscover(body) {
 
 // 闲鱼-搜索激活: idlemtopsearch.item.search.activate - 删除 hotwords
 function filterXianyuSearchActivate(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveSearchAds")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.cardList && Array.isArray(data.data.cardList)) {
@@ -778,7 +778,7 @@ function filterXianyuSearchActivate(body) {
 
 // 闲鱼-交易详情: idle.trade.full.info - 保留核心 render 类型
 function filterXianyuTradeInfo(body) {
-  if (!isEnabled("removeSmallCards")) return body;
+  if (!isEnabled("fishRemoveMyPage")) return body;
   const data = safeParse(body);
   if (!data) return body;
   if (data.data?.components && Array.isArray(data.data.components)) {
@@ -993,6 +993,22 @@ function handleTaobaoResponse(body, url) {
 // ============================================
 // Xianyu App 处理入口 (kelee.one 移植 + 反编译)
 // ============================================
+// 闲鱼-关注 Feed 流: 只保留 cardType==2001 (kelee 原规则)
+function filterXianyuFollowFeed(body) {
+  if (!isEnabled("fishRemoveHomeAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  if (data.data?.sections && Array.isArray(data.data.sections)) {
+    const filtered = data.data.sections.filter(item => item?.cardType === 2001);
+    if (filtered.length !== data.data.sections.length) {
+      data.data.sections = filtered;
+      console.log("[Alibaba-AdBlock] Filtered Xianyu follow feed");
+      return JSON.stringify(data);
+    }
+  }
+  return body;
+}
+
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash")) {
@@ -1024,6 +1040,9 @@ function handleXianyuResponse(body, url) {
     return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
   }
   // 内容过滤 (jq 规则移植)
+  if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.fun.follow.feed.list")) {
+    return filterXianyuFollowFeed(body);
+  }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlehome.home.nextfresh")) {
     return filterXianyuHomeNextFresh(body);
   }
