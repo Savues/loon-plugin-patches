@@ -30,7 +30,9 @@ fishRemovePopup = switch, true, false, tag=🐟闲鱼-弹窗浮层, desc=拦截 
 fishRemoveHomeAds = switch, true, false, tag=🐟闲鱼-首页广告位, desc=拦截 idlehome.*(nextfresh/widget/community/newitem/circle/magic) + idle.local.*(home/flow) + idle.home.whale.modulet
 fishRemoveSearchAds = switch, true, false, tag=🐟闲鱼-搜索广告, desc=拦截 idlemtopsearch.search(广告位) + .search.shade + .search.discover(MarketHotSpot) + .item.search.activate(热词)
 fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截 idle.user.page.my.adapter(我的页精简) + idle.trade.full.info(订单状态组件)
-liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流, desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
+liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流
+removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门, desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关
+, desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
 
 # === 淘宝/天猫专属开关 (预留) ===
 # taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
@@ -70,7 +72,7 @@ response if ${url} ~= /^https?:\/\/(?:orange|dorangesource)\.tbcdn\.cn|^https?:\
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
 #   (字符串证据: UCPCheckNotRequestEnd / UCPCheckFatigueFailed / homePopRemovePopWhenUCPCheckFailed)
-request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i then reject_dict(200), enable={removePopWindow}
+request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i then reject_dict(200), enable={removeUcpPopup}
 # 生活圈 LBS 推荐横幅 / 入口 (newhaven)
 request if ${url} ~= /mtop\.taobao\.newhaven\.lbsgroup\.banner\./i then reject_dict(200), enable={removePopWindow}
 request if ${url} ~= /mtop\.taobao\.newhaven\.life\.entrance\.show/i then reject_dict(200), enable={removeSmallCards}
