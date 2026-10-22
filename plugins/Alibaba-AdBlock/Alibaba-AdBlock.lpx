@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.12.0
+#!name=Alibaba-AdBlock v3.13.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.12.0
+#!version=3.13.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -24,7 +24,7 @@ removeSearchWords = switch, false, true, tag=🚫搜索框轮播词, desc=v3.9.1
 # === Moon App 专属开关 ===
 removeFeedKeywords = switch, false, true, tag=🌙Moon-清空首页Feed, desc=清空 Moon 首页推荐流所有商品 (metax homepage bodyList)
 removePrivateDomain = switch, true, false, tag=🌙Moon-私域动态, desc=拦截 Moon 关注会员/私域动态 (union.pub.entry followMembers)
-blockAccs = switch, false, true, tag=⛔阻断ACCS推送(实验), desc=⚠️核弹级: 拒绝 /amdc/mobileDispatch 断掉 ACCS 推送通道; 需配合空词版 gateway 缓存才能消除搜索框轮播词; 副作用: 首页实时更新/IM实时消息失效
+blockAccs = switch, false, true, tag=⛔阻断ACCS推送(实验), desc=⚠️核弹级: 阻断 ACCS 全部服务器IP(59.82.*/47.246.*)+调度域名; 需配合空词版gateway缓存消除搜索框轮播词; 开启后必须重启Loon以断开常驻连接; 副作用: 首页实时更新/IM实时消息失效
 
 # === 淘宝/天猫专属开关 (预留) ===
 # taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
@@ -120,7 +120,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # === ACCS 推送通道阻断 (实验开关, 配合空词版 gateway 缓存消除搜索框轮播词) ===
-request if ${url} ~= /^https?:\/\/(?:amdc\.m\.taobao\.com|amdc\.alipay\.com|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?\/amdc\//i then reject, enable={blockAccs}
+request if ${url} ~= /^https?:\/\/(?:59\.82\.\d{1,3}\.\d{1,3}|47\.246\.\d{1,3}\.\d{1,3}|amdc\.m\.taobao\.com|amdc\.alipay\.com)(?::\d+)?\//i then reject, enable={blockAccs}
 
 # === 热启动开屏广告图片 (kelee 实证规则: 1080/1125 全屏尺寸广告素材, 含双11促销开屏图) ===
 request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(?:octopus|tps)-(?:1080|1125)-\d{4}\.(?:jpg|png)_(?:1\d{3}|9\d{2})x(?:\d|1\d{3}|9\d{2})q[59]0/i then reject_dict(200)
