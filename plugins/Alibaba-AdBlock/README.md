@@ -27,8 +27,8 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 | Rewrite 规则 | **117** |
 | Response Script 规则 | **57** |
 | MITM 域名 | **24** |
-| 开关 | **17** |
-| bundle.js | ~60 KB（单文件） |
+| 开关 | **15** (另 2 个已注释备用: taobaoRemoveLiveAds / taobaoRemoveGuessLike) |
+| bundle.js | ~62 KB（单文件） |
 | 覆盖 App | 淘宝 · 淘宝联盟 · 淘宝直播 · 闲鱼（已实测）· 天猫 · 淘宝特价版（规则就绪待测）|
 
 ---
@@ -55,7 +55,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 | `removeSmallCards` | ✅ 开 | 小卡片/公告/推荐词/搜索门 |
 | `removeNoahOps` | ✅ 开 | NOAH 运营位 |
 | `removeTAC` | ✅ 开 | TAC 搜索推荐 |
-| `removeSearchWords` | ⛔ 关 | 搜索框轮播词（**实验性，见下方警告**）|
+| `removeSearchWords` | ⛔ 关 | 搜索框轮播词（**已废弃**，仅历史标记；实际由容器模板 reject 实现，见下方警告）|
 | `removeFeedKeywords` | ⛔ 关 | Moon 首页 Feed 清空 |
 | `removePrivateDomain` | ✅ 开 | 私域动态/关注会员 |
 
@@ -76,24 +76,28 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 ### 实验性（默认关，谨慎开启）
 | 开关 | 默认 | 作用 | ⚠️ |
 |------|------|------|---|
-| `blockAccs` | ⛔ 关 | 阻断 ACCS 推送通道 | **副作用大**：首页实时更新/IM 消息失效（v3.37.0 已移除该开关，ACCS 阻断请用独立插件）|
-
-> ⚠️ **`removeSearchWords` 必须保持关闭**：该开关启用 DX 模板补丁，v3.19~v3.23 多次实测证明**会破坏搜索框点击**（轮播词 Text 组件即点击载体）。淘宝搜索框滚动词已确认 HTTP 层无解（ACCS 私有 TCP 推送 + 原生 MultiHintq 渲染 + DX 容器三者耦合），需越狱 Hook 才可根治。
+> ⚠️ **关于 `removeSearchWords`（已废弃）**：v3.9.10 起用「拒绝搜索栏容器模板 → 走原生 fallback」实现，**该规则无条件生效，与本开关无关**。
+> 早期 v3.19~v3.23 的 DX 模板字节补丁方案已废弃（实测会破坏搜索框点击：轮播词 Text 组件即点击载体），
+> 相关代码与资源已从 bundle.js / assets 中移除。淘宝搜索框滚动词确认 HTTP 层无解
+> （ACCS 私有 TCP 推送 + 原生 MultiHintq 渲染 + DX 容器三者耦合），需越狱 Hook 才可根治。
 
 ---
 
 ## 🌐 MITM 域名（24 个）
 
 ```
-abtest.alibaba.com          acs.m.alibaba.com          acs.m.fliggy.com
-acs.m.goofish.com           acs.m.hema.com             acs.m.taobao.com
-acs.m.tmall.com             cn-acs.m.taobao.com        dinamicx.alibabausercontent.com
-dorangesource.alicdn.com    g-acs.m.goofish.com        gm.mmstat.com
-guide-acs.m.taobao.com      gw.alicdn.com              heic.alicdn.com
-img.alicdn.com              log.mmstat.com             orange.tbcdn.cn
-poplayer.template.alibaba.com  px.effirst.com          s-gm.mmstat.com
-tlog.mmstat.com             yixiu-abtest.alicdn.com
+abtest.alibaba.com            acs.m.alibaba.com          acs.m.fliggy.com
+acs.m.goofish.com             acs.m.hema.com             acs.m.taobao.com
+acs.m.tmall.com               cn-acs.m.taobao.com        dinamicx.alibabausercontent.com
+dorangesource.alicdn.com      g-acs.m.goofish.com        g.alicdn.com
+gm.mmstat.com                 guide-acs.m.taobao.com      gw.alicdn.com
+heic.alicdn.com               img.alicdn.com             log.mmstat.com
+orange.tbcdn.cn               poplayer.template.alibaba.com  px.effirst.com
+s-gm.mmstat.com               tlog.mmstat.com            yixiu-abtest.alicdn.com
 ```
+
+> 📌 `g.alicdn.com` 是搜索门 Muise 组件主 CDN（v3.9.27 补入）—— 缺它则搜索门拦截全部失效。
+> `guide-acs.m.taobao.com` 是淘宝/联盟部分请求的网关（v3.36.0 补入）—— 缺它则 38 条规则全漏网。
 
 > ⚠️ **带路径的规则必须配 MITM 域名**，否则 Loon 看不到 URL 路径 → 规则静默失效。
 > 历史上因此踩坑两次：`orange.tbcdn.cn`（v3.9.20 修）、`g.alicdn.com`（v3.9.27 修）。
@@ -128,11 +132,12 @@ plugins/Alibaba-AdBlock/
 2. 橙色配置营销清洗（protobuf 字节级）
 3. 淘宝直播搜索域（搜索发现/热卖榜/遮罩词）
 4. 淘宝直播信息流广告
-5. ★ Moon 系接口优先 → handleMoonResponse
+5. 弹窗调度器 popcdn（bundle.js 内处理）
+6. ★ Moon 系接口优先 → handleMoonResponse
    (mtop.alimama./etao./alimusic./taobao.union./tmall.tac./tmall.jiuxi.)
-6. 淘宝系 → handleTaobaoResponse
-7. 闲鱼系 → handleXianyuResponse
-8. 其他 → handleMoonResponse
+7. 淘宝系 → handleTaobaoResponse
+8. 闲鱼系 → handleXianyuResponse
+9. 其他 → handleMoonResponse
 ```
 
 > **v3.37.0 修复**：第 5 步是新增的。淘宝联盟 App 走 `guide-acs.m.taobao.com`，

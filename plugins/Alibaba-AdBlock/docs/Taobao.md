@@ -17,8 +17,8 @@
 | 6 | **搜索门数据 API** | Rewrite `reject_dict(200)` | `mtop.relationrecommend.*`（10 变体前缀覆盖）| `removeSmallCards` |
 | 7 | **搜索门原生数据源** | Rewrite `reject_dict(200)` | `mtop.taobao.wsearch.common` / `.commonApi` | `removeSmallCards` |
 | 8 | **开屏视频广告** | Rewrite + Script | `guide-acs.m.taobao.com/gw/mtop.taobao.cloudvideo.video.query` | `removeSplashAd` |
-| 9 | **开屏图片（双11摇一摇）** | Rewrite 图片尺寸+ID | `gw.alicdn.com/imgextra/*-tps-750-1624.png` 等 | `removeSplashAd` |
-| 10 | **热启动切后台广告** | Rewrite 图片模式 | `gw.alicdn.com/imgextra/*-1080\|1125-*.jpg`（kelee 同款）| `removeSplashAd` |
+| 9 | **开屏图片（双11摇一摇）** | Rewrite 图片高度 ≥1600 | `gw/heic.alicdn.com/imgextra/*-tps-{宽}-1624\|2208\|2244.png` | `removeSplashAd` |
+| 10 | **热启动切后台广告** | Rewrite 图片模式（kelee 同款）| `gw/heic.alicdn.com/imgextra/*-(octopus\|tps)-(1080\|1125)-*.jpg_q90` | `removeSplashAd` |
 | 11 | **双11氛围皮肤/开屏背景** | Script 清 `enable` + `content` | `mtop.wireless.skin.atmosphere.info` | `removePopWindow` |
 | 12 | **首页加载氛围** | Rewrite `reject_dict(200)` | `mtop.taobao.wireless.homepage.loadAtmosphere` | `removePopWindow` |
 | 13 | **搜索框跑马灯热词** | Script 清 `multiWords` | `mtop.taobao.union.marquee.query` | `removeSmallCards` |
@@ -28,6 +28,10 @@
 | 17 | **阿里橙配营销清洗** | Script 字节级等长替换 | `orange.tbcdn.cn` / `dorangesource.alicdn.com` | `removeSplashAd` |
 | 18 | **埋点/APM/AB 分流** | Rewrite 整域 reject | `gm/log/s-gm/tlog.mmstat.com`、`px.effirst.com`、`abtest.alibaba.com`、`yixiu-abtest.alicdn.com`、`ossgw/hudong.alicdn.com` | `blockTracking` |
 | 19 | **影视/O2O/音乐广告** | Rewrite + Script | `mtop.film.mtopadvertiseapi.queryadvertise`、`mtop.o2o.ad.gateway.get`、`mtop.alimusic.common.mobileservice.startinit` | `removePopWindow` |
+
+> ⚠️ **全屏图规则的判别**（v3.35.0 踩坑）：高度 ≥1600 且在 `gw/heic.alicdn.com` 才是开屏图；
+> 高度 1200-1599（如 `tps-750-1200.png`）与 `img.alicdn.com` 域的 `tps-1080-2872.png_q50.jpg`
+> 都是**首页背景图**（正常业务），不可拦。
 
 ---
 

@@ -118,7 +118,7 @@ BeiZi (贝子)  —— 第三方广告 SDK
 ## 四、维护指引
 
 ### 4.1 kelee 规则对照
-kelee 原插件 24 条规则已**全部语义等价实现**（jq `select` ↔ JS `filter`），并额外补齐反编译发现的 5 条：
+kelee 原插件 24 条规则已**全部语义等价实现**（17 条 jq 过滤 + 7 条 reject_dict）（jq `select` ↔ JS `filter`），并额外补齐反编译发现的 5 条：
 ```
 mtop.taobao.idlecommerce.splash.async.ads / .splash.config
 mtop.taobao.idlecommerce.adx.bid / .game.iaa.ads
