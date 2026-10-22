@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.30.0
+#!name=Alibaba-AdBlock v3.31.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.30.0
+#!version=3.31.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -39,6 +39,7 @@ liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流, desc
 [Script]
 # === 批量广告分发 (Moon/淘宝/天猫/闲鱼通用) ===
 
+response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.taobao\.livex\.vcore\.search\.(?:discover|guidehotlist|shadingwords)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${liveRemoveAds}}) with enable=${liveRemoveAds}, requires_body=true, tag="直播-搜索发现/热卖榜/遮罩词"
 response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.taobao\.livex\.vcore\.feeds\.market\.query/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${liveRemoveAds}}) with enable=${liveRemoveAds}, requires_body=true, tag="直播-信息流广告"
 response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}, ${removePopWindow}, ${removeSmallCards}}) with enable=${removeSplashAd}, requires_body=true, tag="批量广告分发"
 

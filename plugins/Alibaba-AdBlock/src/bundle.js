@@ -1179,6 +1179,38 @@ function filterLiveMarketFeed(body) {
   return body;
 }
 
+// 淘宝直播搜索域: 搜索发现 / 直播热卖榜 / 搜索框遮罩词
+// (保留 autocompletion = 打字联想功能)
+function filterLiveSearchDomain(body, url) {
+  if (!isEnabled("liveRemoveAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  const d = data.data;
+  if (!d || typeof d !== "object") return body;
+  let modified = false;
+
+  if (url.indexOf("search.shadingwords") >= 0) {
+    // 搜索框遮罩词 (实测 word="足迹补贴")
+    if (d.hotWords) { d.hotWords = {}; modified = true; }
+    if (d.extras) { d.extras = {}; modified = true; }
+  }
+  if (url.indexOf("search.discover") >= 0) {
+    // 搜索发现板块 (6 个预置词 + 图标 + 活动跳转)
+    if (Array.isArray(d.result) && d.result.length) { d.result = []; modified = true; }
+  }
+  if (url.indexOf("search.guidehotlist") >= 0) {
+    // 直播热卖榜 (tabs -> taobaolive_duke_search_hot_list 模板)
+    if (d.data && Array.isArray(d.data.tabs) && d.data.tabs.length) { d.data.tabs = []; modified = true; }
+    if (Array.isArray(d.tabs) && d.tabs.length) { d.tabs = []; modified = true; }
+  }
+
+  if (modified) {
+    console.log("[Alibaba-AdBlock] Cleared live search domain: " + (url.split("/gw/")[1] || "").split("/")[0]);
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
   // Oliver 投放平台批量下发 (阿里投放系统, 反编译确认存在)
@@ -1560,7 +1592,17 @@ function main() {
   console.log("[Alibaba-AdBlock] Script triggered for:", url);
   const body = typeof $response.body === "string" ? $response.body : $response.body.toString();
 
-  // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)
+  // 淘宝直播: 搜索域 (搜索发现/热卖榜/遮罩词)
+  if (url.indexOf("mtop.taobao.livex.vcore.search.") >= 0
+      && url.indexOf("autocompletion") < 0) {
+    const liveSearch = filterLiveSearchDomain(body, url);
+    if (liveSearch !== null && liveSearch !== body) {
+      $done({ body: liveSearch });
+      return;
+    }
+  }
+
+  // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)  // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)
   if (url.indexOf("vcore.feeds.market.query") >= 0) {
     const liveFiltered = filterLiveMarketFeed(body);
     if (liveFiltered !== null && liveFiltered !== body) {
