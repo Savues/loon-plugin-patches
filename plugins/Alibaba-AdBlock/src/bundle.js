@@ -1206,9 +1206,12 @@ function filterLiveHomeFeed(body) {
   let removed = 0;
   const isAdItem = (it) => {
     if (!it || typeof it !== "object") return false;
+    // 形态A (homepage videolist/tabmenu): dataList[N].data.data.liveList[0].ad
     const ll = it.data && it.data.data && it.data.data.liveList;
     if (Array.isArray(ll) && ll.some(x => x && typeof x === "object" && x.ad)) return true;
     if (String(it.data && it.data.data && it.data.data.isAd) === "1") return true;
+    // 形态B (recommend slide): model[N].ad
+    if (it.ad && typeof it.ad === "object") return true;
     return false;
   };
   const walk = (o) => {
@@ -1216,7 +1219,7 @@ function filterLiveHomeFeed(body) {
     if (!o || typeof o !== "object") return;
     for (const k of Object.keys(o)) {
       const v = o[k];
-      if (k === "dataList" && Array.isArray(v)) {
+      if ((k === "dataList" || k === "model") && Array.isArray(v)) {
         const keep = v.filter(x => !isAdItem(x));
         if (keep.length !== v.length) {
           removed += v.length - keep.length;
