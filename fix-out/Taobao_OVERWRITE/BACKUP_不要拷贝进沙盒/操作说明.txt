@@ -1,0 +1,20 @@
+【覆盖操作说明】
+
+■ 需要删除的原始文件 (1 个):
+  Library/Preferences/com.taobao.tbhomepage.searchItemCacheForSlim.plist
+  → 删掉后, 用「同名文件夹」替代 (目录阻挡写入)
+
+■ 需要覆盖的原始文件 (1 个, 可选):
+  Documents/TBPopLayer/popcdn.json
+  → 用清洗版覆盖 (sc=0, 弹窗调度器禁用)
+  → 注: 插件在线时 HTTP 层已自动清洗, 此文件是离线备份
+
+■ 拷贝方法:
+  把 Taobao_OVERWRITE 里的 Library/ 和 Documents/ 两个目录
+  分别拷到淘宝沙盒的对应位置 (合并/替换, 不要删整个目录)
+
+■ 重要提醒:
+  1. 覆盖时尽量用「覆盖」而非「删除+复制」, 保持属主为 mobile
+  2. 同名文件夹必须是【空目录】(只含 .gitkeep 无妨, App 不读)
+  3. 首次测试建议重启手机 (清空 cfprefsd 内存缓存)
+  4. 回滚: 删除同名文件夹 → 从 BACKUP 恢复 plist
