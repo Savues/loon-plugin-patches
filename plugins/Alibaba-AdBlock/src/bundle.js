@@ -763,9 +763,12 @@ function filterXianyuSearchActivate(body) {
   if (data.data?.cardList && Array.isArray(data.data.cardList)) {
     let modified = false;
     for (const card of data.data.cardList) {
-      if (card?.cardData?.hotwords) {
-        delete card.cardData.hotwords;
-        modified = true;
+      // hotwords = 热搜词; keywords = "猜你可能在找"投放词表 (带 Atlas 投放桶)
+      if (Array.isArray(card?.cardData?.hotwords) && card.cardData.hotwords.length) {
+        card.cardData.hotwords = []; modified = true;
+      }
+      if (Array.isArray(card?.cardData?.keywords) && card.cardData.keywords.length) {
+        card.cardData.keywords = []; modified = true;
       }
     }
     if (modified) {
@@ -1047,9 +1050,11 @@ function filterXianyuSearchWords(body) {
     for (const k of Object.keys(node)) {
       const v = node[k];
       const kl = k.toLowerCase();
+      // ★ keywords: 搜索下拉投放词表 (实测每项带 pass_through_for_search/matchName/tpp_ab_id)
+      //   联想词在 data.suggest / data.items, 不在 keywords → 不会误删
       if (Array.isArray(v) && v.length && (kl.includes("hotword") || kl.includes("shadeword")
           || kl.includes("suggestword") || kl.includes("guessword") || kl.includes("marquee")
-          || kl.includes("searchword") || kl.includes("wordlist"))) {
+          || kl.includes("searchword") || kl.includes("wordlist") || kl === "keywords")) {
         node[k] = []; hit = true;
       } else if (deepClear(v, depth + 1)) { hit = true; }
     }
@@ -1082,10 +1087,20 @@ function filterXianyuSearchDomain(body, url) {
   let modified = false;
 
   if (url.includes("search.suggest")) {
-    // 可能在找: 图文广告位 + 动态投放 (保留 items 搜索联想)
-    for (const k of ["picTextEntryInfoVOList", "dynamicList", "users"]) {
-      if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
+    // 可能在找: 图文广告位 (picTextEntryInfoVOList) + dynamicList 中的非 item 型投放项
+    // ★ dynamicList 里的 type='item' 是【搜索联想词】(功能) 必须保留!
+    //   实测: 21 项 = 20×item(联想词) + 1×picText(广告图文位)
+    if (Array.isArray(d.picTextEntryInfoVOList) && d.picTextEntryInfoVOList.length) {
+      d.picTextEntryInfoVOList = []; modified = true;
     }
+    if (Array.isArray(d.dynamicList) && d.dynamicList.length) {
+      // ★ type='item' 是搜索联想词(功能) 必须保留; 只删广告型 (picText/user/aiSeek)
+      const keep = d.dynamicList.filter(it => it && it.type === "item");
+      if (keep.length !== d.dynamicList.length) {
+        d.dynamicList = keep; modified = true;
+      }
+    }
+    if (Array.isArray(d.users) && d.users.length) { d.users = []; modified = true; }
     if (d.bucketId) { d.bucketId = ""; modified = true; }
     if (d.trackParams) { d.trackParams = {}; modified = true; }
   }
