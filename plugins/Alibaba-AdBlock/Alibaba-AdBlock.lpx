@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.34.0
+#!name=Alibaba-AdBlock v3.35.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.34.0
+#!version=3.35.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -140,7 +140,8 @@ request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/
 # === 启动页活动专用图 (反编译 TBBootImage 内置配置实证: tps-{宽}-1624 全屏高, APNG/PNG) ===
 # 通用化: 高度 >= 1200 的 tps 图 = 全屏启动图/开屏广告
 #   (淘宝 iPhone14=1624 / ProMax=2208-2244 / 旧机=1200-1334; 联盟 App 用 1242x2208 与 750x1200)
-request if ${url} ~= /^https?:\/\/(?:gw|heic|img)\.alicdn\.com\/imgextra\/.*-tps-\d+-(?:1[2-9]\d\d|[2-9]\d{3})\.(?:apng|png|jpg|jpeg|webp)/i then reject_dict(200)
+# ★ 域名只限 gw/heic: img.alicdn.com 上的 tps-1080-2872.png_q50.jpg 是【首页背景图】(正常业务), 不能拦
+request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/.*-tps-\d+-(?:1[2-9]\d\d|[2-9]\d{3})\.(?:apng|png|jpg|jpeg|webp)/i then reject_dict(200)
 
 # === 双11摇一摇启动页广告 (沙盒 bootImageDatas/biz=Launcher 实证, 800x800 素材, 活动期 10/19-11/9) ===
 request if ${url} ~= /O1CN01xvtBxdhcjQF1chua|O1CN01YelGPQ24a0Mo9ODI6/i then reject_dict(200)
