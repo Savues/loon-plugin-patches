@@ -175,15 +175,29 @@ const DEFAULT_METAX_CONFIG = {
 function filterMetaxHotwords(body, config) {
   if (!isEnabled("removeSmallCards")) return body;
   const data = safeParse(body);
-  if (!data?.data?.data?.headerList || !Array.isArray(data.data.data.headerList)) return body;
+  if (!data || typeof data !== "object") return body;
   let modified = false;
-  const { hotwordsType } = config;
-  for (const item of data.data.data.headerList) {
-    if (item?.type === hotwordsType && item?.fields?.hotwords && Array.isArray(item.fields.hotwords) && item.fields.hotwords.length > 0) {
-      console.log("[Alibaba-AdBlock] Clearing metax hotwords (" + item.fields.hotwords.length + " words)");
-      item.fields.hotwords = [];
+  const hotwordsType = (config && config.hotwordsType) || "42701_96";
+  // 真实数据: 含 hotwords 的 section 可能在 headerList / sections / 任意数组 (type 58536_33 / 42561_202 / sectionKey moon_home_search_bar_section)
+  // → 全树递归, 只要遇到 hotwords 数组就清空
+  const walk = (node, depth) => {
+    if (depth > 8 || !node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const it of node) walk(it, depth + 1);
+      return;
     }
-  }
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (k === "hotwords" && Array.isArray(v) && v.length) {
+        console.log("[Alibaba-AdBlock] Clearing metax hotwords (" + v.length + " words)");
+        node[k] = [];
+        modified = true;
+      } else if (v && typeof v === "object") {
+        walk(v, depth + 1);
+      }
+    }
+  };
+  walk(data, 0);
   if (modified) return JSON.stringify(data);
   return body;
 }
@@ -1657,7 +1671,14 @@ function main() {
 
   // 按域名/路径分发
   let newBody = null;
-  if (url.includes("acs.m.taobao.com") || url.includes("guide-acs.m.taobao.com") || url.includes("poplayer.template.alibaba.com")) {
+  // ★ Moon/阿里妈妈系接口 (alimama/etao/moon/alimusic/taobao.union/tmall.tac) 必须走 handleMoonResponse
+  //   联盟 App 走 guide-acs.m.taobao.com, 若先进 handleTaobaoResponse 则 metax/batchsite/noah 等无处理
+  const isMoonFamily = url.includes("mtop.alimama.") || url.includes("mtop.etao.")
+    || url.includes("mtop.alimusic.") || url.includes("mtop.taobao.union.")
+    || url.includes("mtop.tmall.tac.") || url.includes("mtop.tmall.jiuxi.");
+  if (isMoonFamily) {
+    newBody = handleMoonResponse(body, url);
+  } else if (url.includes("acs.m.taobao.com") || url.includes("guide-acs.m.taobao.com") || url.includes("poplayer.template.alibaba.com")) {
     newBody = handleTaobaoResponse(body, url);
   } else if (url.includes("acs.m.goofish.com") || url.includes("g-acs.m.goofish.com")) {
     newBody = handleXianyuResponse(body, url);
