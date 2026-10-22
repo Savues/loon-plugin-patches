@@ -68,16 +68,6 @@ response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com\/popcdn/i th
 # === 橙色配置营销清洗 (orange.tbcdn.cn, protobuf 内嵌 JSON, 字节级等长替换) ===
 response if ${url} ~= /^https?:\/\/(?:orange|dorangesource)\.tbcdn\.cn|^https?:\/\/dorangesource\.alicdn\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, binary_body_mode=true, tag="阿里橙配-营销清洗"
 
-# === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
-# UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
-#   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
-#   (字符串证据: UCPCheckNotRequestEnd / UCPCheckFatigueFailed / homePopRemovePopWhenUCPCheckFailed)
-request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i then reject_dict(200), enable={removeUcpPopup}
-# 生活圈 LBS 推荐横幅 / 入口 (newhaven)
-request if ${url} ~= /mtop\.taobao\.newhaven\.lbsgroup\.banner\./i then reject_dict(200), enable={removePopWindow}
-request if ${url} ~= /mtop\.taobao\.newhaven\.life\.entrance\.show/i then reject_dict(200), enable={removeSmallCards}
-# 社交弹窗
-request if ${url} ~= /mtop\.taobao\.social\.pop\.get/i then reject_dict(200), enable={removePopWindow}
 
 # === 淘宝开屏/弹窗 (kelee.one + 反编译) ===
 response if ${url} ~= /^https?:\/\/poplayer\.template\.alibaba\.com/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}}) with enable=${removeSplashAd}, requires_body=true, tag="淘宝-开屏活动"
@@ -147,6 +137,16 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 # TODO: 天猫/淘宝主版/淘宝直播/特价版特有接口待补充
 
 [Rewrite]
+# === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
+# UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
+#   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
+#   (字符串证据: UCPCheckNotRequestEnd / UCPCheckFatigueFailed / homePopRemovePopWhenUCPCheckFailed)
+request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i then reject_dict(200), enable={removeUcpPopup}
+# 生活圈 LBS 推荐横幅 / 入口 (newhaven)
+request if ${url} ~= /mtop\.taobao\.newhaven\.lbsgroup\.banner\./i then reject_dict(200), enable={removePopWindow}
+request if ${url} ~= /mtop\.taobao\.newhaven\.life\.entrance\.show/i then reject_dict(200), enable={removeSmallCards}
+# 社交弹窗
+request if ${url} ~= /mtop\.taobao\.social\.pop\.get/i then reject_dict(200), enable={removePopWindow}
 
 # === 热启动开屏广告图片 (kelee 实证规则: 1080/1125 全屏尺寸广告素材, 含双11促销开屏图) ===
 request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(?:octopus|tps)-(?:1080|1125)-\d{4}\.(?:jpg|png)_(?:1\d{3}|9\d{2})x(?:\d|1\d{3}|9\d{2})q[59]0/i then reject_dict(200)
