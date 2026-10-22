@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.97
+#!name=拼多多去广告(修复版) v1.98
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效；百补列表广告角标改走商品图左上角官方角标槽（手机版可见）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-22 19:15:00
+#!date=2026-10-22 19:20:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -219,5 +219,8 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #       产物 src/assets/ad-badge.png 同字节；tools/make-badge.py 退化为
 #       「校验 184×208 + 复制」（比例 0.885 仍被角标槽 CSS 锁死，不能乱改）。
 #       两个脚本的 data URI 同步更新。
+# 37c.【v1.98】角标资产再换一版（用户新图）：184×208，横排「广告」块更小，
+#       贴画布左上（内容 bbox x 19-88 / y 19-60），半透明黑底 alpha 114 +
+#       浅灰字 221/220。美术源与产物同字节，data URI 同步更新。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
