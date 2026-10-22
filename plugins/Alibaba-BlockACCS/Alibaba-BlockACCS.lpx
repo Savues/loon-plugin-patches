@@ -1,0 +1,37 @@
+#!name=Alibaba-BlockACCS v1.0.0
+#!desc=阻断淘宝 ACCS 推送通道 (实验) · 配合 Alibaba-AdBlock 的空词版 gateway 缓存可消除首页搜索框轮播营销词 · 副作用: 首页实时更新/IM实时消息失效
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-BlockACCS
+#!system=iOS, iPadOS
+#!version=1.0.0
+#!date=2026-10-22 00:00:00
+#!tag=实验,淘宝,去广告
+
+# ============================================================
+#  原理
+#  淘宝 ACCS 推送通道 = 常驻 keep-alive 连接, 冷启动时复用旧连接
+#  → 既有 TCP 流上的数据推送, HTTP 代理层 (Rewrite/Script) 完全看不到
+#  → 必须在【路由层】阻断, 才能切断
+#
+#  实测: ACCS 全部服务器 IP 100% 只跑 /amdc/mobileDispatch (1500+ 请求零例外)
+#        → 按 IP 段阻断不影响任何其他业务
+#
+#  已知 ACCS 服务器:
+#    59.82.113.219 / 59.82.113.10 / 59.82.34.148 / 59.82.34.255 / 59.82.14.1
+#    47.246.103.9 / 47.246.103.10
+#    调度域名: amdc.m.taobao.com / amdc.alipay.com
+#
+#  用法:
+#    1. 启用本插件 (Loon 插件列表可单独开关)
+#    2. Alibaba-AdBlock → 覆盖沙盒 gateway 缓存为空词版
+#       (Documents/TBDocuments/gateway/cache_newface_home_main_base)
+#    3. 杀淘宝 → 冷启动 → 首页正常显示, 搜索框无轮播词
+#
+#  回滚: 直接禁用本插件
+# ============================================================
+
+[Rule]
+IP-CIDR,59.82.0.0/16,REJECT
+IP-CIDR,47.246.0.0/16,REJECT
+DOMAIN,amdc.m.taobao.com,REJECT
+DOMAIN,amdc.alipay.com,REJECT
