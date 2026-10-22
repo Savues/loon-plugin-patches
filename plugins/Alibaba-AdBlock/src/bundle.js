@@ -10,6 +10,9 @@
 // ============================================
 // 核心工具函数
 // ============================================
+// 闲鱼"猜你可能在找"板块占位词 (清空广告后填入无害文案, 保持 App 联想初始化所需的内容结构)
+const FISH_GUESS_PLACEHOLDER = "我是学生，可以送我吗？";
+
 function isEnabled(key) {
   const val = $argument[key];
   return val === true || val === "true" || val === "1";
@@ -784,6 +787,13 @@ function filterXianyuSearchActivate(body) {
         if (kws.length > 1) {
           card.cardData.keywords = [kws[0]];
           changed = true;
+        }
+        // 填入无害占位词 (清空广告后不留空位)
+        for (const it of card.cardData.keywords) {
+          if (it && typeof it === "object" && it.text !== FISH_GUESS_PLACEHOLDER) {
+            it.text = FISH_GUESS_PLACEHOLDER;
+            changed = true;
+          }
         }
         if (changed) modified = true;
       }
