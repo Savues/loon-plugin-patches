@@ -414,13 +414,14 @@ function filterTaobaoAtmosphere(body) {
 // ============================================
 
 // 通用：清空 data 字段 (用于广告获取类接口)
+// 与 kelee 的 reject_dict(200) 语义完全等价: 整个响应替换为 {}
+// (注意: 不是把 data 置空 —— mtop 响应里 data={} 与 整体 {} 对 App 解析路径不同)
 function filterClearData(body) {
   const data = safeParse(body);
   if (!data) return body;
   if (data.data && (Array.isArray(data.data) || typeof data.data === "object")) {
-    data.data = {};
-    console.log("[Alibaba-AdBlock] Cleared ad response data");
-    return JSON.stringify(data);
+    console.log("[Alibaba-AdBlock] Cleared ad response (whole body -> {})");
+    return "{}";
   }
   return body;
 }
@@ -434,11 +435,10 @@ function filterXianyuSplashAds(body) {
   if (!isEnabled("fishRemoveSplash")) return body;
   const data = safeParse(body);
   if (!data) return body;
-  // 清空广告数据
+  // 与 kelee reject_dict(200) 语义一致: 整个响应替换为 {}
   if (data.data) {
-    data.data = {};
-    console.log("[Alibaba-AdBlock] Cleared Xianyu splash ads");
-    return JSON.stringify(data);
+    console.log("[Alibaba-AdBlock] Cleared Xianyu splash ads (-> {})");
+    return "{}";
   }
   return body;
 }
