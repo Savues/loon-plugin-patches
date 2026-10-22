@@ -1172,44 +1172,55 @@ function scrubOrangeConfig(bodyBytes) {
 // ============================================
 function scrubPopcdnSchedule(body) {
   if (!body) return null;
-  console.log("[Alibaba-AdBlock] popcdn scrub enter, body len:", body.length);
-  // 最小合法空调度 (弹窗全禁)
-  const MINIMAL = '{"sc":{},"ac":{},"version":"0"}';
+  console.log("[Alibaba-AdBlock] popcdn scrub enter, len:", body.length);
   if (typeof body !== "string") {
-    // binary_body_mode 下拿到的是字节, 尝试转字符串
     try { body = bytesToLatin1(body); } catch (e) { body = ""; }
   }
-  const key = '"ac"';
-  const ki = body.indexOf(key);
-  if (ki < 0) {
-    // body 为 gzip 未解压 / 被截断 / 格式异常 -> 直接输出最小合法配置
-    console.log("[Alibaba-AdBlock] popcdn body not parseable (gzip/truncated?), using minimal schedule");
-    return MINIMAL;
+  let s = body;
+  // 1) 模板哈希全部指向不存在的资源 (同长度替换, 32位hex)
+  let cdnChanged = 0;
+  s = s.replace(/"cdnId":"[0-9a-fA-F]{32}"/g, function (m) {
+    cdnChanged++;
+    return '"cdnId":"00000000000000000000000000000000"';
+  });
+  // 2) 弹窗落地页 URL 指向无效主机 (同长度, 破坏 host 首段)
+  let urlChanged = 0;
+  s = s.replace(/"(url|weexUrl)":"(https?:\/\/)([^"\/]{3})/g, function (m, k, p, host) {
+    urlChanged++;
+    return '"' + k + '":"' + p + 'xxx' + host.slice(3);
+  });
+  // 3) 清空 sc 场景映射 (场景->弹窗ID), 弹窗永不触发; 保留 ac 以免 content count==0 被判错误
+  const scKey = '"sc"';
+  const ki = s.indexOf(scKey);
+  let scCleared = false;
+  if (ki >= 0) {
+    const colon = s.indexOf(":", ki);
+    const objStart = s.indexOf("{", colon);
+    if (objStart >= 0) {
+      let depth = 0, objEnd = -1;
+      for (let p = objStart; p < s.length; p++) {
+        if (s[p] === "{") depth++;
+        else if (s[p] === "}") { depth--; if (depth === 0) { objEnd = p + 1; break; } }
+      }
+      if (objEnd > 0) {
+        s = s.slice(0, objStart) + "{}" + s.slice(objEnd);
+        scCleared = true;
+      }
+    }
   }
-  const colon = body.indexOf(":", ki);
-  const objStart = body.indexOf("{", colon);
-  if (objStart < 0) return null;
-  // 括号配对扫描 (body 若被 Loon 截断则扫到结尾)
-  let depth = 0, objEnd = -1;
-  for (let p = objStart; p < body.length; p++) {
-    const c = body[p];
-    if (c === "{") depth++;
-    else if (c === "}") { depth--; if (depth === 0) { objEnd = p + 1; break; } }
+  console.log("[Alibaba-AdBlock] popcdn scrub: cdnId=" + cdnChanged + " url=" + urlChanged + " scCleared=" + scCleared);
+  if (!cdnChanged && !urlChanged && !scCleared) {
+    console.log("[Alibaba-AdBlock] popcdn: nothing matched, pass through");
+    return null;
   }
-  if (objEnd < 0) {
-    // body 被截断: 输出最小合法配置, 保证小体积 (避开截断阈值)
-    console.log("[Alibaba-AdBlock] popcdn body truncated, using minimal schedule");
-    return MINIMAL;
-  }
-  const out = body.slice(0, objStart) + "{}" + body.slice(objEnd);
-  // 校验输出仍是合法 JSON
-  const check = safeParse(out);
+  // 校验仍是合法 JSON
+  const check = safeParse(s);
   if (!check) {
-    console.log("[Alibaba-AdBlock] popcdn scrub produced invalid JSON, fallback minimal");
-    return MINIMAL;
+    console.log("[Alibaba-AdBlock] popcdn scrub invalid JSON, fallback minimal");
+    return '{"sc":{},"ac":{},"version":"0"}';
   }
-  console.log("[Alibaba-AdBlock] Cleared poplayer schedule, ac:", Object.keys(check.ac).length, "sc:", Object.keys(check.sc).length);
-  return out;
+  console.log("[Alibaba-AdBlock] poplayer schedule sanitized: sc=" + Object.keys(check.sc || {}).length + " ac=" + Object.keys(check.ac || {}).length);
+  return s;
 }
 
 function main() {
