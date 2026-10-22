@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.28.0
+#!name=Alibaba-AdBlock v3.29.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.28.0
+#!version=3.29.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -195,6 +195,17 @@ request if ${url} ~= /mtop\.tmall\.rpm\.splash\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.atmosphere\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject, enable={blockTracking}
 # 淘宝直播: 弹窗投放系统 / 直播广告任务 / 启动屏 / 搜索氛围
+# === 直播广告位配置/投放 (反编译 livex.business.ad.* + vcore 视频广告) ===
+request if ${url} ~= /mtop\.taobao\.livex\.business\.(ad\.|complex\.ad\.|item\.supply\.ad\.|live\.ad\.)/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livex\.vcore\.recommend\..*\.video\.ad\.query/i then reject_dict(200)
+# === 直播间弹窗推荐 (popview) + 增长弹窗 (pop) ===
+request if ${url} ~= /mtop\.tblive\.recommend\.popview\./i then reject_dict(200)
+request if ${url} ~= /mtop\.tblive\.growth\.api\.(benefit\.strategy\.issue|pop\.)/i then reject_dict(200)
+request if ${url} ~= /mtop\.tblive\.live\.growth\.query/i then reject_dict(200)
+# === 直播投放资源查询 + 礼物浮层 + o2o 广告网关 ===
+request if ${url} ~= /mtop\.livex\.delivery\.resource\./i then reject_dict(200)
+request if ${url} ~= /mtop\.iliad\.interact\.reward\.gift\.float\.layer/i then reject_dict(200)
+request if ${url} ~= /mtop\.o2o\.ad\.gateway\./i then reject_dict(200)
 request if ${url} ~= /mtop\.livex\.delivery\.poplayer\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.livex\.grow\.advertise\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.livexshow\.launchscreen\.pullResource/i then reject_dict(200)
