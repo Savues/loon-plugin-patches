@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.37.3
+#!name=Alibaba-AdBlock v3.37.4
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.37.3
+#!version=3.37.4
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -54,7 +54,7 @@ response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.
 response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.taobao\.union\.marquee\.query/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSmallCards}}) with enable=${removeSmallCards}, requires_body=true, tag="搜索框跑马灯热词"
 
 # === MetaX 首页/Feed (Moon) ===
-response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSmallCards}, ${removeFeedKeywords}}) with enable=${removeSmallCards}, requires_body=true, tag="首页搜索栏热词+清空Feed"
+response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.alimama\.moon\.provider\.metax\.homepage\.query/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSmallCards}, ${removePrivateDomain}, ${removeFeedKeywords}}) with enable=${removeSmallCards}, requires_body=true, tag="首页搜索栏热词+私域动态横幅"
 
 # === 私域动态/关注会员 (Moon) ===
 response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.pub\.entry/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removePrivateDomain}}) with enable=${removePrivateDomain}, requires_body=true, tag="私域动态/关注会员"
