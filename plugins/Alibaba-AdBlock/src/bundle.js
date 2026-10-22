@@ -1271,23 +1271,23 @@ function handleXianyuResponse(body, url) {
     return filterXianyuSplashAds(body);
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.adx.bid")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemoveSplash") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.game.iaa")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemoveSplash") ? filterXianyuClearData(body) : body;
   }
   // 弹窗/推荐位 (清空 data)
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.user.strategy")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemovePopup") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.item.recommend.list")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemovePopup") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.local.near.by.corner.info")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemovePopup") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.item.buy.feeds")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemovePopup") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.shade")
       || url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.suggest")
@@ -1318,7 +1318,7 @@ function handleXianyuResponse(body, url) {
     return filterXianyuSearchWords(body);
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.playboy.recommend")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return isEnabled("fishRemovePopup") ? filterXianyuClearData(body) : body;
   }
   // 内容过滤 (jq 规则移植)
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.fun.follow.feed.list")) {
