@@ -1009,6 +1009,39 @@ function filterXianyuFollowFeed(body) {
   return body;
 }
 
+
+// 闲鱼搜索框滚动词/热搜/猜你可能在找 — 精准清除词条, 保留搜索框其余配置
+// 实测 search.shade 结构: data.singleShadeWords[{showText,trackParams}] / multiWordsForMarquee / multiWordsExpectedCount / bucketId / trackParams
+function filterXianyuSearchWords(body) {
+  if (!isEnabled("fishRemoveSearchAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  const d = data.data;
+  if (!d || typeof d !== "object") return body;
+  let modified = false;
+  const WORDS_KEYS = ["singleShadeWords", "multiWords", "multiWordsList", "hotRankList", "hotList",
+    "searchSuggest", "suggestList", "suggestWords", "guessWords", "guessList", "hotWords",
+    "mayInterestWords", "relatedWords", "recommendWords", "wordList", "shadeWords", "searchWords"];
+  for (const k of WORDS_KEYS) {
+    if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
+  }
+  if (d.multiWordsForMarquee) { d.multiWordsForMarquee = false; modified = true; }
+  if (d.multiWordsExpectedCount) { d.multiWordsExpectedCount = 0; modified = true; }
+  if (d.bucketId) { d.bucketId = ""; modified = true; }
+  if (d.trackParams) { d.trackParams = {}; modified = true; }
+  // 双层: data.result 里的词表
+  if (d.result && typeof d.result === "object") {
+    for (const k of WORDS_KEYS) {
+      if (Array.isArray(d.result[k]) && d.result[k].length) { d.result[k] = []; modified = true; }
+    }
+  }
+  if (modified) {
+    console.log("[Alibaba-AdBlock] Cleared Xianyu search words/hot list");
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlecommerce.splash")) {
@@ -1034,7 +1067,18 @@ function handleXianyuResponse(body, url) {
     return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idlemtopsearch.search.shade")) {
-    return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
+    return filterXianyuSearchWords(body);
+  }
+  // 闲鱼自有搜索接口族 (hotRankList / 搜索建议 / 猜你可能在找)
+  if (url.includes("mtop.taobao.idle.search.") || url.includes("mtop.taobao.idleitem.tbsearch")
+      || url.includes("mtop.taobao.idlemtopsearch.idleitem.tbsearch")
+      || url.includes("mtop.taobao.idlemtopsearch.item.search.")
+      || url.includes("mtop.taobao.idlemtopsearch.main.")
+      || url.includes("mtop.taobao.idlemtopsearch.fishpool.")
+      || url.includes("mtop.taobao.idlemtopsearch.detailpage.search.shade")
+      || url.includes("mtop.taobao.idlemtopsearch.market.tab.list")
+      || url.includes("mtop.taobao.idle.fishpool.")) {
+    return filterXianyuSearchWords(body);
   }
   if (url.includes("acs.m.goofish.com/gw/mtop.taobao.idle.playboy.recommend")) {
     return isEnabled("removePopWindow") ? filterXianyuClearData(body) : body;
