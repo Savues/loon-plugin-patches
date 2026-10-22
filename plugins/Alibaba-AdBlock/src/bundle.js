@@ -1035,6 +1035,27 @@ function filterXianyuSearchWords(body) {
       if (Array.isArray(d.result[k]) && d.result[k].length) { d.result[k] = []; modified = true; }
     }
   }
+  // 递归清理任意深度的嵌套词表
+  // 实测: item.search.activate -> data.cardList[].cardData.hotwords[] (闲鱼热搜词, 嵌套两层)
+  const deepClear = (node, depth) => {
+    if (depth > 6 || !node || typeof node !== "object") return false;
+    let hit = false;
+    if (Array.isArray(node)) {
+      for (const it of node) { if (deepClear(it, depth + 1)) hit = true; }
+      return hit;
+    }
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      const kl = k.toLowerCase();
+      if (Array.isArray(v) && v.length && (kl.includes("hotword") || kl.includes("shadeword")
+          || kl.includes("suggestword") || kl.includes("guessword") || kl.includes("marquee")
+          || kl.includes("searchword") || kl.includes("wordlist"))) {
+        node[k] = []; hit = true;
+      } else if (deepClear(v, depth + 1)) { hit = true; }
+    }
+    return hit;
+  };
+  if (deepClear(d, 0)) modified = true;
   if (modified) {
     console.log("[Alibaba-AdBlock] Cleared Xianyu search words/hot list");
     return JSON.stringify(data);
