@@ -169,6 +169,8 @@ t('不再有 homepage/hub 的 json-del', !hubRules.some(l => /json-del|json-jq/.
 t('homepage/hub 挂在 [Script] 上', section('SCRIPT').some(l => /homepage/.test(l) && /script-path=/.test(l)))
 t('月卡 H5 自动跳过挂在 [Script] 上',
   section('SCRIPT').some(l => /hub_skip\.response\.js/.test(l) && /hub_monthly_card/.test(l) && /hub_renew_manage/.test(l)))
+t('百补分页接口角标挂在 [Script] 上',
+  section('SCRIPT').some(l => /subsidy_api\.response\.js/.test(l) && /goods_list/.test(l)))
 t('脚本指向本仓库', /Savues\/loon-plugin-patches.*homepage\.response\.js/.test(lpx))
 const argM = lpx.match(/homepage\.response\.js[^\n]*argument=\[([^\]]+)\]/)
 t('脚本带 argument 列表', !!argM, argM ? '' : '未找到 argument=')

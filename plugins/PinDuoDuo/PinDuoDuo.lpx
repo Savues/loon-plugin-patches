@@ -1,5 +1,5 @@
-#!name=拼多多去广告(修复版) v1.93
-#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效。
+#!name=拼多多去广告(修复版) v1.94
+#!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效；百补列表广告角标改走商品图左上角官方角标槽（手机版可见）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-22 01:30:00
+#!date=2026-10-22 03:10:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -82,6 +82,8 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script
 http-response ^https:\/\/m\.pinduoduo\.net\/(brand_activity_subsidy|tandy_vase)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy.response.js, requires-body=true, argument=[{search_stub},{feed_ad}], timeout=5, tag=百亿补贴搜索框去推广词+广告打标
 
 http-response ^https:\/\/m\.pinduoduo\.net\/(hub_monthly_card|hub_renew_manage)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_skip.response.js, requires-body=true, argument=[{auto_skip}], timeout=5, tag=月卡页面自动跳过动效
+
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/special-sale-coupon\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy_api.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=百补列表分页广告角标
 
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/detail.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=详情页广告打标
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=信息流广告打标
@@ -176,5 +178,25 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #      清倒计时 + emphasizeLimitExpirePopupDone=true + 显示补贴倒计时，
 #      与动效自然跑完等效；签到领好礼（每日抽奖券）本身 autoClaim=true，
 #      领取接口只带 anti_content，跳过动效不影响发券。开关 auto_skip（默认开）。
+# 35.【v1.94】百补列表广告角标改走「商品图左上角」官方角标槽（修手机版看不见）：
+#      根因（抓包 383_1792646492521，808 条）：
+#      ① 手机版列表页是 m.pinduoduo.net/tandy_vase.html，其商品**没有 ltIcon 字段**
+#         （ltIcon 出现 0 次；brand_activity_subsidy.html 有 42 次）——
+#         v1.87~v1.93 只做「替换已有字符串」，手机版等于无处可写；
+#      ② 旧实现把徽章写进 goodsFlagIcon（标题旗标槽），CSS
+#         `.aFOWVd6O{height:.15rem}` ≈15px 高（375pt 手机）→ 横幅「广告」被压到
+#         ~10px，等于看不见；iPad 上 rem 更大所以看得见 —— 这就是
+#         「手机看不到 / iPad 能看到」的差异来源；
+#      ③ 真正的角标槽是 ltIcon（商品图左上角），CSS
+#         `.ilx1YR3r{height:.52rem;width:.46rem}` ≈46×52px。
+#      改动：
+#      · 角标只写 ltIcon（缺失即新增），不再写 goodsFlagIcon；
+#      · 资产换竖版 184×208（比例 0.885 = 0.46/0.52，填角标槽不畸变），
+#        半透明黑底 + 浅灰白字「广告」竖排，生成脚本 tools/make-badge.py；
+#      · 新增 src/subsidy_api.response.js：钩 POST
+#        /api/brand-sega/special-sale-coupon/goods_list（上拉加载分页，实测
+#        20 条里 10 条带 ad），给广告条目写 lt_icon 并把 goods_id 并进
+#        pddAdGoodsIds 名单（详情页自动打标）—— 旧版本只改 HTML，
+#        手机上往下翻的广告商品一条角标都没有。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────

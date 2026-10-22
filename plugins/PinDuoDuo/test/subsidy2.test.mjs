@@ -13,8 +13,8 @@ const F2 = readFileSync(new URL('./subsidy2-fixture2.txt', import.meta.url), 'ut
 const BADGE = readFileSync(new URL('../src/assets/ad-badge.png', import.meta.url))
 // PNG 魔数 + 尺寸（IHDR），防止资产被意外替换成非图片
 t('徽章资产是合法 PNG', BADGE[0] === 0x89 && BADGE[1] === 0x50 && BADGE[2] === 0x4E && BADGE[3] === 0x47)
-t('徽章资产尺寸 530×150（v1.90：恢复官方比例，已内联 data URI）',
-  BADGE.readUInt32BE(16) === 530 && BADGE.readUInt32BE(20) === 150)
+t('徽章资产尺寸 184×208（v1.94：竖版角标，比例 0.885 = 角标槽 0.46rem/0.52rem）',
+  BADGE.readUInt32BE(16) === 184 && BADGE.readUInt32BE(20) === 208)
 
 const makeStore = (initial) => {
   const kv = initial ? { pddAdGoodsIds: JSON.stringify(initial) } : {}
@@ -55,7 +55,7 @@ t('普通商品 goodsId 不入库（抽 3 个）',
   !idsOf(st).includes('1003242864291') && !idsOf(st).includes('991942311643')
   && !idsOf(st).includes('798666802980'))
 
-console.log('\n【2】四通道打标（v1.82：+goodsFlagIcon/ltIcon 主瀑布流槽位）')
+console.log('\n【2】角标打标（v1.94：只走 ltIcon 官方角标槽，不再写 goodsFlagIcon）')
 let b = r.body
 t('HTML 本体被修改（打标需要回写）', typeof b === 'string' && b !== F2)
 const rawOut = parseRaw(b)
@@ -67,19 +67,20 @@ for (const t2 of rawOut.store.tabStore.tabList)
       (typeof g.ad === 'string' ? adGoods : norGoods).push(g)
 t('返回体里 ad 商品 4 个', adGoods.length === 4, `实际 ${adGoods.length}`)
 for (const g of adGoods) {
-  t(`${g.goodsId} goodsFlagIcon 头部 data URI`, String(g.goodsFlagIcon[0]).startsWith('data:image/png;base64,'))
-  t(`${g.goodsId} ltIcon 整体替换为 data URI（不是数组！）`,
-    String(g.ltIcon).startsWith('data:image/png;base64,'))
+  t(`${g.goodsId} ltIcon 是 data URI 字符串（不是数组！）`,
+    typeof g.ltIcon === 'string' && g.ltIcon.startsWith('data:image/png;base64,'))
+  t(`${g.goodsId} goodsFlagIcon 不再被写（v1.94：标题旗标槽只有 0.15rem，手机上看不见）`,
+    !(g.goodsFlagIcon || []).some(u => String(u).startsWith('data:image/png;base64,')))
   t(`${g.goodsId} 价格词/销量行/titleTop 不再改动（v1.87 移除）`,
     !String(g.activityPriceWord || '').startsWith('广告·')
     && !String(g.salesTip || '').startsWith('广告·')
     && !(g.titleTop || []).some(x => x.text === '广告'))
 }
 t('官方百补徽章仍在（不误伤）',
-  adGoods.every(g => g.goodsFlagIcon.some(u => String(u).includes('baiyi'))))
+  adGoods.every(g => (g.goodsFlagIcon || []).some(u => String(u).includes('baiyi'))))
 t('普通商品零改动',
-  norGoods.every(g => !String(g.ltIcon || '').includes('ad-badge')
-    && !(g.goodsFlagIcon || []).some(u => String(u).includes('ad-badge'))))
+  norGoods.every(g => !String(g.ltIcon || '').startsWith('data:image/png;base64,')
+    && !(g.goodsFlagIcon || []).some(u => String(u).startsWith('data:image/png;base64,'))))
 t('职责 1 照常：queryWords 已清空',
   JSON.stringify(rawOut.store.searchStore.queryWords) === '[]')
 t('rawData 之外的字节未动（只回写 rawData 区间）', (() => {
@@ -124,10 +125,30 @@ t('8 个广告 goodsId 入库', JSON.stringify(idsOf(st)) === JSON.stringify([
   '962936956396', '734362509181', '740335689339', '627272059171']),
   `实际 ${JSON.stringify(idsOf(st))})`)
 const rawT = parseRaw(r.body)
-t('仅图片角标（tandy 8 广告：flagIcon8 + ltIcon8 = 16 个 data URI，无文字标记）',
-  (r.body.match(/data:image\/png;base64/g) || []).length === 16
+t('仅图片角标（tandy 8 广告 → 8 个 ltIcon data URI；v1.94 起不再写 goodsFlagIcon）',
+  (r.body.match(/data:image\/png;base64/g) || []).length === 8
   && (r.body.match(/广告·/g) || []).length === 0,
   `data URI ${(r.body.match(/data:image\/png;base64/g) || []).length} 个 / 文字 ${(r.body.match(/广告·/g) || []).length} 处`)
+// v1.94 根因（真机 fixture）：手机版列表页 tandy_vase.html 的广告商品
+// **原本根本没有 ltIcon 字段** → 旧逻辑只「替换已有字符串」，手机上无处可写。
+// 下面用真实抓包切片验证「能新增」。
+console.log('\n【5b】v1.94 根因复现：广告商品原本没有 ltIcon 字段')
+const FNL = readFileSync(new URL('./tandy-no-lticon-fixture.txt', import.meta.url), 'utf8')
+const beforeNL = parseRaw(FNL)
+const adListBefore = beforeNL.stores.store.tabStore.tabList[0].subTabGoodsLists[0].list
+  .filter((g) => g.ad)
+t('fixture 里 3 个广告商品且都没有 ltIcon 字段',
+  adListBefore.length === 3 && adListBefore.every((g) => g.ltIcon === undefined),
+  `广告 ${adListBefore.length} 个 / 有 ltIcon 的 ${adListBefore.filter((g) => g.ltIcon !== undefined).length} 个`)
+const stNL = makeStore([])
+const rNL = run({ search_stub: true, feed_ad: true }, FNL, stNL)
+const afterNL = parseRaw(rNL.body).stores.store.tabStore.tabList[0].subTabGoodsLists[0].list
+t('3 个广告商品全部【新增】ltIcon = data URI',
+  afterNL.filter((g) => g.ad).length === 3
+  && afterNL.filter((g) => g.ad).every((g) => typeof g.ltIcon === 'string' && g.ltIcon.startsWith('data:image/png;base64,')))
+t('非广告商品没被加 ltIcon',
+  afterNL.filter((g) => !g.ad).every((g) => g.ltIcon === undefined))
+t('3 个广告 goodsId 入库', idsOf(stNL).length === 3, `实际 ${JSON.stringify(idsOf(stNL))}`)
 t('旧模板（brand_activity_subsidy）仍正常', (() => {
   const s2 = makeStore([])
   const r2 = run({ search_stub: true, feed_ad: true }, F2, s2)
@@ -141,15 +162,17 @@ t('脚本不崩、正常返回', r !== undefined)
 t('现在能收集到 2 个广告 goodsId（含 Tafe 766485126873）',
   JSON.stringify(idsOf(st)) === JSON.stringify(['1003242864291', '766485126873']),
   `实际 ${JSON.stringify(idsOf(st))})`)
-t('HTML 写入（fixture1 的 2 广告 × 2 处徽章位）',
-  !!r.body && (r.body.match(/data:image\/png;base64/g) || []).length === 4)
+t('HTML 写入（fixture1 的 2 广告 × 1 处角标位 —— v1.94 起只写 ltIcon）',
+  !!r.body && (r.body.match(/data:image\/png;base64/g) || []).length === 2,
+  `实际 ${(r.body.match(/data:image\/png;base64/g) || []).length} 处`)
 
 console.log('\n【6】存储不可用 —— 方案 1 静默放弃，三通道照常')
 const broken = { read: () => { throw new Error('x') }, write: () => { throw new Error('x') } }
 r = run({ search_stub: true, feed_ad: true }, F2, broken)
 b = r.body
 t('脚本不崩、body 正常返回', !!b)
-t('照常注入', (b.match(/data:image\/png;base64/g) || []).length === 8
-  && (b.match(/广告·/g) || []).length === 0)
+t('照常注入（4 个广告 × 1 处角标位）', (b.match(/data:image\/png;base64/g) || []).length === 4
+  && (b.match(/广告·/g) || []).length === 0,
+  `实际 ${(b.match(/data:image\/png;base64/g) || []).length} 处`)
 
 done()

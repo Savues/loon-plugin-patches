@@ -317,3 +317,63 @@ bundle `hub_monthly_card_*.js` 858 KB）与 `hub_renew_manage.html`。
 「点击后应出现的请求」有没有出现（本例：`lottery/coupon/claim` 在模块 JS 加载后 1 秒内
 出现，且 rawData 里 `autoClaim:true`，证明是自动领取而非点击触发）；
 真正要在客户端「替用户点」，只能靠往 H5 响应体注入脚本 —— 这两件事别混为一谈。
+
+---
+
+## 十六、百补列表广告角标：手机版看不见的根因与重定位（v1.94）
+
+抓包基线：`383_1792646492521.har`（808 条，iPhone）。
+**`/var/minis/attachments/` 会被清空，抓包真身常在挂载盘
+`/var/minis/mounts/File Provider Storage/Downloads/<序号>_<时间戳>.har`**。
+
+### 16.1 两个页面模板的字段差异（关键）
+
+| 页面 | 模板 | 广告商品有 `ltIcon` 吗 |
+|---|---|---|
+| `m.pinduoduo.net/brand_activity_subsidy.html` | camelCase `window.rawData.store...` | **有**（42 处） |
+| `m.pinduoduo.net/tandy_vase.html`（手机版真实列表页） | `window.rawData.stores.store...` | **没有**（0 处） |
+
+v1.87~v1.93 的角标逻辑是「**替换**已有字符串 `ltIcon`」→ 手机版那个页面
+**压根没有这个字段可替换**，徽章只落到了 `goodsFlagIcon`。
+
+### 16.2 两个槽位的真实尺寸（CSS 实证，这是「手机看不到 / iPad 看得到」的原因）
+
+| 槽位 | CSS | 375pt 手机 | iPad | 结论 |
+|---|---|---|---|---|
+| 标题旗标 `goodsFlagIcon` | `.aFOWVd6O{height:.15rem}` | ≈15px 高 | ≈16–17px | 横幅「广告」被压到 ~10px 高 → 手机上等于看不见 |
+| 商品图左上角 `ltIcon` | `.ilx1YR3r{height:.52rem;width:.46rem;position:absolute;top:0;left:0}` | ≈46×52px | 更大 | **官方角标位**，这个尺寸下「广告」清晰可读 |
+
+`1rem = 100px`（375pt 设计稿）→ 手机上 0.15rem = 15px、iPad 上同比例更大，
+所以同一枚 530×150 横幅在 iPad 能认出来、在手机上糊成一团。
+
+### 16.3 渲染链路（逆向，可复核）
+
+- 列表卡片 = module `36066`（`8208_*.js`）：读 `C.ltIcon` → 传给图片组件
+- 图片组件 = module `41407`（`2125_*.js`）：
+  `!!S && createElement(s.ZP,{src:S, className:I().ltIcon})`（`S` = ltIcon）
+- 另一模板的图片组件（`react_brand_activity_subsidy`）兜底分支：
+  `t && !n ? <Ay src={t} className="ilx1YR3r"> : null` → **字符串型 ltIcon 直接渲染成角标**
+- 图片组件的 URL 构造函数 `FT()` 开头判 `indexOf("http")||indexOf("//")`，
+  **非 http 直接原样返回** → data URI 不会被 CDN 参数破坏（这点很关键）
+
+### 16.4 v1.94 的三处改动
+
+1. 角标**只写 `ltIcon`**（缺失即新增），不再写 `goodsFlagIcon`
+   （0.15rem 槽不可读，还会顶乱标题行布局 `Me=(flags.length)<3`）
+2. 资产换**竖版 184×208**（比例 0.885 = 0.46/0.52，填角标槽不畸变），
+   半透明黑底 + 浅灰白字「广告」竖排；生成脚本 `tools/make-badge.py`
+   （`corner` / `wide` 两种版式，wide 保留旧横幅版备查）
+3. 新增 `src/subsidy_api.response.js`：钩 **上拉加载分页接口**
+   `POST /api/brand-sega/special-sale-coupon/goods_list`
+   —— 该接口 snake_case 字段（`goods_id` / `goods_flag_icon` / `ad` / `lt_icon`），
+   实测一次 20 条里 **10 条带 ad**；H5 映射函数里有 `ltIcon: r.lt_icon || ""`，
+   写 `lt_icon` 即可生效。**旧版本只改 HTML → 手机往下翻的广告商品一条角标都没有。**
+
+### 16.5 沉淀
+
+- **同一个功能在不同端/不同模板下，字段可以完全不存在** —— 「替换已有字段」的写法
+  在缺字段的模板上会静默失效，必须写成「**缺失即新增**」。
+- **改角标前先量槽位**：CSS 的 rem 尺寸 × 端子的屏宽 = 实际像素高度；
+  7–15px 高的槽位放横排文字必然不可读，别再靠换图片比例试错。
+- 端子的 H5 会**分模板**（brand_activity_subsidy / tandy_vase），
+  字段名还分 camelCase / snake_case 两套；改响应体前先把两套都取样。

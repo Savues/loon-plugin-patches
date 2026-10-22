@@ -3,7 +3,7 @@
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 
-**v1.93** · 15 项配置 / 15 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T01:30`
+**v1.94** · 15 项配置 / 16 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T03:10`
 
 | | 中文 | English |
 |---|---|---|
@@ -269,6 +269,7 @@ node test/homepage.test.mjs      # 37 用例，首页脚本
 node test/stub.test.mjs          # 60 用例，拦截开关
 node test/stub-wiring.test.mjs   # 40 用例，清单与脚本接线
 node test/hub-skip.test.mjs      # 21 用例，月卡自动跳过注入
+node test/subsidy-api.test.mjs   # 23 用例，百补分页广告角标
 ```
 
 清单层覆盖：开关声明与引用双向一致、三条高风险规则确已移除、
@@ -343,11 +344,13 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
 | `src/subsidy.response.js` | 百亿补贴页搜索框去推广词（**自研**） | Subsidy page search-box scrubber |
 | `src/hub_skip.response.js` | 月卡 H5 自动点「跳过」动效（**自研**） | Month-card H5 auto-skip injector |
+| `src/subsidy_api.response.js` | 百补列表**分页接口**广告角标（**自研**） | Subsidy pagination ad tagging |
 | `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
 | `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
 | `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
 | `test/stub-wiring.test.mjs` | 40 个清单与脚本接线用例 | 40 wiring tests |
 | `test/hub-skip.test.mjs` | 21 个月卡自动跳过用例 | 21 auto-skip tests |
+| `test/subsidy-api.test.mjs` | 23 个百补分页角标用例 | 23 subsidy-pagination tests |
 | `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |
 
 校验托管脚本完整性：
