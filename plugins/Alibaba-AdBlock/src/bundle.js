@@ -1171,13 +1171,34 @@ function scrubOrangeConfig(bodyBytes) {
 // 清空 ac = 客户端无任何弹窗可选 -> 未来新增广告弹窗也自动免疫
 // ============================================
 function scrubPopcdnSchedule(body) {
-  const data = safeParse(body);
-  if (!data || typeof data !== "object" || !data.ac) return null;
-  const n = Object.keys(data.ac).length;
-  if (n === 0) return null;
-  data.ac = {};
-  console.log("[Alibaba-AdBlock] Cleared poplayer schedule, entries:", n);
-  return JSON.stringify(data);
+  if (!body || typeof body !== "string") return null;
+  const key = '"ac"';
+  const ki = body.indexOf(key);
+  if (ki < 0) return null;
+  const colon = body.indexOf(":", ki);
+  const objStart = body.indexOf("{", colon);
+  if (objStart < 0) return null;
+  // 括号配对扫描 (body 若被 Loon 截断则扫到结尾)
+  let depth = 0, objEnd = -1;
+  for (let p = objStart; p < body.length; p++) {
+    const c = body[p];
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) { objEnd = p + 1; break; } }
+  }
+  if (objEnd < 0) {
+    // body 被截断: 输出最小合法配置, 保证小体积 (避开截断阈值)
+    console.log("[Alibaba-AdBlock] popcdn body truncated, using minimal schedule");
+    return '{"sc":{},"ac":{},"version":"0"}';
+  }
+  const out = body.slice(0, objStart) + "{}" + body.slice(objEnd);
+  // 校验输出仍是合法 JSON
+  const check = safeParse(out);
+  if (!check) {
+    console.log("[Alibaba-AdBlock] popcdn scrub produced invalid JSON, fallback minimal");
+    return '{"sc":{},"ac":{},"version":"0"}';
+  }
+  console.log("[Alibaba-AdBlock] Cleared poplayer schedule, ac:", Object.keys(check.ac).length, "sc:", Object.keys(check.sc).length);
+  return out;
 }
 
 function main() {
