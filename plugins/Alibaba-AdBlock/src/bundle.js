@@ -774,10 +774,15 @@ function filterXianyuSearchActivate(body) {
       if (Array.isArray(kws) && kws.length) {
         let changed = false;
         for (const it of kws) {
-          if (it && typeof it === "object" && it.text) { it.text = ""; changed = true; }
+          if (!it || typeof it !== "object") continue;
+          if (it.text) { it.text = ""; changed = true; }
+          // 同时清掉跳转目标 -> App 无法渲染成可点击的"空按钮"
+          if (it.link) { it.link = ""; changed = true; }
         }
         if (changed) modified = true;
       }
+      // 清板块标题 ("大家都在搜")
+      if (card?.cardData?.title) { card.cardData.title = ""; modified = true; }
     }
     if (modified) {
       console.log("[Alibaba-AdBlock] Filtered Xianyu search activate hotwords");
