@@ -1,226 +1,289 @@
-# Alibaba-AdBlock
+# Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> 阿里系 App 通用去广告插件 (Loon)
-> **版本 v3.13.0** · 2026-10-22
-> 覆盖 **淘宝 / 天猫 / 闲鱼 / 淘宝特价版 / 淘宝直播 / Moon(阿里妈妈) / 盒马 / 飞猪 / 菜鸟**
-
-基于 **5 款 App 解密 IPA 二进制审计 + 20+ 次真机冷启动 HAR + App 私有目录沙盒取证**，
-逐条实测验证每个拦截点，非猜测式规则。
+> **版本 v3.9.20** · 2026-10-22
+> 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
+> 运行环境：Loon (iOS / iPadOS)
 
 ---
 
+## 📥 安装
 
-### 📱 各 App 专项维护文档
-
-| App | 文档 | 已拦截形态 | 关键机制 |
-|-----|------|-----------|---------|
-| **淘宝** | [docs/Taobao.md](docs/Taobao.md) | 19 类 | 弹窗调度器 popcdn / 搜索门双实现 / TBBootImage 启动图 / ACCS 推轮播词 |
-| **淘宝联盟** | [docs/AlibabaUnion.md](docs/AlibabaUnion.md) | 17 类 | batchsite 广告位分发中枢 / metax 搜索框词+首页背景 / Flutter+ACCS 双通道 |
-| **淘宝直播** | [docs/TaobaoLive.md](docs/TaobaoLive.md) | 20 类 | 三板块同接口(tabs+userFootPrint 同级) / skylar_hummer 浮层体系 / 青少年模式=本地机制 |
-| **闲鱼** | [docs/Xianyu.md](docs/Xianyu.md) | 29 类 | 联想与猜你可能在找同源冲突 / Flutter idle_search 603 组件 / 清空须等同 kelee `{}` |
-
-## 📊 拦截能力总览（全部经真机验证）
-
-| # | 广告形态 | 拦截机制 | 验证状态 |
-|---|---------|---------|---------|
-| 1 | **埋点 / APM / 实验分流** | 域名级 Reject（6 域名） | ✅ HAR 零穿透 |
-| 2 | **广告投放埋点域名** | 域名级 Reject（6 域名） | ✅ |
-| 3 | **广告结算 / 追踪 / 曝光** | 12 组 mtop API Reject | ✅ 二进制审计 |
-| 4 | **各 App 独有广告通道** | 9 组 mtop API Reject（闲鱼/天猫/特价版/直播差分） | ✅ 二进制审计 |
-| 5 | **弹窗调度器**（798 弹窗 / 118 场景） | Script 清洗 `sc`→0 + `cdnId` 改 0 + `url` 破坏 | ✅ HAR 实测 `sc=0` |
-| 6 | **弹窗模板**（哈希 JSON） | reject_dict(200) | ✅ HAR `size=2` |
-| 7 | **双11摇一摇启动页广告** | 图片 ID reject（doudi1111/1115） | ✅ 沙盒 2 字节空文件 |
-| 8 | **热启动切后台广告** | kelee 1080/1125 尺寸规则 | ✅ 沙盒 2 字节空文件 |
-| 9 | **启动页活动专用图** | `tps-*-1624` 全屏高规则 | ✅ |
-| 10 | **双11氛围皮肤** | `skin.atmosphere.info` Script | ✅ `enable=False` |
-| 11 | **首页底栏加补券横幅** | DinamicX campaign 模板 reject | ✅ |
-| 12 | **搜索门热榜 / 猜你想搜** | 组件全名子串 reject（覆盖 `ms_*.wlm` 资源包） | ✅ 沙盒无缓存 |
-| 13 | **搜索关键词劫持**（1710 条广告） | `spotlightsearch.get` reject | ✅ |
-| 14 | **直播 tab 动态标记** | 状态 API reject | ✅ |
-| 15 | **橙色配置营销内容** | protobuf 字节级等长清洗 | ✅ 长度不变 JSON 合法 |
-| 16 | **搜索框轮播营销词** | — | 🔴 见「已知限制」 |
-
----
-
-## 📦 安装
-
-### 订阅导入
+**订阅地址（推荐，CDN 有 5 分钟缓存，加 `?cb=<时间戳>` 强制刷新）**
 ```
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
 ```
-> CDN 缓存约 5 分钟，紧急刷新加 `?cb=<时间戳>`
 
-### 配套插件（可选，实验性）
+**当前版本直链（无缓存）**
 ```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-BlockACCS/Alibaba-BlockACCS.lpx
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
 ```
-阻断 ACCS 推送通道（路由层），用于配合沙盒空词缓存消除搜索框轮播词。
 
 ---
 
-## 🔧 开关说明
+## 📊 插件规模
 
+| 项 | 数量 |
+|----|------|
+| Rewrite 规则 | **117** |
+| Response Script 规则 | **57** |
+| MITM 域名 | **24** |
+| 开关 | **17** |
+| bundle.js | ~60 KB（单文件） |
+| 覆盖 App | 淘宝 · 淘宝联盟 · 淘宝直播 · 闲鱼（已实测）· 天猫 · 淘宝特价版（规则就绪待测）|
+
+---
+
+## 📱 各 App 专项文档
+
+| App | 文档 | 已拦截形态 | 核心机制 |
+|-----|------|-----------|---------|
+| **淘宝** | [docs/Taobao.md](docs/Taobao.md) | **19 类** | 弹窗调度器 popcdn（793广告/118场景）· 搜索门双实现（Muise组件 + 原生 fallback）· TBBootImage 启动图 · ACCS 推轮播词 |
+| **淘宝联盟** | [docs/AlibabaUnion.md](docs/AlibabaUnion.md) | **17 类** | **batchsite 广告位分发中枢**（开屏/弹窗/小卡片/公告/搜索词全在一接口）· metax 搜索框词+首页背景 · Flutter+ACCS 双通道 |
+| **淘宝直播** | [docs/TaobaoLive.md](docs/TaobaoLive.md) | **20 类** | 三板块同接口（`userFootPrint` 与 `tabs` **同级**）· skylar_hummer 浮层体系（219模板）· 青少年模式=纯本地机制不可拦 |
+| **闲鱼** | [docs/Xianyu.md](docs/Xianyu.md) | **29 类** | 联想与"猜你可能在找"同源冲突三条硬约束 · Flutter idle_search 603 组件 · 清空必须等同 kelee 的 `{}` |
+
+---
+
+## 🎛️ 开关清单（17 个）
+
+### 全局
 | 开关 | 默认 | 作用 |
 |------|------|------|
-| `blockTracking` | ✅ 开 | 埋点 / APM / 实验分流 / AB 配置域名 Reject |
-| `removeSplashAd` | ✅ 开 | 开屏广告、热启动广告、双11摇一摇启动页、氛围皮肤、橙色配置营销清洗 |
-| `removePopWindow` | ✅ 开 | 弹窗调度器（清空场景映射）+ 弹窗模板 + 运营位接口 |
-| `removeSmallCards` | ✅ 开 | 首页小卡片 / 公告栏 / 跑马灯热词 / 搜索门热榜与想搜 |
+| `blockTracking` | ✅ 开 | 埋点/APM/AB 分流整域拦截 |
+| `removeSplashAd` | ✅ 开 | 开屏广告（图片/视频/摇一摇）|
+| `removePopWindow` | ✅ 开 | 弹窗广告（调度器/模板/氛围）|
+| `removeSmallCards` | ✅ 开 | 小卡片/公告/推荐词/搜索门 |
 | `removeNoahOps` | ✅ 开 | NOAH 运营位 |
 | `removeTAC` | ✅ 开 | TAC 搜索推荐 |
-| `removePrivateDomain` | ✅ 开 | Moon 私域动态 / 关注会员入口 |
-| `removeSearchWords` | ⛔ 关 | 搜索框轮播词（DX 模板补丁方案已验证会破坏搜索栏点击，**保持关闭**） |
-| `removeFeedKeywords` | ⛔ 关 | Moon 首页 Feed 整体清空 |
-| `blockAccs` | ⛔ 关 | 阻断 ACCS 推送通道（核弹级，需配合沙盒空词缓存） |
+| `removeSearchWords` | ⛔ 关 | 搜索框轮播词（**实验性，见下方警告**）|
+| `removeFeedKeywords` | ⛔ 关 | Moon 首页 Feed 清空 |
+| `removePrivateDomain` | ✅ 开 | 私域动态/关注会员 |
+
+### 淘宝联盟 / Moon
+| 开关 | 默认 | 作用 |
+|------|------|------|
+| `fishRemoveSplash` | ✅ 开 | 闲鱼开屏 + ADX 竞价 + 游戏 IAA |
+| `fishRemovePopup` | ✅ 开 | 闲鱼弹窗浮层/策略位/推荐位/购买Feed/鱼池弹窗 |
+| `fishRemoveHomeAds` | ✅ 开 | 闲鱼首页广告位（9 个接口）|
+| `fishRemoveSearchAds` | ✅ 开 | 闲鱼搜索广告/热搜/猜你可能在找 |
+| `fishRemoveMyPage` | ✅ 开 | 闲鱼我的页面/交易详情 |
+
+### 淘宝直播
+| 开关 | 默认 | 作用 |
+|------|------|------|
+| `liveRemoveAds` | ✅ 开 | 直播搜索三板块/信息流广告/浮层/增长位/弹窗推荐 |
+
+### 实验性（默认关，谨慎开启）
+| 开关 | 默认 | 作用 | ⚠️ |
+|------|------|------|---|
+| `blockAccs` | ⛔ 关 | 阻断 ACCS 推送通道 | **副作用大**：首页实时更新/IM 消息失效（v3.37.0 已移除该开关，ACCS 阻断请用独立插件）|
+
+> ⚠️ **`removeSearchWords` 必须保持关闭**：该开关启用 DX 模板补丁，v3.19~v3.23 多次实测证明**会破坏搜索框点击**（轮播词 Text 组件即点击载体）。淘宝搜索框滚动词已确认 HTTP 层无解（ACCS 私有 TCP 推送 + 原生 MultiHintq 渲染 + DX 容器三者耦合），需越狱 Hook 才可根治。
 
 ---
 
-## 🔌 MITM 域名（23 个）
+## 🌐 MITM 域名（24 个）
 
 ```
-acs.m.taobao.com          cn-acs.m.taobao.com       guide-acs.m.taobao.com
-acs.m.goofish.com         g-acs.m.goofish.com
-acs.m.tmall.com           acs.m.alibaba.com
-acs.m.hema.com            acs.m.fliggy.com
-poplayer.template.alibaba.com                        弹窗模板 + 调度器
-dinamicx.alibabausercontent.com                     DX 容器/组件
-heic.alicdn.com           gw.alicdn.com             img.alicdn.com
-orange.tbcdn.cn           dorangesource.alicdn.com  橙色配置
-gm.mmstat.com             log.mmstat.com            s-gm.mmstat.com
-px.effirst.com            abtest.alibaba.com        tlog.mmstat.com
-yixiu-abtest.alicdn.com
+abtest.alibaba.com          acs.m.alibaba.com          acs.m.fliggy.com
+acs.m.goofish.com           acs.m.hema.com             acs.m.taobao.com
+acs.m.tmall.com             cn-acs.m.taobao.com        dinamicx.alibabausercontent.com
+dorangesource.alicdn.com    g-acs.m.goofish.com        gm.mmstat.com
+guide-acs.m.taobao.com      gw.alicdn.com              heic.alicdn.com
+img.alicdn.com              log.mmstat.com             orange.tbcdn.cn
+poplayer.template.alibaba.com  px.effirst.com          s-gm.mmstat.com
+tlog.mmstat.com             yixiu-abtest.alicdn.com
 ```
-> Loon 会自动按此清单解密，**无需手动信任**。
+
+> ⚠️ **带路径的规则必须配 MITM 域名**，否则 Loon 看不到 URL 路径 → 规则静默失效。
+> 历史上因此踩坑两次：`orange.tbcdn.cn`（v3.9.20 修）、`g.alicdn.com`（v3.9.27 修）。
 
 ---
 
-## 🏗️ 架构说明
+## 🏗️ 架构
 
-### 为什么是单文件 `bundle.js`
+### 为什么是单文件 bundle.js
+Loon **不支持 CommonJS `require()`** → 模块化架构静默失效（脚本完全不执行）。
+源码按 `core/` + `apps/` + `index.js` 分层维护，构建时**打包内联**为单文件 `src/bundle.js`（60KB）。
 
-Loon **不支持 CommonJS `require()`** — 模块化架构会导致脚本**静默失效**（无任何日志）。
-因此运行时代码是单文件打包（`src/bundle.js`，60KB），内联全部核心模块 + Moon/淘宝/闲鱼分发逻辑。
-
-> `src/core/` `src/apps/` `src/index.js` 保留了模块化源码作为**可维护性参考**，构建产物为 `src/bundle.js`。
-
-### 主流程分发顺序（重要）
-
+### 目录
 ```
-main()
- ├─ 搜索栏容器模板 → 整体替换为补丁版（二进制 Uint8Array）
- ├─ orange.tbcdn.cn → protobuf 字节级营销清洗
- ├─ poplayer/popcdn → 弹窗调度器清洗（sc 清空 + cdnId 改 0）
- └─ 域名分发 → handleTaobaoResponse / handleXianyuResponse / handleMoonResponse
+plugins/Alibaba-AdBlock/
+├── Alibaba-AdBlock.lpx     # 插件清单（MITM/Argument/Script/Rewrite/Task）
+├── README.md               # 本文件
+├── docs/                   # 各 App 专项维护文档
+│   ├── Taobao.md  AlibabaUnion.md  TaobaoLive.md  Xianyu.md
+├── assets/                 # 补丁用二进制资源（如搜索栏容器模板）
+├── src/
+│   ├── bundle.js           # ← 实际加载的单文件脚本
+│   ├── core/               # 核心模块源码（构建输入）
+│   ├── apps/               # 各 App 业务模块源码
+│   └── index.js            # 入口
+└── configs/                # 配置
 ```
 
-### 关键实现技巧
+### main() 分发顺序（重要）
+```
+1. 搜索栏容器模板（二进制，parse 之前处理）
+2. 橙色配置营销清洗（protobuf 字节级）
+3. 淘宝直播搜索域（搜索发现/热卖榜/遮罩词）
+4. 淘宝直播信息流广告
+5. ★ Moon 系接口优先 → handleMoonResponse
+   (mtop.alimama./etao./alimusic./taobao.union./tmall.tac./tmall.jiuxi.)
+6. 淘宝系 → handleTaobaoResponse
+7. 闲鱼系 → handleXianyuResponse
+8. 其他 → handleMoonResponse
+```
 
-| 技巧 | 说明 |
-|------|------|
-| **字节级等长替换** | 清洗 protobuf/JSON 时保持字节数不变，保证长度前缀有效 |
-| **编辑收集法** | 在原串上算出所有 (index, len, newText) 编辑，**从后往前**应用，避免索引错位 |
-| **长度中立布尔翻转** | `"false"`(7)→`"true "`(7) · `"true"`(6)→`"fals"`(6) · `false`(5)→`true `(5) |
-| **括号配对扫描** | 解析大 JSON 不依赖 `JSON.parse`，避免 350KB body 解析失败 |
-| **组件全名子串匹配** | 覆盖 `目录/main.v20.wlm` 与 `ms_<组件名>@<ver>.wlm` 两种资源形式 |
+> **v3.37.0 修复**：第 5 步是新增的。淘宝联盟 App 走 `guide-acs.m.taobao.com`，
+> 原先被判为"淘宝系"先进 handleTaobaoResponse → 而它无 metax 分支 → 搜索框词从未被清理。
 
 ---
 
-## 🧪 真机验证流程
+## 🔧 5 项关键实现技巧
 
-```
-1. Loon 订阅更新 → 确认版本号 → 杀 Loon 重启
-2. Loon 参数页 → 确认开关状态（默认 7 开 2 关）
-3. 清除 App 私有目录 → 冷启动 → 走一遍核心流程
-4. Loon 日志确认：出现 [Alibaba-AdBlock] 相关输出
-5. 导出 HAR → 验证：埋点域名零出现 / popcdn 响应 sc=0 / 弹窗模板 size=2
+### 1. 字节级等长替换（protobuf / 长度前缀）
+橙色配置是 protobuf 内嵌 JSON，改字段必须**保持字节长度不变**，否则长度前缀失效。
+```js
+latin1String ↔ Uint8Array  // 无损互转
+"false"(7) → "true "(7)     // 字符串布尔翻转
+URL → 同长度 'x' 填充        // 指向不存在资源
 ```
 
-**判断规则是否真的生效**：
-| 现象 | 解读 |
-|------|------|
-| `popcdn/config.json` 响应 `sc=0 ac=785` | ✅ 调度器已清洗 |
-| 弹窗模板 `size=2` | ✅ 模板已拒 |
-| 埋点域名零出现 | ✅ Reject 生效 |
-| 域名仍在但 `size` 是业务数据 | ❌ 该规则未命中 |
+### 2. 编辑收集法（避免索引失效）
+逐个 `indexOf` 替换会改变串结构导致后续 key 匹配失效 → 在**原串**上算出所有 (index, oldLen, newText) 编辑，**从后往前**应用。
+
+### 3. 长度中立布尔翻转
+```
+字符串形式:  "false"(7) → "true "(7)  |  "true"(6) → "fals"(6)
+布尔形式:    false(5)   → "true "(5)  |  true(4)  → 跳过(null 会让 NSNull.boolValue 崩溃)
+```
+
+### 4. 括号配对扫描（不依赖 JSON.parse）
+popcdn 调度器 350KB，`JSON.parse` 失败时用括号配对定位 `"ac"` 段；被截断时输出最小合法空调度（31 字节）。
+
+### 5. 组件全名子串匹配
+搜索门组件有两种资源形式：
+```
+g.alicdn.com/tb-webb-widget-cloud/search_door_trending_nine_square_gridList/...   ← 目录形式
+ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   ← 合并包形式
+```
+→ 规则用**完整组件名子串**（`/search_door_trending_nine_square_gridList/i`），两种都覆盖。
 
 ---
 
-## ⚠️ 已知限制：搜索框轮播营销词
-
-**现象**：首页搜索框循环显示「丰臀修身牛仔裤 / 旅行便携式可折叠衣架 / 双汇玉米肠」等营销词。
-
-**根因（三重锁死）**：
-
-| 环节 | 机制 | 可拦截 |
-|------|------|--------|
-| 数据源 | **ACCS 常驻 keep-alive 连接**（`RangerACCSOfflineCallback`）— 冷启动复用旧连接，既有 TCP 流上的推送 HTTP 代理层完全看不到 | ❌ |
-| 落地 | 沙盒 `Documents/TBDocuments/gateway/cache_newface_home_main_base` → `sections[1].content.searchText`（`mst_roll_N` 营销位） | ❌ App 启动即用 ACCS 内存数据重写 |
-| 渲染 | 原生 `TBSearchHintLabel` / MultiHintq | ❌ |
-
-**已排除方案（全部实测）**：
-
-| 方案 | 结果 |
-|------|------|
-| DX 模板字节补丁（v1/v2/v3 三版） | ❌ `content.searchText` 显示绑定**即搜索栏点击载体**，词为空则点击区域失效 |
-| reject 容器模板 → 原生 fallback | ❌ 原生同样渲染 ACCS 数据 |
-| reject `xsd.searchbar.info.get` / `relationrecommend.*` / `spotlightsearch` | ❌ API 全程零请求（走 ACCS 路径） |
-| 橙色配置清洗（`enableSearchTextCache=false`） | ❌ orange 走 Cronet 直连，49 个 HAR 全扫证实配置从不经过 HTTP |
-| plist 目录阻挡 | ❌ App 根本不从 plist 取词（已实测：阻挡成功但词仍在） |
-| gateway 覆盖空词版 | ❌ 被 ACCS 数据立即重写（已实测） |
-
-**唯一可行路径**：越狱 Hook —
-```
--[TBSearchHintLabel setSearchHint:] / setSearchHintLabel:   → 词替换为 @""
--[TBHomeSearchBarCacheManager updateSearchItemData:tabId:] → 过滤 itemBizCode 以 mst_roll_ 开头
-```
-
----
-
-## 🔌 可选：Alibaba-BlockACCS（路由层阻断 ACCS）
-
-```ini
-[Rule]
-IP-CIDR,59.82.0.0/16,REJECT
-IP-CIDR,47.246.0.0/16,REJECT
-DOMAIN,amdc.m.taobao.com,REJECT
-DOMAIN,amdc.alipay.com,REJECT
-```
-
-**ACCS 服务器地址硬编码在 App 二进制**（每次冷启动可能不同）：
-```
-59.82.31.182  59.82.17.132  59.82.113.219  59.82.113.10
-47.246.103.9  47.246.103.10
-```
-> 全部 1500+ 请求 100% 只跑 `/amdc/mobileDispatch`，按 IP 段阻断不影响其他业务。
-
-**⚠️ 优先级提醒**：Loon 规则优先级为 **本地 > 插件 > 订阅**。
-若主配置/订阅已有 `59.82.*` / `47.246.*` 的直连规则，会压过本插件的 REJECT
-（表现为部分请求 404 通过、部分 status 0 被拒）。
-**最可靠做法**：把同样两行加到**主配置** [Rule] 段最前面。
-
-**副作用**：首页实时更新 / IM 实时消息失效。
-
----
-
-## 📜 Loon 开发铁律（血泪教训）
+## ⚠️ Loon 开发铁律（血泪教训）
 
 | # | 规则 | 事故 |
 |---|------|------|
-| 1 | **单文件打包**，无 `require()` | 模块化架构 → 脚本静默失效 |
-| 2 | `script-path` 必须是完整 HTTPS URL | 相对路径不工作 |
-| 3 | `request`/`reject` 只能在 `[Rewrite]`，`response`/`script` 只能在 `[Script]` | 跨段错放**被静默忽略** |
-| 4 | **`reject_dict(200)` 不能跟 `enable={}` 子句** | 会让**整个 Rewrite 段失效** |
-| 5 | 带**路径**的规则，该域名必须进 `[MITM]` | HTTPS 未解密时路径不可见 → 规则静默失效 |
-| 6 | 改 bundle.js 后必须跑：**语法检查 + 函数调用点存在性检查 + 端到端模拟** | 区间替换曾两次冲掉中间函数 |
-| 7 | 一条语法错误的规则会**静默杀死整个配置段** | 排查时优先怀疑段内语法 |
+| 1 | **带路径的规则必须配 MITM 域名** | orange.tbcdn.cn / g.alicdn.com 各一次，规则静默失效 |
+| 2 | **`reject_dict(200)` 不能带 `enable=` 子句** | v3.5.0 一次让**整个 `[Rewrite]` 段崩溃**（含之前正常的 tracking 拦截）|
+| 3 | **Loon 不支持负向断言 `(?!...)`** | 改用显式列举 `(?:discover\|guidehotlist\|shadingwords)` |
+| 4 | **淘宝/联盟请求走 `guide-acs.m.taobao.com`** | v3.36.0 前 38 条规则全部漏网 |
+| 5 | **清空语义 = 整体返回 `{}`** | 保留 `ret` 仅清 `data` → App 解析路径不同，行为异常 |
+| 6 | **脚本必须单文件** | Loon 不支持 `require()` → 模块化静默失效 |
+| 7 | **规则域名用 `(?:acs\|guide-acs)`** | 见第 4 条 |
+| 8 | **`[Script]` 段内不能放 Rewrite 动作**（反之亦然）| 跨段错放被静默忽略 |
+| 9 | **改 bundle.js 后必做调用点检查** | 区间替换曾把 `scrubPopcdnSchedule` 函数冲掉 → 脚本整体失效 |
 
 ---
 
-## 📚 配套文档
+## 🧪 验证流程
 
-- 逆向仓库：`Savues/ios-reverse-engineering` → `Taobao-Ecosystem/`
-  - `Common/DEEP_REVERSE_ENGINEERING.md` — 沙盒取证 / 启动广告机制 / 橙色配置开关表
-  - `Common/SEARCH_DOMAIN_ANALYSIS.md` — 搜索域专项（轮播词三重锁死完整证据链）
-  - `Common/COMPONENT_API_MAP.md` — 组件 → 数据 API 溯源表
-  - `Common/APP_SPECIFIC_AD_SYSTEMS.md` — 各 App 独有广告体系
-- 逆向资产：`plugins/Alibaba-AdBlock/assets/`（补丁版 DX 容器模板）
+### 标准测试步骤
+```
+1. 订阅更新 → 确认版本号 → 杀 Loon 重启
+2. 清除目标 App 私有目录（沙盒逃逸工具）—— 关键！不清则旧缓存/组件仍在
+3. 冷启动 → 走一遍: 首页 / 搜索页 / 我的 / 直播(如适用)
+4. 导出 HAR + Loon 日志
+```
+
+### 判断规则是否真的生效
+| 观察 | 结论 |
+|------|------|
+| HAR 中目标接口 `size=2` | ✅ Rewrite reject 生效 |
+| HAR 中目标接口体积明显变小 | ✅ Script 清理生效 |
+| HAR 中目标接口 **零出现** | ⚠️ 走了 Cronet/ACCS/Flutter 通道，HTTP 规则无效 |
+| 接口 `size` 正常但功能仍在 | ⚠️ 有原生 fallback 或本地缓存 |
+
+### 已知环境限制
+| 现象 | 原因 | 解决 |
+|------|------|------|
+| **闲鱼消息页打不开** | Loon 抓包 = 「MitM 额外主机名」全量 MITM → 打断 `sealine.youku.com`/`dypnsapi-*.aliyuncs.com` 推送长连接 | **验证消息功能请关闭抓包**（插件规则不受影响）|
+| 首次冷启动后旧浮层仍在 | 组件/数据有本地缓存 | 清 App 私有目录；第二次冷启动起消失 |
+| 搜索门首次冷启动残留 | 同上 | 同上 |
+
+---
+
+## 📖 各 App 广告形态速查
+
+### 淘宝（19 类 ✅）
+弹窗调度器(793广告) · 弹窗模板 · 搜索门热榜九宫格 · 搜索门文字列表 · 搜索门猜你想搜 · 搜索门数据API · 搜索门原生数据源 · 开屏视频 · 开屏图片(双11摇一摇) · 热启动切后台广告 · 双11氛围皮肤 · 首页加载氛围 · 搜索框跑马灯 · NOAH运营位 · TAC搜索推荐 · 搜索关键词劫持(1710条) · 阿里橙配营销清洗 · 埋点/APM/AB分流 · 影视/O2O/音乐广告
+
+### 淘宝联盟（17 类 ✅）
+开屏广告(1242×2208/750×1200) · 批量广告分发(含开屏位) · 弹窗位 · 首页小卡片 · 公告位 · 搜索框推荐词 · **搜索框滚动词** · 首页Feed清空 · NOAH运营位 · 营销配置 · 私域动态 · TAC搜索推荐 · AI搜索(copilot) · 搜索分流 · 广告位默认配置 · 阿里妈妈CPS/顶展追踪 · 跑马灯热词
+
+### 淘宝直播（20 类 ✅）
+搜索发现 · 直播热卖榜 · 足迹补贴 · 搜索框遮罩词 · 信息流广告(AdFeed) · 搜索氛围 · 直播间弹窗推荐 · 增长弹窗 · 增长查询 · 增长广告位 · 营销浮层体系(219模板) · 广告位配置 · 广告策略配置 · 视频广告 · 第三方广告上报 · 礼物浮层 · 开屏资源 · 直播氛围 · 云袭广告监测平台(6域) · 阿里妈妈广告追踪
+
+### 闲鱼（29 类 ✅）
+开屏广告 · 异步开屏 · 开屏配置 · ADX竞价 · 游戏IAA · 用户策略 · 策略获取 · 商品推荐位 · 附近角落位 · 购买Feed · 搜索广告/热搜/猜你可能在找 · 搜索发现 · 搜索激活/热搜词卡 · 搜索遮罩词 · 首页主Feed · Widget刷新 · 鲸鱼模块 · 社区 · 新商品页 · 本地流量位 · 本地顶部 · 本地首页 · 我的页面 · 交易详情 · 圈子列表 · 魔法首页 · 关注Feed流 · 闲鱼广告上报 · 鱼池弹窗 · 直播广告素材 · 启动上报
+
+---
+
+## 🔧 维护指引
+
+### 新活动上线后如何更新
+```bash
+# 1. 抓一次冷启动 HAR
+# 2. 找广告位分发接口 → 提取新 siteCode / 图片 URL
+#    淘宝/联盟: mtop.alimama.union.skyleap.distribution.batchsite
+#    淘宝/直播: poplayer.template.alibaba.com/popcdn/*/config.json
+# 3. 判别图片性质:
+#    高度 1600+ 且 gw/heic 域  → 开屏图 (现有规则已覆盖)
+#    高度 1200-1599             → 首页背景 (正常业务, 不要拦!)
+#    img.alicdn.com 域         → 多为首页背景 (不要拦!)
+# 4. 特殊 ID (如 doudi1111) → 需按 ID 精确加规则
+# 5. 读取沙盒启动图配置核对:
+#    Documents/TBDocuments/bootImageDatas (plist: URL→文件名)
+```
+
+### 禁止加入拦截的功能接口（会破坏功能）
+```
+mtop.iliad.interact.sendgift / chat.query / task.trigger / reward.createrechargeorder
+mtop.taobao.iliad.comment.publish / share.item.*
+mtop.tblive.live.follow.relation.add
+mtop.taobao.livex.vinteract.product.video.getUploadConfig
+mtop.taobao.wsearch.suggest                (打字联想)
+mtop.alimama.union.copilot.* 的功能部分
+```
+
+### 发布前自检清单
+```bash
+# 1. 规则引用的域名 ⊆ MITM 列表
+# 2. reject_dict 不带 enable=
+# 3. bundle.js 语法
+node -e "new Function(require('fs').readFileSync('src/bundle.js','utf8'))"
+# 4. 函数定义+调用成对 (出现次数 ≥2)
+grep -c "function scrubPopcdnSchedule" src/bundle.js   # 应为 1
+grep -c "scrubPopcdnSchedule(" src/bundle.js           # 应为 2
+# 5. 段位置: request 在 [Rewrite], response 在 [Script]
+# 6. 版本号 +1
+```
+
+---
+
+## 🔗 关联资源
+
+| 资源 | 位置 |
+|------|------|
+| 逆向分析（机制/沙盒取证）| `Savues/ios-reverse-engineering` → `Taobao-Ecosystem/` |
+| 插件源码与文档 | 本仓库 `plugins/Alibaba-AdBlock/` |
+| 淘宝开屏文件改造包 | 本仓库 `fix-out/Taobao_OVERWRITE/` |
+| ACCS 阻断独立插件 | 本仓库 `plugins/Alibaba-BlockACCS/` |
+
+---
+
+## 📄 许可
+
+MIT
