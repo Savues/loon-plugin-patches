@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.32.0
+#!name=Alibaba-AdBlock v3.33.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.32.0
+#!version=3.33.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -199,6 +199,12 @@ request if ${url} ~= /mtop\.tmall\.rpm\.splash\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.atmosphere\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject, enable={blockTracking}
 # 淘宝直播: 弹窗投放系统 / 直播广告任务 / 启动屏 / 搜索氛围
+# === 第三方广告监测/投放平台 (云袭 yunxish + igrowth: CPC服务广场/广告上报/埋点追踪) ===
+request if ${url} ~= /^https?:\/\/(?:[a-z0-9-]+\.)?(?:yunxish\.com|iggrowth\.cn)\//i then reject, enable={blockTracking}
+# === 直播开屏 banner + 视频广告 + 第三方广告上报 ===
+request if ${url} ~= /mtop\.taobao\.hector\.live\.openpage\.banner/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livex\.vcore\.recommend\.video\.ad\.query/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.livex\.business\.third\.ad\./i then reject_dict(200)
 # === 直播浮层/弹窗体系 (skylar_hummer_* = 直播间营销浮层: 召回弹窗/催单/福利/活动) ===
 request if ${url} ~= /\/skylar_hummer_/i then reject_dict(200)
 # === 直播增长广告位 (grow.task.feed / grow.playlet.task / grow.traffic) ===
