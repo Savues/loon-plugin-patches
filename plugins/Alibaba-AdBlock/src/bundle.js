@@ -202,15 +202,40 @@ function filterMetaxHotwords(body, config) {
   return body;
 }
 
+// ★ 私域动态横幅: siteData.bannerList (pic + jumpUrl -> mo.m.taobao.com/union2/*)
+//   真实路径: bodyList[i].tabList[j].dataList[k].fields.floorMappingList[m].siteMappingList[n].siteData.bannerList
+//   实测 23 项 (私域动态/营销入口横幅)
+function clearMetaxBannerList(node, stats) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const it of node) clearMetaxBannerList(it, stats);
+    return;
+  }
+  if (Array.isArray(node.bannerList) && node.bannerList.length) {
+    stats.cleared += node.bannerList.length;
+    node.bannerList = [];
+  }
+  for (const k of Object.keys(node)) {
+    if (k === "bannerList") continue;
+    clearMetaxBannerList(node[k], stats);
+  }
+}
+
 function filterMetaxFeed(body, config) {
-  if (!isEnabled("removeFeedKeywords")) return body;
+  // 注: removeFeedKeywords 默认关 (会清空整个首页推荐流), 但 bannerList(私域动态横幅)
+  //     属于 removePrivateDomain 范畴 → 单独判断, 不受 feed 开关影响
+  const wantBannerClear = isEnabled("removePrivateDomain");
+  if (!isEnabled("removeFeedKeywords") && !wantBannerClear) return body;
   const data = safeParse(body);
   if (!data?.data?.data?.bodyList || !Array.isArray(data.data.data.bodyList)) return body;
   let totalCleared = 0;
   const { clearFeedTypes } = config;
   for (const bodyItem of data.data.data.bodyList) {
-    if (clearFeedTypes.length > 0 && !clearFeedTypes.includes(bodyItem?.type)) continue;
-    if (bodyItem?.fields?.newsList?.recommend?.resultList && Array.isArray(bodyItem.fields.newsList.recommend.resultList)) {
+    if (clearFeedTypes.length > 0 && !clearFeedTypes.includes(bodyItem?.type)) {
+      // feed 关闭时仍需处理 bannerList (私域动态) → 不 continue, 交给下面的分支
+      if (!wantBannerClear) continue;
+    }
+    if (isEnabled("removeFeedKeywords") && bodyItem?.fields?.newsList?.recommend?.resultList && Array.isArray(bodyItem.fields.newsList.recommend.resultList)) {
       const originalLen = bodyItem.fields.newsList.recommend.resultList.length;
       if (originalLen > 0) {
         console.log("[Alibaba-AdBlock] Clearing feed: bodyList type=" + bodyItem.type + ", removed " + originalLen + " items");
@@ -220,7 +245,7 @@ function filterMetaxFeed(body, config) {
         totalCleared += originalLen;
       }
     }
-    if (bodyItem?.fields?.resultList && Array.isArray(bodyItem.fields.resultList)) {
+    if (isEnabled("removeFeedKeywords") && bodyItem?.fields?.resultList && Array.isArray(bodyItem.fields.resultList)) {
       const originalLen = bodyItem.fields.resultList.length;
       if (originalLen > 0) {
         console.log("[Alibaba-AdBlock] Clearing feed: bodyList type=" + bodyItem.type + ", removed " + originalLen + " items (resultList)");
@@ -228,7 +253,7 @@ function filterMetaxFeed(body, config) {
         totalCleared += originalLen;
       }
     }
-    if (bodyItem?.fields?.floorMappingList && Array.isArray(bodyItem.fields.floorMappingList)) {
+    if (isEnabled("removeFeedKeywords") && bodyItem?.fields?.floorMappingList && Array.isArray(bodyItem.fields.floorMappingList)) {
       for (const floor of bodyItem.fields.floorMappingList) {
         if (floor?.siteMappingList && Array.isArray(floor.siteMappingList)) {
           for (const site of floor.siteMappingList) {
@@ -239,13 +264,23 @@ function filterMetaxFeed(body, config) {
                 totalCleared += originalLen;
               }
             }
+
           }
         }
       }
     }
-    if (bodyItem?.fields?.homeSlotConverge) {
+    if (isEnabled("removeFeedKeywords") && bodyItem?.fields?.homeSlotConverge) {
       bodyItem.fields.homeSlotConverge = {};
       totalCleared++;
+    }
+  }
+  // 私域动态横幅 (独立于 feed 开关)
+  if (wantBannerClear) {
+    const stats = { cleared: 0 };
+    clearMetaxBannerList(data, stats);
+    if (stats.cleared > 0) {
+      console.log("[Alibaba-AdBlock] Cleared metax bannerList (私域动态横幅): " + stats.cleared + " items");
+      totalCleared += stats.cleared;
     }
   }
   if (totalCleared > 0) {
