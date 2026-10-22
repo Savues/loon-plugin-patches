@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v1.95
+#!name=拼多多去广告(修复版) v1.96
 #!desc=移除开屏广告、会场入口，精简首页和个人中心；底栏按钮可自定义；百亿补贴页搜索框推广词；信息流+详情页广告打标可见；百补页广告打标：商品图左上角徽章（v1.87 收敛为单通道）；省钱月卡/续费页自动点「跳过」动效；百补列表广告角标改走商品图左上角官方角标槽（手机版可见）。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi], 可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -8,7 +8,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
-#!date=2026-10-22 18:30:00
+#!date=2026-10-22 18:45:00
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
@@ -207,5 +207,11 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 #      底色 (0,0,0,134)、白字 alpha 沿用原图。输出 src/assets/ad-badge.png。
 #      附带修复：v1.94 漏提交 tools/make-badge.py（badge-asset 用例在干净克隆上
 #      会 ENOENT）—— 本次一并补齐，并把「用户原图在仓库里」也纳入断言。
+# 37.【v1.96】角标改回**横排**（用户反馈竖排 46×52 的黑块太大）：
+#      画布仍是 184×208（= 角标槽 0.46×0.52rem 的 0.885 比例，否则 img 会被
+#      object-fit:fill 拉变形），但内容改成「用户原图里那块黑底+横排广告」
+#      整体缩放到 150px 宽、居中放置，四周留透明 —— 屏幕上表现为角标位置
+#      一条横向小黑标（约 37×23px），既横排又不遮商品图。
+#      字形/底色/字色 alpha 仍全部沿用用户原图。
 # 上游脚本与署名：ZenmoFeiShi / 可莉
 # ─────────────────────────────────────────────
