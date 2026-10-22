@@ -776,8 +776,14 @@ function filterXianyuSearchActivate(body) {
         for (const it of kws) {
           if (!it || typeof it !== "object") continue;
           if (it.text) { it.text = ""; changed = true; }
-          // 同时清掉跳转目标 -> App 无法渲染成可点击的"空按钮"
-          if (it.link) { it.link = ""; changed = true; }
+          // ★ 不能清 link: 实测 v3.23.0 清空 link 导致搜索联想失效 (App 初始化依赖跳转目标)
+        }
+        // ★ 不能清空数组: App 用 activate 是否有内容来判定"是否发起联想请求"
+        //   (searchReqFromActivatePagePart) → keywords=[] 时联想请求不发出
+        //   折中: 只保留 1 项 (占位最小) 且文本为空 → 联想正常 + 板块近乎不可见
+        if (kws.length > 1) {
+          card.cardData.keywords = [kws[0]];
+          changed = true;
         }
         if (changed) modified = true;
       }
