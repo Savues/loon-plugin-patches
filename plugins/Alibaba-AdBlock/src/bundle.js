@@ -1157,6 +1157,28 @@ function filterXianyuSearchDomain(body, url) {
   return body;
 }
 
+// 直播信息流广告过滤: feeds.market.query 的 dataList 中 doudiType=AdFeed / type=DOUDI_RECOMMEND 的项
+function filterLiveMarketFeed(body) {
+  if (!isEnabled("liveRemoveAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  const d = data.data;
+  if (!d || !Array.isArray(d.dataList)) return body;
+  let modified = false;
+  const keep = d.dataList.filter(it => {
+    const s = JSON.stringify(it);
+    const isAd = s.indexOf('"doudiType":"AdFeed"') >= 0 || s.indexOf('"type":"DOUDI_RECOMMEND"') >= 0;
+    if (isAd) modified = true;
+    return !isAd;
+  });
+  if (modified) {
+    d.dataList = keep;
+    console.log("[Alibaba-AdBlock] Filtered live market feed ads: " + keep.length + " left");
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 function handleXianyuResponse(body, url) {
   // 开屏广告 (含异步开屏/开屏配置/ADX竞价/游戏IAA)
   // Oliver 投放平台批量下发 (阿里投放系统, 反编译确认存在)
@@ -1537,6 +1559,15 @@ function main() {
   const url = $request?.url || "";
   console.log("[Alibaba-AdBlock] Script triggered for:", url);
   const body = typeof $response.body === "string" ? $response.body : $response.body.toString();
+
+  // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)
+  if (url.indexOf("vcore.feeds.market.query") >= 0) {
+    const liveFiltered = filterLiveMarketFeed(body);
+    if (liveFiltered !== null && liveFiltered !== body) {
+      $done({ body: liveFiltered });
+      return;
+    }
+  }
   
   // 搜索栏容器模板: 整体替换为补丁版 (二进制, 需在 parse 之前处理)
   if (url.includes("m_h_v7_uone_second_pit_searchbar_slim_protocol_version") && url.endsWith(".zip")) {

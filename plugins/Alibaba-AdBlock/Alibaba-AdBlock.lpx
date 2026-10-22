@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.29.0
+#!name=Alibaba-AdBlock v3.30.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.29.0
+#!version=3.30.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -30,6 +30,7 @@ fishRemovePopup = switch, true, false, tag=🐟闲鱼-弹窗浮层, desc=拦截 
 fishRemoveHomeAds = switch, true, false, tag=🐟闲鱼-首页广告位, desc=拦截 idlehome.*(nextfresh/widget/community/newitem/circle/magic) + idle.local.*(home/flow) + idle.home.whale.modulet
 fishRemoveSearchAds = switch, true, false, tag=🐟闲鱼-搜索广告, desc=拦截 idlemtopsearch.search(广告位) + .search.shade + .search.discover(MarketHotSpot) + .item.search.activate(热词)
 fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截 idle.user.page.my.adapter(我的页精简) + idle.trade.full.info(订单状态组件)
+liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流, desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
 
 # === 淘宝/天猫专属开关 (预留) ===
 # taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
@@ -37,6 +38,8 @@ fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截
 
 [Script]
 # === 批量广告分发 (Moon/淘宝/天猫/闲鱼通用) ===
+
+response if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.taobao\.livex\.vcore\.feeds\.market\.query/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${liveRemoveAds}}) with enable=${liveRemoveAds}, requires_body=true, tag="直播-信息流广告"
 response if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.union\.skyleap\.distribution\.batchsite/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${removeSplashAd}, ${removePopWindow}, ${removeSmallCards}}) with enable=${removeSplashAd}, requires_body=true, tag="批量广告分发"
 
 # === NOAH 运营位 (Moon/淘宝/天猫通用) ===
@@ -195,6 +198,10 @@ request if ${url} ~= /mtop\.tmall\.rpm\.splash\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.atmosphere\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject, enable={blockTracking}
 # 淘宝直播: 弹窗投放系统 / 直播广告任务 / 启动屏 / 搜索氛围
+# === 直播浮层/弹窗体系 (skylar_hummer_* = 直播间营销浮层: 召回弹窗/催单/福利/活动) ===
+request if ${url} ~= /\/skylar_hummer_/i then reject_dict(200)
+# === 直播增长广告位 (grow.task.feed / grow.playlet.task / grow.traffic) ===
+request if ${url} ~= /mtop\.taobao\.livex\.grow\.(task|playlet|traffic)\./i then reject_dict(200)
 # === 直播广告位配置/投放 (反编译 livex.business.ad.* + vcore 视频广告) ===
 request if ${url} ~= /mtop\.taobao\.livex\.business\.(ad\.|complex\.ad\.|item\.supply\.ad\.|live\.ad\.)/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.livex\.vcore\.recommend\..*\.video\.ad\.query/i then reject_dict(200)
