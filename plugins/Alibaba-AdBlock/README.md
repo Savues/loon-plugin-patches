@@ -9,6 +9,16 @@
 
 ---
 
+
+### 📱 各 App 专项维护文档
+
+| App | 文档 | 已拦截形态 | 关键机制 |
+|-----|------|-----------|---------|
+| **淘宝** | [docs/Taobao.md](docs/Taobao.md) | 19 类 | 弹窗调度器 popcdn / 搜索门双实现 / TBBootImage 启动图 / ACCS 推轮播词 |
+| **淘宝联盟** | [docs/AlibabaUnion.md](docs/AlibabaUnion.md) | 17 类 | batchsite 广告位分发中枢 / metax 搜索框词+首页背景 / Flutter+ACCS 双通道 |
+| **淘宝直播** | [docs/TaobaoLive.md](docs/TaobaoLive.md) | 20 类 | 三板块同接口(tabs+userFootPrint 同级) / skylar_hummer 浮层体系 / 青少年模式=本地机制 |
+| **闲鱼** | [docs/Xianyu.md](docs/Xianyu.md) | 29 类 | 联想与猜你可能在找同源冲突 / Flutter idle_search 603 组件 / 清空须等同 kelee `{}` |
+
 ## 📊 拦截能力总览（全部经真机验证）
 
 | # | 广告形态 | 拦截机制 | 验证状态 |
