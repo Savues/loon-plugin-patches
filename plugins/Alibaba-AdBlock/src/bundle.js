@@ -14,7 +14,16 @@
 const FISH_GUESS_PLACEHOLDER = "我是学生，可以送我吗？";
 
 function isEnabled(key) {
-  const val = $argument[key];
+  // ★ Loon 传入的 $argument 可能是数组形态 [ {...} ] (插件 [Argument] 参数),
+  //   也可能是对象形态 { ... }; 数组形态下直接 $argument[key] 恒为 undefined
+  //   → 所有开关判定为 false → Script 规则全部失效 (v3.37.3 事故)
+  let arg = $argument;
+  if (Array.isArray(arg)) {
+    arg = arg.length > 0 ? arg[0] : {};
+  }
+  if (!arg || typeof arg !== "object") return false;
+  const val = arg[key];
+  if (val === undefined || val === null) return false;
   return val === true || val === "true" || val === "1";
 }
 

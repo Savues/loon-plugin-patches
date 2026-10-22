@@ -23,7 +23,7 @@ removeSearchWords = switch, false, true, tag=🚫搜索框轮播词, desc=v3.9.1
 
 # === Moon App 专属开关 ===
 removeFeedKeywords = switch, false, true, tag=🌙Moon-清空首页Feed, desc=清空 Moon 首页推荐流所有商品 (metax homepage bodyList)
-removePrivateDomain = switch, true, false, tag=🌙Moon-私域动态, desc=拦截 Moon 关注会员/私域动态 (union.pub.entry followMembers) + metax bannerList 私域动态横幅 (23项)
+removePrivateDomain = switch, true, false, tag=🌙Moon-私域动态, desc=拦截 Moon 关注会员/私域动态 (union.pub.entry followMembers) + metax bannerList 私域动态横幅 (23项) [v3.37.3 后所有 Script 规则才真正生效]
 # === 闲鱼专用开关 (分组, 便于实测定位) ===
 fishRemoveSplash = switch, true, false, tag=🐟闲鱼-开屏广告, desc=拦截 idlecommerce.splash.*(开屏/异步开屏/开屏配置) + adx.bid(ADX竞价) + game.iaa(游戏IAA)
 fishRemovePopup = switch, true, false, tag=🐟闲鱼-弹窗浮层, desc=拦截 idle.user.strategy.* + idle.item.recommend.list + idle.local.near.by.corner.info + idle.item.buy.feeds + idle.playboy.recommend
