@@ -1135,13 +1135,50 @@ function blankJsonValue(s, key, mode) {
   return s;
 }
 
+// 布尔开关长度中立翻转 (orange 线上格式为字符串值):
+//   "key":"false" -> "key":"true"   (7->7 完全等长, 最理想)
+//   "key":false   -> "key":true    + 尾随空格 (5->4+1, JSON 空白合法)
+function flipJsonBool(s, key) {
+  const forms = [
+    // 字符串形式: "false"(7) -> "true "(7) 等长; NSString.boolValue 按首字符判定仍为 YES
+    { m: '"' + key + '":"false"', r: '"' + key + '":"true "' },
+    { m: '"' + key + '":"false","', r: '"' + key + '":"true ","' },
+    { m: '"' + key + '":false', r: '"' + key + '":true ' },
+    { m: '\\"' + key + '\\":\\"false\\"', r: '\\"' + key + '\\":\\"true\\"' }
+  ];
+  for (const f of forms) {
+    const idx = s.indexOf(f.m);
+    if (idx < 0) continue;
+    if (f.r.length !== f.m.length) {
+      console.log("[Alibaba-AdBlock] bool flip length mismatch, skip:", key);
+      continue;
+    }
+    console.log("[Alibaba-AdBlock] orange bool flipped:", key);
+    return s.slice(0, idx) + f.r + s.slice(idx + f.m.length);
+  }
+  return s;
+}
+
 const ORANGE_SCRUB_TARGETS = [
   ["searchDoorVoiceHint", "text"],
   ["searchCoudanRedirectUrl", "url"],
   ["immersedBackgroundImgUrl", "url"],
   ["banner_url", "url"],
   ["backgroundImage", "url"],
-  ["backgroundImageWithTab", "url"]
+  ["backgroundImageWithTab", "url"],
+  // 搜索域开关: 关闭热词更新/其他tab提示/实时联想/激活数据
+  ["closeHotwordsUpdate", "bool"],
+  ["closeOtherTabSearchHint", "bool"],
+  ["closeSuggestRealTime", "bool"],
+  ["closeSuggestRealTime2016", "bool"],
+  ["closeSuggestRealTime2017", "bool"],
+  ["closeSuggestRealTime2018", "bool"],
+  ["closeSuggestRealTime2019", "bool"],
+  ["closeActivateData", "bool"],
+  ["closeActivateData2016", "bool"],
+  ["closeActivateData2017", "bool"],
+  ["closeActivateData2018", "bool"],
+  ["closeActivateData2019", "bool"]
 ];
 function scrubOrangeConfig(bodyBytes) {
   try {
@@ -1149,7 +1186,8 @@ function scrubOrangeConfig(bodyBytes) {
     let changed = 0;
     for (const t of ORANGE_SCRUB_TARGETS) {
       const before = s;
-      s = blankJsonValue(s, t[0], t[1]);
+      if (t[1] === "bool") s = flipJsonBool(s, t[0]);
+      else s = blankJsonValue(s, t[0], t[1]);
       if (s !== before) changed++;
     }
     if (changed === 0) {
