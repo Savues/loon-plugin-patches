@@ -179,7 +179,6 @@ function filterMetaxHotwords(body, config) {
     if (item?.type === hotwordsType && item?.fields?.hotwords && Array.isArray(item.fields.hotwords) && item.fields.hotwords.length > 0) {
       console.log("[Alibaba-AdBlock] Clearing metax hotwords (" + item.fields.hotwords.length + " words)");
       item.fields.hotwords = [];
-      modified = true;
     }
   }
   if (modified) return JSON.stringify(data);
@@ -763,12 +762,9 @@ function filterXianyuSearchActivate(body) {
   if (data.data?.cardList && Array.isArray(data.data.cardList)) {
     let modified = false;
     for (const card of data.data.cardList) {
-      // hotwords = 热搜词; keywords = "猜你可能在找"投放词表 (带 Atlas 投放桶)
+      // hotwords = 热搜词 (清); ★ keywords 是搜索联想词 (保留)
       if (Array.isArray(card?.cardData?.hotwords) && card.cardData.hotwords.length) {
         card.cardData.hotwords = []; modified = true;
-      }
-      if (Array.isArray(card?.cardData?.keywords) && card.cardData.keywords.length) {
-        card.cardData.keywords = []; modified = true;
       }
     }
     if (modified) {
@@ -1025,7 +1021,7 @@ function filterXianyuSearchWords(body) {
   // ★ 只清【广告/投放】类词表; 不含 suggestList/searchSuggest/suggestWords (搜索联想是功能)
   const WORDS_KEYS = ["singleShadeWords", "multiWords", "multiWordsList", "hotRankList", "hotList",
     "guessWords", "guessList", "hotWords", "mayInterestWords", "relatedWords",
-    "recommendWords", "wordList", "shadeWords", "searchWords", "keywords"];
+    "recommendWords", "wordList", "shadeWords", "searchWords"];
   for (const k of WORDS_KEYS) {
     if (Array.isArray(d[k]) && d[k].length) { d[k] = []; modified = true; }
   }
@@ -1051,12 +1047,10 @@ function filterXianyuSearchWords(body) {
     for (const k of Object.keys(node)) {
       const v = node[k];
       const kl = k.toLowerCase();
-      // ★ keywords: 搜索下拉投放词表 (实测每项带 pass_through_for_search/matchName/tpp_ab_id)
-      //   联想词在 data.suggest / data.items, 不在 keywords → 不会误删
-      // ★ 不清 suggestword/searchsuggest/suggestlist (打字联想是功能, 必须保留)
+      // ★ 不清 suggestword/searchsuggest/suggestlist/keywords (打字联想是功能, 必须保留)
       if (Array.isArray(v) && v.length && (kl.includes("hotword") || kl.includes("shadeword")
           || kl.includes("guessword") || kl.includes("marquee")
-          || kl.includes("searchword") || kl.includes("wordlist") || kl === "keywords")) {
+          || kl.includes("searchword") || kl.includes("wordlist"))) {
         node[k] = []; hit = true;
       } else if (deepClear(v, depth + 1)) { hit = true; }
     }
