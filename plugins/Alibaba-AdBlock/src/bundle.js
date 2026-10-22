@@ -1196,6 +1196,50 @@ function filterXianyuSearchDomain(body, url) {
   return body;
 }
 
+// 直播首页视频流广告: livexshow.homepage.{videolist,tabmenu}
+//   广告项特征: dataList[N].data.data.liveList[0].ad (含 adType/pCode/TANX 投放标记, 最深层嵌套)
+//   正常项 isAd="0" 且无 ad 对象
+function filterLiveHomeFeed(body) {
+  if (!isEnabled("liveRemoveAds")) return body;
+  const data = safeParse(body);
+  if (!data) return body;
+  let removed = 0;
+  const isAdItem = (it) => {
+    if (!it || typeof it !== "object") return false;
+    const ll = it.data && it.data.data && it.data.data.liveList;
+    if (Array.isArray(ll) && ll.some(x => x && typeof x === "object" && x.ad)) return true;
+    if (String(it.data && it.data.data && it.data.data.isAd) === "1") return true;
+    return false;
+  };
+  const walk = (o) => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (!o || typeof o !== "object") return;
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (k === "dataList" && Array.isArray(v)) {
+        const keep = v.filter(x => !isAdItem(x));
+        if (keep.length !== v.length) {
+          removed += v.length - keep.length;
+          o[k] = keep;
+        }
+        keep.forEach(walk);
+        continue;
+      }
+      // 直播权益广告 (对象非数组): videoListDatas.liveBenefitAdInfo.pushData.ad
+      if (k === "liveBenefitAdInfo" && v && typeof v === "object") {
+        if (v.pushData && v.pushData.ad) { o[k] = {}; removed++; continue; }
+      }
+      walk(v);
+    }
+  };
+  walk(data);
+  if (removed > 0) {
+    console.log("[Alibaba-AdBlock] Removed live home feed ads: " + removed);
+    return JSON.stringify(data);
+  }
+  return body;
+}
+
 // 直播信息流广告过滤: feeds.market.query 的 dataList 中 doudiType=AdFeed / type=DOUDI_RECOMMEND 的项
 function filterLiveMarketFeed(body) {
   if (!isEnabled("liveRemoveAds")) return body;
@@ -1652,6 +1696,11 @@ function main() {
     }
   }
 
+  // 淘宝直播: 首页视频流广告 (livexshow.homepage.*)
+  if (url.indexOf("livexshow.homepage.") >= 0) {
+    const lf = filterLiveHomeFeed(body);
+    if (lf !== null && lf !== body) { $done({ body: lf }); return; }
+  }
   // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)  // 淘宝直播: 信息流广告过滤 (vcore.feeds.market.query)
   if (url.indexOf("vcore.feeds.market.query") >= 0) {
     const liveFiltered = filterLiveMarketFeed(body);
