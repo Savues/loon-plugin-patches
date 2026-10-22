@@ -762,9 +762,21 @@ function filterXianyuSearchActivate(body) {
   if (data.data?.cardList && Array.isArray(data.data.cardList)) {
     let modified = false;
     for (const card of data.data.cardList) {
-      // hotwords = 热搜词 (清); ★ keywords 是搜索联想词 (保留)
+      // hotwords = 热搜词 (直接清空, 已验证不影响联想)
       if (Array.isArray(card?.cardData?.hotwords) && card.cardData.hotwords.length) {
         card.cardData.hotwords = []; modified = true;
+      }
+      // ★ keywords = "猜你可能在找"板块词表
+      //   不能清空数组! 实测 keywords=[] 会让 App 判定"激活页无内容" ->
+      //   不再发起联想请求 (search.suggest) -> 搜索联想功能失效
+      //   解法: 保持数组长度 (App 认为有内容 → 正常初始化), 仅置空每项 text (不显示)
+      const kws = card?.cardData?.keywords;
+      if (Array.isArray(kws) && kws.length) {
+        let changed = false;
+        for (const it of kws) {
+          if (it && typeof it === "object" && it.text) { it.text = ""; changed = true; }
+        }
+        if (changed) modified = true;
       }
     }
     if (modified) {
@@ -1158,6 +1170,11 @@ function handleXianyuResponse(body, url) {
     return filterXianyuSearchWords(body);
   }
   // 闲鱼自有搜索接口族 (hotRankList / 搜索建议 / 猜你可能在找)
+  // ★ item.search.activate 必须在此之前处理 (它含 idlemtopsearch.item.search. 前缀,
+  //   会被下面的 filterXianyuSearchWords 抢先匹配 → filterXianyuSearchActivate 成死代码)
+  if (url.includes("idlemtopsearch.item.search.activate")) {
+    return filterXianyuSearchActivate(body);
+  }
   if (url.includes("mtop.taobao.idle.search.") || url.includes("mtop.taobao.idleitem.tbsearch")
       || url.includes("mtop.taobao.idlemtopsearch.idleitem.tbsearch")
       || url.includes("mtop.taobao.idlemtopsearch.item.search.")
