@@ -1,48 +1,38 @@
-#!name=Apple 证书吊销检查屏蔽 v1.1
-#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。规则分 7 组、可用参数页开关关闭，但该 enable= 写法未经真机验证，详见 README。【上游 Salem，Apache-2.0】
+#!name=Apple 证书吊销检查屏蔽 v1.2
+#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。17 条域名无条件生效（[Rule] 段无开关能力，v1.1 的 enable= 写法经实测为死开关已移除；如需临时停用请在 Loon 中禁用本插件）。【上游 Salem，Apache-2.0】
 #!author=原作者: Salem（Apache-2.0）| 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRevoke/icon.jpg
 #!tag=证书,MITM,调试
 #!system=iOS, iPadOS, macOS
 #!loon_version=3.2.0
-#!date=2026-09-29 14:20:00
-# ==== PLUGIN_VERSION: 1.1.0 | 上游 Apache-2.0 · 17 条域名与上游完全一致 · 7 组可关 ====
-
-[Argument]
-# ===== Apple 自身 =====
-apple_ocsp = switch,true,tag=[Apple] 屏蔽 Apple OCSP,desc=ocsp.apple.com / ocsp2.apple.com。Apple 证书在线吊销状态查询
-apple_valid = switch,true,tag=[Apple] 屏蔽 Apple 证书验证服务器,desc=valid.apple.com。Apple 的证书有效性判定接口
-apple_crl = switch,true,tag=[Apple] 屏蔽 Apple CRL 分发点,desc=crl.apple.com / certs.apple.com。Apple 证书吊销列表下载
-# ===== App 验证服务（非吊销端点，见 README 风险提示）=====
-app_verify = switch,true,tag=[高危] 屏蔽 App 验证服务(PPQ),desc=ppq.apple.com / ppq-ext.v.aaplimg.com。这是侧载 App 的安装/首启验证接口，屏蔽后 App 可能报"Unable to Verify App"装不上。若侧载 App 出现验证失败，请优先关闭此项
-# ===== 第三方 CA =====
-digicert = switch,true,tag=[CA] 屏蔽 DigiCert,desc=DigiCert 的 OCSP（.com/.cn）与 CRL（crl3/crl4）
-entrust = switch,true,tag=[CA] 屏蔽 Entrust,desc=Entrust 的 OCSP 与 CRL
-sectigo = switch,true,tag=[CA] 屏蔽 Sectigo / USERTrust,desc=Sectigo 与 USERTrust 的 OCSP 与 CRL
+#!date=2026-10-24 04:30:00
+# ==== PLUGIN_VERSION: 1.2.0 | 上游 Apache-2.0 · 17 条域名与上游完全一致 · 无条件生效 ====
+# v1.2.0 变更: 移除 7 个死开关 ([Rule] 段无 enable 字段, 实测开关无效 — loon-sim check + 真机 DNS 实证)
+# 风险提示: ppq 屏蔽可能致侧载 App "Unable to Verify App" — 需要停用时请在 Loon 插件页禁用本插件
 
 [Rule]
 # ===== Apple OCSP =====
-DOMAIN, ocsp.apple.com, REJECT, enable={apple_ocsp}
-DOMAIN, ocsp2.apple.com, REJECT, enable={apple_ocsp}
+DOMAIN, ocsp.apple.com, REJECT
+DOMAIN, ocsp2.apple.com, REJECT
 # ===== Apple 证书验证服务器 =====
-DOMAIN, valid.apple.com, REJECT, enable={apple_valid}
+DOMAIN, valid.apple.com, REJECT
 # ===== Apple CRL =====
-DOMAIN, crl.apple.com, REJECT, enable={apple_crl}
-DOMAIN, certs.apple.com, REJECT, enable={apple_crl}
-# ===== App 验证服务（PPQ）=====
-DOMAIN, ppq.apple.com, REJECT, enable={app_verify}
-DOMAIN, ppq-ext.v.aaplimg.com, REJECT, enable={app_verify}
+DOMAIN, crl.apple.com, REJECT
+DOMAIN, certs.apple.com, REJECT
+# ===== App 验证服务（PPQ）— 高风险: 侧载 App 验证, 见文件头提示 =====
+DOMAIN, ppq.apple.com, REJECT
+DOMAIN, ppq-ext.v.aaplimg.com, REJECT
 # ===== DigiCert =====
-DOMAIN, ocsp.digicert.com, REJECT, enable={digicert}
-DOMAIN, ocsp.digicert.cn, REJECT, enable={digicert}
-DOMAIN, crl3.digicert.com, REJECT, enable={digicert}
-DOMAIN, crl4.digicert.com, REJECT, enable={digicert}
+DOMAIN, ocsp.digicert.com, REJECT
+DOMAIN, ocsp.digicert.cn, REJECT
+DOMAIN, crl3.digicert.com, REJECT
+DOMAIN, crl4.digicert.com, REJECT
 # ===== Entrust =====
-DOMAIN, ocsp.entrust.net, REJECT, enable={entrust}
-DOMAIN, crl.entrust.net, REJECT, enable={entrust}
+DOMAIN, ocsp.entrust.net, REJECT
+DOMAIN, crl.entrust.net, REJECT
 # ===== Sectigo / USERTrust =====
-DOMAIN, ocsp.sectigo.com, REJECT, enable={sectigo}
-DOMAIN, crl.sectigo.com, REJECT, enable={sectigo}
-DOMAIN, ocsp.usertrust.com, REJECT, enable={sectigo}
-DOMAIN, crl.usertrust.com, REJECT, enable={sectigo}
+DOMAIN, ocsp.sectigo.com, REJECT
+DOMAIN, crl.sectigo.com, REJECT
+DOMAIN, ocsp.usertrust.com, REJECT
+DOMAIN, crl.usertrust.com, REJECT
