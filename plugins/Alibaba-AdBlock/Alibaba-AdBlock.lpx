@@ -27,7 +27,7 @@ fishRemoveHomeAds = switch, true, false, tag=🐟闲鱼-首页广告位, desc=�
 fishRemoveSearchAds = switch, true, false, tag=🐟闲鱼-搜索广告, desc=拦截 idlemtopsearch.search(广告位) + .search.shade + .search.discover(MarketHotSpot) + .item.search.activate(热词)
 fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截 idle.user.page.my.adapter(我的页精简) + idle.trade.full.info(订单状态组件)
 liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流, desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
-removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门⚠️无效(无条件), desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关 ｜ ⚠️对应规则在 [Rewrite] 段且已改为无条件 → 此开关无实际作用
+removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门⚠️无效(无条件), desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关 ｜ ⚠️对应规则在 [Rewrite]
 
 # === 淘宝/天猫专属开关 (预留) ===
 # taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
@@ -158,6 +158,8 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 
 [Rewrite]
+# 版本探针 (version-probe.sh 用, 勿删)
+request if ${url} ~= /probe\.alibaba-adblock\.loon-sim\.local/ then reject(200, "3.39.2")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
