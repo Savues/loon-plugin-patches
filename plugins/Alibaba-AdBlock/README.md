@@ -203,7 +203,8 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 | # | 规则 | 证据 |
 |---|------|------|
 | A1 | **带路径的规则必须配 MITM 域名**，否则 URL 路径不可见 → 规则静默失效 | `orange.tbcdn.cn` / `g.alicdn.com` 各踩一次 |
-| A2 | **★ `enable={开关}` 仅在 `[Rule]` 与 `[Script]` 段有效；`[Rewrite]` 段无效**（`enable={}` 与 `&& ${开关} == true` 实测均不生效）| 终端实测三对照：<br>✅ `ocsp.apple.com`（[Rule]+enable）→ DNS 127.0.0.1 被拦<br>❌ `gm.mmstat.com`（[Rewrite]+enable）→ 真实 43B GIF<br>✅ `dinamicx 底栏`（[Rewrite] 无条件）→ `{}`<br>另有 PinDuoDuo「实测该开关无效」/ Spotify「Can not find policy」记录 |
+| A2 | **★ `enable={开关}` 仅在 `[Script]` 段的 `with` 里合法** | `[Rule]` **无 enable 字段**（官方 rule 文档全文无）→ 是**死开关**：规则无条件生效、开关无效（PinDuoDuo 实证：开关为「关」时规则仍 REJECT 24 次）。`[Rewrite]` 段写 `, enable={}` 则**整条规则无效**（本仓库 57 处，实测 `gm.mmstat.com` 返回真实 43B）。`[Rewrite]` 要开关须用条件式 `&& ${开关} == true`（官方支持）|
+| A2-b | **纯域名规则无法挂开关** | `[Rule]` 语法是 `类型, 值, 策略`，没有 enable 位置 → 需开关只能改写为 `[Script]`（需 MITM + 脚本返回空响应），或接受无条件生效 |
 | A3 | **`[Script]` 与 `[Rewrite]` 段的动作不能混放**（跨段静默忽略） | v3.38.0 新增 4 条 request 规则误放 [Script] 段 → 全部无效 |
 | A4 | **同一接口不可同时有 `[Script]` 和 `[Rewrite]` 规则** | Rewrite 在请求阶段先执行 → Script 成死代码；v3.38.1 `cloudvideo` 被 blanket reject 抢占 → App **退避重试 6 次** |
 
@@ -255,14 +256,15 @@ curl -sk https://<域名>/path | head -c 20
 ```
 要拦一个目标
 │
-├─ 只需域名级拦截？（不关心路径）
-│   └─► [Rule]   DOMAIN-SUFFIX, x.com, REJECT, enable={开关}
-│        ✅ enable 有效   ✅ 无需 MITM   ✅ 最早匹配、性能最好
+├─ 只需域名级拦截？（不关心路径、不需要开关）
+│   └─► [Rule]   DOMAIN-SUFFIX, x.com, REJECT
+│        ✅ 无需 MITM   ✅ 最早匹配、性能最好
+│        ❌ 无法挂开关（[Rule] 语法没有 enable 位置 → 写了也是死开关）
 │
 ├─ 需匹配 URL 路径，且要开关控制？
 │   └─► [Script] response if ${url} ~= /.../i then script("bundle.js", {${开关}})
 │                with enable=${开关}, requires_body=true
-│        ✅ enable 有效（官方语法）   ⚠️ 域名必须在 MITM
+│        ✅ enable 有效（官方 with 字段表）   ⚠️ 域名必须在 MITM
 │
 ├─ 需匹配 URL 路径，不需开关？
 │   └─► [Rewrite] request if ${url} ~= /.../i then reject_dict(200)
@@ -272,9 +274,10 @@ curl -sk https://<域名>/path | head -c 20
     └─► [Script] + requires_body=true（逻辑写在 bundle.js）
          ⚠️ 必须与同接口的 [Rewrite] 二选一
 
-❌ 禁止：[Rewrite] + enable={}          （实测无效，规则形同虚设）
-❌ 禁止：[Rewrite] + && ${开关} == true  （同样无效）
-❌ 禁止：同一接口同时存在 [Script] 与 [Rewrite] 规则（Rewrite 抢占 → Script 成死代码）
+✅ 合法：[Rewrite] 条件式开关 → request if ${url} ~= /RE/i && ${开关} == true then reject_dict(200)
+❌ 禁止：[Rule] + enable={}              （死开关：规则无条件生效，开关无效）
+❌ 禁止：[Rewrite] + , enable={}          （非官方语法 → 整条规则无效）
+❌ 禁止：同一接口同时存在 [Script] 与 [Rewrite] 规则（Rewrite 抢占 → Script 成死代码 + 可能触发 App 重试）
 ❌ 禁止：[Rule]/[Rewrite] 动作放错段（跨段静默忽略）
 ```
 

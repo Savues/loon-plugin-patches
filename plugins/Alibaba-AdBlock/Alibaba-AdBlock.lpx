@@ -7,7 +7,7 @@
 
 [Argument]
 # === 全局开关 ===
-blockTracking = switch, true, false, tag=🔒埋点/APM/实验分流, desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com / tlog.mmstat.com
+blockTracking = switch, true, false, tag=🔒埋点/APM/实验分流⚠️无效(域名规则), desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com / tlog.mmstat.com ｜ ⚠️本插件中相关域名规则位于 [Rule] 段, Loon 该段不支持开关 → 规则无条件生效, 此开关无实际作用
 
 # === 分类开关 (所有 App 生效) ===
 removeSplashAd = switch, true, false, tag=🚫开屏广告, desc=拦截 open_screen_site (开屏图/跳转/倒计时)
@@ -27,7 +27,7 @@ fishRemoveHomeAds = switch, true, false, tag=🐟闲鱼-首页广告位, desc=�
 fishRemoveSearchAds = switch, true, false, tag=🐟闲鱼-搜索广告, desc=拦截 idlemtopsearch.search(广告位) + .search.shade + .search.discover(MarketHotSpot) + .item.search.activate(热词)
 fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截 idle.user.page.my.adapter(我的页精简) + idle.trade.full.info(订单状态组件)
 liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流
-removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门, desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关
+removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门⚠️无效(无条件), desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关 ｜ ⚠️对应规则在 [Rewrite] 段且已改为无条件 → 此开关无实际作用
 , desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
 
 # === 淘宝/天猫专属开关 (预留) ===
@@ -38,22 +38,22 @@ removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门, desc=拦�
 [Rule]
 # 埋点/追踪/AB/互动 域名 — 原为 [Rewrite] 开关规则, 实测「enable={} / && ${sw} == true」在 Rewrite 中均不生效,
 # 且部分域名未在 MITM (路径不可见) → 下沉到 [Rule]: 域名级匹配, 无需 MITM, 无条件可靠生效
-DOMAIN-SUFFIX, yunxish.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, iggrowth.cn, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, gm.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, log.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, px.effirst.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, abtest.alibaba.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, tlog.mmstat.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, yixiu-abtest.alicdn.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ut.taobao.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, ems.youku.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, hudong.alicdn.com, REJECT, enable={blockTracking}
-DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, yunxish.com, REJECT
+DOMAIN-SUFFIX, iggrowth.cn, REJECT
+DOMAIN-SUFFIX, gm.mmstat.com, REJECT
+DOMAIN-SUFFIX, log.mmstat.com, REJECT
+DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT
+DOMAIN-SUFFIX, px.effirst.com, REJECT
+DOMAIN-SUFFIX, abtest.alibaba.com, REJECT
+DOMAIN-SUFFIX, tlog.mmstat.com, REJECT
+DOMAIN-SUFFIX, yixiu-abtest.alicdn.com, REJECT
+DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
+DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT
+DOMAIN-SUFFIX, ut.taobao.com, REJECT
+DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT
+DOMAIN-SUFFIX, ems.youku.com, REJECT
+DOMAIN-SUFFIX, hudong.alicdn.com, REJECT
+DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT
 
 [MITM]
 hostname = acs.m.taobao.com, g.alicdn.com, img.alicdn.com, guide-acs.m.taobao.com, orange.tbcdn.cn, dorangesource.alicdn.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, dinamicx.alibabausercontent.com
