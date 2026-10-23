@@ -14,6 +14,18 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 ---
 
+## ⚠️ 修改 → 更新 → 验证（强制顺序）
+
+本仓库的规则/脚本改动**必须由用户在 Loon 里更新订阅后才生效**。
+终端验证（`curl`）读取的是**设备上已加载的配置**，不是本仓库最新提交。
+
+```
+改代码 → push → 告知订阅地址+版本 → 用户更新+重启 Loon → 才能验证
+```
+跳过"用户更新"这一步去验证，测到的是旧版本，结论无效。
+
+---
+
 ## 📘 开发指南 · Development Guide
 
 写新插件或修改现有插件前，请先阅读 **[PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)** —— 内容全部经真机实测 + HAR 抓包 + 官方文档三方验证：
