@@ -199,14 +199,14 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 | # | 规则 | 证据 |
 |---|------|------|
 | A1 | **带路径的规则必须配 MITM 域名**，否则 URL 路径不可见 → 规则静默失效 | `orange.tbcdn.cn` / `g.alicdn.com` 各踩一次 |
-| A2 | **`enable={开关}` 只在 `[Script]` 段的 `with` 里合法**。用于 `[Rule]`/`[Rewrite]` 段会被整段当成"策略名"→ 无效 | ① PinDuoDuo：原 8 条 `enable={telemetry_stub}`「真机实测该开关无效」→ 改无条件 ② Spotify：`Can not find policy: REJECT, enable={blockQuic}` ③ 本插件 57 处 Rewrite enable 全失效（`hudong.tbcdn.cn` 应拦 → 实为 3.4MB 完整返回）|
+| A2 | **★ `enable={开关}` 仅在 `[Rule]` 与 `[Script]` 段有效；`[Rewrite]` 段无效**（`enable={}` 与 `&& ${开关} == true` 实测均不生效）| 终端实测三对照：<br>✅ `ocsp.apple.com`（[Rule]+enable）→ DNS 127.0.0.1 被拦<br>❌ `gm.mmstat.com`（[Rewrite]+enable）→ 真实 43B GIF<br>✅ `dinamicx 底栏`（[Rewrite] 无条件）→ `{}`<br>另有 PinDuoDuo「实测该开关无效」/ Spotify「Can not find policy」记录 |
 | A3 | **`[Script]` 与 `[Rewrite]` 段的动作不能混放**（跨段静默忽略） | v3.38.0 新增 4 条 request 规则误放 [Script] 段 → 全部无效 |
 | A4 | **同一接口不可同时有 `[Script]` 和 `[Rewrite]` 规则** | Rewrite 在请求阶段先执行 → Script 成死代码；v3.38.1 `cloudvideo` 被 blanket reject 抢占 → App **退避重试 6 次** |
 
 **正确写法对照**：
 ```ini
-# ✅ [Rule] 段：只能用无条件（或 DOMAIN-SUFFIX 等），无开关
-DOMAIN, apm.example.com, REJECT
+# ✅ [Rule] 段：支持 enable= 开关（且域名级匹配无需 MITM，优先用此段）
+DOMAIN-SUFFIX, apm.example.com, REJECT, enable={blockTracking}
 
 # ✅ [Script] 段：开关放 with 里
 response if ${url} ~= /.../i then script("s.js", {${mySwitch}}) with enable=${mySwitch}, requires_body=true
@@ -218,6 +218,33 @@ request if ${url} ~= /.../i && ${mySwitch} == true then reject_dict(200)
 DOMAIN, x.com, REJECT, enable={sw}          # 整段当策略名
 request if ${url} ~= /.../i then reject, enable={sw}   # Rewrite 无 enable 语法
 ```
+
+### A0. ★ 实测方法论（终端可直连 Loon MITM 验证规则）
+
+本机终端已信任 Loon 根证书且流量经其 MITM → **可直接 curl 实测规则是否生效**：
+
+```bash
+# 被 REJECT 的域名会解析到 127.0.0.1（Loon 拦截实现）
+getent hosts <域名>
+curl -skv https://<域名>/ 2>&1 | grep -iE "127.0.0.1|refused"
+
+# 被 reject_dict 的返回 HTTP 200 + body {}
+curl -sk https://<域名>/path | head -c 20
+
+# 未拦截的正常返回真实内容
+```
+
+**实测样例（v3.39.1 验证）**：
+| 目标 | 期望 | 实测 |
+|------|------|------|
+| 14 个 [Rule] 埋点域名 | 000（被拦）| ✅ 全部 000 |
+| `dinamicx` 底栏 / `poplayer` 模板 / `search_door` | `{}` size=2 | ✅ |
+| 开屏图 tps-750-1624 / 1242-2208 | `{}` | ✅ |
+| 首页背景 tps-750-1200 / img 域 1080-2872 | 200 真实图 | ✅ 未误伤 |
+| `yunxish.com` / `iggrowth.cn` | 000 | ✅ |
+| www.taobao/tmall/goofish/alibaba.com | 200 | ✅ 无误伤 |
+
+---
 
 ### B. 本插件开发规约
 
