@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.40.1
+#!name=Alibaba-AdBlock v3.41.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.40.1
+#!version=3.41.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -159,7 +159,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.40.1")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.41.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -292,6 +292,13 @@ request if ${url} ~= /mtop\.tmall\.rpm\.rate\.buyshow\./i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.taste\./i then reject_dict(200)
 # === 天猫: 开屏/热启动素材直拦 (15TUA=天猫投放素材库标识, 9/9 开屏素材命中, 84 张正常商品图 0 命中) ===
 request if ${url} ~= /^https?:\/\/(?:gw|img)\.alicdn\.com\/imgextra\/.*15TUA/ then reject
+# === 天猫搜索域 (2026-10-24 HAR 实证, 与打字联想 search.suggest 不同源, 可安全 reject) ===
+# 搜索框滚动词 (result[0].showQuery 3词轮播)
+request if ${url} ~= /mtop\.tmallx\.search\.placeholder/i then reject_dict(200)
+# 搜索发现/热搜榜 (data.model.list 10词, spm=hotQuery, 刷新换批)
+request if ${url} ~= /mtop\.tmallx\.search\.hq/i then reject_dict(200)
+# 搜搜省 (titleInfo.title=搜搜省 + 领取按钮 + 品类券商品)
+request if ${url} ~= /mtop\.tmallx\.search\.searchsign/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject
 
 # === 各 App 独有广告上报 (二进制差分审计: 闲鱼/天猫/特价版/直播) ===
