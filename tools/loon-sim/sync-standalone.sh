@@ -1,33 +1,36 @@
 #!/bin/sh
-# 把本目录的模拟器同步到独立仓库 Savues/loon-sim
-# 用法: sh tools/loon-sim/sync-standalone.sh [commit-message]
+# 把本目录的模拟器同步到独立仓库 Savues/loon-sim（保留仓库历史）
+# 用法: sh tools/loon-sim/sync-standalone.sh ["commit message"]
+# 依赖: GITHUB_TOKEN 环境变量
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
-TMP=$(mktemp -d)
-echo "→ 复制到 $TMP"
-cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE/README.md" "$TMP"/
-mkdir -p "$TMP/examples"
-
-# 从独立仓库拉取非代码文件（LICENSE / package.json / examples 等）
 REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/Savues/loon-sim.git"
-git clone -q --depth 1 "$REMOTE" "$TMP/.remote" 2>/dev/null || true
-if [ -d "$TMP/.remote" ]; then
-  for f in LICENSE package.json .gitignore; do
-    [ -f "$TMP/.remote/$f" ] && cp "$TMP/.remote/$f" "$TMP/" || true
-  done
-  [ -d "$TMP/.remote/examples" ] && cp -r "$TMP/.remote/examples" "$TMP/" || true
-  cd "$TMP/.remote" && git checkout -q . 2>/dev/null || true
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
+# 克隆现有仓库（保留历史）；失败则初始化
+if git clone -q "$REMOTE" "$TMP/repo" 2>/dev/null; then
+  echo "→ 已克隆现有仓库（保留历史）"
+else
+  echo "→ 新建仓库"
+  mkdir -p "$TMP/repo" && cd "$TMP/repo" && git init -q
+  git remote add origin "$REMOTE"
+  # 首次需要基础文件（LICENSE / package.json / examples 由本仓库提供时跳过）
 fi
 
-cd "$TMP"
-rm -rf .remote
-git init -q
+cd "$TMP/repo"
 git config user.name "Savues"; git config user.email "Savues@users.noreply.github.com"
+
+# 同步代码文件（保留仓库自有的 LICENSE/package.json/.gitignore/examples）
+cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE/README.md" .
+
 git add -A
-MSG="${1:-sync: 同步来自 loon-plugin-patches 的模拟器更新}"
-git commit -q -m "$MSG"
-git branch -M main
-git remote add origin "$REMOTE"
-git push -f -q origin main
-echo "✅ 已同步到 Savues/loon-sim"
-cd /; rm -rf "$TMP"
+if git diff --cached --quiet; then
+  echo "✅ 无变化，未提交"
+else
+  git commit -q -m "${1:-sync: 同步来自 loon-plugin-patches 的模拟器更新}"
+  git branch -M main
+  git push -q origin main
+  echo "✅ 已同步到 Savues/loon-sim"
+  git log --oneline -1 | sed 's/^/   /'
+fi
