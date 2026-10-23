@@ -475,6 +475,9 @@ curl -sk -o /dev/null -w "HTTP %{http_code} size=%{size_download}\n" https://api
 
 ---
 
+## 8.5. 本地模拟器离线验证 —— loon-sim
+
+
 ## 9. 禁止事项清单
 
 | # | 禁止 | 后果 | 案例 |
