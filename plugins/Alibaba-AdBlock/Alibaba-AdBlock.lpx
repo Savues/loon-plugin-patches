@@ -38,22 +38,22 @@ removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门, desc=拦�
 [Rule]
 # 埋点/追踪/AB/互动 域名 — 原为 [Rewrite] 开关规则, 实测「enable={} / && ${sw} == true」在 Rewrite 中均不生效,
 # 且部分域名未在 MITM (路径不可见) → 下沉到 [Rule]: 域名级匹配, 无需 MITM, 无条件可靠生效
-DOMAIN-SUFFIX, yunxish.com, REJECT
-DOMAIN-SUFFIX, iggrowth.cn, REJECT
-DOMAIN-SUFFIX, gm.mmstat.com, REJECT
-DOMAIN-SUFFIX, log.mmstat.com, REJECT
-DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT
-DOMAIN-SUFFIX, px.effirst.com, REJECT
-DOMAIN-SUFFIX, abtest.alibaba.com, REJECT
-DOMAIN-SUFFIX, tlog.mmstat.com, REJECT
-DOMAIN-SUFFIX, yixiu-abtest.alicdn.com, REJECT
-DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
-DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT
-DOMAIN-SUFFIX, ut.taobao.com, REJECT
-DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT
-DOMAIN-SUFFIX, ems.youku.com, REJECT
-DOMAIN-SUFFIX, hudong.alicdn.com, REJECT
-DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT
+DOMAIN-SUFFIX, yunxish.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, iggrowth.cn, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, gm.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, log.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, s-gm.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, px.effirst.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, abtest.alibaba.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, tlog.mmstat.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, yixiu-abtest.alicdn.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ut.taobao.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, ems.youku.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, hudong.alicdn.com, REJECT, enable={blockTracking}
+DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT, enable={blockTracking}
 
 [MITM]
 hostname = acs.m.taobao.com, g.alicdn.com, img.alicdn.com, guide-acs.m.taobao.com, orange.tbcdn.cn, dorangesource.alicdn.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, dinamicx.alibabausercontent.com
