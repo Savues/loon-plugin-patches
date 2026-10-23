@@ -156,22 +156,42 @@ function cmdRun() {
 
   const hr = matchRule(lpx, url);
 
-  let done = null, logs = [];
+  let done = null, logs = [], argFormMismatch = null;
   const eff = scriptRes.effective;
   if (eff) {
     const sim = resolveSimPath(eff.script);
     if (!sim) {
       done = { error: '本地找不到脚本文件: ' + eff.script };
     } else {
-      const rt = createRuntime({
-        request: { url, method: 'GET' },
-        response: { status, headers: {}, body },
-        argument: eff.argument,
-        scriptName: path.basename(sim),
-        debug: flag('verbose'),
-      });
-      const res = rt.run(sim);
+      // ★ 双形态 $argument 检测：Loon 可能在真机上传对象，也可能传数组 [{...}]
+      const formPref = arg('arg-form', 'both');   // object | array | both
+      const forms = formPref === 'both' ? ['object', 'array'] : [formPref];
+      const runs = {};
+      for (const f of forms) {
+        const rt = createRuntime({
+          request: { url, method: 'GET' },
+          response: { status, headers: {}, body },
+          argument: f === 'array' ? [eff.argument] : eff.argument,
+          scriptName: path.basename(sim),
+          debug: flag('verbose'),
+        });
+        runs[f] = rt.run(sim);
+      }
+      const res = runs[forms[0]];
       logs = res.logs || [];
+      // 两形态结果不一致 → 脚本不兼容
+      if (forms.length === 2) {
+        const norm = (r) => (r.ok && r.doneCalled && r.done && r.done.body)
+          ? (typeof r.done.body === 'string' ? r.done.body : JSON.stringify(r.done.body))
+          : (r.ok ? '' : 'ERR:' + r.error);
+        const a = norm(runs.object), b = norm(runs.array);
+        if (a !== b) {
+          argFormMismatch = {
+            object: a ? a.slice(0, 80) : '(未修改)',
+            array: b ? b.slice(0, 80) : '(未修改)',
+          };
+        }
+      }
       if (!res.ok) done = { error: res.error };
       else if (!res.doneCalled) done = { error: '$done 未被调用（Loon 将等待超时）' };
       else {
@@ -197,7 +217,8 @@ function cmdRun() {
   const out = renderTrace({
     url, phase, status, argValues, rewrite, script: scriptRes, mitm, done, logs, ruleHit: hr,
     bodyBefore: body ? body.length : null,
-    bodyAfter: (done && done.fields && done.fields.body) ? Number(String(done.fields.body.to).replace('B', '')) : null,
+    bodyAfter: (done && done.fields && done.fields['长度']) ? Number(String(done.fields['长度'].to).replace('B', '')) : null,
+    argFormMismatch,
   });
   console.log(out);
   if (hr) console.log(`  ${'[Rule] 命中: ' + hr.raw}`);

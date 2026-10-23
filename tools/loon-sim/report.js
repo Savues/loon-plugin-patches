@@ -7,7 +7,7 @@ const c = (code, s) => (useColor ? code + s + C.x : s);
 const tag = (sym, text, color) => `${c(color, sym)} ${text}`;
 
 // ---- 单个 URL 的完整决策视图 ----
-function renderTrace({ url, phase, status, argValues, rewrite, script, mitm, done, logs, bodyBefore, bodyAfter, ruleHit }) {
+function renderTrace({ url, phase, status, argValues, rewrite, script, mitm, done, logs, bodyBefore, bodyAfter, ruleHit, argFormMismatch }) {
   const L = [];
   L.push('');
   L.push(c(C.B, '━'.repeat(72)));
@@ -98,6 +98,16 @@ function renderTrace({ url, phase, status, argValues, rewrite, script, mitm, don
   if (!done && !blockedGlobal(rewrite) && relS.length && !(script && script.effective)) {
     const blocked = relS.filter(r => r.result === 'blocked');
     if (blocked.length) hints.push(`相关规则被 with enable 挡住：${blocked.map(b => b.reason).join('；')}`);
+  }
+  // 命中但未修改 → 可疑（常见于"函数定义了但没调用"）
+  if (argFormMismatch) {
+    hints.push('★ 脚本对 $argument 的【对象/数组】两种形态处理结果不同 —— 真机可能传数组 [{...}]，'
+      + '脚本需兼容（本仓库历史事故：v3.37.3 因只处理对象形态导致全部 Script 规则失效）');
+    hints.push(`  对象形态 → ${argFormMismatch.object}`);
+    hints.push(`  数组形态 → ${argFormMismatch.array}`);
+  }
+  if (done && done.unchanged && script && script.effective) {
+    hints.push('规则已命中，但脚本【未修改任何内容】—— 若预期应修改，检查脚本逻辑（例如清洗函数是否真的被调用；函数定义了但没调用是常见原因）');
   }
   if (hints.length) {
     L.push(c(C.B, '▸ 诊断'));

@@ -5,7 +5,7 @@ set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 TMP=$(mktemp -d)
 echo "→ 复制到 $TMP"
-cp "$HERE"/*.js "$HERE/README.md" "$TMP"/
+cp "$HERE"/*.js "$HERE"/*.sh "$HERE/README.md" "$TMP"/
 mkdir -p "$TMP/examples"
 
 # 从独立仓库拉取非代码文件（LICENSE / package.json / examples 等）
