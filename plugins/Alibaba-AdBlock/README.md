@@ -207,6 +207,7 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 | 9 | **改 bundle.js 后必做调用点检查** | 区间替换曾把 `scrubPopcdnSchedule` 函数冲掉 → 脚本整体失效 |
 | 10 | **★ 规则参数必须覆盖代码里所有 `isEnabled()` key** | v3.37.4/3.37.5 两起事故：规则传 `fishRemovePopup`，代码判 `removePopWindow` → **过滤器静默不执行**。必跑 `tools/check_switch_keys.py` |
 | 11 | **★ `$argument` 可能是数组形态 `[{...}]`** | v3.37.3：`$argument[key]` 直接取值恒 undefined → 所有 Script 规则失效。`isEnabled` 需兼容 Array/Object 两形态 |
+| 12 | **★ 同一接口不能同时有 `[Script]` 和 `[Rewrite]` 规则** | Rewrite 在请求阶段先执行 → Script 永远轮不到（死代码）。v3.38.1 事故：`cloudvideo.video.query` 的 blanket `reject_dict` 抢跑 Script，导致 App **退避重试 6 次**。应二选一（kelee 原意通常用 Body Rewrite 清空而非 reject）|
 
 ---
 

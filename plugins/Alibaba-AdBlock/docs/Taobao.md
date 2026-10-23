@@ -28,6 +28,9 @@
 | 17 | **阿里橙配营销清洗** | Script 字节级等长替换 | `orange.tbcdn.cn` / `dorangesource.alicdn.com` | `removeSplashAd` |
 | 18 | **埋点/APM/AB 分流** | Rewrite 整域 reject | `gm/log/s-gm/tlog.mmstat.com`、`px.effirst.com`、`abtest.alibaba.com`、`yixiu-abtest.alicdn.com`、`ossgw/hudong.alicdn.com` | `blockTracking` |
 | 19 | **影视/O2O/音乐广告** | Rewrite + Script | `mtop.film.mtopadvertiseapi.queryadvertise`、`mtop.o2o.ad.gateway.get`、`mtop.alimusic.common.mobileservice.startinit` | `removePopWindow` |
+| 20 | **UCP 全局弹窗闸门** | Rewrite `reject_dict(200)` | `mtop.taobao.auge.delivery.private.popup.control` | `removeUcpPopup` |
+| 21 | **生活圈 LBS 横幅/入口** | Rewrite `reject_dict(200)` | `mtop.taobao.newhaven.lbsgroup.banner.*` / `newhaven.life.entrance.show` | `removePopWindow` / `removeSmallCards` |
+| 22 | **社交弹窗** | Rewrite `reject_dict(200)` | `mtop.taobao.social.pop.get` | `removePopWindow` |
 
 > ⚠️ **全屏图规则的判别**（v3.35.0 踩坑）：高度 ≥1600 且在 `gw/heic.alicdn.com` 才是开屏图；
 > 高度 1200-1599（如 `tps-750-1200.png`）与 `img.alicdn.com` 域的 `tps-1080-2872.png_q50.jpg`
@@ -70,11 +73,53 @@ Documents/TBDocuments/gateway/cache_newface_home_main_base
 
 ---
 
+### 2.5 ★ UCP 全局弹窗控制闸门（v3.38.0）
+
+```
+接口: mtop.taobao.auge.delivery.private.popup.control
+```
+二进制字符串证据：
+```
+GlobalControl CheckDisplay checkResult:true |reason:UCPCheckClientPass
+GlobalControl CheckDisplay checkResult:false|reason:UCPCheckCodeInvalid    ← 拦掉走这条
+GlobalControl CheckDisplay checkResult:false|reason:UCPCheckNotRequestEnd  ← 请求未完也不弹
+GlobalControl CheckDisplay checkResult:false|reason:UCPCheckFatigueFailed
+homePopRemovePopWhenUCPCheckFailed   ← 配置: UCP 失败则移除首页弹窗
+notifyUCPSceneChanged / TabSwitch_UCP_args   ← 场景切换触发检查
+updateTabBar / addList / removeList          ← 同时管 tabbar 角标
+```
+**机制**：客户端请求 → 按 `checkResult` 决定弹不弹。
+**拦截效果**：返回 `{}` → `UCPCheckCodeInvalid` → `checkResult:false` → 弹窗被抑制。
+
+> ⚠️ **独立开关 `removeUcpPopup`**（默认开）—— 行为系推断，且**同时影响 tabbar 角标**；
+> 若首页/角标异常，单独关它即可，不影响其他弹窗规则。
+> 📌 实测注意：该接口在普通浏览中**不一定被请求**（按需/懒加载），未出现在冷启动 HAR 中。
+
+### 2.6 ⚠️ 双规则冲突模式（v3.38.1 事故）
+
+同一接口同时存在 `[Script]` 和 `[Rewrite]` 规则时，**Rewrite 在请求阶段先执行 → Script 永远轮不到**。
+
+| 接口 | Script（kelee 式清空）| Rewrite（blanket reject）| 后果 |
+|------|---------------------|------------------------|------|
+| `cloudvideo.video.query` | `filterTaobaoSplashVideo`（duration=0 + 清 resources/caches）| `reject_dict(200)` | **App 退避重试 6 次** ❌ |
+
+- **kelee 原版此接口用的是 Body Rewrite 清空，不是 reject**
+- 修复：移除 reject_dict，恢复 Script → 响应有效（duration=0/resources 空）→ 开屏视频不播 + **App 不再重试**
+
+> 审计发现另有 10 个接口存在同类「Script + blanket reject」双规则（`splash.awesome.get` /
+> `alimusic.common.mobileservice.startinit` / `film.mtopadvertiseapi.queryadvertise` /
+> `o2o.ad.gateway.get` / `etap.etao.config.query` / `advertisementservice.getadv` /
+> `trip.activity.querytmsresources` / `volvo.secondfloor.getconfig` / `idle.home.welcome` /
+> `union.marquee.query`）→ Script 为死代码。**这 10 处行为正常、无重试证据，暂保留待审**。
+
+---
+
 ## 三、已知限制
 
 | 限制 | 原因 | 可能解法 |
 |------|------|---------|
 | **搜索框滚动词** | ACCS 私有 TCP 推送 + 原生 MultiHintq 渲染 + DX 容器模板（改则破坏点击）| 越狱 Hook `TBSearchHintLabel.setHintText` / `TBHomeSearchBarCacheManager.updateSearchItemData` 过滤 `mst_roll_` |
+| ↳ **三次验证记录** (2026-10-23) | ① 数据只在 `gateway/cache_newface_home_main_base` 的 `sections[1].content.searchText`；② 新查 `TBHomeTabSearchBarManager` / `modifySearchBarSectionData` 为原生填充；③ 候选 API 全未出现于任何 HAR：`homepage.container.config.get` / `newface.stream.*` / `xsd.searchbar.info.get` / `search.request.searchdoor.bgword`（实为 TLog 埋点标识，非接口）；④ 最近 12 个 HAR 中 `enableSearchbarLoopControl`/`enableSearchTextCache` 零出现 | 确认 **ACCS 私有通道，HTTP 层无解** |
 | 搜索门首次冷启动残留 | 组件 reject 后旧缓存未立即清 | 第二次冷启动起永久消失（已知现象） |
 | 弹窗调度器新广告 | 换活动素材 ID | 清空 ac 的方案对新增广告自动免疫 |
 
