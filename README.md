@@ -26,6 +26,23 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 ---
 
+## 🧪 本地模拟器 · loon-sim
+
+**[tools/loon-sim](tools/loon-sim/README.md)** —— 不依赖 Loon App / 真机，离线运行插件规则与脚本，
+给出与 Loon 请求记录相当的**逐条决策反馈**（哪条规则命中/为何未命中/`$argument` 实际值/`$done` 改了什么）。
+
+```bash
+cd tools/loon-sim
+node cli.js check <plugin.lpx>                    # 静态校验
+node cli.js run   <plugin.lpx> --url "https://…"  # 决策追踪
+node cli.js har   <plugin.lpx> <capture.har>      # 批量回放
+node selftest.js                                  # 内核自测 (46 项)
+```
+
+> 用于**快速迭代**；发布前**仍需真机确认一次**（真实网络 / MITM / App 行为无法模拟）。
+
+---
+
 ## 📘 开发指南 · Development Guide
 
 写新插件或修改现有插件前，请先阅读 **[PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)** —— 内容全部经真机实测 + HAR 抓包 + 官方文档三方验证：
