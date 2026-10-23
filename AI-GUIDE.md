@@ -102,6 +102,7 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 | 某插件接口清单/开关语义 | `plugins/<Name>/README.md` |
 | 模拟器版本历史 | `tools/loon-sim/CHANGELOG.md` |
 | 官方转换器的 6 个已知问题 | `tools/loon-sim/docs/converter.md` |
+| 新 ISH 环境部署模拟器 | `tools/loon-sim/DEPLOY.md` |
 
 ## 8. 你（模型）的行为准则
 

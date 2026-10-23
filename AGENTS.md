@@ -23,3 +23,4 @@ sh tools/loon-sim/version-probe.sh <plugin.lpx              # ✅ 绿了才能�
 3. 测试结论必须附证据（命令 + 输出）
 
 详细规范 → [AI-GUIDE.md](AI-GUIDE.md) · 人类向教学 → [PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)
+**新环境部署模拟器** → [tools/loon-sim/DEPLOY.md](tools/loon-sim/DEPLOY.md)
