@@ -1,7 +1,7 @@
 #!name=Alibaba-AdBlock v3.39.2
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.39.2
+#!version=3.40.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -159,7 +159,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.39.2")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.40.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -279,6 +279,17 @@ request if ${url} ~= /mtop\.gaia\.tjb\.growth\.union\.telattr/i then reject
 request if ${url} ~= /mtop\.ltao\.growth\.report/i then reject
 request if ${url} ~= /mtop\.taote\.useroperation\.reportloginresource/i then reject
 request if ${url} ~= /mtop\.taote\.interaction\.ifgateway\.sharerewards/i then reject
+# === 特价版: awesome/morning 闪屏全族 (2026-10-24 二进制预研 docs/Tmall-LTao-preliminary.md) ===
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.awesome\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.morning\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.morning\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.bottombar\.get/i then reject_dict(200)
+# === 特价版: 推荐广告族 (Atlas) ===
+request if ${url} ~= /mtop\.relationrecommend\.newfacerecommend\./i then reject_dict(200)
+# === 天猫: RPM 浮层/购物车秀/猜你喜欢弹卡 (预置, 待实测) ===
+request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.bottom\.floatbar\./i then reject_dict(200)
+request if ${url} ~= /mtop\.tmall\.rpm\.rate\.buyshow\./i then reject_dict(200)
+request if ${url} ~= /mtop\.tmall\.rpm\.taste\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject
 
 # === 各 App 独有广告上报 (二进制差分审计: 闲鱼/天猫/特价版/直播) ===
