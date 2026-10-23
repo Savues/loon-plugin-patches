@@ -46,6 +46,17 @@ if [ -z "$GOT" ]; then
   exit 3
 fi
 
+# reject_dict 探针返回 {} — 版本从 .probe.meta 读
+if [ "$GOT" = "{}" ]; then
+  META=$(cat "$LPX.probe.meta" 2>/dev/null || echo "?")
+  if [ "$META" = "$VER" ]; then
+    echo "✅ 设备已加载最新版本 (reject_dict 探针 v$VER) — 可以安全地进行终端实测"
+    exit 0
+  else
+    echo "🔴 设备探针为旧版 (meta=$META ≠ $VER) — 先更新订阅"; exit 2
+  fi
+fi
+
 if [ "$GOT" = "$VER" ]; then
   echo "✅ 设备已加载最新版本 — 可以安全地进行终端实测"
   exit 0
