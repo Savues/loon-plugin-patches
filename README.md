@@ -1,5 +1,7 @@
 # Loon 插件修改合集 · Loon Plugin Patches
 
+> 🤖 **AI 开发者**：先读 [AGENTS.md](AGENTS.md) → [AI-GUIDE.md](AI-GUIDE.md)（流程/命令/铁律）。
+
 > 个人使用的 Loon 插件修改版合集。
 > A personal collection of patched Loon plugins.
 
