@@ -24,10 +24,11 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 
 | 项 | 数量 |
 |----|------|
-| Rewrite 规则 | **117** |
+| **[Rule] 域名规则** | **16** |
+| Rewrite 规则 | **106** |
 | Response Script 规则 | **58** |
-| MITM 域名 | **24** |
-| 开关 | **15** (另 2 个已注释备用: taobaoRemoveLiveAds / taobaoRemoveGuessLike) |
+| MITM 域名 | **17** |
+| 开关 | **16** (另 2 个已注释备用: taobaoRemoveLiveAds / taobaoRemoveGuessLike) |
 | bundle.js | ~62 KB（单文件） |
 | 覆盖 App | 淘宝 · 淘宝联盟 · 淘宝直播 · 闲鱼（已实测）· 天猫 · 淘宝特价版（规则就绪待测）|
 
@@ -44,7 +45,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 
 ---
 
-## 🎛️ 开关清单（17 个）
+## 🎛️ 开关清单（16 个）
 
 ### 全局
 | 开关 | 默认 | 作用 |
@@ -83,26 +84,26 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 
 ---
 
-## 🌐 MITM 域名（24 个）
+## 🌐 MITM 域名（17 个）
+
+> v3.39.0 起从 24 个精简到 17 个：原先为 [Rewrite] 路径规则而加的 7 个纯埋点域名
+> （`gm/log/s-gm/tlog.mmstat.com`、`px.effirst.com`、`abtest.alibaba.com`、`yixiu-abtest.alicdn.com`）
+> 已下沉到 `[Rule]` 段（域名级匹配**无需 MITM**），故从 MITM 移除，减少解密开销。
 
 ```
-abtest.alibaba.com            acs.m.alibaba.com          acs.m.fliggy.com
-acs.m.goofish.com             acs.m.hema.com             acs.m.taobao.com
-acs.m.tmall.com               cn-acs.m.taobao.com        dinamicx.alibabausercontent.com
+acs.m.alibaba.com             acs.m.fliggy.com           acs.m.goofish.com
+acs.m.hema.com                acs.m.taobao.com           acs.m.tmall.com
+cn-acs.m.taobao.com           dinamicx.alibabausercontent.com
 dorangesource.alicdn.com      g-acs.m.goofish.com        g.alicdn.com
-gm.mmstat.com                 guide-acs.m.taobao.com      gw.alicdn.com
-heic.alicdn.com               img.alicdn.com             log.mmstat.com
-orange.tbcdn.cn               poplayer.template.alibaba.com  px.effirst.com
-s-gm.mmstat.com               tlog.mmstat.com            yixiu-abtest.alicdn.com
+guide-acs.m.taobao.com        gw.alicdn.com              heic.alicdn.com
+img.alicdn.com                orange.tbcdn.cn            poplayer.template.alibaba.com
 ```
 
-> 📌 `g.alicdn.com` 是搜索门 Muise 组件主 CDN（v3.9.27 补入）—— 缺它则搜索门拦截全部失效。
-> `guide-acs.m.taobao.com` 是淘宝/联盟部分请求的网关（v3.36.0 补入）—— 缺它则 38 条规则全漏网。
+**必须保留的 2 个**（缺则大面积失效）：
+- `g.alicdn.com` — 搜索门 Muise 组件主 CDN（缺 → 搜索门拦截全失效）
+- `guide-acs.m.taobao.com` — 淘宝/联盟部分请求的网关（缺 → 38 条规则全漏网）
 
-> ⚠️ **带路径的规则必须配 MITM 域名**，否则 Loon 看不到 URL 路径 → 规则静默失效。
-> 历史上因此踩坑两次：`orange.tbcdn.cn`（v3.9.20 修）、`g.alicdn.com`（v3.9.27 修）。
-
----
+> ⚠️ **带路径的 [Rewrite]/[Script] 规则，其域名必须在 MITM 列表**；纯域名拦截请用 `[Rule]`（不需要 MITM）。
 
 ## 🏗️ 架构
 
@@ -245,6 +246,58 @@ curl -sk https://<域名>/path | head -c 20
 | www.taobao/tmall/goofish/alibaba.com | 200 | ✅ 无误伤 |
 
 ---
+
+### A0-b. ★★ 规则段位选择决策树（最重要的一张图）
+
+```
+要拦一个目标
+│
+├─ 只需域名级拦截？（不关心路径）
+│   └─► [Rule]   DOMAIN-SUFFIX, x.com, REJECT, enable={开关}
+│        ✅ enable 有效   ✅ 无需 MITM   ✅ 最早匹配、性能最好
+│
+├─ 需匹配 URL 路径，且要开关控制？
+│   └─► [Script] response if ${url} ~= /.../i then script("bundle.js", {${开关}})
+│                with enable=${开关}, requires_body=true
+│        ✅ enable 有效（官方语法）   ⚠️ 域名必须在 MITM
+│
+├─ 需匹配 URL 路径，不需开关？
+│   └─► [Rewrite] request if ${url} ~= /.../i then reject_dict(200)
+│        ✅ 无条件有效   ⚠️ 域名必须在 MITM
+│
+└─ 需修改响应体内容（清零字段/保留结构）？
+    └─► [Script] + requires_body=true（逻辑写在 bundle.js）
+         ⚠️ 必须与同接口的 [Rewrite] 二选一
+
+❌ 禁止：[Rewrite] + enable={}          （实测无效，规则形同虚设）
+❌ 禁止：[Rewrite] + && ${开关} == true  （同样无效）
+❌ 禁止：同一接口同时存在 [Script] 与 [Rewrite] 规则（Rewrite 抢占 → Script 成死代码）
+❌ 禁止：[Rule]/[Rewrite] 动作放错段（跨段静默忽略）
+```
+
+### A0-c. ★ HAR 判读速查表（快速定位问题）
+
+| HAR 现象 | 含义 | 处理 |
+|----------|------|------|
+| `size=2` / body `{}` | ✅ `reject_dict(200)` 生效 | — |
+| `status=0` 且**域名在规则内** | ✅ `REJECT`（连接被断）| — |
+| DNS 解析到 `127.0.0.1` | ✅ `[Rule] REJECT` 生效 | — |
+| `size=0` 且**域名不在规则内** | ⚠️ 环境/网络问题，**不是插件** | 别改规则 |
+| 大响应原样返回 | ❌ 未拦 | 依次查：域名在 MITM? → 段位对? → 开关生效? |
+| 同接口**退避式重复请求**（1s/2s/4s）| ❌ 大概率被 blanket reject 抢占 Script | 按 A4 二选一 |
+| 弹窗/浮层仍出现 | 查是否**原生 fallback**（组件拒了仍渲染）| 找原生 API |
+
+### A0-d. v3.39.1 全量实测记录（供回归对照）
+
+| 类别 | 目标 | 期望 | 实测 |
+|------|------|------|------|
+| [Rule] 埋点 ×14 | mmstat 系 / hudong / ossgw / yixiu-abtest / px.effirst / abtest / adashx / ut.taobao / ems.youku / yunxish / iggrowth | 000 | ✅ 全部 000 |
+| [Rewrite] 无条件 | dinamicx 底栏 / poplayer 模板 / search_door 组件 | `{}` | ✅ size=2 |
+| 开屏图 | tps-750-1624 · tps-1242-2208 | `{}` | ✅ size=2 |
+| 首页背景（不应拦）| gw tps-750-1200 · img 1080-2872 | 200 真实图 | ✅ 未误伤 |
+| 第三方广告平台 | yunxish / iggrowth | 000 | ✅ |
+| 无关域名（不应拦）| taobao/tmall/goofish/alibaba.com | 200 | ✅ 无误伤 |
+| **4 App 联合 HAR** | 淘宝+闲鱼+联盟+直播 497 条 | — | ✅ 158 条广告拦截 · 功能接口零误伤 |
 
 ### B. 本插件开发规约
 
