@@ -22,7 +22,7 @@ cd "$TMP/repo"
 git config user.name "Savues"; git config user.email "Savues@users.noreply.github.com"
 
 # 同步代码文件（保留仓库自有的 LICENSE/package.json/.gitignore/examples）
-cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE/README.md" .
+cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE"/README.md "$HERE"/CHANGELOG.md "$HERE"/package.json .
 
 git add -A
 if git diff --cached --quiet; then
