@@ -159,6 +159,33 @@ function parseScriptRules(lines) {
     else {
       m = /^(cron\s+"[^"]*"|network-changed|generic)\s+then\s+script\s*\(\s*(?:"([^"]*)"|'([^']*)')\s*(?:,\s*(.+?)\s*)?\)\s*(?:with\s+(.+))?$/is.exec(line);
       if (!m) {
+        // Handle legacy cron syntax: cron "..." script-path=...
+        const cronMatch = /^(cron\s+"[^"]*"|network-changed|generic)\s+script(-path)?\s*[=,]\s*([^,\s]+)/i.exec(line);
+        if (cronMatch) {
+          const scriptPath = cronMatch[3] || cronMatch[2];
+          const rest = line.substring(cronMatch[0].length).trim();
+          const kv = {};
+          let depth = 0, cur = '';
+          for (const ch of rest) {
+            if (ch === '{' || ch === '[') depth++;
+            if (ch === '}' || ch === ']') depth--;
+            if (ch === ',' && depth === 0) { if (cur.trim()) pushKV(kv, cur.trim()); cur = ''; }
+            else cur += ch;
+          }
+          if (cur.trim()) pushKV(kv, cur.trim());
+          const argRaw = kv['argument'] || null;
+          const keys = parseArgKeys(argRaw);
+          const opts = {};
+          for (const k of Object.keys(kv)) if (k !== 'script-path' && k !== 'argument') opts[k] = kv[k];
+          rules.push({
+            raw: line, phase: 'other', trigger: 'cron', condition: cronMatch[1].trim(),
+            scriptPath: scriptPath,
+            argumentKeys: keys, argumentLiteral: argRaw,
+            options: opts, invalid: null,
+            legacy: false,
+          });
+          continue;
+        }
       // ---- 旧版语法: http-request / http-response ^regex script-path=x, requires-body=true, argument={a, b} ----
       const lm = /^(http-request|http-response)\s+(\S+)\s+(.*)$/is.exec(line);
       if (lm) {
