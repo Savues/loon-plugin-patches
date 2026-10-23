@@ -156,7 +156,8 @@ node cli.js run <plugin> --url <URL> --response-file <真实响应>
 `regression-history.sh` 会从 git 历史提取**曾出问题的版本**，验证模拟器能否检出：
 
 ```bash
-sh tools/loon-sim/regression-history.sh      # 需在插件仓库内运行
+# 需在 loon-plugin-patches 插件仓库内运行（依赖其 git 历史）
+sh tools/loon-sim/regression-history.sh
 ```
 
 实测结果（3/3 通过）：
