@@ -1,0 +1,11 @@
+#!name=cron-checkin 示例
+#!desc=演示 trigger + mock + persist 组合: 离线跑通签到类插件全流程
+#!date=2026-10-24
+#!tag=示例
+
+[Argument]
+username = input,"user1",tag=账号
+notify = switch,true,tag=签到后通知
+
+[Script]
+cron "0 9 * * *" then script("src/checkin.js", {${username}, ${notify}}) with tag="每日签到", timeout=30
