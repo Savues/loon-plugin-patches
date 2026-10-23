@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.38.2
+#!name=Alibaba-AdBlock v3.38.3
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.38.2
+#!version=3.38.3
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -111,7 +111,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.item\.buy\.feeds/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${fishRemovePopup}}) with enable=${fishRemovePopup}, requires_body=true, tag="闲鱼-购买Feed"
 # === 闲鱼搜索词族 (优先于 search 规则, 避免被前缀抢匹配) ===
 # 搜索框滚动词/热搜榜/猜你可能在找: shade(singleShadeWords+multiWords) / suggest / tbsearch / hotRankList
-response if ${url} ~= /^https?:\/\/(?:acs|g-acs)\.m\.goofish\.com\/gw\/mtop\.taobao\.(?:idle\.search\.|idleitem\.tbsearch|idlemtopsearch\.(?:idleitem\.tbsearch|item\.search\.|search\.(?:suggest|shade|activate)|main\.|fishpool\.|detailpage\.search\.shade|market\.tab\.list)|idle\.search\.(?!suggest)|idle\.trend\.search\.(?:suggest|shade|activate)|idle\.oliver\.(?:async\.)?batch\.issue)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${fishRemoveSearchAds}}) with enable=${fishRemoveSearchAds}, requires_body=true, tag="闲鱼-搜索词/热搜/猜你可能在找"
+response if ${url} ~= /^https?:\/\/(?:acs|g-acs)\.m\.goofish\.com\/gw\/mtop\.taobao\.(?:idle\.search\.|idleitem\.tbsearch|idlemtopsearch\.(?:idleitem\.tbsearch|item\.search\.|search\.(?:suggest|shade|activate)|main\.|fishpool\.|detailpage\.search\.shade|market\.tab\.list)|idle\.trend\.search\.(?:suggest|shade|activate)|idle\.oliver\.(?:async\.)?batch\.issue)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${fishRemoveSearchAds}}) with enable=${fishRemoveSearchAds}, requires_body=true, tag="闲鱼-搜索词/热搜/猜你可能在找"
 
 response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\.shade\/[0-9.]+\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${fishRemoveSearchAds}}) with enable=${fishRemoveSearchAds}, requires_body=true, tag="闲鱼-搜索遮罩"
 response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.playboy\.recommend/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/src/bundle.js", {${fishRemovePopup}}) with enable=${fishRemovePopup}, requires_body=true, tag="闲鱼-玩家推荐"

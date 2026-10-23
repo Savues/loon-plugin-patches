@@ -192,10 +192,55 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 ---
 
-## ⚠️ Loon 开发铁律（血泪教训）
+## ⚠️ Loon 铁律（全部经真机/HAR/官方文档验证）
 
-| # | 规则 | 事故 |
+### A. Loon 语法与机制（客观规律）
+
+| # | 规则 | 证据 |
 |---|------|------|
+| A1 | **带路径的规则必须配 MITM 域名**，否则 URL 路径不可见 → 规则静默失效 | `orange.tbcdn.cn` / `g.alicdn.com` 各踩一次 |
+| A2 | **`enable={开关}` 只在 `[Script]` 段的 `with` 里合法**。用于 `[Rule]`/`[Rewrite]` 段会被整段当成"策略名"→ 无效 | ① PinDuoDuo：原 8 条 `enable={telemetry_stub}`「真机实测该开关无效」→ 改无条件 ② Spotify：`Can not find policy: REJECT, enable={blockQuic}` ③ 本插件 57 处 Rewrite enable 全失效（`hudong.tbcdn.cn` 应拦 → 实为 3.4MB 完整返回）|
+| A3 | **`[Script]` 与 `[Rewrite]` 段的动作不能混放**（跨段静默忽略） | v3.38.0 新增 4 条 request 规则误放 [Script] 段 → 全部无效 |
+| A4 | **同一接口不可同时有 `[Script]` 和 `[Rewrite]` 规则** | Rewrite 在请求阶段先执行 → Script 成死代码；v3.38.1 `cloudvideo` 被 blanket reject 抢占 → App **退避重试 6 次** |
+
+**正确写法对照**：
+```ini
+# ✅ [Rule] 段：只能用无条件（或 DOMAIN-SUFFIX 等），无开关
+DOMAIN, apm.example.com, REJECT
+
+# ✅ [Script] 段：开关放 with 里
+response if ${url} ~= /.../i then script("s.js", {${mySwitch}}) with enable=${mySwitch}, requires_body=true
+
+# ✅ [Rewrite] 段：开关写成条件式
+request if ${url} ~= /.../i && ${mySwitch} == true then reject_dict(200)
+
+# ❌ 全部错误：
+DOMAIN, x.com, REJECT, enable={sw}          # 整段当策略名
+request if ${url} ~= /.../i then reject, enable={sw}   # Rewrite 无 enable 语法
+```
+
+### B. 本插件开发规约
+
+| # | 规约 | 证据 |
+|---|------|------|
+| B1 | **规则参数必须覆盖代码里所有 `isEnabled()` key** | v3.37.4（缺 `removePrivateDomain`）/ v3.37.5（7 处 `fishRemovePopup` ↔ `removePopWindow` 不匹配）→ 过滤器静默不执行 |
+| B2 | **清空语义必须匹配接口**：多数用 `{}`；但**承载初始化**的接口（如闲鱼 activate 的 keywords）必须保持数组长度 | v3.15.1（改 `{}` 对齐 kelee）/ v3.19~3.25（keywords 清空导致联想失效） |
+
+### C. 待验证（保留观察，勿当铁律）
+
+| # | 项 | 现状 |
+|---|-----|------|
+| C1 | `$argument` 形态（Object / Array） | 官方文档称"插件参数列表是 Object"；代码已**防御性兼容两者**（无害） |
+| C2 | 负向断言 `(?!...)` | 官方未提及；node 测试**正常**（v3.32.0 曾误判为"不支持"）。建议避免依赖，用显式列举 |
+
+### D. 开发流程建议
+
+| # | 建议 |
+|---|------|
+| D1 | 改 `bundle.js` 后必须检查**函数定义 + 调用成对**（区间替换曾冲掉 `scrubPopcdnSchedule`）|
+| D2 | 每次改规则后跑 `python3 tools/check_switch_keys.py`（退出码 0 = 通过）|
+
+---|------|------|
 | 1 | **带路径的规则必须配 MITM 域名** | orange.tbcdn.cn / g.alicdn.com 各一次，规则静默失效 |
 | 2 | **`reject_dict(200)` 不能带 `enable=` 子句** | v3.5.0 一次让**整个 `[Rewrite]` 段崩溃**（含之前正常的 tracking 拦截）|
 | 3 | **Loon 不支持负向断言 `(?!...)`** | 改用显式列举 `(?:discover\|guidehotlist\|shadingwords)` |
