@@ -452,6 +452,10 @@ curl -sk https://api.example.com/ad | head -c 20    # {} = 生效
 curl -sk -o /dev/null -w "HTTP %{http_code} size=%{size_download}\n" https://api.example.com/ad
 ```
 
+> ★★★ **版本探针（自动守护）**：`sh tools/loon-sim/version-probe.sh <plugin.lpx>` 在终端实测前运行——
+> 返回 ✅（设备版本=仓库版本）才可测试；🔴 旧版 / ⚠️ 无响应时**任何终端结论都无效**。
+> 埋探针：`version-probe.sh <plugin.lpx> setup`（改版本号后重跑自动更新探针值）。
+
 > ★★★ **终端测的是「设备上已加载的配置」，不是仓库里的最新提交。**
 > 修改仓库后**必须先在 Loon 里更新订阅并重启**，终端测试才有意义。
 > 否则你测的是旧版本 —— 这是最容易犯的流程错误。

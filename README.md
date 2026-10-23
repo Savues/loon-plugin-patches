@@ -18,6 +18,7 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 本仓库的规则/脚本改动**必须由用户在 Loon 里更新订阅后才生效**。
 终端验证（`curl`）读取的是**设备上已加载的配置**，不是本仓库最新提交。
+→ 实测前先跑 `sh tools/loon-sim/version-probe.sh <plugin.lpx>`（版本探针，非 ✅ 时结论无效）。
 
 ```
 改代码 → push → 告知订阅地址+版本 → 用户更新+重启 Loon → 才能验证
