@@ -14,7 +14,8 @@ sh "$HERE/regression-history.sh" | tail -1
 echo ""
 echo "── ③ 全量插件 check"
 # 已知问题白名单 (真实插件问题, 待插件侧修复; 见 docs/converter.md 与 CHANGELOG)
-KNOWN="AntiRevoke/AntiRevoke.lpx Dataoke-AdBlock/Dataoke-AdBlock.lpx"
+# 已知问题白名单 (当前为空 — 死开关问题已于 2026-10-24 全部修复)
+KNOWN=""
 ok=0; bad=0; known=0
 for f in "$PLUGINS"/*/*.lpx; do
   base=$(basename "$f")

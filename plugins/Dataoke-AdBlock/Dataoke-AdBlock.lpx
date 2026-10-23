@@ -18,8 +18,8 @@ blockPushTags = switch, true, false, tag=推送标签, desc=拦截阿里云推�
 
 
 [Rule]
-# 埋点域名 (下沉自 [Rewrite]; [Rule] 段 enable 实测有效)
-DOMAIN, logcoll-v2.ffquan.cn, REJECT, enable={blockTracking}
+# 埋点域名 (下沉自 [Rewrite]; [Rule] 段无 enable 字段 — v1.x 死开关已移除, 无条件生效)
+DOMAIN, logcoll-v2.ffquan.cn, REJECT
 [Rewrite]
 # ⚠️ 原 enable={blockPushTags} 在 [Rewrite] 段无效 (实测), 改无条件; 如需关闭请注释本行
 request if ${url} ~= /^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\?/i then reject
