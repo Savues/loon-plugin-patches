@@ -14,6 +14,20 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 ---
 
+## 📘 开发指南 · Development Guide
+
+写新插件或修改现有插件前，请先阅读 **[PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)** —— 内容全部经真机实测 + HAR 抓包 + 官方文档三方验证：
+
+| 章节 | 价值 |
+|------|------|
+| **§2 段位选择决策树** | `[Rule]` / `[Script]` / `[Rewrite]` 能力差异与选择方法（**关键**：`[Rewrite]` 段不支持开关）|
+| **§7 实测方法论** | **终端可直接 curl 验证规则是否生效**，无需每次抓 HAR |
+| §6 HAR 判读速查表 | 7 种现象 → 含义 → 处理 |
+| §8 禁止事项清单 | 8 类会静默失效的写法（附真实案例）|
+| §9 发布前自检清单 | 可直接执行的命令 |
+
+---
+
 ## 插件列表 · Plugins
 
 | 插件 Plugin | 用途 Purpose | 状态 Status |
