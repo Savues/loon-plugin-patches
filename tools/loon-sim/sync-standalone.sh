@@ -22,7 +22,7 @@ cd "$TMP/repo"
 git config user.name "Savues"; git config user.email "Savues@users.noreply.github.com"
 
 # 同步代码文件（保留仓库自有的 LICENSE/package.json/.gitignore/examples）
-cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE"/README.md "$HERE"/CHANGELOG.md "$HERE"/package.json .
+cp "$HERE"/*.js "$HERE"/regression-history.sh "$HERE"/README.md "$HERE"/CHANGELOG.md "$HERE"/DEPLOY.md "$HERE"/package.json .
 # 官方文档存档目录
 if [ -d "$HERE/docs" ]; then
   rm -rf docs && cp -r "$HERE/docs" docs
