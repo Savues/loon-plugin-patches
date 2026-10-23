@@ -28,7 +28,9 @@ VER=$(grep -m1 '^#!version=' "$LPX" | cut -d= -f2)
 
 # 2. 探针域名: 从插件名派生 (每个插件在 [Rewrite] 里埋一条探针规则)
 NAME=$(basename "$LPX" .lpx | tr '[:upper:]' '[:lower:]')
-PROBE_URL="https://probe.${NAME}.loon-sim.local/version"
+PROBE_URL="$(cat "$LPX.probe" 2>/dev/null | tr -d '
+')"
+[ -n "$PROBE_URL" ] || PROBE_URL="https://probe.${NAME}.loon-sim.local/version"
 
 # 3. 探针: 该域名若已在插件 [Rewrite] 中埋了 reject(200, "$VER") → 返回版本号
 GOT=$(curl -s --max-time 5 "$PROBE_URL" 2>/dev/null || true)

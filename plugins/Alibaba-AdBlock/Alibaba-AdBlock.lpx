@@ -158,8 +158,8 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 
 [Rewrite]
-# 版本探针 (version-probe.sh 用, 勿删)
-request if ${url} ~= /probe\.alibaba-adblock\.loon-sim\.local/ then reject(200, "3.39.2")
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /gw/loon-sim\.probe\.alibaba-adblock then reject(200, "3.39.2")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
