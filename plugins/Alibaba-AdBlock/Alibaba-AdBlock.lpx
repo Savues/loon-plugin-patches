@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.38.0
+#!name=Alibaba-AdBlock v3.38.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.38.0
+#!version=3.38.1
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -185,7 +185,6 @@ request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.i
 request if ${url} ~= /^https?:\/\/dinamicx\.alibabausercontent\.com\/(?:l_pub|pub)\/(m_home_campaign_bottom_bar|m_home_2025_1111_campaign_animation_mvp_card)/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.splash\.awesome\.get/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.wireless\.home\.newface\.awesome\.(get|newget)/i then reject_dict(200)
-request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.cloudvideo\.video\.query/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/guide-acs\.m\.taobao\.com\/gw\/mtop\.taobao\.volvo\.secondfloor\.getconfig/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.fliggy\.crm\.screen\.(allresource|predict)/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.alibaba\.advertisementservice\.getadv/i then reject_dict(200)
