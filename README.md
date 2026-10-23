@@ -28,7 +28,9 @@ scripts of our own for endpoints upstream can no longer parse, and one is writte
 
 ## 🧪 本地模拟器 · loon-sim
 
-**[tools/loon-sim](tools/loon-sim/README.md)** —— 不依赖 Loon App / 真机，离线运行插件规则与脚本，
+**[tools/loon-sim](tools/loon-sim/README.md)**
+> 📦 **独立仓库**: <https://github.com/Savues/loon-sim>（发布版；本目录为开发工作区，两者通过 `tools/loon-sim/sync-standalone.sh` 同步）
+ —— 不依赖 Loon App / 真机，离线运行插件规则与脚本，
 给出与 Loon 请求记录相当的**逐条决策反馈**（哪条规则命中/为何未命中/`$argument` 实际值/`$done` 改了什么）。
 
 ```bash
