@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.38.1
+#!name=Alibaba-AdBlock v3.38.2
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.38.1
+#!version=3.38.2
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -141,12 +141,12 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
 #   (字符串证据: UCPCheckNotRequestEnd / UCPCheckFatigueFailed / homePopRemovePopWhenUCPCheckFailed)
-request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i then reject_dict(200), enable={removeUcpPopup}
+request if ${url} ~= /mtop\.taobao\.auge\.delivery\.private\.popup\.control/i && ${removeUcpPopup} == true then reject_dict(200)
 # 生活圈 LBS 推荐横幅 / 入口 (newhaven)
-request if ${url} ~= /mtop\.taobao\.newhaven\.lbsgroup\.banner\./i then reject_dict(200), enable={removePopWindow}
-request if ${url} ~= /mtop\.taobao\.newhaven\.life\.entrance\.show/i then reject_dict(200), enable={removeSmallCards}
+request if ${url} ~= /mtop\.taobao\.newhaven\.lbsgroup\.banner\./i && ${removePopWindow} == true then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.newhaven\.life\.entrance\.show/i && ${removeSmallCards} == true then reject_dict(200)
 # 社交弹窗
-request if ${url} ~= /mtop\.taobao\.social\.pop\.get/i then reject_dict(200), enable={removePopWindow}
+request if ${url} ~= /mtop\.taobao\.social\.pop\.get/i && ${removePopWindow} == true then reject_dict(200)
 
 # === 热启动开屏广告图片 (kelee 实证规则: 1080/1125 全屏尺寸广告素材, 含双11促销开屏图) ===
 request if ${url} ~= /^https?:\/\/(?:gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(?:octopus|tps)-(?:1080|1125)-\d{4}\.(?:jpg|png)_(?:1\d{3}|9\d{2})x(?:\d|1\d{3}|9\d{2})q[59]0/i then reject_dict(200)
@@ -199,22 +199,22 @@ request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/mtop\.t
 # === 开屏图接口 acs 变体 (guide-acs 之外的同接口) + 特价版运营触达 ===
 request if ${url} ~= /mtop\.taobao\.wireless\.home\.splash\.awesome\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.wireless\.home\.newface\.awesome\.(get|newget)/i then reject_dict(200)
-request if ${url} ~= /mtop\.aplatform\.ltao\.get/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.useroperation\.(getubaplaninfo|outsidetouchmatch|touchmatch)/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.userflow\.peidecision/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.interaction\.conner\.application\.moveline\.jupipe/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.aplatform\.ltao\.get/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.useroperation\.(getubaplaninfo|outsidetouchmatch|touchmatch)/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.userflow\.peidecision/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.interaction\.conner\.application\.moveline\.jupipe/i && ${blockTracking} == true then reject
 
 # === 跨 App 广告/氛围/弹窗缺口补齐 (4 款 App 二进制覆盖审计) ===
 # 闲鱼: 开屏广告体系 / 直播广告素材 / 鱼池弹窗
 request if ${url} ~= /mtop\.taobao\.idlecommerce\.splash\./i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.idle\.live\.home\.ads\.material\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.idle\.fishpool\.poplayerinfo/i then reject_dict(200)
-request if ${url} ~= /mtop\.taobao\.idlefish\.device\.log\.launch\.report/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.taobao\.idlefish\.device\.log\.launch\.report/i && ${blockTracking} == true then reject
 # 天猫: 消息箱广告 / 开屏 / 首页氛围 / CPS 链接
 request if ${url} ~= /mtop\.tmall\.messagebox\.(scr)?[Aa]dvert/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.splash\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.atmosphere\.query/i then reject_dict(200)
-request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i && ${blockTracking} == true then reject
 # 淘宝直播: 弹窗投放系统 / 直播广告任务 / 启动屏 / 搜索氛围
 # === 淘宝联盟/Moon 搜索域与营销位 ===
 request if ${url} ~= /mtop\.taobao\.union\.marquee\.query/i then reject_dict(200)
@@ -222,7 +222,7 @@ request if ${url} ~= /mtop\.alimama\.union\.copilot\.api\./i then reject_dict(20
 request if ${url} ~= /mtop\.alimama\.union\.exp\.shunt/i then reject_dict(200)
 request if ${url} ~= /mtop\.alimama\.moon\.adzone\.default\.get/i then reject_dict(200)
 # === 第三方广告监测/投放平台 (云袭 yunxish + igrowth: CPC服务广场/广告上报/埋点追踪) ===
-request if ${url} ~= /^https?:\/\/(?:[a-z0-9-]+\.)?(?:yunxish\.com|iggrowth\.cn)\//i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/(?:[a-z0-9-]+\.)?(?:yunxish\.com|iggrowth\.cn)\//i && ${blockTracking} == true then reject
 # === 直播开屏 banner + 视频广告 + 第三方广告上报 ===
 request if ${url} ~= /mtop\.taobao\.hector\.live\.openpage\.banner/i then reject_dict(200)
 request if ${url} ~= /mtop\.taobao\.livex\.vcore\.recommend\.video\.ad\.query/i then reject_dict(200)
@@ -250,65 +250,65 @@ request if ${url} ~= /mtop\.taobao\.livex\.vcore\.search\.searchAtmosphere/i the
 request if ${url} ~= /mtop\.taobao\.wireless\.homepage\.loadAtmosphere/i then reject_dict(200)
 request if ${url} ~= /mtop\.tblive\.live\.atmosphere\.resource\.list/i then reject_dict(200)
 request if ${url} ~= /mtop\.tblive\.live\.detail\.sendUserAtmosphere/i then reject_dict(200)
-request if ${url} ~= /mtop\.trace\.queue/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.trace\.queue/i && ${blockTracking} == true then reject
 # 特价版: 淘特/淘宝特价运营上报
-request if ${url} ~= /mtop\.gaia\.tjb\.growth\.union\.telattr/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.ltao\.growth\.report/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.useroperation\.reportloginresource/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.interaction\.ifgateway\.sharerewards/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.gaia\.tjb\.growth\.union\.telattr/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.ltao\.growth\.report/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.useroperation\.reportloginresource/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.interaction\.ifgateway\.sharerewards/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i && ${blockTracking} == true then reject
 
 # === 各 App 独有广告上报 (二进制差分审计: 闲鱼/天猫/特价版/直播) ===
-request if ${url} ~= /mtop\.idle\.ad\./i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.cainiao\.guoguo\.(ads\.|nbnetflow\.ads\.)/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taote\.billow2\.ads\.event\.upload/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.diantao\.game\.thirdad\.task\.detail/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.aliad\.a\.business\.ad\.event\.report/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.alibaba\.tmall\.app\.ad\.event\.report/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.idle\.ad\./i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.idle\.idleadv\./i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.cainiao\.guoguo\.(ads\.|nbnetflow\.ads\.)/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taote\.billow2\.ads\.event\.upload/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.diantao\.game\.thirdad\.task\.detail/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taobao\.ltao\.detail\.new\.taoke\.cps\.get/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.aliad\.a\.business\.ad\.event\.report/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.alibaba\.tmall\.app\.ad\.event\.report/i && ${blockTracking} == true then reject
 
 # === 广告点击/曝光/结算上报 (二进制审计补齐: ali.ad.settle / alimama trace / topshow / o2o ad / 淘金币广告) ===
-request if ${url} ~= /mtop\.ali\.ad\.settle\./i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.alimama\.(adsdk\.customize\.cps\.track|cps\.trace\.adsdk\.send|cps\.initiativeaction\.save|union\.trace2?)/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.alimama\.topshow\./i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.o2o\.ad\.(action|exposure)\.get/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.life\.ad\.click\.get/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taobao\.coin\.advertise\.click\.add/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.tmall\.jiuxi\.activity\.ad\.upstream\.report\./i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.uzjump\.business\.cps\.click\.add/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.taobao\.livex\.business\.taolive\.ad\.monitor/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.iliad\.hotitem\.subscribe/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.iliad\.interact\.common\.queryBenefitMarquee/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.com\.taobao\.tbtrace\.commission\./i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.ali\.ad\.settle\./i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.alimama\.(adsdk\.customize\.cps\.track|cps\.trace\.adsdk\.send|cps\.initiativeaction\.save|union\.trace2?)/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.alimama\.topshow\./i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.o2o\.ad\.(action|exposure)\.get/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.life\.ad\.click\.get/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taobao\.coin\.advertise\.click\.add/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.tmall\.jiuxi\.activity\.ad\.upstream\.report\./i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.uzjump\.business\.cps\.click\.add/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.taobao\.livex\.business\.taolive\.ad\.monitor/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.iliad\.hotitem\.subscribe/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.iliad\.interact\.common\.queryBenefitMarquee/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.com\.taobao\.tbtrace\.commission\./i && ${blockTracking} == true then reject
 
 # === 埋点/错误上报/APM/实验分流 —— 直接 Reject (完整 URL 匹配，照抄 Dataoke 格式) ===
-request if ${url} ~= /^https?:\/\/gm\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/log\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/px\.effirst\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/yixiu-abtest\.alicdn\.com/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/gm\.mmstat\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/log\.mmstat\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/s-gm\.mmstat\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/px\.effirst\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/abtest\.alibaba\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/tlog\.mmstat\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/yixiu-abtest\.alicdn\.com/i && ${blockTracking} == true then reject
 
 # === 广告投放/埋点域名 —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ut\.taobao\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/ems\.youku\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/hudong\.tbcdn\.cn/i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/adashx\.m\.taobao\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/h-adashx\.ut\.taobao\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/ut\.taobao\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/ossgw\.alicdn\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/ems\.youku\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/hudong\.alicdn\.com/i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/hudong\.tbcdn\.cn/i && ${blockTracking} == true then reject
 
 # === 闲鱼专用开屏/启动广告上报 —— 直接 Reject ===
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i then reject, enable={blockTracking}
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\./i && ${blockTracking} == true then reject
+request if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.idle\.idleadv\./i && ${blockTracking} == true then reject
 
 # === 万得联盟追踪 (闲鱼/淘宝主版/天猫) —— 直接 Reject (反编译发现) ===
-request if ${url} ~= /mtop\.wdcmunion\.sendCpcClickLog/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.wdcmunion\.sendCpmClickLog/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.wdcmunion\.sendCpsClickLog/i then reject, enable={blockTracking}
-request if ${url} ~= /mtop\.wdcmunion\.updateCpsTrack/i then reject, enable={blockTracking}
+request if ${url} ~= /mtop\.wdcmunion\.sendCpcClickLog/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.wdcmunion\.sendCpmClickLog/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.wdcmunion\.sendCpsClickLog/i && ${blockTracking} == true then reject
+request if ${url} ~= /mtop\.wdcmunion\.updateCpsTrack/i && ${blockTracking} == true then reject
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
 # request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com/i then reject, enable={blockTracking}
