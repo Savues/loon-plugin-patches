@@ -493,6 +493,37 @@ curl -sk -o /dev/null -w "HTTP %{http_code} size=%{size_download}\n" https://api
 
 ## 8.5. 本地模拟器离线验证 —— loon-sim
 
+完整工具链见 `tools/loon-sim/README.md`，日常开发三板斧：
+
+```bash
+cd tools/loon-sim
+
+# ① 静态校验（语法/段位/开关引用/官方字段白名单/URL Guard/对象参数约束）
+node cli.js check <plugin.lpx>
+
+# ② 决策追踪 — 模拟一次请求，逐条规则显示命中原因 + 脚本执行 + body diff
+node cli.js run <plugin.lpx> --url "https://..." --response-file body.json [--diff-full]
+
+# ③ 改完跑回归（HAR 回放 + 报表）
+node cli.js har <plugin.lpx> <capture.har> --report out.md
+```
+
+**进阶**：
+
+| 命令 | 用途 |
+|------|------|
+| `node cli.js convert <lpx> [-o out.lpx]` | 旧→新语法转换（官方转换器本地实现，自动兜底 check+parity+[URL Rewrite] 修复）|
+| `node convert-parity.js <lpx>` | 新旧解析一致性（官方转换后两版本决策必须等价）|
+| `node cli.js trigger <lpx> cron` | 直接执行 cron/签到脚本（`--mock` API 响应 + `--persist` 跨次持久化）|
+| `node cli.js init <name>` | 生成插件骨架 |
+| `node cli.js run ... --allow-net 域名 --mock m.json` | httpClient 白名单真连（严格 TLS）+ mock |
+| `sh ci.sh` | 全套 CI（自测 65 → 历史回溯 → 全量 check → parity）|
+
+**官方文档存档**：`tools/loon-sim/docs/`（plugin / script-v2 / script-legacy / script-api / rewrite-v2 / rewrite-legacy / rule / converter + 审计报告）— 语法疑问先查这里。
+
+**真机语义实证**（已验证，勿重复怀疑）：裸路径正则可用（~= 查找匹配）· 双参 `reject(200,"文本")` 可用 · `[Rule]` 无 enable 字段。
+
+---
 
 ## 9. 禁止事项清单
 
@@ -537,7 +568,11 @@ python3 tools/check_switch_keys.py
 node --check src/bundle.js
 
 # ⑦ 每个函数定义都有调用点
-# ⑧ 终端三组对照实测（§8）
+# ⑧ loon-sim 全套回归（替代手工 ②③④）
+cd tools/loon-sim && node cli.js check ../../$P && node selftest.js | tail -1 && sh ci.sh | tail -1
+
+# ⑨ 终端三组对照实测（§8）— 前提: 版本探针转绿
+sh tools/loon-sim/version-probe.sh $P   # ✅ 才可测
 ```
 
 ### 版本发布
