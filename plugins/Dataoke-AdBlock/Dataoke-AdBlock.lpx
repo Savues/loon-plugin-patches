@@ -17,8 +17,9 @@ blockTracking = switch, true, false, tag=埋点上报, desc=拦截 logcoll 行�
 blockPushTags = switch, true, false, tag=推送标签, desc=拦截阿里云推送标签绑定
 
 [Rewrite]
-request if ${url} ~= /^https?:\/\/logcoll-v2\.ffquan\.cn\/sendEvent\?/i then reject, enable={blockTracking}
-request if ${url} ~= /^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\?/i then reject, enable={blockPushTags}
+# (已下沉到 [Rule]: DOMAIN, logcoll-v2.ffquan.cn, REJECT, enable={blockTracking})
+# ⚠️ 原 enable={blockPushTags} 在 [Rewrite] 段无效 (实测), 改无条件; 如需关闭请注释本行
+request if ${url} ~= /^https?:\/\/mpush-api\.aliyun\.com\/(bind-tag|list-tag)\?/i then reject
 
 [Script]
 response if ${url} ~= /^https?:\/\/dtkapi\.ffquan\.cn\/(dtk_go_app_api\/v1\/(all-config|get-index-topic-config|app-index-topic|search-v2|dtk-ad-banner-list|dtk-ad-list|dtk-search-ad-list|new-user-excitation-guide\/red-packet-info|get-tool-config|user-tpl|get-all-market)|go_getway\/proxy\/search-v2)\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Dataoke-AdBlock/src/remove_ads.js", {${removeSplashAd}, ${removeTopBanner}, ${removeIndexBanner}, ${removeAdList}, ${removeNewUserGuide}}) with tag="大淘客去广告", requires_body=true
