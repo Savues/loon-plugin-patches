@@ -1,5 +1,5 @@
-#!name=小红书去广告 v1.0.0
-#!version=1.0.0
+#!name=小红书去广告 v1.1.0
+#!version=1.1.0
 #!desc=过滤信息流推广，移除图片及视频水印，如有异常，请先清除缓存再尝试。
 #!openUrl=https://apps.apple.com/app/id741292507
 #!author=RuCu6[https://github.com/RuCu6], fmz200[https://github.com/fmz200]
@@ -13,9 +13,15 @@
 
 [Rule]
 AND, ((PROTOCOL, QUIC), (DOMAIN-SUFFIX, xiaohongshu.com)), REJECT
+DOMAIN-SUFFIX, askdiandian.com, REJECT
 
 [Rewrite]
 request if ${url} ~= /^https:\/\/ci\.xiaohongshu\.com\/system_config\/watermark/i then reject_img(200)
+
+# === 点点 AI / agentspark 全屏蔽 (2026-10-24 二进制+HAR 审计) ===
+request if ${url} ~= /\/api\/sns\/agentspark\//i then reject_dict(200)
+request if ${url} ~= /\/api\/sns\/inspiration\//i then reject_dict(200)
+request if ${url} ~= /diandian\.xiaohongshu\.com/i then reject_dict(200)
 
 request if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(?:get_style|open|submit_action)/i then reject_dict(200)
 request if ${url} ~= /^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\?/i then reject_dict(200)
