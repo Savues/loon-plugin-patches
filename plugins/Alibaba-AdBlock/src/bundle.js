@@ -1753,6 +1753,45 @@ function filterLiveVideoBottomCards(body) {
   } catch (e) { return null; }
 }
 
+
+// ★ 一淘: 首页搜索框滚词典 + 搜索中间页(搜索发现) 清洗
+// home.metax.query → headerList[].fields.data.searchDefaultText (滚词典, searchText 是点击载体须保结构)
+// search.middle.query → search_discovery_sec 的 termList (搜索发现词表; 保留 history_sec)
+function filterEtaoSearch(body, url) {
+  try {
+    const obj = JSON.parse(body);
+    let changed = false;
+    const dd = obj?.data?.data;
+    if (!dd) return null;
+    if (url.indexOf("home.metax.query") >= 0) {
+      // 首页搜索框滚词典
+      const hl = dd.headerList;
+      if (Array.isArray(hl)) {
+        for (const h of hl) {
+          const sd = h?.fields?.data?.searchDefaultText;
+          if (Array.isArray(sd) && sd.length) {
+            for (const item of sd) {
+              if (item.searchText) { item.searchText = ""; changed = true; }
+              // URL 参数里的词也清 (hint/query 回显)
+              if (item.middlePageUrl) { item.middlePageUrl = item.middlePageUrl.replace(/([?&]hint=)[^&]*/, '$1'); changed = true; }
+              if (item.resultPageUrl) { item.resultPageUrl = item.resultPageUrl.replace(/([?&]query=)[^&]*/, '$1'); changed = true; }
+            }
+          }
+        }
+      }
+    }
+    if (url.indexOf("search.middle.query") >= 0) {
+      // 搜索发现词表清空 (保留搜索历史 history_sec; unwEvents 埋点事件里的词一并删)
+      const disc = dd["search_discovery_sec_etao_search"];
+      if (disc) {
+        if (disc?.fields?.termList && disc.fields.termList.length) { disc.fields.termList = []; changed = true; }
+        if (disc.unwEvents && Object.keys(disc.unwEvents).length) { disc.unwEvents = {}; changed = true; }
+      }
+    }
+    return changed ? JSON.stringify(obj) : null;
+  } catch (e) { return null; }
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alibaba-AdBlock] No response body");
@@ -1770,6 +1809,14 @@ function main() {
     if (liveSearch !== null && liveSearch !== body) {
       $done({ body: liveSearch });
       return;
+    }
+  }
+
+  // 一淘: 首页滚词典 + 搜索发现
+  if (url.indexOf("mtop.etao.home.metax.query") >= 0 || url.indexOf("mtop.etao.search.middle.query") >= 0) {
+    if (isEnabled("removeSearchWords")) {
+      const es = filterEtaoSearch(body, url);
+      if (es !== null) { $done({ body: es }); return; }
     }
   }
 
