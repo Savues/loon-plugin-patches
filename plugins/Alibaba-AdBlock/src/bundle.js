@@ -166,16 +166,6 @@ function filterTACServiceSmartCall(body) {
   return body;
 }
 
-function filterTAC(body, url) {
-  if (!isEnabled("removeTAC")) return body;
-  if (url.includes("tac.service.call") && !url.includes("smart.call")) {
-    return filterTACServiceCall(body);
-  }
-  if (url.includes("tac.service.smart.call")) {
-    return filterTACServiceSmartCall(body);
-  }
-  return body;
-}
 
 // ============================================
 // MetaX 首页/Feed 过滤 (Moon)
@@ -303,45 +293,8 @@ function filterMetaxFeed(body, config) {
   return body;
 }
 
-function filterMetaxHomepage(body, config) {
-  if (!isEnabled("removeSmallCards") && !isEnabled("removeFeedKeywords")) return body;
-  let newBody = filterMetaxHotwords(body, config);
-  newBody = filterMetaxFeed(newBody, config);
-  return newBody;
-}
 
-// ============================================
-// 私域动态/关注会员过滤 (Moon)
-// ============================================
-function filterPrivateDomain(body, config) {
-  if (!isEnabled("removePrivateDomain")) return body;
-  const data = safeParse(body);
-  if (!data?.data) return body;
-  let modified = false;
-  if (data.followMembers?.resultList && Array.isArray(data.followMembers.resultList) && data.followMembers.resultList.length > 0) {
-    console.log("[Alibaba-AdBlock] Clearing private domain followMembers (" + data.followMembers.resultList.length + " items)");
-    data.followMembers.resultList = [];
-    data.followMembers.totalCount = "0";
-    modified = true;
-  }
-  if (modified) return JSON.stringify(data);
-  return body;
-}
 
-// ============================================
-// 跨马灯过滤 (Moon)
-// ============================================
-function filterMarquee(body) {
-  if (!isEnabled("removeSmallCards")) return body;
-  const data = safeParse(body);
-  if (!data?.data?.result || !Array.isArray(data.data.result)) return body;
-  if (data.data.result.length > 0) {
-    console.log("[Alibaba-AdBlock] Clearing marquee result (" + data.data.result.length + " items)");
-    data.data.result = [];
-    return JSON.stringify(data);
-  }
-  return body;
-}
 
 // ============================================
 // === 新增：淘宝开屏广告处理 (kelee.one Taobao_remove_ads.js 移植) ===
@@ -1444,83 +1397,7 @@ function latin1ToBytes(s) {
   for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i) & 0xFF;
   return u8;
 }
-function blankJsonValue(s, key, mode) {
-  // 兼容两种形态: 普通 JSON "key":"value" 与嵌套字符串内的转义形式 \"key\":\"value\"
-  // 使用搜索偏移, 避免替换后重复命中同一处 (否则只处理第一个出现位置)
-  const plain = '"' + key + '":"';
-  const escMarker = '\\"' + key + '\\":\\"';
-  let changed = false;
-  let from = 0;
-  for (let guard = 0; guard < 40; guard++) {
-    let idx = s.indexOf(plain, from);
-    let esc = false;
-    if (idx < 0) {
-      idx = s.indexOf(escMarker, from);
-      esc = true;
-      if (idx < 0) break;
-    }
-    const marker = esc ? escMarker : plain;
-    const vStart = idx + marker.length;
-    let end = vStart;
-    while (end < s.length) {
-      const c = s[end];
-      if (!esc && c === "\\") { end += 2; continue; }
-      if (c === '"') break;
-      end++;
-    }
-    if (end >= s.length) break;
-    // 转义形式下结束引号前的反斜杠必须保留 (否则嵌套 JSON 失效)
-    let valEnd = end;
-    if (esc && end > vStart && s[end - 1] === "\\") valEnd = end - 1;
-    const val = s.slice(vStart, valEnd);
-    if (!val.length) { from = vStart + 1; continue; }
-    let rep;
-    if (mode === "url" && val.indexOf("http") === 0) {
-      const p = val.indexOf("//") + 2;
-      rep = val.slice(0, p) + new Array(val.length - p + 1).join("x");
-    } else {
-      rep = new Array(val.length + 1).join(" ");
-    }
-    s = s.slice(0, vStart) + rep + s.slice(valEnd);
-    from = vStart + rep.length;
-    changed = true;
-  }
-  return s;
-}
 
-// 布尔开关长度中立设置 (orange 线上格式为字符串值):
-//   字符串形式 "key":"false"(7) <-> "key":"true "(7)  /  "key":"true"(6) <-> "key":"fals "(6)
-//   布尔形式   "key":false(5)   -> "key":true  + 尾随空格(5)   (JSON 空白合法)
-//               "key":true(4)    -> "key":null(4)               (null 为假值, 长度不变)
-function setJsonBool(s, key, wantTrue) {
-  const q = '"';
-  const forms = wantTrue
-    ? [
-        // 字符串形式: "false"(7) -> "true "(7); boolValue 按首字符判定为 YES
-        { m: q + key + q + ':"false"', r: q + key + q + ':"true "' },
-        // 布尔形式: false(5) -> true + 尾随空格(5), JSON 空白合法
-        { m: q + key + q + '":false', r: q + key + q + '":true ' },
-        { m: '\\"' + key + '\\":\\"false\\"', r: '\\"' + key + '\\":\\"true \\"' }
-      ]
-    : [
-        // 字符串形式: "true"(6) -> "fals"(6) 等长; boolValue 与 isEqualToString:@"true" 均为假
-        { m: q + key + q + ':"true"', r: q + key + q + ':"fals"' },
-        // 转义形式同样等长
-        { m: '\\"' + key + '\\":\\"true\\"', r: '\\"' + key + '\\":\\"fals\\"' }
-        // 注意: 布尔形式 true->null 省略, NSNull 响应 boolValue 会崩溃
-      ];
-  for (const f of forms) {
-    const idx = s.indexOf(f.m);
-    if (idx < 0) continue;
-    if (f.r.length !== f.m.length) {
-      console.log("[Alibaba-AdBlock] bool set length mismatch, skip:", key);
-      continue;
-    }
-    console.log("[Alibaba-AdBlock] orange bool set:", key, "->", wantTrue ? "true" : "false");
-    return s.slice(0, idx) + f.r + s.slice(idx + f.m.length);
-  }
-  return s;
-}
 
 const ORANGE_SCRUB_TARGETS = [
   ["searchDoorVoiceHint", "text"],
