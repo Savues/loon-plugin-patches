@@ -16,7 +16,7 @@ URL-REGEX, "^http:\/\/\w{32}\.jddebug\.com\/diagnose\?", REJECT
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /gw/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.1")
+request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.1")
 request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(searchBoxWord|stationPullService|uniformRecommend\d?)/i then reject_dict(200)
 
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=basicConfig/i then response.json.replace(["data.JDMessage.socketmonitor.isSocketEstablishedAhead", "data.JDMessage.socketmonitor.isSocketReport", "data.JDHttpToolKit.httpdns.httpdns"], [0, 0, 0])
@@ -27,4 +27,4 @@ response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action/i then script(
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(deliverLayer|getTabHomeInfo|myOrderInfo|orderTrackBusiness|personinfoBusiness|start|welcomeHome)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/JD-AdBlock/src/JD_remove_ads.js") with tag="移除京东广告", requires_body=true
 
 [MitM]
-hostname=api.m.jd.com
+hostname=api.m.jd.com, acs.m.taobao.com
