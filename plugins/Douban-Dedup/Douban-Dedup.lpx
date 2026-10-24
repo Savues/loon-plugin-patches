@@ -1,4 +1,6 @@
 #!name=豆瓣开屏广告屏蔽
+#!version=1.0.1
+#!date=2026-10-24
 #!desc=豆瓣开屏广告屏蔽，只能屏蔽开屏，后期还要改duration
 #!author=honue
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup

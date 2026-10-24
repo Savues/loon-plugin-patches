@@ -1,13 +1,12 @@
-#!name=Alibaba-AdBlock v3.48.3
+#!name=Alibaba-AdBlock v3.49.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.48.3
+#!version=3.49.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
 [Argument]
 # === 全局开关 ===
-blockTracking = switch, true, false, tag=🔒埋点/APM/实验分流⚠️无效(域名规则), desc=拦截 gm.mmstat.com / log.mmstat.com / px.effirst.com / abtest.alibaba.com / tlog.mmstat.com ｜ ⚠️本插件中相关域名规则位于 [Rule] 段, Loon 该段不支持开关 → 规则无条件生效, 此开关无实际作用
 
 # === 分类开关 (所有 App 生效) ===
 removeSplashAd = switch, true, false, tag=🚫开屏广告, desc=拦截 open_screen_site (开屏图/跳转/倒计时)
@@ -27,7 +26,6 @@ fishRemoveHomeAds = switch, true, false, tag=🐟闲鱼-首页广告位, desc=�
 fishRemoveSearchAds = switch, true, false, tag=🐟闲鱼-搜索广告, desc=拦截 idlemtopsearch.search(广告位) + .search.shade + .search.discover(MarketHotSpot) + .item.search.activate(热词)
 fishRemoveMyPage = switch, true, false, tag=🐟闲鱼-我的页面, desc=拦截 idle.user.page.my.adapter(我的页精简) + idle.trade.full.info(订单状态组件)
 liveRemoveAds = switch, true, false, tag=📺直播-广告浮层/信息流, desc=淘宝直播广告: skylar_hummer_* 浮层弹窗 + livex.grow.* 增长位 + vcore.feeds.market.query 信息流AdFeed项 + livex.business.ad.* 广告位配置
-removeUcpPopup = switch, true, false, tag=🚫淘宝-UCP弹窗闸门⚠️无效(无条件), desc=拦截 auge.delivery.private.popup.control (UCP全局弹窗控制); 拦掉后弹窗因 checkResult=false 被抑制; ⚠️同时影响 tabbar 角标, 若首页/角标异常请关闭此开关 ｜ ⚠️对应规则在 [Rewrite]
 
 # === 淘宝/天猫专属开关 (预留) ===
 # taobaoRemoveLiveAds = switch, true, false, tag=🛒淘宝-直播间广告, desc=拦截淘宝直播间广告
@@ -163,7 +161,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.48.3")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.49.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -397,7 +395,6 @@ request if ${url} ~= /mtop\.wdcmunion\.sendCpsClickLog/i then reject
 request if ${url} ~= /mtop\.wdcmunion\.updateCpsTrack/i then reject
 
 # 可选：保留阿里妈妈其他正常 API 不解密（如需可取消注释）
-# request if ${url} ~= /^https?:\/\/afpapi\.alimama\.com/i then reject, enable={blockTracking}
 
 
 [Task]
