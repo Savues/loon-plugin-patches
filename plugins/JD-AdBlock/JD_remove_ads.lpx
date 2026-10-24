@@ -1,5 +1,5 @@
-#!name=京东去广告 v1.1.0
-#!version=1.1.0
+#!name=京东去广告 v1.1.1
+#!version=1.1.1
 #!desc=移除京东开屏广告，精简我的页面产品推广。
 #!openUrl=https://apps.apple.com/app/id414245413
 #!author=RuCu6[https://github.com/RuCu6], Maasea[https://github.com/Maasea]
@@ -16,13 +16,13 @@ URL-REGEX, "^http:\/\/\w{32}\.jddebug\.com\/diagnose\?", REJECT
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /gw/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.0")
+request if ${url} ~= /gw/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.1")
 request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(searchBoxWord|stationPullService|uniformRecommend\d?)/i then reject_dict(200)
 
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=basicConfig/i then response.json.replace(["data.JDMessage.socketmonitor.isSocketEstablishedAhead", "data.JDMessage.socketmonitor.isSocketReport", "data.JDHttpToolKit.httpdns.httpdns"], [0, 0, 0])
 
 [Script]
-response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?(?:$|rnd)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/JD-AdBlock/src/xview2_config.js") with tag="xview弹窗图层清洗", requires_body=true
+response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/JD-AdBlock/src/xview2_config.js") with tag="xview弹窗图层清洗", requires_body=true
 
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(deliverLayer|getTabHomeInfo|myOrderInfo|orderTrackBusiness|personinfoBusiness|start|welcomeHome)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/JD-AdBlock/src/JD_remove_ads.js") with tag="移除京东广告", requires_body=true
 

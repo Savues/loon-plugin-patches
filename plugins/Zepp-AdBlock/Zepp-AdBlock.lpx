@@ -1,0 +1,27 @@
+#!name=Zepp-AdBlock v1.0.0
+#!desc=Zepp(华米)去广告 · 开屏广告(startpage_ad/LaunchAd体系) + 运动页横幅(sport_ad) + 训练视频广告(training_video_ad) + 高德广告SDK(adiu)
+#!version=1.0.0
+#!author=Savues
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://img-cdn.zepp.com/equipment/appSetting/icon.png
+
+[Argument]
+[Rule]
+# 高德广告/追踪 SDK (Zepp 内嵌 AMap)
+DOMAIN, adiu.amap.com, REJECT
+DOMAIN-SUFFIX, logs.amap.com, REJECT
+
+[MITM]
+hostname = api-mifit-cn.zepp.com, api-mifit-cn2.zepp.com, api-mifit-cn3.zepp.com, api-mifit.zepp.com, api-mifit-us.zepp.com
+
+[Rewrite]
+# === 开屏广告: LaunchAd 体系数据源 (LaunchAdNetwork.fetchLaunchAdDatas, 响应为广告数组: bg_img_url/ad_type/showCount) ===
+# HAR 实证: GET /discovery/watch/cards/startpage_ad → 当前无投放返回 [], 有投放时数组含开屏素材
+# 空响应容忍性: App 日志 "datas is not array / is empty" → 按无广告处理, 安全
+request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/cards\/startpage_ad/ then reject_dict(200)
+
+# === 运动页横幅广告 (HMSportAdvertisementManager, advertId/advert_second) + 训练视频广告 ===
+request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/discovery\/(sport_ad|training_video_ad)/ then reject_dict(200)
+
+# === 探针 (版本观测, 详见仓库 workflow) ===
+request if ${url} ~= /loon-sim\.probe\.zepp_remove_ads/i then reject(200, "1.0.0")

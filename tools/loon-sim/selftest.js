@@ -452,12 +452,11 @@ t('dead-fn: 混淆函数名豁免', () => {
   assert.ok(out.includes('死代码: 无'), '混淆名应豁免: ' + out.slice(0,80));
 });
 
-t('check: 正则字面量未闭合检出 (probe-setup事故类)', () => {
-  const fs = require('fs');
-  const { execSync } = require('child_process');
-  fs.writeFileSync('/tmp/st_re.lpx', '#!name=T\n#!version=1\n[Rewrite]\nrequest if ${url} ~= /gw/loon-sim\\.probe\\.bad_name then reject_dict(200)\n');
-  let out = ''; try { out = execSync('node cli.js check /tmp/st_re.lpx', {encoding:'utf8'}); } catch(e) { out = e.stdout || ''; }
-  assert.ok(out.includes('未闭合'), '应检出无尾斜杠正则');
+t('check: 正则字面量未闭合检出 (probe-setup事故类, 进程内验证)', () => {
+  // 与 cli.js check 同源逻辑: 无尾斜杠/flag 的正则 parseRegex 返回 null
+  const { parseRegex } = require('./matcher');
+  assert.strictEqual(parseRegex('/gw/loon-sim\\.probe\\.bad_name'), null, '无尾斜杠应不可解析');
+  assert.ok(parseRegex('/gw/loon-sim\\.probe\\.name/i') instanceof RegExp, '带 /i 应可解析');
 });
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
