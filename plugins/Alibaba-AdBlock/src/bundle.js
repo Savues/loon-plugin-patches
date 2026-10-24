@@ -1814,7 +1814,7 @@ function main() {
 
   // 一淘: 首页滚词典 + 搜索发现
   if (url.indexOf("mtop.etao.home.metax.query") >= 0 || url.indexOf("mtop.etao.search.middle.query") >= 0) {
-    if (isEnabled("removeSearchWords")) {
+    if (isEnabled("removeSearchWords") || isEnabled("removeSmallCards")) {
       const es = filterEtaoSearch(body, url);
       if (es !== null) { $done({ body: es }); return; }
     }
@@ -1861,7 +1861,7 @@ function main() {
 
   // 天猫首页容器: tabHeader.search 预置词清空 (placeholder 接口外的第二通道)
   if (url.indexOf("mtop.tmall.infinity.gateway.execute") >= 0) {
-    if (isEnabled("removeSearchWords")) {
+    if (isEnabled("removeSearchWords") || isEnabled("removeSmallCards")) {
       const tmClean = filterTmallInfinity(body);
       if (tmClean !== null) { $done({ body: tmClean }); return; }
     }
