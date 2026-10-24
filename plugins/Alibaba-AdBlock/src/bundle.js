@@ -1686,8 +1686,7 @@ function scrubOrangeConfig(bodyBytes) {
 function filterTmallInfinity(body) {
   try {
     const obj = JSON.parse(body);
-    const att = obj?.data?.attachment;
-    if (!att) return null;
+    const att = obj?.data?.attachment || {};   // 我猫页 execute 无 attachment, 不能提前退出
     let changed = false;
     const th = att.tabHeader?.fields;
     if (th && th.search && typeof th.search === 'object' && th.search.query) {
@@ -1702,6 +1701,52 @@ function filterTmallInfinity(body) {
     if (fsc && typeof fsc === 'object' && fsc.query) {
       fsc.query = ""; fsc.refresh = "false"; changed = true;
     }
+    // 我猫/首页促销券条 (tm_my_promotion_* 容器的 scrollitems.gooditems — 苹果惊喜券等领取卡)
+    const dd = obj?.data?.data;
+    if (dd && typeof dd === 'object') {
+      for (const k of Object.keys(dd)) {
+        const c = dd[k];
+        if (c && typeof c === 'object' && typeof c.type === 'string' && c.type.indexOf('tm_my_promotion') === 0) {
+          delete dd[k]; changed = true;
+        }
+      }
+    }
+    return changed ? JSON.stringify(obj) : null;
+  } catch (e) { return null; }
+}
+
+
+// ★ 直播频道入口: limitRightList 权益提示条清空 (蜜蜂惊喜社等蜂群营销)
+function filterLiveColumnEntry(body) {
+  try {
+    const obj = JSON.parse(body);
+    const d = obj?.data?.data;
+    if (!d) return null;
+    let changed = false;
+    if (d.limitRightTips && d.limitRightTips.limitRightList && d.limitRightTips.limitRightList.length) {
+      d.limitRightTips.limitRightList = [];
+      changed = true;
+    }
+    return changed ? JSON.stringify(obj) : null;
+  } catch (e) { return null; }
+}
+
+// ★ 直播视频流: bottomCardList 带货卡清空 (马上抢按钮卡, dataList[].data.customizedInfo)
+function filterLiveVideoBottomCards(body) {
+  try {
+    const obj = JSON.parse(body);
+    let changed = false;
+    const walk = (o) => {
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      if (o && typeof o === 'object') {
+        const ci = o.customizedInfo;
+        if (ci && Array.isArray(ci.bottomCardList) && ci.bottomCardList.length) {
+          ci.bottomCardList = []; changed = true;
+        }
+        for (const k of Object.keys(o)) walk(o[k]);
+      }
+    };
+    walk(obj);
     return changed ? JSON.stringify(obj) : null;
   } catch (e) { return null; }
 }
@@ -1726,6 +1771,16 @@ function main() {
     }
   }
 
+  // 淘宝直播: 频道入口权益条 (蜜蜂惊喜社等)
+  if (url.indexOf("livex.vcore.live.column.entry") >= 0) {
+    const lc = filterLiveColumnEntry(body);
+    if (lc !== null) { $done({ body: lc }); return; }
+  }
+  // 淘宝直播: 视频流带货卡 (bottomCardList 马上抢)
+  if (url.indexOf("vcore.detail.video") >= 0 || url.indexOf("recommend.video.explore") >= 0 || url.indexOf("vcore.series.videos") >= 0) {
+    const vb = filterLiveVideoBottomCards(body);
+    if (vb !== null) { $done({ body: vb }); return; }
+  }
   // 淘宝直播: 首页视频流广告 (livexshow.homepage.*)
   if (url.indexOf("livexshow.homepage.") >= 0) {
     const lf = filterLiveHomeFeed(body);
