@@ -25,7 +25,8 @@ host = mitm_m.group(1).split(',')[0].strip()
 # v1 .local 探针 (清理旧埋点)
 s = re.sub(r'^# 版本探针 \(version-probe\.sh 用, 勿删\)\nrequest if \$\{url\} ~= /probe\\\.[^\n]*\n', '', s, flags=re.M)
 
-probe_path = '/gw/loon-sim\\.probe\\.' + name + '/i'
+probe_base = '/gw/loon-sim\\.probe\\.' + name
+probe_path = probe_base + '/i'
 pat = re.compile(r'(?:^# 版本探针 v2 \(version-probe\.sh 用, 勿删\)\n)?request if \$\{url\} ~= ' + re.escape(probe_path) + r'[^ ]* then reject\(200, "[^"]*"\)', re.M)
 rule = ('# 版本探针 v2 (version-probe.sh 用, 勿删)\n'
         'request if ${url} ~= ' + probe_path + ' then reject(200, "' + ver + '")')
