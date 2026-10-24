@@ -1,5 +1,5 @@
-#!name=什么值得买去广告 v1.3.0
-#!version=1.3.0
+#!name=什么值得买去广告 v1.4.0
+#!version=1.4.0
 #!desc=移除开屏广告、信息流广告、各类横幅广告、搜索页广告、文章内广告，移除活动皮肤、精简我的页面。
 #!openUrl=https://apps.apple.com/app/id518213356
 #!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -34,6 +34,8 @@ request if ${url} ~= /dsp\.ads\.umeng\.com\/api\/v2\/(?:evt|rq)/i then reject_di
 # 红包营销分享
 request if ${url} ~= /hongbao_(?:pintu|zhuanti)_share/i then reject_dict(200)
 
+# 微信通知开通弹窗 (降价提醒/预约抢购/福利发放话术)
+response if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/init_user/i then response.json.delete("data.wechat_notice_service_popup")
 response if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/update$/i then response.json.replace(["data.silence_local_push", "data.baichuan_redirect_switch"], [0, 0])
 
 response if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/update$/i then response.json.delete(["data.silence_local_push_msg", "data.video_cache_num_configs", "data.haojia_widget", "data.widget", "data.operation_float"])
