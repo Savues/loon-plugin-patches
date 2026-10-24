@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.47.2
+#!name=Alibaba-AdBlock v3.47.3
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.47.2
+#!version=3.47.3
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -162,7 +162,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.47.2")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.47.3")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
