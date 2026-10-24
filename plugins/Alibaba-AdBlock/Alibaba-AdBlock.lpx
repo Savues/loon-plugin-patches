@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.48.0
+#!name=Alibaba-AdBlock v3.48.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.48.0
+#!version=3.48.1
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -162,7 +162,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.48.0")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.48.1")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -298,6 +298,9 @@ request if ${url} ~= /mtop\.tmall\.rpm\.taste\./i then reject_dict(200)
 request if ${url} ~= /mtop\.fc\.resource\.float\.protocol\.get/i then reject_dict(200)
 # 浮点红包动画 (首页/商详/购物车 漂浮红包)
 request if ${url} ~= /mtop\.tmall\.fc\.resource\.floatingpoint\.get/i then reject_dict(200)
+# === 天猫: 摇钱树悬浮窗 (yqs=yaoqianshu, 我猫页 tips.fudian 入口 + ssp feeds + spine 素材) ===
+request if ${url} ~= /mtop\.tmall\.yqs\.ssp\./i then reject_dict(200)
+request if ${url} ~= /\/fc-interactive\/static-assets\/[^/]+\/yqs\//i then reject
 # 消息盒子弹窗素材 + 顶卡 (营销消息聚合, 非IM)
 request if ${url} ~= /mtop\.fc\.touch\.msgbox\.materials\.get/i then reject_dict(200)
 request if ${url} ~= /mtop\.fc\.touch\.msgbox\.topcard\.get/i then reject_dict(200)

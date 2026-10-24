@@ -1808,6 +1808,42 @@ function filterEtaoSearch(body, url) {
   } catch (e) { return null; }
 }
 
+
+// ★ 天猫 tacdata (我猫页配置): 清洗 tips 浮点入口 (摇钱树等 fudian 悬浮球)
+// 结构: data.<configId>.data.Page_MyTmall[N].tips.extra = {icon, link(moneytree/fudian), ...}
+function filterTmallTacdata(body) {
+  try {
+    const obj = JSON.parse(body);
+    const d = obj?.data;
+    if (!d || typeof d !== 'object') return null;
+    let changed = false;
+    for (const cid of Object.keys(d)) {
+      const pages = d[cid]?.data;
+      if (!pages || typeof pages !== 'object') continue;
+      for (const pk of Object.keys(pages)) {
+        const arr = pages[pk];
+        if (!Array.isArray(arr)) continue;
+        // tips 入口 (摇钱树悬浮球 icon+link)
+        for (const item of arr) {
+          const tips = item?.tips;
+          if (tips && tips.extra && typeof tips.extra === 'object') {
+            const link = String(tips.extra.link || '') + String(tips.extra.icon || '');
+            if (/fudian|moneytree|nongchang|yqs/i.test(link) || /fudian/.test(String(tips.extra.exParams || ''))) {
+              item.tips = {}; changed = true;
+            }
+          }
+          // utParams 浮点位配置 (各类 fudian 运营位)
+          if (item && typeof item === 'object' && /fudian/i.test(String(item.utParams || ''))) {
+            pages[pk] = pages[pk].filter(x => x !== item); changed = true;
+          }
+        }
+        if (pages[pk] && pages[pk].length === 0) delete pages[pk];
+      }
+    }
+    return changed ? JSON.stringify(obj) : null;
+  } catch (e) { return null; }
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alibaba-AdBlock] No response body");
@@ -1833,6 +1869,14 @@ function main() {
     if (isEnabled("removeSearchWords") || isEnabled("removeSmallCards")) {
       const es = filterEtaoSearch(body, url);
       if (es !== null) { $done({ body: es }); return; }
+    }
+  }
+
+  // 天猫: tacdata 我猫页浮点入口 (摇钱树悬浮球)
+  if (url.indexOf("fc.resource.tacdata.get") >= 0) {
+    if (isEnabled("removePopWindow") || isEnabled("removeSplashAd")) {
+      const tc = filterTmallTacdata(body);
+      if (tc !== null) { $done({ body: tc }); return; }
     }
   }
 
