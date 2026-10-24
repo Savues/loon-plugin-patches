@@ -24,7 +24,7 @@
 终端 curl 测的是**设备已加载的配置**，不是仓库最新提交。
 ```bash
 sh tools/loon-sim/version-probe.sh plugins/<Name>/<Name>.lpx
-# exit 0 = ✅ 可测 | exit 2 = 设备旧版（结论作废）| exit 3 = 未埋探针
+# exit 0 = ✅ 可测 | exit 1 = 用法错误 | exit 2 = 设备旧版（结论作废）| exit 3 = 未埋探针
 ```
 探针不绿时第一怀疑对象是**「订阅更新未生效」**（Loon 更新存在缓存窗口），不是规则语法。
 新插件首次发版先跑 `version-probe.sh <lpx> setup` 埋探针。
@@ -84,8 +84,13 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 | 8 | Loon 订阅更新存在「已点更新但未生效」窗口 → 一切以探针为准 | 2026-10-24 三次穿透复盘 |
 | 9 | CDN（GitHub raw）缓存 5 分钟 → push 后别急着让用户更新 | etag 实测 |
 | 10 | 插件 [Rule] 策略只能 DIRECT/PROXY/REJECT 系 | 官方 plugin.md |
+| 11 | **bundle.js 加函数 ≠ 生效** — 三件套缺一不可: ①函数定义 ②main 分发 ③**lpx [Script] 规则入口** | 摇钱树悬浮窗三轮排查 (v3.48.0~3.48.3) |
+| 12 | **改开关默认值对已持久化的用户设置无效** — 老开关复活时查历史默认值; with enable 去掉改脚本内判断; 功能不依赖单一开关 | v3.47 系列事故 |
+| 13 | **同一功能在不同 App/页面用不同通道和容器名** — 清洗规则用前缀族匹配; 每个App的通道独立判定不能类推 (天猫滚词典=HTTP, 特价版=ACCS) | 2026-10-24 多起 |
+| 14 | **ACCS 通道 HTTP 层不可达** (淘宝/特价版滚词典、一淘拍图入口等) — 插件侧拦干净 HTTP 通道即为终局 | 多起沙盒实锤 |
+| 15 | **功能主干接口只能清洗不能 reject** — 首页容器 (天猫 infinity.gateway / 一淘 home.metax / tacdata) reject = 白屏 | 一淘首页白屏 v3.46 事故 |
 
-完整禁止事项（9 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
+完整禁止事项（12 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
 
 ## 6. 代码规范
 
