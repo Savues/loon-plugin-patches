@@ -29,6 +29,28 @@ sh tools/loon-sim/version-probe.sh plugins/<Name>/<Name>.lpx
 探针不绿时第一怀疑对象是**「订阅更新未生效」**（Loon 更新存在缓存窗口），不是规则语法。
 新插件首次发版先跑 `version-probe.sh <lpx> setup` 埋探针。
 
+#### 探针标准形态（golden sample，勿凭记忆手写）
+
+```ini
+# [Rewrite] 段内（正则必须闭合 — 尾 / 或 /i；用 probe-setup.py 生成，勿手写）：
+request if ${url} ~= /^https?:\/\/app-api\.smzdm\.com\/gw\/loon-sim\.probe\.smzdm_remove_ads/i then reject(200, "1.4.0")
+```
+
+- 路径模式：`/gw/loon-sim.probe.<插件名>`（借插件已 MITM 的域名）
+- `reject(200, "版本号")` 的版本号必须与 `#!version` 一致（check v1.6.9 会校验）
+- **闭合裸路径**（`/gw/.../i`）真机同样可用（同插件 A/B 实证）；**不闭合**（缺尾 /）永不匹配
+- A/B 对照探针命名 `probe.*_bare` — check 自动豁免版本校验
+
+#### 探针穿透排查顺序（症状相同的三种真因）
+
+| 步骤 | 动作 | 依据 |
+|------|------|------|
+| 1 | 等 5-10 分钟让用户再更新一次订阅 | **订阅刷新延迟**（最高频，JD/SMZDM 均复现）|
+| 2 | 跑 `check`（v1.6.8+ 自动查闭合/同步）| 语法错误 |
+| 3 | 仍穿透 → 同插件加 `_bare` 探针做真 A/B | 形态差异（今日实证：不存在）|
+
+> 同机器同时刻跨插件"一绿一穿"**不能**归因规则形态 — 变量不止一个。真 A/B 必须同插件内。
+
 ## 2. 三步验证工作流（每次改动必跑）
 
 ```bash
