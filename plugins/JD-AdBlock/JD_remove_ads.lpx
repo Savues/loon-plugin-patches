@@ -15,6 +15,8 @@
 URL-REGEX, "^http:\/\/\w{32}\.jddebug\.com\/diagnose\?", REJECT
 
 [Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /gw/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.0")
 request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(searchBoxWord|stationPullService|uniformRecommend\d?)/i then reject_dict(200)
 
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=basicConfig/i then response.json.replace(["data.JDMessage.socketmonitor.isSocketEstablishedAhead", "data.JDMessage.socketmonitor.isSocketReport", "data.JDHttpToolKit.httpdns.httpdns"], [0, 0, 0])
