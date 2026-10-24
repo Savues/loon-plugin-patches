@@ -3,11 +3,11 @@
 > **版本 v1.3.0** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
-基于 kelee.one 上游（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
+上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
 
 | | 中文 | English |
 |---|---|---|
-| 上游 | kelee.one `RedPaper_remove_ads`（2026-10-02 版），脚本原作 RuCu6/fmz200 | kelee.one upstream, script by RuCu6/fmz200 |
+| 来源 | 上游拉取本地化，脚本原作 RuCu6/fmz200 | Localized |
 | 改动 | 见下方「本仓库改动」 | See "Changes" below |
 | 脚本 | `RedPaper_remove_ads.js`（上游清洗+水印）· `RedPaper_switch_config.js`（通知弹窗，自研）· `RedPaper_flag_exp.js`（点点旗标，自研） | 3 scripts |
 | 审计依据 | discover 9.51.1 主二进制（1404 API，见逆向仓库 Xiaohongshu/） | Binary-audited |
