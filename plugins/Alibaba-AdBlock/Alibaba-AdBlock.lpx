@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.46.0
+#!name=Alibaba-AdBlock v3.46.1
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.46.0
+#!version=3.46.1
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -161,7 +161,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.46.0")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.46.1")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -330,8 +330,7 @@ request if ${url} ~= /mtop\.etao\.fe\.chaojisheng\.draw\.hongbao/i then reject_d
 request if ${url} ~= /mtop\.etao\.(?:fe\.seller|follow|member)\.coupon\.(?:batch\.)?draw/i then reject_dict(200)
 # 隐藏促销 H5
 request if ${url} ~= /mtop\.etao\.hidden\.promotion\.h5\.apply/i then reject_dict(200)
-# 首页 metax 营销容器 + 分享裂变
-request if ${url} ~= /mtop\.etao\.home\.metax\.query/i then reject_dict(200)
+# 分享裂变 (⚠️ home.metax.query 是一淘首页主数据源, 不能拦 — v3.46 误杀致首页白屏, 已回滚)
 request if ${url} ~= /mtop\.alimama\.etao\.my\.share/i then reject_dict(200)
 # 设备事件下发 (营销触达通道)
 request if ${url} ~= /mtop\.etao\.fe\.device\.event\.receive/i then reject_dict(200)
