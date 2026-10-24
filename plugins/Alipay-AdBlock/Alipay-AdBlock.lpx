@@ -1,0 +1,29 @@
+#!name=Alipay-AdBlock 支付宝去广告 v1.0.0
+#!desc=支付宝去广告/弹窗/推广素材。策略: 广告网关域名直断(adgw/adiu) + 推广素材层拦截(bz=Promotion/promocreative/ucdpTemplate弹窗模板)。⚠️ RPC 主通道走长连接不可达(UCDP弹窗调度/开屏数据), 此为 HTTP 层最大拦截。App 不常用场景可大胆启用。
+#!author=Savues <https://github.com/Savues>
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alipay-AdBlock
+#!system=iOS, iPadOS
+#!version=1.0.0
+#!date=2026-10-24
+#!tag=去广告
+#!type=normal
+
+[Rule]
+# 广告网关域名直断 (二进制实证: adgw.alipay.com/xr + adiu.amap.com 高德广告SDK)
+DOMAIN-SUFFIX, adgw.alipay.com, REJECT
+DOMAIN, adiu.amap.com, REJECT
+# 日志埋点上报
+DOMAIN-SUFFIX, datagw-edge.alipay.com, REJECT
+
+[Mitm]
+hostname = mdn.alipayobjects.com, gw.alipayobjects.com
+
+[Rewrite]
+# 推广素材 (bz=Promotion 参数标记 — HAR 实证广告图) + 官方推广创意目录
+request if ${url} ~= /bz=Promotion/i then reject
+request if ${url} ~= /\/zos\/promo/i then reject
+# UCDP 弹窗模板下载 (cashier_result_video_ad 支付完成页视频广告等)
+request if ${url} ~= /bz=ucdpTemplate/i then reject_dict(200)
+request if ${url} ~= /\/ucdpTemplate@/i then reject_dict(200)
+# 版本探针
+request if ${url} ~= /loon-sim\.probe\.alipay-adblock/i then reject(200, "1.0.0")
