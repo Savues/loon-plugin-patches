@@ -3,7 +3,7 @@
 > 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修复 config 端点解析崩溃。
 > Removes duplicated rewrites against blockAds; v5.1 fixes a config-endpoint parse crash found in a real capture.
 
-**v5.1.0** · 3 个变体 · 3 variants
+**v5.1.1** · 3 个变体 · 3 variants
 
 > v5.2～v6.0 曾加入首页「游戏大本营」/ 信息流广告过滤与一批清单改动，已于 2026-09-29 整体回退到 v5.1。
 > 那些代码仍留在 git 历史（`c2fd147` 及更早），需要时按提交取回即可。
@@ -11,7 +11,7 @@
 
 ---
 
-## v5.1.0 改了什么
+## v5.1.1 改了什么
 
 依据：2026-09-29 用户真机 Loon 抓包（YouTube 21.39.4 / iPadOS 18.7.3，冷启动 64 条，02:45:52–02:45:58）。
 复现材料在 `test/fixtures/`，回归测试 `node test/config-onesie.test.mjs`（16 例全过）。
@@ -77,7 +77,7 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 ## 改动对照 · What changed
 
-| | 原版 v5.0.0 | 本插件 v5.1.0 |
+| | 原版 v5.0.0 | 本插件 v5.1.1 |
 |---|---|---|
 | `[MitM]` | `*.googlevideo.com` + `youtubei.googleapis.com` | 仅 `youtubei.googleapis.com` |
 | `captionLang` | 6 个选项 | **移除**（依赖被拦截的 initplayback） |

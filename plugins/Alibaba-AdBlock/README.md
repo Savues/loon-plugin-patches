@@ -1,6 +1,6 @@
 # Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> **版本 v3.37.7** · 2026-10-23
+> **版本 v3.49.0** · 2026-10-24
 > 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
 > 运行环境：Loon (iOS / iPadOS)
 
@@ -25,8 +25,8 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 | 项 | 数量 |
 |----|------|
 | **[Rule] 域名规则** | **16** |
-| Rewrite 规则 | **106** |
-| Response Script 规则 | **58** |
+| Rewrite 规则 | **148** |
+| Response Script 规则 | **62** |
 | MITM 域名 | **17** |
 | 开关 | **16** (另 2 个已注释备用: taobaoRemoveLiveAds / taobaoRemoveGuessLike) |
 | bundle.js | ~62 KB（单文件） |
@@ -50,7 +50,6 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 ### 全局
 | 开关 | 默认 | 作用 |
 |------|------|------|
-| `blockTracking` | ✅ 开 | 埋点/APM/AB 分流整域拦截 |
 | `removeSplashAd` | ✅ 开 | 开屏广告（图片/视频/摇一摇）|
 | `removePopWindow` | ✅ 开 | 弹窗广告（调度器/模板/氛围）|
 | `removeSmallCards` | ✅ 开 | 小卡片/公告/推荐词/搜索门 |
@@ -178,7 +177,23 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 ---
 
-## 📅 近期修复与验证状态（2026-10-23）
+## 📅 近期修复与验证状态
+
+| 版本 | 内容 | 验证 |
+|------|------|------|
+| **v3.49.0** | 删 2 个死开关（blockTracking/removeUcpPopup，规则下沉 [Rule]/无条件后失效）| 模拟器 0 警告 ✅ |
+| **v3.48.x** | 天猫摇钱树悬浮窗三链路（yqs.ssp+tacdata入口+spine素材）+ 直播膨胀红包规则引擎 + iliad 任务族 | 真机验证 ✅（tacdata 全清实证）|
+| **v3.47.x** | 一淘全案：滚词典/搜索发现/膨胀红包/开屏 noah（含首页白屏事故当日回滚）| 真机验证 ✅ |
+| **v3.46.x** | 一淘深挖 9 条 + 五 App 全量二进制审计补齐 15 条 | 模拟器验证 ✅ |
+| **v3.45.x** | 天猫促销券条双容器命名 + 直播权益条/带货卡清洗 | 真机验证 ✅ |
+| **v3.44.0** | 二进制审计缺口 15 条（闲鱼利益频道/gaia 增长族/直播金币红包雨/inspirecpc）| 模拟器验证 ✅ |
+| **v3.43.0** | 天猫弹窗体系 5 接口（float.protocol 35 弹窗位注册表/浮点红包/msgbox/coupon.dispatch）| 真机验证 ✅ |
+| **v3.42.x** | 天猫滚词典双通道（placeholder 接口 + execute 容器清洗）+ 15TUA 素材直拦 | 真机验证 ✅ |
+| **v3.41.0** | 天猫搜索域三接口（滚词典/搜索发现/搜搜省），联想保留 | 真机验证 ✅ |
+| **v3.40.0** | 天猫/特价版热启动预研 + 8 条预置（awesome 全族/morning/newfacerecommend）| HAR 验证 ✅ |
+
+### 历史记录（v3.39.x 及以前）
+
 
 | 版本 | 内容 | 验证 |
 |------|------|------|

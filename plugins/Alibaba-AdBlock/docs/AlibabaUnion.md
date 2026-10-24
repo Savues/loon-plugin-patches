@@ -1,5 +1,8 @@
 # 淘宝联盟 App (com.alimama.moon / 淘宝联盟) — 规则说明
 
+> ⚠️ **时效标注（2026-10-24）**：本文档记录至 v3.37.x 时代。v3.40~v3.49 的新增覆盖（天猫开屏/搜索域/弹窗/摇钱树、一淘全案、特价版闪屏、直播营销清洗）见仓库 README 的「近期修复与验证状态」表与 docs/Tmall-LTao-preliminary.md。本文档的历史结论仍有效。
+
+
 > 插件版本 v3.9.x · App 版本 **9.17.0** · appkey `21683432` · UA `Moon/58886864`
 > 架构：Flutter 为主 + 原生壳 + ACCS 推送 · 网关 `acs.m.taobao.com` / `guide-acs.m.taobao.com`
 

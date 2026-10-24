@@ -1,4 +1,4 @@
-#!name=Alibaba-BlockACCS v1.0.0
+#!name=Alibaba-BlockACCS v1.1.0
 #!desc=阻断淘宝 ACCS 推送通道 (实验) · 配合 Alibaba-AdBlock 的空词版 gateway 缓存可消除首页搜索框轮播营销词 · 副作用: 首页实时更新/IM实时消息失效
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-BlockACCS

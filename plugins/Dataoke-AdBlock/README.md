@@ -11,8 +11,8 @@
 | **首页运营位** | `removeIndexBanner` | ✅ 开启 | 拦截 `topic_type=2`、`jump`、`is_hot=1` 等普通运营位 |
 | **信息流广告** | `removeAdList` | ✅ 开启 | 拦截 `dtk-ad-list` / `dtk-ad-banner-list` / `dtk-search-ad-list` / `search-v2` |
 | **新用户红包** | `removeNewUserGuide` | ✅ 开启 | 屏蔽新用户红包引导弹窗 |
-| **埋点上报** | `blockTracking` | ✅ 开启 | 拦截 `logcoll-v2.ffquan.cn` 行为埋点 |
-| **推送标签** | `blockPushTags` | ✅ 开启 | 拦截阿里云推送 `bind-tag` / `list-tag` |
+| **埋点上报** | — | 无条件 | `logcoll-v2.ffquan.cn` 域名级拦截（[Rule] 段，无开关） |
+| **推送标签** | — | 无条件 | 阿里云推送 `bind-tag` / `list-tag`（[Rewrite] 无条件） |
 
 ## 适用版本
 
@@ -111,7 +111,7 @@ App 冷启动请求 `GET /dtk_go_app_api/v1/all-config`，响应包含：
 
 ### v1.4.2 (2026-10-20)
 - 新增 `removeTopBanner` 独立开关，默认关闭
-- `removeSplashAd`、`removeIndexBanner`、`removeAdList`、`removeNewUserGuide`、`blockTracking`、`blockPushTags` 默认开启
+- `removeSplashAd`、`removeIndexBanner`、`removeAdList`、`removeNewUserGuide` 默认开启；埋点/推送标签为无条件拦截（原开关已随规则下沉移除）
 - 支持三层首页广告分类拦截：开屏/顶部Banner/普通运营位
 - 修复网关代理版 `search-v2` (`go_getway/proxy/search-v2`) 响应结构差异
 - 新增 `get-all-market` 运营位图片清洗

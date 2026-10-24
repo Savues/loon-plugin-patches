@@ -1,5 +1,8 @@
 # 淘宝直播 App (com.taobao.live) — 规则说明
 
+> ⚠️ **时效标注（2026-10-24）**：本文档记录至 v3.37.x 时代。v3.40~v3.49 的新增覆盖（天猫开屏/搜索域/弹窗/摇钱树、一淘全案、特价版闪屏、直播营销清洗）见仓库 README 的「近期修复与验证状态」表与 docs/Tmall-LTao-preliminary.md。本文档的历史结论仍有效。
+
+
 > 插件版本 v3.9.x · App 版本 **4.56.18** · 架构：原生 + Weex/DX JS + 组件化
 > 网关 `acs.m.taobao.com` / `guide-acs.m.taobao.com` · 埋点 `tblive.highway.alibaba-inc.com`
 

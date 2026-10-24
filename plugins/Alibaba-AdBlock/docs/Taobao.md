@@ -1,5 +1,8 @@
 # 淘宝 App (com.taobao.taobao4iphone) — 规则说明
 
+> ⚠️ **时效标注（2026-10-24）**：本文档记录至 v3.37.x 时代。v3.40~v3.49 的新增覆盖（天猫开屏/搜索域/弹窗/摇钱树、一淘全案、特价版闪屏、直播营销清洗）见仓库 README 的「近期修复与验证状态」表与 docs/Tmall-LTao-preliminary.md。本文档的历史结论仍有效。
+
+
 > 版本 v3.9.x · 反编译版本 **10.68.0** · 架构：原生(TBSearch/XOverseas) + DinamicX 容器 + ACCS 推送
 > UA 标识：`淘宝/59078163` · 网关：`acs.m.taobao.com` + `guide-acs.m.taobao.com` (mtop)
 
