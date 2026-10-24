@@ -1,5 +1,5 @@
-#!name=京东去广告 v1.1.1
-#!version=1.1.1
+#!name=京东去广告 v1.2.0
+#!version=1.2.0
 #!desc=移除京东开屏广告，精简我的页面产品推广。
 #!openUrl=https://apps.apple.com/app/id414245413
 #!author=RuCu6[https://github.com/RuCu6], Maasea[https://github.com/Maasea]
@@ -16,8 +16,17 @@ URL-REGEX, "^http:\/\/\w{32}\.jddebug\.com\/diagnose\?", REJECT
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.1.1")
+request if ${url} ~= /^https?:\/\/acs\.m\.taobao\.com\/gw\/loon-sim\.probe\.jd_remove_ads/i then reject(200, "1.2.0")
 request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=(searchBoxWord|stationPullService|uniformRecommend\d?)/i then reject_dict(200)
+
+# === 悬浮窗/气泡/轮播体系 (2026-10-24 二进制+HAR 审计) ===
+# 首页搜索框角标轮播 (营销轮播 13.7KB)
+request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=cornerCarousel/i then reject_dict(200)
+# 用户关怀弹窗 (3.8KB)
+request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=userCaringPattern/i then reject_dict(200)
+# 小时达入口气泡
+request if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=hourOrder_entrance_bubble/i then reject_dict(200)
+# 我的页悬浮样式 readCustomSurfaceList 的营销头图 (清洗保留功能头) — 保守先不动
 
 response if ${url} ~= /^https:\/\/api\.m\.jd\.com\/client\.action\?functionId=basicConfig/i then response.json.replace(["data.JDMessage.socketmonitor.isSocketEstablishedAhead", "data.JDMessage.socketmonitor.isSocketReport", "data.JDHttpToolKit.httpdns.httpdns"], [0, 0, 0])
 
