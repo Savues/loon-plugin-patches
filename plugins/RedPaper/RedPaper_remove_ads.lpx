@@ -1,5 +1,5 @@
-#!name=小红书去广告 v1.1.0
-#!version=1.1.0
+#!name=小红书去广告 v1.2.0
+#!version=1.2.0
 #!desc=过滤信息流推广，移除图片及视频水印，如有异常，请先清除缓存再尝试。
 #!openUrl=https://apps.apple.com/app/id741292507
 #!author=RuCu6[https://github.com/RuCu6], fmz200[https://github.com/fmz200]
@@ -35,6 +35,8 @@ response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\?/i then response.json.replace(["data.queries", "data.hint_word"], ["[]", "{}"])
 
 [Script]
+response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/switch_config/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_switch_config.js") with tag="通知引导弹窗清洗", requires_body=true
+
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/note\/(?:imagefeed|live_photo\/save)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_remove_ads.js") with tag="移除图片和实况照片水印", requires_body=true
 
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/service\/ui\/config\?/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_remove_ads.js") with tag="移除整体配置 ui", requires_body=true
