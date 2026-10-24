@@ -28,7 +28,6 @@ DOMAIN, adashxgc.ut.taobao.com, REJECT
 request if ${url} ~= /^https?:\/\/app-api\.smzdm\.com\/gw\/loon-sim\.probe\.smzdm_remove_ads/i then reject(200, "1.4.0")
 # A/B 对照: bare 探针 (同插件同批 — 排除订阅刷新变量)
 request if ${url} ~= /gw\/loon-sim\.probe\.smzdm_bare/ then reject(200, "bare-ok")
-# 版本探针 v2 (version-probe.sh 用, 勿删)
 request if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/loading\?/i then reject_dict(200)
 
 # === 2026-10-24 二进制审计补齐 ===

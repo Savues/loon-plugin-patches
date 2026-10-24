@@ -1,46 +1,58 @@
 #!/usr/bin/env python3
-"""version-probe setup — 在插件 [Rewrite] 埋/更新版本探针规则 (v2: 借用插件已 MITM 的域名)
+# probe-setup.py — 探针埋入/更新 (v1.7.2)
+# 用法: python3 probe-setup.py <plugin.lpx>
+# 模板锁定 (loon-sim v1.7.0): 唯一合法形态 = /^https?:\/\/<域名>\/gw\/loon-sim\.probe\.<名>/i then reject(200, "<版本>")
+# v1.7.2: 重写幂等逻辑 — 先清所有旧探针痕迹(任意形态/多条), 再插入一条
 
-v1 缺陷: 自造 .local 域名不在 [Mitm] → Loon 不解密 → [Rewrite] 永远看不到 → 探针失效。
-v2 方案: 探针路径挂在插件【已在 MITM 列表】的域名下, 如:
-  https://acs.m.taobao.com/gw/loon-sim.probe/<插件名>
-[Rewrite] 规则匹配该路径并 reject(200, "版本号")。
-
-用法: python3 probe-setup.py <plugin.lpx>
-"""
 import re, sys
 
-lpx = sys.argv[1]
-name = re.sub(r'\.lpx$', '', lpx.split('/')[-1]).lower()
-s = open(lpx).read()
-m = re.search(r'^#!version=(.+)$', s, re.M)
-ver = m.group(1).strip() if m else '0'
+lpx = sys.argv[1] if len(sys.argv) > 1 else ''
+if not lpx.endswith('.lpx'):
+    print('用法: python3 probe-setup.py <plugin.lpx>'); sys.exit(1)
 
-# 从 [Mitm] hostname 列表挑第一个域名做探针宿主
+s = open(lpx, encoding='utf-8').read()
+
+# 版本: #!version 优先, 否则从 #!name=xxx vY.Z 提取
+ver_m = re.search(r'^#!version=(.+)$', s, re.M)
+if ver_m:
+    ver = ver_m.group(1).strip()
+else:
+    name_ver = re.search(r'^#!name=.*?v(\d[\w.]*)\s*$', s, re.M)
+    if not name_ver:
+        print('❌ 无 #!version 且 #!name 无版本号'); sys.exit(1)
+    ver = name_ver.group(1)
+
+# 探针名: lpx 文件名去扩展 (下划线)
+import os
+name = os.path.splitext(os.path.basename(lpx))[0].replace('-', '_').lower()
+
+# 宿主域名: [MitM] hostname 第一个
 mitm_m = re.search(r'^hostname\s*=\s*(.+)$', s, re.M | re.I)
 if not mitm_m:
-    print('❌ 插件无 [Mitm] hostname — 探针需借用已 MITM 域名'); sys.exit(1)
+    print('❌ 插件无 [MitM] hostname — 探针需借用已 MITM 域名'); sys.exit(1)
 host = mitm_m.group(1).split(',')[0].strip()
 
-# v1 .local 探针 (清理旧埋点)
-s = re.sub(r'^# 版本探针 \(version-probe\.sh 用, 勿删\)\nrequest if \$\{url\} ~= /probe\\\.[^\n]*\n', '', s, flags=re.M)
+# v1 .local 探针清理 (历史)
+s = re.sub(r'^# 版本探针 \(version-probe\.sh 用, 勿删\)\nrequest if \$\{url\} ~= /probe\.[^\n]*\n', '', s, flags=re.M)
 
-probe_base = '/gw/loon-sim\\.probe\\.' + name
-probe_path = probe_base + '/i'
-pat = re.compile(r'(?:^# 版本探针 v2 \(version-probe\.sh 用, 勿删\)\n)?request if \$\{url\} ~= ' + re.escape(probe_path) + r'[^ ]* then reject\(200, "[^"]*"\)', re.M)
+# ★ 幂等核心: 清掉所有旧探针痕迹 — 注释行 + 任何形态的探针规则行 (可多条)
+s = re.sub(r'^# 版本探针 v2[^\n]*\n', '', s, flags=re.M)
+s = re.sub(r'^[^\n]*loon-sim\\.probe\\.' + re.escape(name) + r'[^\n]*\n', '', s, flags=re.M | re.I)
+
+# 生成 (v1.7.0 模板锁定形态)
+host_esc = host.replace('.', '\\.')
+probe_url_regex = '/^https?:\\/\\/' + host_esc + '\\/gw\\/loon-sim\\.probe\\.' + name + '/i'
 rule = ('# 版本探针 v2 (version-probe.sh 用, 勿删)\n'
-        'request if ${url} ~= ' + probe_path + ' then reject(200, "' + ver + '")')
+        'request if ${url} ~= ' + probe_url_regex + ' then reject(200, "' + ver + '")')
 
-if pat.search(s):
-    s = pat.sub(lambda _: rule, s)
-    print(f'✅ 探针已更新 → v{ver} @ {host}')
-else:
-    s2 = re.sub(r'^\[Rewrite\]$', '[Rewrite]\n' + rule, s, count=1, flags=re.M)
-    if s2 == s:
-        print('❌ 无 [Rewrite] 段'); sys.exit(1)
-    s = s2
-    print(f'✅ 探针已埋入 → v{ver} @ {host}')
+# 插入到 [Rewrite] 段首
+s2 = re.sub(r'^\[Rewrite\]$', '[Rewrite]\n' + rule, s, count=1, flags=re.M)
+if s2 == s:
+    print('❌ 无 [Rewrite] 段'); sys.exit(1)
+s = s2
 
-# 写探针 URL 到插件旁 (version-probe.sh 读取)
+open(lpx, 'w', encoding='utf-8').write(s)
+print(f'✅ 探针已埋入 → v{ver} @ {host}')
+
+# 探针 URL 辅助文件 (version-probe.sh 读取)
 open(lpx + '.probe', 'w').write(f'https://{host}/gw/loon-sim.probe.{name}\n')
-open(lpx, 'w').write(s)
