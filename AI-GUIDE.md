@@ -29,17 +29,20 @@ sh tools/loon-sim/version-probe.sh plugins/<Name>/<Name>.lpx
 探针不绿时第一怀疑对象是**「订阅更新未生效」**（Loon 更新存在缓存窗口），不是规则语法。
 新插件首次发版先跑 `version-probe.sh <lpx> setup` 埋探针。
 
-#### 探针标准形态（golden sample，勿凭记忆手写）
+#### 探针标准形态（golden sample — v1.7.0 模板锁定，check 六项强校验，勿手写）
+
+**唯一合法模板**（只有 `<域名>`/`<插件名>`/`<版本>` 三个槽位可变）：
 
 ```ini
-# [Rewrite] 段内（正则必须闭合 — 尾 / 或 /i；用 probe-setup.py 生成，勿手写）：
+# [Rewrite] 段内（跑 probe-setup.py 自动生成）：
+request if ${url} ~= /^https?:\/<域名转义>\/gw\/loon-sim\.probe\.<插件名>/i then reject(200, "<版本>")
+# 实例（SMZDM）：
 request if ${url} ~= /^https?:\/\/app-api\.smzdm\.com\/gw\/loon-sim\.probe\.smzdm_remove_ads/i then reject(200, "1.4.0")
 ```
 
-- 路径模式：`/gw/loon-sim.probe.<插件名>`（借插件已 MITM 的域名）
-- `reject(200, "版本号")` 的版本号必须与 `#!version` 一致（check v1.6.9 会校验）
-- **闭合裸路径**（`/gw/.../i`）真机同样可用（同插件 A/B 实证）；**不闭合**（缺尾 /）永不匹配
-- A/B 对照探针命名 `probe.*_bare` — check 自动豁免版本校验
+check (v1.7.0) 强制六项：① 完整锚定（裸路径=错误）② `reject(200,"版本")` 双参 ③ 版本=#!version ④ 域名∈[MitM] ⑤ 主探针恰 1 条 ⑥ 有版本必有探针。
+- A/B 对照探针命名 `probe.*_bare` — 自动豁免（合法共存）
+- 历史注记：闭合裸路径真机可用（同插件 A/B 实证），但模板锁定后不再允许 — 语法零自由度
 
 #### 探针穿透排查顺序（症状相同的三种真因）
 
