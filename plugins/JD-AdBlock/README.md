@@ -3,11 +3,11 @@
 > **版本 v1.0.1** · 订阅以 lpx 内版本为准
 
 移除京东开屏广告、精简我的页面产品推广、屏蔽搜索推广流。
-上游 kelee 版拉取本地化（脚本原作 RuCu6），Savues 修正：uniformRecommend 变体补全 + 链接/脚本全本地化。
+上游版本拉取本地化（脚本原作 RuCu6），Savues 修正：uniformRecommend 变体补全 + 链接/脚本全本地化。
 
 | | 中文 | English |
 |---|---|---|
-| 来源 | 上游拉取本地化（脚本在 src/，引用本仓库直链） | Localized |
+| 来源 | 上游拉取本地化，脚本在本仓库 src/ | Localized |
 | 改动 | uniformRecommend[06] 正则补全为 `\d?` 变体族（9 漏网修复） | Variant regex fix |
 | 脚本 | `JD_remove_ads.js`（上游原版） | Upstream script |
 | 审计依据 | JDMobile 17.11.35 主二进制 + 141MB HAR + 沙盒取证 | Binary+HAR+sandbox |
