@@ -20,8 +20,9 @@ hostname = api-mifit-cn.zepp.com, api-mifit-cn2.zepp.com, api-mifit-cn3.zepp.com
 # 空响应容忍性: App 日志 "datas is not array / is empty" → 按无广告处理, 安全
 request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/cards\/startpage_ad/ then reject_dict(200)
 
-# === 运动页横幅广告 (HMSportAdvertisementManager, advertId/advert_second) + 训练视频广告 ===
-request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/discovery\/(sport_ad|training_video_ad)/ then reject_dict(200)
+# === 同族广告接口 (二进制常量区实证: startpage_ad/homepage_ad/homepage_popup/sport_summary_ad 同组) ===
+request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/cards\/(homepage_ad|homepage_popup)/ then reject_dict(200)
+request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/discovery\/(sport_ad|sport_summary_ad|training_video_ad)/ then reject_dict(200)
 
 # === 探针 (版本观测, 详见仓库 workflow) ===
 request if ${url} ~= /loon-sim\.probe\.zepp_remove_ads/i then reject(200, "1.0.0")
