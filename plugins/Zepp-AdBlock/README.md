@@ -8,13 +8,13 @@ Zepp (华米, com.huami.watch) 去广告 Loon 插件。
 https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Zepp-AdBlock/Zepp-AdBlock.lpx
 ```
 
-## 覆盖 (v1.1.0)
+## 覆盖 (v1.2.0)
 
 | 广告形态 | 接口 | 处置 |
 |---------|------|------|
 | 开屏广告 (LaunchAd 体系: LaunchAdManager/Network/Cache, bg_img_url/ad_type/showCount) | `GET /discovery/watch/cards/startpage_ad` | reject_dict(200) — App 日志 "datas is empty" 按无广告处理, 容忍空响应 |
 | 运动页横幅 (HMSportAdvertisementManager, advertId/advert_second) | `GET /discovery/watch/discovery/sport_ad` | reject_dict(200) |
-| 首页弹窗/首页广告 (二进制同族常量: homepage_popup/homepage_ad) | `cards/(homepage_ad\|homepage_popup)` | reject_dict(200) |
+| 首页弹窗/广告/公告板/运营卡 (二进制同族运营位) | `cards/(homepage_ad\|homepage_popup\|home_bulletin_board\|home_page_promotion)` | reject_dict(200) |
 | 运动摘要广告 (sport_summary_ad) | `discovery/sport_summary_ad` | reject_dict(200) |
 | 训练视频广告 | `GET /discovery/watch/discovery/training_video_ad` | reject_dict(200) |
 | 高德广告/追踪 SDK | adiu.amap.com / logs.amap.com | [Rule] REJECT |
