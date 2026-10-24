@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.42.1
+#!name=Alibaba-AdBlock v3.43.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.42.1
+#!version=3.43.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -160,7 +160,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.42.1")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.43.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -291,6 +291,17 @@ request if ${url} ~= /mtop\.relationrecommend\.newfacerecommend\./i then reject_
 request if ${url} ~= /mtop\.tmall\.rpm\.homepage\.bottom\.floatbar\./i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.rate\.buyshow\./i then reject_dict(200)
 request if ${url} ~= /mtop\.tmall\.rpm\.taste\./i then reject_dict(200)
+# === 天猫: 弹窗体系全灭 (2026-10-24 逆向+HAR 交叉, docs/Tmall-LTao-preliminary.md) ===
+# 弹窗注册表 (35弹窗位: 首页/购物车/我猫/商详/订单/支付成功 全场景 protocol_pop + message_style_pop + float_point)
+request if ${url} ~= /mtop\.fc\.resource\.float\.protocol\.get/i then reject_dict(200)
+# 浮点红包动画 (首页/商详/购物车 漂浮红包)
+request if ${url} ~= /mtop\.tmall\.fc\.resource\.floatingpoint\.get/i then reject_dict(200)
+# 消息盒子弹窗素材 + 顶卡 (营销消息聚合, 非IM)
+request if ${url} ~= /mtop\.fc\.touch\.msgbox\.materials\.get/i then reject_dict(200)
+request if ${url} ~= /mtop\.fc\.touch\.msgbox\.topcard\.get/i then reject_dict(200)
+# 优惠券弹窗自动分发
+request if ${url} ~= /mtop\.fc\.promotion\.coupon\.dispatch/i then reject_dict(200)
+# ⚠️ 不拦 fatigue.expose (疲劳度上报, 拦截会反弹 — 铁律7)
 # === 天猫: 开屏/热启动素材直拦 (15TUA=天猫投放素材库标识, 9/9 开屏素材命中, 84 张正常商品图 0 命中) ===
 request if ${url} ~= /^https?:\/\/(?:gw|img)\.alicdn\.com\/imgextra\/.*15TUA/ then reject
 # === 天猫搜索域 (2026-10-24 HAR 实证, 与打字联想 search.suggest 不同源, 可安全 reject) ===
