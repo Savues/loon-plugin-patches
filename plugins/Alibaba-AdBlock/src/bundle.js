@@ -87,6 +87,8 @@ function filterBatchsite(body, siteCodes) {
 // ============================================
 const DEFAULT_NOAH_CONFIG = {
   blockResKeys: [
+    // 一淘首页悬浮任务窗 (膨胀红包"点击3个商品")
+    "etao_home_task_freemove",
     "moon_search_activation_dx_banner",
     "moon_share_dx_market_material",
     "moon_dx_bulletin_board_discovery",
@@ -121,6 +123,8 @@ function filterNoahQuery(body, config) {
     if (!resKey) return true;
     if (allowSet.has(resKey)) return true;
     if (blockSet.has(resKey)) { console.log("[Alibaba-AdBlock] Filtered NOAH resKey:", resKey); return false; }
+    // 前缀族匹配 (etao_home_task* 等运营位命名族)
+    for (const b of blockSet) { if (resKey.startsWith(b)) { console.log("[Alibaba-AdBlock] Filtered NOAH resKey (prefix):", resKey); return false; } }
     return true;
   });
   const removed = originalLen - filtered.length;
@@ -910,6 +914,8 @@ const MOON_SITE_CODES = {
 
 const MOON_NOAH_CONFIG = {
   blockResKeys: [
+    // 一淘首页悬浮任务窗 (膨胀红包"点击3个商品")
+    "etao_home_task_freemove",
     "moon_search_activation_dx_banner",
     "moon_share_dx_market_material",
     "moon_dx_bulletin_board_discovery",
@@ -945,7 +951,7 @@ function handleMoonResponse(body, url) {
   }
   if (url.includes("mtop.etao.noah.query")) {
     return filterNoahQuery(body, {
-      blockResKeys: ["moon_search_activation_dx_banner","moon_share_dx_market_material","moon_dx_bulletin_board_discovery","moon_dx_bulletin_board_report","moon_dx_bulletin_board_mine","moon_dx_bulletin_board_goods","moon_h5_handle_one","moon_h5_handle_two","moon_h5_handle_three","newcomer_walfare_popup","high_level_taoke_timer_notice"],
+      blockResKeys: ["etao_home_task_freemove","moon_search_activation_dx_banner","moon_share_dx_market_material","moon_dx_bulletin_board_discovery","moon_dx_bulletin_board_report","moon_dx_bulletin_board_mine","moon_dx_bulletin_board_goods","moon_h5_handle_one","moon_h5_handle_two","moon_h5_handle_three","newcomer_walfare_popup","high_level_taoke_timer_notice"],
       allowResKeys: ["moon_main_handle","moon_share_handle","moon_withdrawal_top_section","moon_withdrawal_bottom_section","moon_withdrawal_error_section"]
     });
   }
@@ -1781,11 +1787,23 @@ function filterEtaoSearch(body, url) {
       }
     }
     if (url.indexOf("search.middle.query") >= 0) {
-      // 搜索发现词表清空 (保留搜索历史 history_sec; unwEvents 埋点事件里的词一并删)
-      const disc = dd["search_discovery_sec_etao_search"];
-      if (disc) {
-        if (disc?.fields?.termList && disc.fields.termList.length) { disc.fields.termList = []; changed = true; }
-        if (disc.unwEvents && Object.keys(disc.unwEvents).length) { disc.unwEvents = {}; changed = true; }
+      // 搜索发现整容器删除 (v3.47.2: 只清词表会留标题空壳 — 容器+hierarchy引用+注册表全删)
+      const discKey = "search_discovery_sec_etao_search";
+      if (dd[discKey]) {
+        delete dd[discKey];
+        // hierarchy 引用移除
+        const st = obj?.data?.hierarchy?.structure;
+        if (st) {
+          for (const k of Object.keys(st)) {
+            if (Array.isArray(st[k])) st[k] = st[k].filter(x => x !== discKey);
+          }
+        }
+        // 容器注册表移除
+        const cts = obj?.data?.container?.data;
+        if (Array.isArray(cts)) {
+          obj.data.container.data = cts.filter(ct => String(ct?.name || '').indexOf("discover_nc_etao_search") < 0);
+        }
+        changed = true;
       }
     }
     return changed ? JSON.stringify(obj) : null;
