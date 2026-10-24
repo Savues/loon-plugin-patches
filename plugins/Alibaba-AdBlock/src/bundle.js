@@ -1701,12 +1701,14 @@ function filterTmallInfinity(body) {
     if (fsc && typeof fsc === 'object' && fsc.query) {
       fsc.query = ""; fsc.refresh = "false"; changed = true;
     }
-    // 我猫/首页促销券条 (tm_my_promotion_* 容器的 scrollitems.gooditems — 苹果惊喜券等领取卡)
+    // 我猫/首页促销券条 (两类容器: tm_my_promotion_* / tmall_home_landscape_promotion_* — 苹果惊喜券等领取卡)
     const dd = obj?.data?.data;
     if (dd && typeof dd === 'object') {
       for (const k of Object.keys(dd)) {
         const c = dd[k];
-        if (c && typeof c === 'object' && typeof c.type === 'string' && c.type.indexOf('tm_my_promotion') === 0) {
+        const t = c && typeof c === 'object' && typeof c.type === 'string' ? c.type
+          : (typeof k === 'string' && k.indexOf('tmall_home_landscape_promotion') === 0 ? 'tmall_home_landscape_promotion' : null);
+        if (t && (t.indexOf('tm_my_promotion') === 0 || t.indexOf('tmall_home_landscape_promotion') === 0)) {
           delete dd[k]; changed = true;
         }
       }
