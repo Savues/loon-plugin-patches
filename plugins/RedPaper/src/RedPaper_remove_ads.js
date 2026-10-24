@@ -82,11 +82,13 @@ if (url.includes("/v1/interaction/comment/video/download")) {
   let livePhoto = JSON.parse($persistentStore.read("redBookLivePhoto")); // 读取持久化存储
   if (obj?.data?.datas?.length > 0) {
     // 原始数据没问题 交换url数据
+    // 修复: 完整替换 url (旧版只替换 .mp4 前段, 保留了服务端返回的双sign畸形尾巴 → CDN 403 → 保存静态图)
     if (livePhoto?.length > 0) {
       obj.data.datas.forEach((itemA) => {
         livePhoto.forEach((itemB) => {
-          if (itemB?.file_id === itemA?.file_id && itemA?.url) {
-            itemA.url = itemA.url.replace(/^https?:\/\/.*\.mp4/g, itemB.url);
+          if (itemB?.file_id === itemA?.file_id && itemA?.url && itemB?.url) {
+            itemA.url = itemB.url;
+            if (itemA?.error_code) itemA.error_code = 0;
           }
         });
       });
