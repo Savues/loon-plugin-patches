@@ -1,6 +1,6 @@
-#!name=美团去广告 v0.2.0
+#!name=美团去广告 v0.3.0
 #!desc=拦截我的页会员营销、营销素材、AB实验广告策略。搜索框/信息流数据走长连接(mtgsdk)不可达, 为已知边界。
-#!version=0.2.0
+#!version=0.3.0
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Meituan.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
@@ -8,7 +8,7 @@
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "0.2.0")
+request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "0.3.0")
 # === 我的页会员营销 (market.waimai 实证明文 JSON, 2026-10-25 HAR) ===
 # 每日领券 (神券弹窗候选)
 request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/member\/homepage\/dailyMagicalCoupon/i then reject_dict(200)
@@ -26,8 +26,24 @@ request if ${url} ~= /^https?:\/\/i\.meituan\.com\/topcube\/api\/toc\/base\/acti
 # 问卷弹窗
 request if ${url} ~= /^https?:\/\/cem\.meituan\.com\/survey\/detail/i then reject_dict(200)
 
+# === 逆向深挖弹窗族 (2026-10-25 二进制, 语义明确即拦) ===
+# 直播优惠券活动弹窗
+request if ${url} ~= /^https?:\/\/mlive\.dianping\.com\/api\/mlive\/promotion\/mlivecouponactivitypopup/i then reject_dict(200)
+# 消息页横幅 ×3
+request if ${url} ~= /^https?:\/\/mtmessage\.meituan\.com\/api\/banner\//i then reject_dict(200)
+# DSP 抽奖/新人红包
+request if ${url} ~= /^https?:\/\/apimobile\.meituan\.com\/dsp\//i then reject_dict(200)
+# deal 信息流广告物料 (.bin)
+request if ${url} ~= /^https?:\/\/mapi\.meituan\.com\/baymax\/mtbizer\/mtdealad/i then reject_dict(200)
+# 券横幅 (.bin)
+request if ${url} ~= /^https?:\/\/mapi\.meituan\.com\/general\/platform\/mtlist\/couponbanner/i then reject_dict(200)
+# 酒店弹窗
+request if ${url} ~= /^https?:\/\/apihotel\.meituan\.com\/api\/popup\//i then reject_dict(200)
+# 用户弹窗按钮配置
+request if ${url} ~= /^https?:\/\/open\.meituan\.com\/user\/v1\/info\/(?:block-)?popup/i then reject_dict(200)
+
 # === 开屏/信息流配套事件 (逆向实证接口, 长连接数据的 HTTP 侧增量) ===
 request if ${url} ~= /^https?:\/\/contents\.meituan\.com\/commerce\/launch\/ad\/track/i then reject_dict(200)
 
 [MitM]
-hostname=market.waimai.meituan.com, contents.meituan.com, p0.meituan.net, w.meituan.net, member.meituan.com, i.meituan.com, cem.meituan.com
+hostname=market.waimai.meituan.com, contents.meituan.com, p0.meituan.net, w.meituan.net, member.meituan.com, i.meituan.com, cem.meituan.com, mlive.dianping.com, mtmessage.meituan.com, apimobile.meituan.com, mapi.meituan.com, apihotel.meituan.com, open.meituan.com
