@@ -1787,16 +1787,19 @@ function filterEtaoSearch(body, url) {
       }
     }
     if (url.indexOf("search.middle.query") >= 0) {
-      // 搜索发现容器空壳化 (v3.47.3: 整删会让中间页组件弹加载失败toast — 改留极简空壳, id+type 保留)
+      // 搜索发现整容器删除 (v3.47.3 空壳化方案致 App 重试转圈+卡顿, 回退 v3.47.2 整删; 小toast为已知无害残留)
       const discKey = "search_discovery_sec_etao_search";
-      if (dd[discKey] && dd[discKey].fields) {
-        dd[discKey] = { id: discKey, type: dd[discKey].type || "200477", unwEvents: {}, unwExtend: {} };
-        // hierarchy 引用移除 (空壳无需渲染, 但容器存在=加载成功不弹toast)
+      if (dd[discKey]) {
+        delete dd[discKey];
         const st = obj?.data?.hierarchy?.structure;
         if (st) {
           for (const k of Object.keys(st)) {
             if (Array.isArray(st[k])) st[k] = st[k].filter(x => x !== discKey);
           }
+        }
+        const cts = obj?.data?.container?.data;
+        if (Array.isArray(cts)) {
+          obj.data.container.data = cts.filter(ct => String(ct?.name || '').indexOf("discover_nc_etao_search") < 0);
         }
         changed = true;
       }
