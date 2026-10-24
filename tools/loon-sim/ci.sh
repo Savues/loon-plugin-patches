@@ -38,4 +38,18 @@ done
 echo "  一致: $p_ok | 不一致: $p_bad"
 [ "$p_bad" -eq 0 ] || { echo "❌ parity 存在不一致"; exit 3; }
 echo ""
+echo "── ⑤ bundle.js 死代码检测 (定义行唯一出现的孤儿函数)"
+dead_fail=0
+for f in "$PLUGINS"/*/src/*.js; do
+  [ -f "$f" ] || continue
+  out=$(node "$HERE/dead-fn.js" "$f" 2>/dev/null)
+  if echo "$out" | grep -q "死代码: [1-9]"; then
+    echo "  ❌ $(basename $(dirname $(dirname $f)))/$(basename $f)"
+    echo "$out" | grep "L[0-9]" | head -5
+    dead_fail=1
+  fi
+done
+[ "$dead_fail" -eq 0 ] && echo "  全部通过 ✅" || { echo "❌ 存在死代码"; exit 4; }
+
+echo ""
 echo "✅ CI 全部通过"
