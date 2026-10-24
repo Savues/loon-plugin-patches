@@ -1757,7 +1757,7 @@ function main() {
 
   // 天猫首页容器: tabHeader.search 预置词清空 (placeholder 接口外的第二通道)
   if (url.indexOf("mtop.tmall.infinity.gateway.execute") >= 0) {
-    if (isEnabled("removeSearchWords") || isEnabled("removeSmallCards")) {
+    if (isEnabled("removeSearchWords")) {
       const tmClean = filterTmallInfinity(body);
       if (tmClean !== null) { $done({ body: tmClean }); return; }
     }
