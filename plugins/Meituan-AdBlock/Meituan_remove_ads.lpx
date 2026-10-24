@@ -1,6 +1,6 @@
-#!name=美团去广告 v0.3.0
+#!name=美团去广告 v0.4.0
 #!desc=拦截我的页会员营销、营销素材、AB实验广告策略。搜索框/信息流数据走长连接(mtgsdk)不可达, 为已知边界。
-#!version=0.3.0
+#!version=0.4.0
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Meituan.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
@@ -8,7 +8,7 @@
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "0.3.0")
+request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "0.4.0")
 # === 我的页会员营销 (market.waimai 实证明文 JSON, 2026-10-25 HAR) ===
 # 每日领券 (神券弹窗候选)
 request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/member\/homepage\/dailyMagicalCoupon/i then reject_dict(200)
@@ -45,5 +45,9 @@ request if ${url} ~= /^https?:\/\/open\.meituan\.com\/user\/v1\/info\/(?:block-)
 # === 开屏/信息流配套事件 (逆向实证接口, 长连接数据的 HTTP 侧增量) ===
 request if ${url} ~= /^https?:\/\/contents\.meituan\.com\/commerce\/launch\/ad\/track/i then reject_dict(200)
 
+[Script]
+# horn 远程配置清洗: 广告/弹窗开关键反转 (清数据冷启动HAR实证 4+1 键)
+response if ${url} ~= /^https?:\/\/(?:portal-portm|h)\.meituan\.com\/horn_ios\/mergeRequest/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/src/horn_clean.js") with tag="horn配置清洗", requires_body=true
+
 [MitM]
-hostname=market.waimai.meituan.com, contents.meituan.com, p0.meituan.net, w.meituan.net, member.meituan.com, i.meituan.com, cem.meituan.com, mlive.dianping.com, mtmessage.meituan.com, apimobile.meituan.com, mapi.meituan.com, apihotel.meituan.com, open.meituan.com
+hostname=market.waimai.meituan.com, contents.meituan.com, p0.meituan.net, w.meituan.net, member.meituan.com, i.meituan.com, cem.meituan.com, mlive.dianping.com, mtmessage.meituan.com, apimobile.meituan.com, mapi.meituan.com, apihotel.meituan.com, open.meituan.com, portal-portm.meituan.com, h.meituan.com
