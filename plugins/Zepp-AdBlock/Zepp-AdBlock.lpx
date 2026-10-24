@@ -1,6 +1,6 @@
-#!name=Zepp-AdBlock v1.0.0
+#!name=Zepp-AdBlock v1.1.0
 #!desc=Zepp(华米)去广告 · 开屏广告(startpage_ad/LaunchAd体系) + 运动页横幅(sport_ad) + 训练视频广告(training_video_ad) + 高德广告SDK(adiu)
-#!version=1.0.0
+#!version=1.1.0
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://img-cdn.zepp.com/equipment/appSetting/icon.png
@@ -25,4 +25,4 @@ request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watc
 request if ${url} ~= /^https?:\/\/api-mifit(-cn\d?)?\.zepp\.com\/discovery\/watch\/discovery\/(sport_ad|sport_summary_ad|training_video_ad)/ then reject_dict(200)
 
 # === 探针 (版本观测, 详见仓库 workflow) ===
-request if ${url} ~= /loon-sim\.probe\.zepp_remove_ads/i then reject(200, "1.0.0")
+request if ${url} ~= /loon-sim\.probe\.zepp_remove_ads/i then reject(200, "1.1.0")
