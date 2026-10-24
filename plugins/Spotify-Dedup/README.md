@@ -1,5 +1,7 @@
 # Spotify-Dedup · Spotify 去广告（合订版）
 
+> **版本 v1.4** · 订阅以 lpx 内版本为准
+
 > 合并 **kelee 的开关版脚本** + **730 合集的 gae2 老端点拦截** + **kelee 的 QUIC 封锁**，
 > 并让 blockAds 合集里那份重复的 Spotify 规则整体退场。
 > Merges the switch-capable script from kelee with the two rules that only one of the

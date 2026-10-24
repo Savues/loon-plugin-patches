@@ -1,5 +1,7 @@
 # PinDuoDuo · 拼多多去广告（修复版）
 
+> **版本 v1.98** · 订阅以 lpx 内版本为准
+
 > 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
 > Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
 

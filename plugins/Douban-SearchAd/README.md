@@ -1,5 +1,7 @@
 # Douban-SearchAd · 豆瓣搜索页广告词屏蔽
 
+> **版本 v1.0** · 2026-10-01 · 订阅以 lpx 内版本为准
+
 > 只做一件事：剥掉搜索框滚动广告与「发现」横滚标签里的预制广告词。
 > 开屏拦截沿用 [honue/rules](https://github.com/honue/rules) 原版那条规则，逐字未改。
 

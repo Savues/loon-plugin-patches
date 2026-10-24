@@ -1,5 +1,7 @@
 # Reven-Mirror
 
+> **版本 （未版本化 · 最近更新 2026-09-29）** · 建议补充 #!version 头
+
 > 托管版 Reven：脚本收进本仓库，作者改不动你设备上跑的代码。
 > Mirrored Reven: the script is hosted here, so the author can no longer swap the code your device runs.
 

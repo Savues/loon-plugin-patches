@@ -1,5 +1,7 @@
 # Bilibili-Dedup · 哔哩哔哩去广告(合并版)
 
+> **版本 v7.44** · 订阅以 lpx 内版本为准
+
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 

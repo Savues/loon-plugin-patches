@@ -1,5 +1,7 @@
 # Douban-Dedup · 豆瓣开屏广告屏蔽
 
+> **版本 v1.0.1** · 2026-10-24 · 订阅以 lpx 内版本为准
+
 > [honue/rules](https://github.com/honue/rules) `Douban.plugin` 的**镜像**。
 > 规则正文与上游**逐字节相同**，唯一改动是 `#!homepage` 指向本仓库。
 

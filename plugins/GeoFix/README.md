@@ -1,5 +1,7 @@
 # GeoFix · 网络定位重定向
 
+> **版本 v1.2.1** · 订阅以 lpx 内版本为准
+
 > 在**网络定位**这一层把 iOS 的定位结果改写到指定坐标。
 > Redirects iOS network-derived location to a chosen coordinate.
 
@@ -186,7 +188,11 @@ https://gs-loc.apple.com/geo-parse?u=<URL 编码后的链接或坐标>
 
 ## 安装 · Install
 
-1. 导入 `GeoFix.lpx`
+1. 订阅导入:
+
+   ```
+   https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/GeoFix/GeoFix.lpx
+   ```
 2. 安装并**完全信任**根证书
 3. 确认 **MitM over HTTP/2** 与 **QUIC 回退保护** 已开启
 4. 确认代理 / VPN 处于连接状态

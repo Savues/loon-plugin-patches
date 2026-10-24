@@ -1,5 +1,7 @@
 # Locally 模型劫持 · Locally-HF-Swap
 
+> **版本 v1.6** · 2026-10-03 · 订阅以 lpx 内版本为准
+
 把 Locally 从 HuggingFace 下载的模型仓库，**整体换成你指定的任意仓库**。
 App 列表里没有的模型，填个 repo id 就能下。
 

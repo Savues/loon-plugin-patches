@@ -1,5 +1,7 @@
 # YouTube-Test · YouTube去广告 + 双语字幕
 
+> **版本 v1.21** · 订阅以 lpx 内版本为准
+
 > 去广告与双语字幕合成一个插件，省掉手动摆插件顺序。
 > Ad-block and bilingual subtitles in one plugin.
 

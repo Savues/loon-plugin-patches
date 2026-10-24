@@ -1,5 +1,7 @@
 # Bilibili-UI 小破站界面增强
 
+> **版本 v3.6.0** · 订阅以 lpx 内版本为准
+
 > 基于 [Biliverse Enhanced](https://github.com/luestr/ProxyResource) 移植改造，适配 Loon 插件规范
 
 ---

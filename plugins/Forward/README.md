@@ -1,5 +1,7 @@
 # Forward · 订阅解锁
 
+> **版本 （未版本化 · 最近更新 2026-09-29）** · 建议补充 #!version 头
+
 > 上游原版规则，逐字沿用。零脚本、零 `script-path`。
 > 出处：[Yu9191 的 Loon 规则](https://t.me/GithubYu9191/174853) · 完整记录见 [UPSTREAM.md](UPSTREAM.md)
 

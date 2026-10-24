@@ -1,5 +1,7 @@
 # YouTube-Dedup · 哔哩哔哩同源去重版
 
+> **版本 v5.1.1** · Debug/Slim 变体见下
+
 > 消除与 blockAds 的重复改写，收敛 MitM 范围；v5.1 起按真机抓包修复 config 端点解析崩溃。
 > Removes duplicated rewrites against blockAds; v5.1 fixes a config-endpoint parse crash found in a real capture.
 
@@ -121,7 +123,13 @@ Use both blockAds and this plugin → the YouTube response is rewritten twice.
 
 ## 安装 · Install
 
-1. 导入对应 `.lpx`
+1. 订阅导入（按需选一）:
+
+   | 变体 | 链接 |
+   |------|------|
+   | 完整版 | `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/YouTube-Dedup.lpx` |
+   | Slim 精简 | `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/YouTube-Dedup-Slim.lpx` |
+   | Debug 调试 | `https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/YouTube-Dedup/YouTube-Dedup-Debug.lpx` |
 2. **若同时装了 `BlockAds-Patched`，按上表二选一**
 3. 确认 **MitM over HTTP/2** 与 **QUIC 回退保护** 已开启
 4. 字幕交由 YouTube 双语翻译插件处理

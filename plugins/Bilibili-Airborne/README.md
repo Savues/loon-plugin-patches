@@ -1,5 +1,7 @@
 # Bilibili-Airborne · B 站空降助手（可配置版）
 
+> **版本 v1.58** · 订阅以 lpx 内版本为准
+
 > 从 [Bilibili-Dedup](../Bilibili-Dedup/README.md) 里拆出来的独立插件，只干一件事：**在 B 站 App 里跳过恰饭片段**。
 > 区别是——**跳过哪些类型、用什么方式跳，交给用户自己定**。
 > Splits the "空降助手" feature out of Bilibili-Dedup into a standalone plugin, and makes the skip category / skip mode configurable.
