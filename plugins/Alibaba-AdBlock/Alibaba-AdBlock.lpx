@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.43.0
+#!name=Alibaba-AdBlock v3.44.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.43.0
+#!version=3.44.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -160,7 +160,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.43.0")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.44.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -302,6 +302,25 @@ request if ${url} ~= /mtop\.fc\.touch\.msgbox\.topcard\.get/i then reject_dict(2
 # 优惠券弹窗自动分发
 request if ${url} ~= /mtop\.fc\.promotion\.coupon\.dispatch/i then reject_dict(200)
 # ⚠️ 不拦 fatigue.expose (疲劳度上报, 拦截会反弹 — 铁律7)
+# === 全量二进制审计补齐 (2026-10-24, 5 App 3489 API 交叉, docs/audit 方法论) ===
+# 闲鱼: 利益频道/画像分流/推荐分发 (HAR 实测在用)
+request if ${url} ~= /mtop\.idle\.interact\.mac\.user\.launch/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.idle\.fci\.recommend\.reason/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.idle\.playboy\.recommend/i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.iliad\.recommend\.publish/i then reject_dict(200)
+# 特价版: gaia 增长任务全族 (红包/签到/任务)
+request if ${url} ~= /mtop\.gaia\.tjb\.growth\./i then reject_dict(200)
+# 天猫: inspirecpc 广告 feeds / 淘宝客补贴推荐
+request if ${url} ~= /mtop\.tmall\.recommend\.inspirecpc\./i then reject_dict(200)
+request if ${url} ~= /mtop\.taobao\.aladdin\.service\.aldrecommendservice\./i then reject_dict(200)
+# 直播: 金币/红包雨利益体系
+request if ${url} ~= /mtop\.taobao\.livex\.(?:goldcoin\.reward|right\.redpacket\.)/i then reject_dict(200)
+# 跨 App: 营销优惠券分发 (bulgari/tjhb/macao investment)
+request if ${url} ~= /mtop\.alimama\.bulgari\.coupon\./i then reject_dict(200)
+request if ${url} ~= /mtop\.mallx\.marketing\.front\.tjhb\./i then reject_dict(200)
+request if ${url} ~= /mtop\.mediaplatform\.live\.investment\.newusercoupon\./i then reject_dict(200)
+# 闲鱼: 小游戏广告 URL / play 广告事件
+request if ${url} ~= /mtop\.taobao\.idle\.(?:mini\.game\.ad\.|play\.ad)/i then reject_dict(200)
 # === 天猫: 开屏/热启动素材直拦 (15TUA=天猫投放素材库标识, 9/9 开屏素材命中, 84 张正常商品图 0 命中) ===
 request if ${url} ~= /^https?:\/\/(?:gw|img)\.alicdn\.com\/imgextra\/.*15TUA/ then reject
 # === 天猫搜索域 (2026-10-24 HAR 实证, 与打字联想 search.suggest 不同源, 可安全 reject) ===
