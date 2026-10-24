@@ -24,6 +24,8 @@ DOMAIN, adashbc.ut.taobao.com, REJECT
 DOMAIN, adashxgc.ut.taobao.com, REJECT
 
 [Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /gw/loon-sim\.probe\.smzdm_remove_ads then reject(200, "1.4.0")
 request if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/loading\?/i then reject_dict(200)
 
 # === 2026-10-24 二进制审计补齐 ===
