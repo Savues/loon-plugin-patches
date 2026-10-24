@@ -1679,6 +1679,33 @@ function scrubOrangeConfig(bodyBytes) {
   }
 }
 
+
+// ★ 天猫首页容器 (infinity.gateway.execute): 清洗 tabHeader.search 预置广告词
+// 结构: data.attachment.tabHeader.fields.search.query = 滚动词 (placeholder 接口的第二通道)
+// 策略: query 置空 + accessibilityText 同步 + refresh=false — 结构完整保留 (防搜索框点击失效)
+function filterTmallInfinity(body) {
+  try {
+    const obj = JSON.parse(body);
+    const att = obj?.data?.attachment;
+    if (!att) return null;
+    let changed = false;
+    const th = att.tabHeader?.fields;
+    if (th && th.search && typeof th.search === 'object' && th.search.query) {
+      th.search.query = "";
+      th.search.accessibilityText = "";
+      th.search.isBold = "false";
+      th.search.refresh = "false";
+      changed = true;
+    }
+    // fullSearchContainer 同源兜底
+    const fsc = att.fullSearchContainer;
+    if (fsc && typeof fsc === 'object' && fsc.query) {
+      fsc.query = ""; fsc.refresh = "false"; changed = true;
+    }
+    return changed ? JSON.stringify(obj) : null;
+  } catch (e) { return null; }
+}
+
 function main() {
   if (!$response || !$response.body) {
     console.log("[Alibaba-AdBlock] No response body");
@@ -1725,6 +1752,14 @@ function main() {
           return;
         }
       }
+    }
+  }
+
+  // 天猫首页容器: tabHeader.search 预置词清空 (placeholder 接口外的第二通道)
+  if (url.indexOf("mtop.tmall.infinity.gateway.execute") >= 0) {
+    if (isEnabled("removeSearchWords") || isEnabled("removeSmallCards")) {
+      const tmClean = filterTmallInfinity(body);
+      if (tmClean !== null) { $done({ body: tmClean }); return; }
     }
   }
 
