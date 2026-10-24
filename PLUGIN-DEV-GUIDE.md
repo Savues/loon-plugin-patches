@@ -538,6 +538,9 @@ node cli.js har <plugin.lpx> <capture.har> --report out.md
 | 7 | 拦截功能接口（登录/支付/消息/校验/联想）| 破坏功能 | 见各插件 README |
 | 8 | 改脚本后不做调用点检查 | 函数定义丢失 → 整脚本失效 | `scrubPopcdnSchedule` 被冲掉 2 次 |
 | 9 | 脚本化重建 lpx 后不校验文件头 | 插件无法识别 | 6 行 `#!` 头全丢 |
+| 10 | bundle.js 加函数不加 lpx 规则入口 | 清洗**静默失效**（三件套: 定义+分发+规则入口）| 摇钱树三轮排查 v3.48 |
+| 11 | 复活老开关不查历史默认值 / with enable 单点依赖 | 用户已持久化 false → 功能死 | v3.47 事故 |
+| 12 | 功能主干接口 reject（首页/容器类）| **白屏**（一淘 home.metax=天猫 infinity.gateway 同层）| 一淘首页 v3.46 |
 
 **特别提醒**：拦截「疲劳度/频次记录」类接口会**适得其反**
 ```
@@ -571,7 +574,13 @@ node --check src/bundle.js
 # ⑧ loon-sim 全套回归（替代手工 ②③④）
 cd tools/loon-sim && node cli.js check ../../$P && node selftest.js | tail -1 && sh ci.sh | tail -1
 
-# ⑨ 终端三组对照实测（§8）— 前提: 版本探针转绿
+# ⑨ bundle.js 新增清洗的三件套检查 (函数定义 / main 分发 / lpx 规则入口)
+rg -c "<函数名>" src/bundle.js            # 应 ≥2 (定义+调用)
+rg "<接口名>" $P                           # 必须有 [Script] 规则行!
+cd tools/loon-sim && node cli.js run ../../$P --url "<目标URL>" --phase response --response-file <真实body>
+#   ↑ 完整链路! 必须看到"生效规则"且输出满足断言 — 不许 vm 直调函数
+
+# ⑩ 终端三组对照实测（§8）— 前提: 版本探针转绿
 sh tools/loon-sim/version-probe.sh $P   # ✅ 才可测
 ```
 
