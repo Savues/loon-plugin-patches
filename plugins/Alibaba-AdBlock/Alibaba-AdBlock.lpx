@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.47.4
+#!name=Alibaba-AdBlock v3.48.0
 #!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.47.4
+#!version=3.48.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -162,7 +162,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.47.4")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.48.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -317,6 +317,13 @@ request if ${url} ~= /mtop\.tmall\.recommend\.inspirecpc\./i then reject_dict(20
 request if ${url} ~= /mtop\.taobao\.aladdin\.service\.aldrecommendservice\./i then reject_dict(200)
 # 直播: 金币/红包雨利益体系
 request if ${url} ~= /mtop\.taobao\.livex\.(?:goldcoin\.reward|right\.redpacket\.)/i then reject_dict(200)
+# === 淘宝直播: 膨胀红包动线规则引擎 (膨胀红包悬浮窗的规则下发 — configsV3 routine 31节点, skylar浮窗触发) ===
+request if ${url} ~= /mtop\.taobao\.livex\.event\.client\.rule\.report/i then reject_dict(200)
+# === 淘宝: iliad 任务悬浮/奖励族 (usertask 任务入口 + interact.reward 充值奖励) ===
+request if ${url} ~= /mtop\.iliad\.usertask\.tasks\.(?:dotask|entryclick)/i then reject_dict(200)
+request if ${url} ~= /mtop\.iliad\.interact\.task\.trigger/i then reject_dict(200)
+request if ${url} ~= /mtop\.iliad\.interact\.reward\.(?:createrechargeorder|rechargecurrency|limit)/i then reject_dict(200)
+request if ${url} ~= /mtop\.iliad\.interact\.reward\.gift\.(?:benefitgift|guide)/i then reject_dict(200)
 # 跨 App: 营销优惠券分发 (bulgari/tjhb/macao investment)
 request if ${url} ~= /mtop\.alimama\.bulgari\.coupon\./i then reject_dict(200)
 request if ${url} ~= /mtop\.mallx\.marketing\.front\.tjhb\./i then reject_dict(200)
