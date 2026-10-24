@@ -1,5 +1,5 @@
-#!name=什么值得买去广告 v1.0.0
-#!version=1.0.0
+#!name=什么值得买去广告 v1.1.0
+#!version=1.1.0
 #!desc=移除开屏广告、信息流广告、各类横幅广告、搜索页广告、文章内广告，移除活动皮肤、精简我的页面。
 #!openUrl=https://apps.apple.com/app/id518213356
 #!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -13,9 +13,26 @@
 
 [Rule]
 DOMAIN, adx-api.zdmimg.com, REJECT
+# 埋点/广告SDK 域名级拦截 (2026-10-24 二进制审计, App不常用可大胆拦)
+DOMAIN-SUFFIX, dsp.ads.umeng.com, REJECT
+DOMAIN, aaid.uyunad.com, REJECT
+DOMAIN-SUFFIX, cnlogs.umeng.com, REJECT
+DOMAIN, analytics-api.smzdm.com, REJECT
+DOMAIN, analytics-api-01.smzdm.com, REJECT
+DOMAIN, shence-import.smzdm.com, REJECT
+DOMAIN, adashbc.ut.taobao.com, REJECT
+DOMAIN, adashxgc.ut.taobao.com, REJECT
 
 [Rewrite]
 request if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/loading\?/i then reject_dict(200)
+
+# === 2026-10-24 二进制审计补齐 ===
+# UMPAD 友盟开屏 SDK (admsg launch/getmsg, 域名为运行时拼接 — 路径特征拦截)
+request if ${url} ~= /\/admsg\/v[23]\/(?:launch|getmsg)/i then reject_dict(200)
+# 友盟 DSP 事件上报
+request if ${url} ~= /dsp\.ads\.umeng\.com\/api\/v2\/(?:evt|rq)/i then reject_dict(200)
+# 红包营销分享
+request if ${url} ~= /hongbao_(?:pintu|zhuanti)_share/i then reject_dict(200)
 
 response if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/util\/update$/i then response.json.replace(["data.silence_local_push", "data.baichuan_redirect_switch"], [0, 0])
 
