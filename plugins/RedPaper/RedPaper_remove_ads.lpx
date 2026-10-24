@@ -1,5 +1,5 @@
-#!name=小红书去广告 v1.2.0
-#!version=1.2.0
+#!name=小红书去广告 v1.3.0
+#!version=1.3.0
 #!desc=过滤信息流推广，移除图片及视频水印，如有异常，请先清除缓存再尝试。
 #!openUrl=https://apps.apple.com/app/id741292507
 #!author=RuCu6[https://github.com/RuCu6], fmz200[https://github.com/fmz200]
@@ -11,17 +11,20 @@
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/RedPaper.png
 #!date=2026-10-24 16:50:00
 
+[Argument]
+removeDianDian = switch, true, false, tag=🤖屏蔽点点AI, desc=屏蔽点点AI助手: askdiandian域名+agentspark/inspiration API+diandian前端+入口开关清洗
+
 [Rule]
 AND, ((PROTOCOL, QUIC), (DOMAIN-SUFFIX, xiaohongshu.com)), REJECT
-DOMAIN-SUFFIX, askdiandian.com, REJECT
 
 [Rewrite]
 request if ${url} ~= /^https:\/\/ci\.xiaohongshu\.com\/system_config\/watermark/i then reject_img(200)
 
-# === 点点 AI / agentspark 全屏蔽 (2026-10-24 二进制+HAR 审计) ===
-request if ${url} ~= /\/api\/sns\/agentspark\//i then reject_dict(200)
-request if ${url} ~= /\/api\/sns\/inspiration\//i then reject_dict(200)
-request if ${url} ~= /diandian\.xiaohongshu\.com/i then reject_dict(200)
+# === 点点 AI / agentspark 全屏蔽 (开关 removeDianDian; v2 条件式 Rewrite) ===
+request if ${url} ~= /\/api\/sns\/agentspark\//i && ${removeDianDian} == true then reject_dict(200)
+request if ${url} ~= /\/api\/sns\/inspiration\//i && ${removeDianDian} == true then reject_dict(200)
+request if ${url} ~= /diandian\.xiaohongshu\.com/i && ${removeDianDian} == true then reject_dict(200)
+request if ${url} ~= /^https?:\/\/(?:www\.)?askdiandian\.com\//i && ${removeDianDian} == true then reject_dict(200)
 
 request if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(?:get_style|open|submit_action)/i then reject_dict(200)
 request if ${url} ~= /^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\?/i then reject_dict(200)
@@ -35,6 +38,8 @@ response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\?/i then response.json.replace(["data.queries", "data.hint_word"], ["[]", "{}"])
 
 [Script]
+response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v3\/system_service\/flag_exp/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_flag_exp.js", {${removeDianDian}}) with requires_body=true, tag="点点入口旗标清洗"
+
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/switch_config/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_switch_config.js") with tag="通知引导弹窗清洗", requires_body=true
 
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/note\/(?:imagefeed|live_photo\/save)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_remove_ads.js") with tag="移除图片和实况照片水印", requires_body=true
@@ -62,4 +67,4 @@ response if ${url} ~= /^https:\/\/(?:edith|so)\.xiaohongshu\.com\/api\/sns\/v10\
 response if ${url} ~= /^https:\/\/(?:edith|rec|www)\.xiaohongshu\.com\/api\/sns\/(?:v4\/note\/videofeed|v10\/note\/video\/save)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_remove_ads.js") with tag="移除视频水印", requires_body=true
 
 [MitM]
-hostname=ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com
+hostname=ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com, askdiandian.com
