@@ -1,5 +1,5 @@
-#!name=什么值得买去广告 v1.1.0
-#!version=1.1.0
+#!name=什么值得买去广告 v1.2.0
+#!version=1.2.0
 #!desc=移除开屏广告、信息流广告、各类横幅广告、搜索页广告、文章内广告，移除活动皮肤、精简我的页面。
 #!openUrl=https://apps.apple.com/app/id518213356
 #!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
@@ -45,9 +45,9 @@ request if ${url} ~= /^https:\/\/app-api\.smzdm\.com\/mychannel\/list$/i then re
 
 request if ${url} ~= /^https:\/\/h5\.smzdm\.com\/user\/coupon\/coupon_list\?/i then reject(404)
 
-response if ${url} ~= /^https:\/\/haojia-api\.smzdm\.com\/home\/list\?/i then response.json.delete("data.header_operation.theme")
+response if ${url} ~= /^https:\/\/(?:haojia|a)-api\.smzdm\.com\/home\/list\?/i then response.json.delete("data.header_operation.theme")
 
-response if ${url} ~= /^https:\/\/haojia-api\.smzdm\.com\/home\/list\?/i then response.json.jq(".data.rows |= map(select(.cell_type == \"39001\")) | .data.banner_v2 |= map(select(.cell_type == \"21028\"))")
+response if ${url} ~= /^https:\/\/(?:haojia|a)-api\.smzdm\.com\/home\/list\?/i then response.json.jq(".data.rows |= map(select(.cell_type == \"39001\")) | .data.banner_v2 |= map(select(.cell_type == \"21028\"))")
 
 response if ${url} ~= /^https:\/\/haojia\.m\.smzdm\.com\/detail_modul\/user_related_modul\?/i then response.json.delete("data.super_coupon")
 
