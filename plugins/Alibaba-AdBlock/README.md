@@ -181,6 +181,7 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 | 版本 | 内容 | 验证 |
 |------|------|------|
+| **v3.50.0** | **支付宝并入**：广告网关域名(adgw/adiu/datagw-edge) + 推广素材(bz=Promotion/promocreative) + UCDP 弹窗模板(支付完成页视频广告)；RPC 长连接层为已知边界 | HAR 实证 ✅ |
 | **v3.49.0** | 删 2 个死开关（blockTracking/removeUcpPopup，规则下沉 [Rule]/无条件后失效）| 模拟器 0 警告 ✅ |
 | **v3.48.x** | 天猫摇钱树悬浮窗三链路（yqs.ssp+tacdata入口+spine素材）+ 直播膨胀红包规则引擎 + iliad 任务族 | 真机验证 ✅（tacdata 全清实证）|
 | **v3.47.x** | 一淘全案：滚词典/搜索发现/膨胀红包/开屏 noah（含首页白屏事故当日回滚）| 真机验证 ✅ |

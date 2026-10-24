@@ -1,7 +1,7 @@
-#!name=Alibaba-AdBlock v3.49.0
-#!desc=阿里系去广告 · 支持 Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
+#!name=Alibaba-AdBlock v3.50.0
+#!desc=阿里系去广告 · 支持支付宝/Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.49.0
+#!version=3.50.0
 #!author=Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -51,10 +51,14 @@ DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT
 DOMAIN-SUFFIX, ems.youku.com, REJECT
 DOMAIN-SUFFIX, hudong.alicdn.com, REJECT
 DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT
+# 支付宝: 广告网关 + 高德广告SDK + 日志埋点上报 (2026-10-24 逆向+HAR, docs 见仓库)
+DOMAIN-SUFFIX, adgw.alipay.com, REJECT
+DOMAIN, adiu.amap.com, REJECT
+DOMAIN-SUFFIX, datagw-edge.alipay.com, REJECT
 
 [MITM]
 hostname = acs.m.taobao.com, g.alicdn.com, img.alicdn.com, guide-acs.m.taobao.com, orange.tbcdn.cn, dorangesource.alicdn.com, cn-acs.m.taobao.com, acs.m.goofish.com, g-acs.m.goofish.com, acs.m.tmall.com, acs.m.alibaba.com, acs.m.hema.com, acs.m.fliggy.com, poplayer.template.alibaba.com, heic.alicdn.com, gw.alicdn.com, dinamicx.alibabausercontent.com
-h2 = true
+mdn.alipayobjects.com, gw.alipayobjects.com, h2 = true
 
 [Script]
 # === 批量广告分发 (Moon/淘宝/天猫/闲鱼通用) ===
@@ -161,7 +165,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.49.0")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.0")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -306,6 +310,13 @@ request if ${url} ~= /mtop\.fc\.touch\.msgbox\.topcard\.get/i then reject_dict(2
 # 优惠券弹窗自动分发
 request if ${url} ~= /mtop\.fc\.promotion\.coupon\.dispatch/i then reject_dict(200)
 # ⚠️ 不拦 fatigue.expose (疲劳度上报, 拦截会反弹 — 铁律7)
+# === 支付宝: 推广素材 + UCDP 弹窗模板 (2026-10-24; RPC 长连接层不可达为已知边界) ===
+# 推广素材 (bz=Promotion 参数标记 — HAR 实证广告图全带) + 官方推广创意目录
+request if ${url} ~= /bz=Promotion/i then reject
+request if ${url} ~= /\/zos\/promo/i then reject
+# UCDP 弹窗模板下载 (含 cashier_result_video_ad 支付完成页视频广告)
+request if ${url} ~= /bz=ucdpTemplate/i then reject_dict(200)
+request if ${url} ~= /\/ucdpTemplate@/i then reject_dict(200)
 # === 全量二进制审计补齐 (2026-10-24, 5 App 3489 API 交叉, docs/audit 方法论) ===
 # 闲鱼: 利益频道/画像分流/推荐分发 (HAR 实测在用)
 request if ${url} ~= /mtop\.idle\.interact\.mac\.user\.launch/i then reject_dict(200)
