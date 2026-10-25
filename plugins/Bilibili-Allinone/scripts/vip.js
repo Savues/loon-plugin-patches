@@ -27,9 +27,9 @@ const on = (v) => v === true || v === "true";
 const ALL = on(A.vipAllUsers);
 
 // 国际版我的页服务项隐藏 ID（sections_v2）
-// v7.45 默认隐藏：离线缓存(494)/稍后再看(3084)（用户裁决：钱包/NFT 移出默认隐藏）
-// 保留：钱包(741)/NFT(1028)/联系客服(500)/稿件管理(742)
-let mineInterHideIdsStr = '494,3084';
+// v8.0.1 默认隐藏：我的钱包(741)/我的NFT(1028)（用户裁定）
+// 显示：离线缓存(494)/稍后再看(3084)/联系客服(500)/稿件管理(742)
+let mineInterHideIdsStr = '741,1028';
 if (A.MineInterHideIds) {
   mineInterHideIdsStr = A.MineInterHideIds;
 } else if (Array.isArray(A) && A[0] && A[0].MineInterHideIds) {

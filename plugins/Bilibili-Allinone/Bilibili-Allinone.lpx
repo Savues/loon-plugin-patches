@@ -1,4 +1,4 @@
-#!name=B站四合一(去广告+界面+空降+开屏) v8.0.0
+#!name=B站四合一(去广告+界面+空降+开屏) v8.0.1
 #!desc=Bilibili-Allinone: 四插件合体 — ①去广告+会员伪装+漫画净化(Bilibili-Dedup) ②首页标签页/底栏(Bilibili-UI) ③空降助手 SponsorBlock(Bilibili-Airborne) ④开屏节日定制(Splash-Festival)。参数 67 个按 tag 分组; ViewProgress 由 bundle 单管线处理(清洗+chronos 重签), 消除跨插件规则互抢。
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告,Bilibili,Allinone
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/icon.png?v=2
-#!date=2026-10-26 00:30:00
+#!date=2026-10-26 01:30:00
 
 [Argument]
 # ======== 去广告 / 会员伪装 (原 Bilibili-Dedup v7.45) ========
@@ -26,7 +26,7 @@ vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主
 vipBadgeIcon = select,"企业认证","大会员","小会员","认证闪电","数字藏品","数字藏品·动态","数字藏品·紫动态","大会员+藏品动态","测试·local6",tag=头像角标样式,desc=实测定案：1=大会员大字、2=小会员小字、3=认证闪电、4=企业认证、5=数字藏品。动态系列两色：标准粉紫（j8AeXAkEul）/深紫（IOHoVs1ebP）；大会员+藏品动态=双标识并存。6 未知留测试。真实会员不受影响
 vipLabelAnnual = switch,false,tag=牌子配色·年度粉,desc=开启后 label_theme 强制 annual_vip：客户端牌子按主题表渲染配色，任意主题（含绿鲤鱼小会员）的牌子都变粉色年度大会员款，覆盖 vipBg/vipFg 自定义色。关闭则跟随 vipTheme（绿鲤鱼不在主题表、用自带绿色）
 vipAvatarBadge = switch,true,tag=头像角标,desc=在头像下方显示会员角标。原理：向 avatar 新协议（新头像视图的图层系统）追加真年度大会员的 ICON_LAYER 角标图层。与牌子主题、认证彩蛋互相独立，可任意组合；真实会员响应不改动
-MineInterHideIds = input,"494,3084",tag=[我的页·国际版] 隐藏 id（逗号分隔）,desc=默认隐藏 离线缓存/稍后再看；保留 钱包/NFT/联系客服/稿件管理（v7.45 起 741钱包 与 1028NFT 从默认隐藏中移出）
+MineInterHideIds = input,"741,1028",tag=[我的页·国际版] 隐藏 id（逗号分隔）,desc=默认隐藏 我的钱包(741)/我的NFT(1028)；显示 离线缓存/稍后再看/联系客服/稿件管理（v8.0.1 用户裁定）
 MineHideIds = input,"755,756,757,758,759,760,2541,965,747,750",tag=[我的页·iPad HD] 隐藏 id（逗号分隔）,desc=默认隐藏 推荐/更多/常用功能部分；保留 创作中心全组/我的客服/历史/收藏/设置。留空=全部显示
 LogLevel = select,"OFF","WARN","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
 displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
@@ -91,7 +91,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${{url}} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.0")
+request if ${{url}} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.1")
 
 # 版本探针 v2 (version-probe.sh 用, 勿删)
 request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_dedup/i then reject(200, "7.45")
