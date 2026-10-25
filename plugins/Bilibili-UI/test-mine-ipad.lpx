@@ -2,7 +2,7 @@
 #!desc=测试插件：验证我的页字段消费行为，调试用。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png?v=2
 #!tag=测试,我的页
 #!system=iOS, iPadOS
 #!system_version=15
