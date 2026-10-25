@@ -8,6 +8,35 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.1] - 2026-10-26 · httpcheck
+
+### 动机：v6.0 闪退——ctor 全过，死在第一个响应触发时
+
+闪退取证（pid 62124）：`S1→S5-meta-hooked:2→resp-file-ok→probe-done` 九行
+ctor 期全落盘，**零 req/resp/data 行** = 崩在新 hook 的第一次触发。
+根因：`_onqueue_didReceiveResponse:completion:` 的 `response` 参数是
+**NSURLResponse 通用型**——非 HTTP 响应（file:// 等）时对它发
+`statusCode` → `doesNotRecognizeSelector` → 崩。
+
+### 改动
+
+- `lcf_resp_line` 入口加 `isKindOfClass:`（NSHTTPURLResponse）判别，
+  非 HTTP 响应静默跳过（line 置空）
+- `didresp_hook` 仅在 line 非空时写盘
+- 判别用的 `objc_msgSend` 以 char 返回签名调用（BOOL 走寄存器低位，正确）
+
+### 实证（待真机）
+
+86432B（比 v6.0 大——isKindOfClass 路径新增），md5 `55f36e00`。
+
+### 教训
+
+hook 系统回调的参数类型是**声明的宽类型**（NSURLResponse），
+HTTP 专属 selector 发送前必须运行时判别——与"ObjC getter 不 release"
+同级的铁律候选。
+
+---
+
 ## [6.0] - 2026-10-26 · har-parity
 
 ### 动机：对标 Loon HAR 的字段能力

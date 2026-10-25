@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.0-har-parity"
+#define LCF_VERSION "6.1-httpcheck"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -43,6 +43,7 @@
 #include <time.h>
 #include <stdint.h>
 
+typedef char BOOLish;   /* v6.1: objc BOOL 返回值类型 */
 typedef unsigned long pthread_t;
 extern int pthread_create(pthread_t*, const void*, void* (*)(void*), void*);
 extern int pthread_detach(pthread_t);
@@ -461,9 +462,23 @@ static void lcf_reasm_flush_locked(unsigned long long tid){
  * v6.0-A: resp 行 + fin 行 hook
  * ================================================================== */
 
-/* NSHTTPURLResponse → resp 行 (tid 关联) */
+/* NSHTTPURLResponse → resp 行 (tid 关联)
+ * v6.1 安全修正: response 参数可能是 NSURLResponse 通用型 (非 HTTP),
+ * 直接发 statusCode → doesNotRecognizeSelector → 崩 (v6.0 闪退根因)。
+ * 判别: isKindOfClass(NSHTTPURLResponse) 才读 HTTP 专属字段。
+ * 返回: line[0]==0 表示跳过 */
 static void lcf_resp_line(id self, id response, char* line, size_t cap){
+    line[0] = 0;
     unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+    static Class httpRespCls = 0;
+    if (!httpRespCls) httpRespCls = (Class)objc_getClass("NSHTTPURLResponse");
+    SEL isk = sel_registerName("isKindOfClass:");
+    char ishttp = 0;
+    {
+        typedef char (*boolmsg_t)(id, SEL, Class);
+        ishttp = ((boolmsg_t)objc_msgSend)(response, isk, httpRespCls);
+    }
+    if (!ishttp) return;   /* 非 HTTP 响应 (file:// 等): 静默跳过 */
     long status = (long)(intptr_t)objc_msgSend(response, s_statusCode);
     id mime = (id)objc_msgSend(response, s_mime);
     char mimetype[48] = "";
@@ -508,9 +523,12 @@ static void lcf_resp_line(id self, id response, char* line, size_t cap){
 
 static void didresp_hook(id self, SEL _cmd, id response, void* completion){
     if (g_orig_didresp && response){
+        /* v6.1: 整段 try/catch 兜底 — 元数据提取绝不影响原请求流 */
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
-        lc_lock(); lc_write_locked(line); lc_unlock();
+        if (line[0]){
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        }
     }
     ((void(*)(id,SEL,id,void*))g_orig_didresp)(self, _cmd, response, completion);
 }
