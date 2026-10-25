@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.2-reqbody"
+#define LCF_VERSION "7.3-seq-atomic"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -126,6 +126,30 @@ static void lc_stage(const char* tag){
         }
     }
     lc_unlock();
+}
+
+/* v7.3: 已持锁 — 回填 seq 占位 ("seq":0 处原位覆盖为实际值), 追加尾段, 写盘 */
+static void lc_write_seq_locked(const char* prefix, const char* suffix){
+    char buf[2048];
+    size_t plen = strlen(prefix);
+    if (plen >= sizeof(buf) - 32) return;
+    memcpy(buf, prefix, plen + 1);
+    unsigned long long v = ++g_seq;
+    char* seqpos = strstr(buf, "\"seq\":");
+    if (seqpos){
+        char* num = seqpos + 6;   /* "seq": 后的 0 */
+        char rest[1600];
+        strcpy(rest, num + 1);    /* 跳过占位的 '0', 保留其后的 ,... */
+        snprintf(num, sizeof(buf) - (size_t)(num - buf), "%llu%s", v, rest);
+    }
+    size_t blen = strlen(buf);
+    if (blen + strlen(suffix) < sizeof(buf) - 2){
+        memcpy(buf + blen, suffix, strlen(suffix) + 1);
+    }
+    int fd = lc_openlog();
+    if (fd >= 0 && write(fd, buf, strlen(buf)) < 0){
+        close(g_fd); g_fd = -1;
+    }
 }
 
 static void lc_write_locked(const char* line){
@@ -419,7 +443,16 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
             lc_stage("diag-reasm-enter");
         }
         lc_lock();
-        lc_write_locked(line);
+        /* v7.3: seq 在写盘锁内分配 (data 行前缀 seq:0 占位) */
+        char* cut = strstr(line, ",\"pid\":");
+        if (cut){
+            *cut = 0;
+            char suffix[64];
+            snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
+            lc_write_seq_locked(line, suffix);
+        } else {
+            lc_write_locked(line);
+        }
         /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
@@ -672,7 +705,18 @@ static void didfin_hook(id self, SEL _cmd, id error){
             lc_json_str(&p2, &rem2, mimetype);
             snprintf(p2, rem2, ",\"pid\":%d}\n", (int)getpid());
         }
-        lc_lock(); lc_write_locked(line); lc_unlock();
+        lc_lock();
+        {
+            char* seqpos = strstr(line, "\"seq\":");
+            if (seqpos){
+                unsigned long long v = ++g_seq;
+                char rest[400];
+                strcpy(rest, seqpos + 6 + 1);
+                snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
+            }
+            lc_write_locked(line);
+        }
+        lc_unlock();
 
         /* v6.9: 重组 flush 移锁外 — 持锁区只做"摘槽"(浅层指针交换),
          * open/mkdir/write 全部在锁外执行 (铁律: 持锁区只调 *_locked 变体) */
