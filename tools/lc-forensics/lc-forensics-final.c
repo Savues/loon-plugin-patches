@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.2-diag-enter"
+#define LCF_VERSION "6.3-fin-nop"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -562,31 +562,10 @@ static void didfin_hook(id self, SEL _cmd, id error){
             g_diag_fin_enter++;
             lc_stage("diag-fin-enter");
         }
+        /* v6.3: 主体禁用 (二分) — 崩点锁定在 enter 与 survived 之间,
+         * 本轮只留空壳+原IMP直调; 若稳定, 下一版逐段恢复 */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        char line[384];
-        char errinfo[160] = "";
-        if (error){
-            const char* c = (const char*)objc_msgSend(error, s_localizedDesc);
-            if (c) snprintf(errinfo, sizeof(errinfo), ",\"err\":");
-            char* p = line; size_t rem = sizeof(line);
-            int w = snprintf(p, rem,
-                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"err\",\"err\":",
-                lc_now(), ++g_seq, tid);
-            p += w; rem -= (size_t)w;
-            const char* msg = (const char*)objc_msgSend(error, s_localizedDesc);
-            lc_json_str(&p, &rem, msg ? msg : "");
-            snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
-            lc_lock(); lc_write_locked(line); lc_unlock();
-        } else {
-            snprintf(line, sizeof(line),
-                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"ok\",\"pid\":%d}\n",
-                lc_now(), ++g_seq, tid, (int)getpid());
-            lc_lock(); lc_write_locked(line); lc_unlock();
-        }
-        /* 重组落盘 (成功或失败都 flush — 失败也保留已收到的部分) */
-        lc_lock();
-        lcf_reasm_flush_locked(tid);
-        lc_unlock();
+        (void)tid;
         if (g_diag_fin_enter == 3){
             g_diag_fin_enter = 4;
             lc_stage("diag-fin-survived");

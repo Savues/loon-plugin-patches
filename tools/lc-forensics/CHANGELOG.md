@@ -8,6 +8,35 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.3] - 2026-10-26 · fin-nop
+
+### 动机：v6.2 诊断标记锁定凶手范围
+
+双 App 的 base 日志都停在 **`diag-fin-enter`**（survived 未出现）——
+凶手在 `didfin_hook` 的主体内。另有重大旁证：`diag-resp-enter` 双 App
+**一次都没出现**——`_onqueue_didReceiveResponse:completion:` 根本不在
+豆瓣/JavDB 的数据通路上（response 事件走的是其他 selector，
+如 `_onqueue_didReceiveResponse:redirectRequest:withCompletion:`），
+它只是恰好存在所以 hook 装上了。
+
+### 改动（二分）
+
+`didfin_hook` 主体整段 `#if 0` 禁用（fin 行 + 重组 flush），
+只留 enter/survived 标记 + 原 IMP 直调。
+
+### 判读
+
+| 结果 | 结论 |
+|------|------|
+| 稳定（fin-enter → fin-survived 成对出现） | 凶手在主体内，v6.4 逐段恢复定位 |
+| 仍崩在 fin-enter 后 | 凶手在 `msgSend(self, s_tid)` 或 **原 IMP 直调本身**（hook 这个 selector 的行为就不安全，放弃 fin 能力）|
+
+### 实证（待真机）
+
+70048B，md5 `6a88e72a`。
+
+---
+
 ## [6.2] - 2026-10-26 · diag-enter
 
 ### 动机：v6.1 双 App 仍闪退——且分流证据变了

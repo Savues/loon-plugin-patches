@@ -39,13 +39,13 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v6.2 诊断版）
+lc-forensics-final.c    # 源码（当前版本 v6.3 二分版）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v6.2.dylib # 构建产物（可直接 Import）
+lc-forensics-v6.3.dylib # 构建产物（可直接 Import）
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
 
