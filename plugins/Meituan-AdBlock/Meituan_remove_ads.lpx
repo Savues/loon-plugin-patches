@@ -1,7 +1,7 @@
 #!name=美团去广告 v0.7.0
 #!desc=拦截我的页会员营销、营销素材、AB实验广告策略。搜索框/信息流数据走长连接(mtgsdk)不可达, 为已知边界。
 #!version=0.7.0
-#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Meituan.png
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/icon/icon.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
 #!date=2026-10-25 02:10:00
