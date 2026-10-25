@@ -8,6 +8,31 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.5] - 2026-10-26 · fin-restore
+
+### 动机：v6.4 双 App 全绿后的两项收尾
+
+1. **fin 行恢复**（第一步）：didfin 主体只恢复 fin 行写入（持锁写，
+   无 flush——v6.0 崩点嫌疑是 flush 的 open/mkdir/write，先隔离验证）。
+   fin 行 state:ok/err + 错误摘要，task 生命周期闭合。
+2. **resp 行换 selector**：`_onqueue_didReceiveResponse:completion:` 已被
+   v6.2-v6.4 诊断证实不在豆瓣/JavDB 数据通路（enter 从未出现），改装两个
+   探针名单内的替代并观察谁在通路上：
+   - `connection:didReceiveResponse:completion:`（delegate 回调同形）
+   - `_onqueue_didReceiveResponse:redirectRequest:withCompletion:`（redirect 变体，
+     独立 hook 函数 didresp2_hook，3 参直调）
+
+### 判读
+
+- fin 行出现且 App 稳定 = fin 行写入安全（v6.0 崩点锁定 flush），
+  下版解锁外 flush
+- `diag-resp2-enter` 或 resp 行出现 = resp 通路打通（HAR 对标最后一格）
+- 任何不稳 → 按标记回退对应项
+
+### 实证（待真机）
+
+86672B，md5 `101d6899`。S5-meta-hooked 计数含 resp2（最高 3）。
+
 ## [6.4] - 2026-10-26 · deadlock-fix
 
 ### 动机：v6.3 双 App 分流——JavDB 恢复、豆瓣黑屏（非闪退）

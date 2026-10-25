@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.4-deadlock-fix"
+#define LCF_VERSION "6.5-fin-restore"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -89,6 +89,7 @@ static IMP g_orig_dtwrh = 0;
 static IMP g_orig_dtwr  = 0;
 static IMP g_orig_didd  = 0;         /* didReceiveDispatchData 原实现 */
 static IMP g_orig_didresp = 0;       /* didReceiveResponse 原实现 (v6.0) */
+static IMP g_orig_didresp2 = 0;      /* didReceiveResponse:redirectRequest: 原实现 (v6.5) */
 static IMP g_orig_didfin  = 0;       /* didFinishWithError 原实现 (v6.0) */
 
 static unsigned long long g_seq = 0;
@@ -558,16 +559,52 @@ static void didresp_hook(id self, SEL _cmd, id response, void* completion){
     ((void(*)(id,SEL,id,void*))g_orig_didresp)(self, _cmd, response, completion);
 }
 
+/* v6.5: redirect 变体 hook — _onqueue_didReceiveResponse:redirectRequest:withCompletion: */
+static void didresp2_hook(id self, SEL _cmd, id response, id redirectReq, void* completion){
+    if (g_orig_didresp2 && response){
+        if (g_diag_resp_enter < 3){
+            g_diag_resp_enter++;
+            lc_stage("diag-resp2-enter");
+        }
+        char line[512];
+        lcf_resp_line(self, response, line, sizeof(line));
+        if (line[0]){
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        }
+        if (g_diag_resp_enter == 3){
+            g_diag_resp_enter = 4;
+            lc_stage("diag-resp-survived");
+        }
+    }
+    ((void(*)(id,SEL,id,id,void*))g_orig_didresp2)(self, _cmd, response, redirectReq, completion);
+}
+
 static void didfin_hook(id self, SEL _cmd, id error){
     if (g_orig_didfin){
         if (g_diag_fin_enter < 3){
             g_diag_fin_enter++;
             lc_stage("diag-fin-enter");
         }
-        /* v6.4: 主体仍禁用 — didfin 主体含 reasm flush (open/mkdir/write),
-         * 且 fin 行写入历史崩点未定位, 留待数据通路验证后再逐段恢复 */
+        /* v6.5 第一步: 只恢复 fin 行 (持锁写, 无 flush — v6.0 崩点疑 flush,
+         * 分段恢复: fin 行本版验证, flush 重组下版解锁外) */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        (void)tid;
+        char line[384];
+        if (error){
+            const char* msg = (const char*)objc_msgSend(error, s_localizedDesc);
+            char* p = line; size_t rem = sizeof(line);
+            int w = snprintf(p, rem,
+                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"err\",\"err\":",
+                lc_now(), ++g_seq, tid);
+            p += w; rem -= (size_t)w;
+            lc_json_str(&p, &rem, msg ? msg : "");
+            snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        } else {
+            snprintf(line, sizeof(line),
+                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"ok\",\"pid\":%d}\n",
+                lc_now(), ++g_seq, tid, (int)getpid());
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        }
         if (g_diag_fin_enter == 3){
             g_diag_fin_enter = 4;
             lc_stage("diag-fin-survived");
@@ -734,14 +771,27 @@ static void lcf_ctor(void){
                 g_orig_didd = old;
             }
         }
-        /* v6.0: resp 行 hook (探针名单 ◆) */
-        SEL dr = sel_registerName("_onqueue_didReceiveResponse:completion:");
+        /* v6.5: resp 行换到数据通路 selector —
+         * _onqueue_didReceiveResponse:completion: 已证实不在豆瓣/JavDB 通路
+         * (v6.2-v6.4 diag-resp-enter 从未出现), 改装两个探针名单内的替代:
+         * connection:didReceiveResponse:completion: (delegate 回调同形)
+         * _onqueue_didReceiveResponse:redirectRequest:withCompletion: (redirect 变体) */
+        SEL dr = sel_registerName("connection:didReceiveResponse:completion:");
         m = class_getInstanceMethod(g_clsLocalTask, dr);
         if (m){
             IMP old = method_getImplementation(m);
             if ((void*)old != (void*)didresp_hook){
                 method_setImplementation(m, (IMP)didresp_hook);
                 g_orig_didresp = old;
+            }
+        }
+        SEL dr2 = sel_registerName("_onqueue_didReceiveResponse:redirectRequest:withCompletion:");
+        m = class_getInstanceMethod(g_clsLocalTask, dr2);
+        if (m){
+            IMP old = method_getImplementation(m);
+            if ((void*)old != (void*)didresp2_hook){
+                method_setImplementation(m, (IMP)didresp2_hook);
+                g_orig_didresp2 = old;
             }
         }
         /* v6.0: fin 行 hook (探针名单 ●) */
@@ -762,7 +812,7 @@ static void lcf_ctor(void){
     lc_stage(tag);
     lc_stage(g_orig_didd ? "S4-data-hooked" : "S4-data-miss");
     char tag2[48];
-    int m2 = (g_orig_didresp ? 1 : 0) + (g_orig_didfin ? 1 : 0);
+    int m2 = (g_orig_didresp ? 1 : 0) + (g_orig_didresp2 ? 1 : 0) + (g_orig_didfin ? 1 : 0);
     snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d", m2);
     lc_stage(tag2);
     lc_stage(g_resp_fallback ? DATA_FALLBACK_MARK : "resp-file-ok");
