@@ -1,15 +1,15 @@
-#!name=豆瓣去广告 v2.1.0
+#!name=豆瓣去广告 v2.2.0
 #!desc=拦截广告与营销内容：开屏（api域app_ads全族+frodo域home_ads双链路）、信息流广告（erebor/feed_ad竞价投放）、首页横幅、电影页广告、搜索页预制广告词与滚动词清洗（dale广告条目+穿山甲SDK配置）。浏览卡死事故经当前Loon版本对照实验证实不复现。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
-#!version=2.1.0
+#!version=2.2.0
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/icon.png
 #!tag=去广告
 #!date=2026-10-25 15:30:00
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/api\.douban\.com\/gw\/loon-sim\.probe\.douban_dedup/i then reject(200, "2.1.0")
+request if ${url} ~= /^https?:\/\/api\.douban\.com\/gw\/loon-sim\.probe\.douban_dedup/i then reject(200, "2.2.0")
 
 # === 开屏: api 域 (honue 原版规则, 保留) ===
 request if ${url} ~= /^https?:\/\/api\.douban\.com\/v2\/app_ads.+/i then reject_dict(200)
@@ -26,6 +26,8 @@ request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/movie\/ad/i then 
 
 [Script]
 # 搜索页预制广告词清洗 (原 SearchAd 稳定逻辑并入; dale 广告条目删除 + top_word 整字段删 + 穿山甲配置清)
+# feature_switch 配置清洗: 开屏框架关闭 (splash_sdk_info清空 + 广告开关反转)
+response if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/feature_switch/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/feature_switch_clean.js") with tag="开屏框架配置清洗", requires_body=true
 response if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js") with tag="搜索页广告词清洗", requires_body=true
 
 [MitM]
