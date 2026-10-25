@@ -25,20 +25,27 @@
 
 **重要边界**（豆瓣/JavDB 实测）：很多 App 的业务主流量不走 NSURLSession
 （豆瓣业务走 TCP 长连接，JavDB 走 dio/dart:io），本模块抓到的是
-**启动链路 + SDK 上报 + 广告联盟 + 部分业务请求**。豆瓣实测一次冷启动约 44 条，
-包括开屏广告 (`app_ads/splash_*`)、信息流广告配置 (`erebor/stock`)、
-风控上报 (`mssdk.volces.com/ri/report`) 等 —— 这些恰是去广告插件治理最需要的链路。
+**启动链路 + SDK 上报 + 广告联盟 + 部分业务请求**。
+
+豆瓣 v4.5 实测（一次冷启动 + 浏览）：
+
+- **334 行全部合法**，331 条请求全部 `ret:"ok"`
+- `req-delegate`（委托版）占 78% —— v4.5 加的第二个 selector 把捕获量拉到 v4.4 的 5 倍
+- 内容覆盖：`frodo.douban.com` 主 API 58 条（`feature_switch` / `erebor/feed_ad` /
+  `elendil/recommend_feed` 等插件治理目标全在）、erebor 插屏 ×4、
+  穿山甲 `pangolin-sdk-toutiao1.com/api/ad/union/sdk/stats/batch/` 批量埋点 **166 条**、
+  广点通 17 条、友盟 / 京东 xlog / TRTC license 等启动链路完整
 
 ## 目录内容
 
 ```
 lc-forensics-final.c    # 源码（当前版本 v4.5）
-lc-forensics.c          # v4.0-4.3 迭代版（全功能，含被实证排除的枚举/定时器路径）
+lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
-shim/                   # Alpine musl → darwin 编译垫片
+shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-dylib 产物在 /var/minis/attachments/（iSH 内），仓库不存二进制
+lc-forensics-v4.5.dylib # 构建产物（可直接 Import）
 ```
 
 ## 构建（iSH / Alpine aarch64，无需 macOS）
@@ -74,7 +81,6 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 ```
 
 - `ret:"NIL"` = 原实现返回 nil（App 拿到空 task，立即值得排查）
-- `ret` 永远是字符串（v4.3 前的 `ret:ok` 无引号是旧格式瑕疵）
 - `ev`：`stage`（装配阶段）/ `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）
 - 已知无害瑕疵：`ts` 偶发错乱（多组偏移，LC 虚拟化时钟所致），**行序仍可信**
 
@@ -88,7 +94,7 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | v4.2 | 修死锁 + 防递归 | 仍闪退（豆瓣 13 个 session 子类 + mssdk 并发，全类改 IMP 高危） |
 | v4.3 | 安装面收窄到系统基类 | 仍闪退（死在 ctor+2s 定时回调窗口） |
 | **v4.4** | **纯减法二分**：零枚举/零定时器/零 resume，单 selector + 分阶段同步落盘 | **豆瓣稳定，44 条/启动** ✅ |
-| **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | 当前版本 |
+| **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | **豆瓣 334 条/会话** ✅ 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
@@ -98,6 +104,11 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 4. **永不引入 dispatch_after 定时器链** —— LC guest 豆瓣环境实证死亡窗口
 5. **永不 hook resume** —— 第二安装面，风险无收益
 6. 每行带版本号 + 阶段标记同步落盘 —— 版本归属乌龙/取证空白的双保险
+
+## 维护约定
+
+**模块的每一项改动（源码 / 版本号 / 本 README）都必须 git commit + push 同步到本仓库**，
+与插件变更同标准：改动可追溯、远端即最新。
 
 ## 环境速查
 
