@@ -1,15 +1,15 @@
-#!name=豆瓣去广告 v2.4.0
+#!name=豆瓣去广告 v2.5.0
 #!desc=拦截广告与营销内容：开屏（api域app_ads全族+frodo域home_ads双链路）、信息流广告（erebor/feed_ad竞价投放）、首页横幅、电影页广告、搜索页预制广告词与滚动词清洗（dale广告条目+穿山甲SDK配置）。浏览卡死事故经当前Loon版本对照实验证实不复现。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
-#!version=2.4.0
+#!version=2.5.0
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/icon.png
 #!tag=去广告
 #!date=2026-10-25 15:30:00
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/api\.douban\.com\/gw\/loon-sim\.probe\.douban_dedup/i then reject(200, "2.4.0")
+request if ${url} ~= /^https?:\/\/api\.douban\.com\/gw\/loon-sim\.probe\.douban_dedup/i then reject(200, "2.5.0")
 
 # === 开屏: api 域 (honue 原版规则, 保留) ===
 request if ${url} ~= /^https?:\/\/api\.douban\.com\/v2\/app_ads.+/i then reject_dict(200)
@@ -19,6 +19,16 @@ request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/home_ads/i then r
 
 # === 信息流广告: erebor 竞价投放 (纯广告接口, 正常推荐在 elendil/recommend_feed 不受影响) ===
 request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/feed_ad/i then reject_dict(200)
+
+# === 信息流广告补拦 (2026-10-25 二进制: erebor 全族) ===
+# 激励广告 (FRDNativeRewardAdPopupView 激励视频弹窗的数据源) + 特殊广告位
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/(?:incentive_ad|special_ad)/i then reject_dict(200)
+
+# === 市集/豆品商城 (halfhill 全族 — 与影视无关的电商内容, 用户裁决屏蔽) ===
+request if ${url} ~= /^https?:\/\/(?:frodo|mapi)\.douban\.com\/(?:api\/)?halfhill\//i then reject_dict(200)
+
+# === CPS 分销推广链接 ===
+request if ${url} ~= /\/api\/v2\/cps\/trans_promo_link/i then reject_dict(200)
 
 # === 首页横幅 + 电影页广告 ===
 request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/home_banner/i then reject_dict(200)
