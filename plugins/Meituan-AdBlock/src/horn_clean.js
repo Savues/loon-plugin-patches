@@ -12,6 +12,27 @@ const REVERSES = [
   [/("com\.meituan\.retail\.splash_vap"\s*:\s*)true/g, '$1false'],
   [/("com\.meituan\.retail\.splash_video_disabled"\s*:\s*)false/g, '$1true'],
   [/("pt_business_mine_popup_enable"\s*:\s*)true/g, '$1false'],
+  // --- v0.5: horn 650 配置全量盘点新增 (沙盒实证) ---
+  // 通用弹窗/推送弹窗
+  [/("general_popup_enable"\s*:\s*)true/g, '$1false'],
+  [/("popup_service_switch"\s*:\s*)true/g, '$1false'],
+  [/("sharkpush_MTPushPopupMessage"\s*:\s*)true/g, '$1false'],
+  [/("rn_hotel_homepage_popup"\s*:\s*)true/g, '$1false'],
+  // 引导浮层
+  [/("recommend_guide_layer_switch"\s*:\s*)true/g, '$1false'],
+  [/("iOS_enableShowDirectSaleGuide"\s*:\s*)true/g, '$1false'],
+  // 横幅
+  [/("benefit_banner_animation"\s*:\s*)true/g, '$1false'],
+  [/("cashback_banner_enable"\s*:\s*)true/g, '$1false'],
+  // 小说阅读器广告族 (readerMSCToMRN): 章节末/段末/插页/解锁广告/金币 全关
+  [/("adPageBanner"\s*:\s*)1/g, '$10'],
+  [/("adParaEnd"\s*:\s*)1/g, '$10'],
+  [/("adInsertPage"\s*:\s*)1/g, '$10'],
+  [/("adChapterUnLock"\s*:\s*)1/g, '$10'],
+  [/("adChapterEnd"\s*:\s*)1/g, '$10'],
+  [/("adParaGoldCoin"\s*:\s*)1/g, '$10'],
+  [/("openScreen"\s*:\s*)1/g, '$10'],
+  [/("fullScreen"\s*:\s*)1/g, '$10'],
 ];
 let body = $response.body;
 if (typeof body === 'string' && body.length > 1000) {
