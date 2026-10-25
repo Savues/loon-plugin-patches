@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.6-no-errdesc"
+#define LCF_VERSION "6.7-shallow-resp"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -509,33 +509,17 @@ static void lcf_resp_line(id self, id response, char* line, size_t cap){
     if (s){ s->status = (int)status; snprintf(s->mime, sizeof(s->mime), "%.60s", mimetype); }
     lc_unlock();
 
-    /* 响应头摘要: Content-Encoding (判断 preview 是否二进制压缩体) */
-    char encjson[80] = "";
-    id hdrs = (id)objc_msgSend(response, s_allHdr);
-    if (hdrs){
-        SEL vfor = sel_registerName("objectForKeyedSubscript:");
-        SEL mkstr = sel_registerName("stringWithUTF8String:");
-        id nsstr = (id)objc_getClass("NSString");
-        id key = (id)((id(*)(id,SEL,const char*))objc_msgSend)(nsstr, mkstr, "Content-Encoding");
-        id val = key ? (id)((id(*)(id,SEL,id))objc_msgSend)(hdrs, vfor, key) : 0;
-        if (val){
-            const char* c = (const char*)objc_msgSend(val, s_utf8);
-            if (c){
-                char* q = encjson;
-                size_t r2 = sizeof(encjson);
-                int w2 = snprintf(q, r2, ",\"enc\":");
-                q += w2; r2 -= (size_t)w2;
-                lc_json_str(&q, &r2, c);
-            }
-        }
-    }
+    /* v6.7: encjson 段整体剥除 — allHeaderFields 是惰性求值深属性
+     * (与 localizedDescription 同坑, v6.6 铁律), resp 行只留 status+mime
+     * 浅层 selector。Content-Encoding 需求由 mime 字段近似覆盖 */
+    (void)s_allHdr;
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
         "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"resp\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"status\":%ld,\"mime\":",
         lc_now(), ++g_seq, tid, status);
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, mimetype);
-    snprintf(p, rem, "%s,\"pid\":%d}\n", encjson, (int)getpid());
+    snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
 }
 
 static void didresp_hook(id self, SEL _cmd, id response, void* completion){

@@ -8,6 +8,30 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.7] - 2026-10-26 · shallow-resp
+
+### 动机：v6.6 巨大进展 + 新崩点精准暴露
+
+- **fin 行全线打通**（JavDB 7 条 / 豆瓣 3 条，survived 成对）——
+  localizedDescription 根因修复 ✅
+- **`diag-resp-enter` 首次出现**（豆瓣）——`connection:didReceiveResponse:completion:`
+  在数据通路上！resp 通路打通的**瞬间**豆瓣崩 = 崩点在 `lcf_resp_line`
+  的 ishttp 判别之后：**`allHeaderFields`**——又一个惰性求值深属性，
+  与 localizedDescription 同坑（v6.6 铁律的第一例案）。
+
+### 改动
+
+encjson 段（allHeaderFields → objectForKeyedSubscript → Content-Encoding）
+整体剥除。resp 行只留 `status` + `mime`（浅层 selector）。
+Content-Encoding 需求由 mime 字段近似覆盖。
+
+### 实证（待真机）
+
+70160B，md5 `cfff3c01`。判读：豆瓣 resp 行出现 + 稳定 = v6.6 铁律再次验证，
+HAR 对标仅剩 flush 移锁外一项。
+
+---
+
 ## [6.6] - 2026-10-26 · no-errdesc
 
 ### 动机：v6.5 双 App 崩在 diag-fin-enter——凶手二分完成
