@@ -1,0 +1,109 @@
+# 美团去广告 · Meituan-AdBlock
+
+> **版本 v0.7.0** · 订阅以 lpx 内版本为准
+
+拦截我的页会员营销、弹窗族、营销素材；清洗 horn 远程配置中的广告/弹窗开关（48 键）。
+**从零自研**（无上游），基于二进制逆向 + 五份 HAR + 双沙盒取证的全新开发。
+
+| | 中文 | English |
+|---|---|---|
+| 上游 | 无（全新自研） | None (from scratch) |
+| 审计依据 | imeituan 12.67.403 主二进制（208MB）+ 三份 HAR ~3600 条 + 双沙盒 | Binary + HAR + sandbox forensics |
+| 逆向归档 | 私库 ios-reverse-engineering/Meituan（91MB 单文件 + URL/API 清单） | Archived |
+| 架构特征 | 美团主 API 走 **mtgsdk 长连接**（HTTP 不可达），明文层只有素材/配置/少量接口 | Long-connection architecture |
+
+---
+
+## 安装 · Install
+
+```
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/Meituan_remove_ads.lpx
+```
+
+---
+
+## 美团流量架构（为什么这个插件长这样）
+
+美团与阿里系完全不同的架构，决定了插件的边界：
+
+| 层 | 通道 | 可达性 |
+|----|------|--------|
+| **业务数据**（搜索框热搜/发现/滚词、首页信息流）| mtgsdk 长连接 | ⚫ **HTTP 不可达**（三份 HAR 3600 条 + 沙盒全零命中实锤）|
+| **horn 远程配置** | portal-portm / h.meituan.com 明文（mergeRequest 1.1MB/169 模块）| ✅ **键级反转清洗**（本插件核心战场）|
+| 我的页会员营销 | market.waimai.meituan.com 明文 JSON | ✅ 拦截 |
+| 弹窗族 | 各 .com 域明文 | ✅ 预置拦截 |
+| 素材 CDN | mss_* .meituan.net / flowplus | ✅ 广告路径/域拦 |
+
+`.bin` 后缀响应（mapi/mtlist/*）是美团序列化格式 —— 非明文，只能 reject 不能字段清洗。
+
+---
+
+## 开屏广告研究报告（专项研究）
+
+### 为什么"从来没见过美团开屏广告"
+
+**开屏是定向投放，不是人人可见。** 二进制实证开屏展示前有五重校验（`checkStartupImage*` 函数族）：
+
+```
+素材有效 → 展示时长 → 投放时段 → 展示时间 → 频控(已展示次数)
+```
+
+投放配置的定向字段（`moduleExtMap.startupPicArea`）：
+
+| 字段 | 含义 |
+|------|------|
+| `userHobby` | **按用户兴趣画像定向** —— 画像不命中 = 不投 |
+| `dayShowTime` / `monthShowTime` | 日/月展示次数上限 |
+| `StartupUserShowDates` | 用户级展示日期控制 |
+| `gaea.../forbidden/resource` | 禁投名单 |
+
+对该设备的判定：**定向投放未命中**（画像/频控/灰度三选一），佐证：`ad_midas`/`clc_ad_coreLib` 广告库空、HAR 只有品牌闪屏图（`flowplus.../linglong/` 是运营图通用路径，那张 297KB 的图是品牌启动图不是广告）。
+
+### 开屏数据链全貌（四层）
+
+```
+① 数据下发: mobile.launch.StartUpImage → 长连接 (proto 方法族: start/click/reveal/exit) ⚫不可达
+② 配置开关: horn splash 键 (maicai_splash_hidden/splash_vap/splash_video_disabled) → ✅已清洗
+③ 素材下载: flowplus.meituan.net → ✅域名断供 (v0.7)
+④ 本地兜底: pfb_launchview 缓存 (newStartupImageResponse) → 被覆盖后衰减
+```
+
+当前是"未命中"状态，插件的开屏防线是**未来时保险**（画像/灰度变化时兜住）——无副作用。
+
+---
+
+## 版本历史 · Versions
+
+| 版本 | 改动 |
+|------|------|
+| v0.1.0 | 骨架 + 首批明文拦截（market.waimai 会员营销 ×3 / picasso-ad 素材 / launch track）|
+| v0.2.0 | 弹窗三接口（member 活动曝光惊喜分 / topcube 活动 / 问卷弹窗）|
+| v0.3.0 | 逆向深挖弹窗族 8 条（mlive 直播券弹窗 / mtmessage 横幅 ×3 / DSP 抽奖 / mtdealad 广告物料 / couponbanner / 酒店弹窗 / 用户弹窗配置）|
+| v0.4.0 | **horn 远程配置清洗上线**（retail 开屏/弹窗 5 键）—— 真机 HAR 实证生效 |
+| v0.5.0 | horn 650 配置全量盘点 → +17 键（通用/推送/酒店弹窗、引导浮层、返现/权益横幅、**小说阅读器广告 8 键全灭**）|
+| v0.6.0 | 高嫌疑开关 +26（悬浮窗 8 / 券弹层 7 / 横幅 5 / 引导运营 6）→ horn 清洗合计 **48 键** |
+| v0.7.0 | 开屏素材断供（flowplus 域拦截）|
+
+### horn 清洗机制说明
+
+horn = 美团版「橙配」（全 App 远程配置主干道）。清洗方式：mergeRequest 响应**键级等长正则反转**（1.1MB/169 模块，零结构破坏）。horn 是功能配置载体 —— 只能清洗不能 reject。用户授权"有嫌疑就加"，误伤任何功能随时反馈，键反转可逆。
+
+---
+
+## 已知边界 · Known limits
+
+- 搜索框热搜/发现/滚词、首页信息流数据 —— **长连接不可达**（仅越狱 Hook 可根治）
+- 开屏当前对该设备未投放（定向未命中）；插件防线为预防性
+- `products/recommend`（我的页商品推荐）暂放行 —— 功能性存疑，观察中
+- `member/homepage/query` 的 banner/coupon 字段服务端下发为 null —— 无需处理
+
+---
+
+## 验证记录 · Verification
+
+| 日期 | 项 | 结果 |
+|------|-----|------|
+| 2026-10-25 | horn 清洗真机生效 | ✅ HAR 实证 mergeRequest 响应四键已反转 |
+| 2026-10-25 | 弹窗族模拟器决策 | ✅ 全命中 · 功能接口（citylist/searchbox）放行验证 |
+| 2026-10-25 | horn 端到端 | ✅ 真实 1.1MB body 48 键反转 / JSON 合法 / 等长 |
+| 2026-10-25 | 开屏素材 URL | ✅ 沙盒缓存原图 URL 追溯 + 拦截命中 |
