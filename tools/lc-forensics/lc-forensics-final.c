@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.5-seq-final"
+#define LCF_VERSION "8.0-multi-app"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -338,7 +338,19 @@ static id dtwrh_hook(id self, SEL _cmd, id req, id handler){
     lc_req_line(line, sizeof(line), "req", req, task, &p, &rem);
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
-    lc_lock(); lc_write_locked(line); lc_unlock();
+    /* v8.0: seq 锁内回填 (v7.5 遗漏 req 两处 — seq=0 落盘根因) */
+    lc_lock();
+    {
+        char* seqpos = strstr(line, "\"seq\":");
+        if (seqpos){
+            unsigned long long v = ++g_seq;
+            char rest[1400];
+            strcpy(rest, seqpos + 7);
+            snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
+        }
+        lc_write_locked(line);
+    }
+    lc_unlock();
     /* v7.2: POST body 落盘 (锁外 IO) */
     if (req && task){
         id b = (id)objc_msgSend(req, s_body);
@@ -364,7 +376,19 @@ static id dtwr_hook(id self, SEL _cmd, id req){
     lc_req_line(line, sizeof(line), "req-delegate", req, task, &p, &rem);
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
-    lc_lock(); lc_write_locked(line); lc_unlock();
+    /* v8.0: seq 锁内回填 (v7.5 遗漏 req 两处 — seq=0 落盘根因) */
+    lc_lock();
+    {
+        char* seqpos = strstr(line, "\"seq\":");
+        if (seqpos){
+            unsigned long long v = ++g_seq;
+            char rest[1400];
+            strcpy(rest, seqpos + 7);
+            snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
+        }
+        lc_write_locked(line);
+    }
+    lc_unlock();
     if (req && task){
         id b = (id)objc_msgSend(req, s_body);
         if (b){
