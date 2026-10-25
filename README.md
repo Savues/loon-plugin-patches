@@ -66,9 +66,11 @@ node selftest.js                                  # 内核自测 (46 项)
 
 | 插件 Plugin | 用途 Purpose | 状态 Status |
 |---|---|---|
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.45** |
-| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签<br>SponsorBlock standalone · 自动跳/只提醒两档 · 类别中文化 · · 整篇软广单独提醒 · fully configurable | **v1.6** |
-| [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
+| [Bilibili-Allinone](plugins/Bilibili-Allinone/) | **四合一**: 去广告+会员伪装 · 标签页/底栏 · 空降助手 · 开屏节日（68 参数, ViewProgress 单管线）<br>All-in-one: ad-block + VIP spoof · home tabs · SponsorBlock · splash festival | **v8.0.1** ★ |
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化（独立版, 功能已并入 Allinone）<br>standalone, superseded by Allinone | **v7.45** |
+| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签（已并入 Allinone）<br>SponsorBlock standalone, superseded by Allinone | **v1.60** |
+| [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关（已并入 Allinone）<br>Home tabs & bottom nav, superseded by Allinone | **v3.6.0** |
+| [Splash-Festival](plugins/Splash-Festival/) | 开屏节日定制 · 75 皮肤 · 自动节日/轮换（已并入 Allinone）<br>Splash festival, superseded by Allinone | **v40.3** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
