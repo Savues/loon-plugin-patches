@@ -8,7 +8,7 @@
 #!system_version=
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/JD-AdBlock
-#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/JD.png
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/JD-AdBlock/icon.png
 #!date=2026-10-24 20:10:00
 
 [Rule]
