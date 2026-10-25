@@ -8,6 +8,36 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [5.0] - 2026-10-25 · probe-observable
+
+### 动机：v4.9 判别行全无 → 但判别行设计有盲区
+
+v4.9 的 `thread-start` 写在**等待循环之前**、却走 `lc_resp_write`——如果
+resp 文件的 open 本身有问题，判别行会与产出一起被静默吞掉，"线程没跑"和
+"线程跑了但写不进 resp 文件"依然无法区分。判读通道自身有单点故障。
+
+### 改动
+
+- 探针线程关键节点全部改写 **base 日志**（`forensics.jsonl`，已验证可写）：
+  `probe-thread-start` → `probe-wait-passed:<N>` → `probe-done`（stage 行形态）
+- `pthread_create` 失败也留痕：`probe-pthread-fail`
+- introspection 名单照旧写 `lcf-resp.jsonl`（职责分离不变）
+
+### 判读表（base 日志里的探针事件）
+
+| base 日志所见 | 结论 |
+|------|------|
+| `probe-pthread-fail` | ctor 里线程创建失败 |
+| 无任何 probe 事件 | 线程函数没被调度（罕见） |
+| `thread-start` + `wait-passed` + `done` 全有，resp 文件仍无 | **resp 文件写入路径问题**（新靶子） |
+| 全有 + resp 文件有 probe 名单 | 一切正常 |
+
+### 实证（待真机）
+
+69056B，md5 `9b5a0da4`。
+
+---
+
 ## [4.9] - 2026-10-25 · probe-diag
 
 ### 动机：v4.8 并体探针仍零产出（双 App 验证）
