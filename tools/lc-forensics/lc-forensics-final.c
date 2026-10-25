@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.8-task-resp"
+#define LCF_VERSION "6.9-reasm-flush"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -445,30 +445,37 @@ static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd){
     (void)mapped;
 }
 
-/* task 结束: 落盘重组文件 (文件名 tid-status-type.bin) */
-static void lcf_reasm_flush_locked(unsigned long long tid){
+/* v6.9: 持锁摘槽 — 只做指针交换, 不做任何 IO */
+static reasm_t* lcf_reasm_take_slot(unsigned long long tid){
     reasm_t* s = lcf_reasm_slot(tid, 0);
-    if (!s || !s->buf || s->len == 0) return;
+    if (!s) return 0;
+    static reasm_t out;
+    if (!s->buf || s->len == 0){ memset(s, 0, sizeof(reasm_t)); return 0; }
+    out = *s;
+    memset(s, 0, sizeof(reasm_t));
+    return &out;
+}
+
+/* v6.9: 锁外落盘 (open/mkdir/write — 全部 IO 不在持锁区) */
+static void lcf_reasm_write_file(unsigned long long tid, int status,
+                                 const char* mime, const char* buf, size_t len){
     const char* home = getenv("HOME");
     if (!home || !home[0]) return;
     char dir[512], path[600];
     snprintf(dir, sizeof(dir), "%s/" RESP_DIR_RELATIVE, home);
     mkdir(dir, 0755);   /* 已存在则 EEXIST, 无害 */
     const char* type = "bin";
-    if (strstr(s->mime, "json")) type = "json";
-    else if (strstr(s->mime, "html")) type = "html";
-    else if (strstr(s->mime, "javascript")) type = "js";
-    else if (strstr(s->mime, "xml")) type = "xml";
-    else if (strstr(s->mime, "image")) type = "img";
-    else if (strstr(s->mime, "gzip") || strstr(s->mime, "octet-stream")) type = "bin";
-    snprintf(path, sizeof(path), "%s/%llu-%d-%s.bin", dir, tid, s->status, type);
+    if (strstr(mime, "json")) type = "json";
+    else if (strstr(mime, "html")) type = "html";
+    else if (strstr(mime, "javascript")) type = "js";
+    else if (strstr(mime, "xml")) type = "xml";
+    else if (strstr(mime, "image")) type = "img";
+    snprintf(path, sizeof(path), "%s/%llu-%d-%s.bin", dir, tid, status, type);
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
     if (fd >= 0){
-        write(fd, s->buf, s->len);
+        write(fd, buf, len);
         close(fd);
     }
-    free(s->buf);
-    memset(s, 0, sizeof(reasm_t));
 }
 
 /* ==================================================================
@@ -605,6 +612,18 @@ static void didfin_hook(id self, SEL _cmd, id error){
             snprintf(p2, rem2, ",\"pid\":%d}\n", (int)getpid());
         }
         lc_lock(); lc_write_locked(line); lc_unlock();
+
+        /* v6.9: 重组 flush 移锁外 — 持锁区只做"摘槽"(浅层指针交换),
+         * open/mkdir/write 全部在锁外执行 (铁律: 持锁区只调 *_locked 变体) */
+        lc_lock();
+        reasm_t* slot = lcf_reasm_take_slot(tid);
+        lc_unlock();
+        if (slot && slot->buf && slot->len > 0){
+            lcf_reasm_write_file(slot->tid, slot->status, slot->mime,
+                                 slot->buf, slot->len);
+            free(slot->buf);
+        }
+
         if (g_diag_fin_enter == 3){
             g_diag_fin_enter = 4;
             lc_stage("diag-fin-survived");

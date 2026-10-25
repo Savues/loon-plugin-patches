@@ -8,6 +8,31 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.9] - 2026-10-26 · reasm-flush
+
+### 动机：HAR 对标最后一块——完整响应体落盘
+
+重组槽（v6.4 起在数据通路正常工作）的 flush 自 v6.0 起禁用至今。
+v6.9 用锁纪律重构恢复：**持锁区只做浅层摘槽（指针交换），IO 全部锁外**。
+
+### 改动
+
+- `lcf_reasm_flush_locked` 拆分为：
+  - `lcf_reasm_take_slot`（持锁）：槽内容浅拷贝到静态 out + 槽清零，零 IO
+  - `lcf_reasm_write_file`（锁外）：mkdir + open + write
+- `didfin_hook` 锁序（静态校验通过）：
+  `lock→write_locked(fin行)→unlock` → `lock→take_slot→unlock` → `write_file` → survived
+- fin 行与 flush 全部恢复，task 生命周期 + 完整响应体能力闭合
+
+### 判读
+
+豆瓣稳定 + `Documents/lcf-resp/` 目录出现 `<tid>-<status>-<type>.bin` 文件
+（json/html/img…）且内容可解析 = **HAR 对标 100% 闭环**（含超越项）。
+
+### 实证（待真机）
+
+70112B，md5 `20971e32`。
+
 ## [6.8] - 2026-10-26 · task-resp
 
 ### 动机：v6.7 排除法收口——崩在 hook 存在本身
