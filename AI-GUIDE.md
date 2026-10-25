@@ -114,6 +114,9 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 | 13 | **同一功能在不同 App/页面用不同通道和容器名** — 清洗规则用前缀族匹配; 每个App的通道独立判定不能类推 (天猫滚词典=HTTP, 特价版=ACCS) | 2026-10-24 多起 |
 | 14 | **ACCS 通道 HTTP 层不可达** (淘宝/特价版滚词典、一淘拍图入口等) — 插件侧拦干净 HTTP 通道即为终局 | 多起沙盒实锤 |
 | 15 | **功能主干接口只能清洗不能 reject** — 首页容器 (天猫 infinity.gateway / 一淘 home.metax / tacdata) reject = 白屏 | 一淘首页白屏 v3.46 事故 |
+| 16 | **--check / node --check 过 ≠ 脚本能工作** — 顶层执行型脚本被截断只剩定义时语法仍合法但真机 $done 永不调用=超时失效; check v1.7.2 已静态查 $done, 逻辑对错仍须端到端 run | horn_clean rfind 截断事故 v0.6 |
+| 17 | **远程配置主干道 (horn/橙配类) 只能键级反转不能 reject** — 美团 horn mergeRequest 1.1MB/169模块 = 全App配置; 清洗用等长正则替换(性能+零结构破坏) | 美团 v0.4~v0.6 |
+| 18 | **主 API 走长连接的 App, 明文层+配置层即插件边界** — 美团/支付宝主数据在 mtgsdk/mobilegw 长连接; HTTP 可达的只有素材CDN/AB配置/horn配置/少量明文API | 美团三份HAR 3600条实证 |
 
 完整禁止事项（12 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
 
