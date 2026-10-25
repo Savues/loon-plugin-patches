@@ -1,12 +1,12 @@
 #!name=美团去广告 v0.7.0
-#!desc=美团去广告 · 支持美团主站/外卖/买菜/猫眼 · 会员营销/弹窗族/营销素材拦截 + horn远程配置48键清洗(开屏/弹窗/悬浮窗/券弹层/小说广告) · 搜索框/信息流走长连接为已知边界
+#!desc=拦截美团App广告与营销内容：我的页会员营销（每日领券/营销横幅）、弹窗族（会员活动/运营活动/问卷/直播券/酒店）、消息横幅、DSP抽奖红包、信息流广告物料与营销素材；并清洗horn远程配置48个开关（买菜开屏/闪购弹窗/悬浮窗/券弹层/小说阅读器广告/返现与权益横幅）。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Meituan-AdBlock
 #!version=0.7.0
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/icon/icon.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
-#!date=2026-10-25 02:10:00
+#!date=2026-10-25 13:10:00
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
