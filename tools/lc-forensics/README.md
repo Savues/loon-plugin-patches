@@ -45,7 +45,8 @@ lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法�
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v4.5.dylib # 构建产物（可直接 Import）
+lc-forensics-v4.7.dylib # 构建产物（可直接 Import）
+CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
 
 ## 构建（iSH / Alpine aarch64，无需 macOS）
@@ -115,8 +116,11 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 
 ## 维护约定
 
-**模块的每一项改动（源码 / 版本号 / 本 README）都必须 git commit + push 同步到本仓库**，
-与插件变更同标准：改动可追溯、远端即最新。
+- **模块的每一项改动（源码 / 版本号 / 本 README）都必须 git commit + push 同步到本仓库**，
+  与插件变更同标准：改动可追溯、远端即最新。
+- **每个版本必须在 CHANGELOG.md 追加详细更新日志**：动机（当时的证据/事故）、
+  改动（可验证的具体项）、结果（真机数据或二进制校验）、教训（如有）——
+  提交信息标题带版本号与主题，正文引用 CHANGELOG 要点。
 
 ## 环境速查
 
