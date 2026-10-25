@@ -124,7 +124,7 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 
 - **lpx 文件头**：`#!name` 必须首行；版本号 `#!version=`；改动后必 bump 版本（探针 setup 会同步更新探针值）
 - **lpx 元信息三件套**（Loon 插件列表显示的内容，发布前必须齐全）：
-  - `#!desc=` 统一 bullet 格式：`XX去广告 · 支持的App/板块 · 拦截内容清单 + 清洗能力 · 已知边界（不可达通道）`
+  - `#!desc=` bullet 格式（开头措辞自由，不必"XX去广告"起头）：`支持的App/板块 · 拦截内容清单 + 清洗能力 · 已知边界（不可达通道）`，用 · 分隔
   - `#!author=@Savues <https://github.com/Savues>`
   - `#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/<Name>`
 - **插件图标**：一律用 **App 原版图标 + 仓库自托管** —— 从脱壳包 `Payload/<App>.app/AppIcon60x60@2x.png` 提取（120×120），放 `plugins/<Name>/icon.png`，`#!icon` 指向本仓库 raw 直链。勿用第三方图标库（luestr 等）链接 —— 自托管不受制于人且保证原版
