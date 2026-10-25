@@ -100,7 +100,7 @@ request if ${{url}} ~= /^https?:\\/\\/line3-h5-mobile-api\\.biligame\\.com\\/gw\
 ''' + '\n'.join(spl_script) + '''
 
 [Mitm]
-# 并集 = Dedup 5 域 + app.biliapi.net (Airborne 规则匹配该 host; 当前被上面 [Rule] REJECT, 保留以备规则调整)
+# 并集 = Dedup 5 域 + app.biliapi.net (Airborne 规则匹配该 host; 该 host 当前被 Rule 段 REJECT, 保留以备规则调整)
 hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com, app.biliapi.net
 h2 = true
 '''

@@ -1,8 +1,8 @@
 // test-airborne.js —— 对打好的产物跑一遍关键逻辑，不联网
-// 用法: node patches/test-airborne.js plugins/Bilibili-Airborne/bilibili.airborne.js
+// 用法: node patches/test-airborne.js plugins/Bilibili-Allinone/scripts/bilibili.airborne.js
 const fs = require('fs');
 
-const file = process.argv[2] || 'plugins/Bilibili-Airborne/bilibili.airborne.js';
+const file = process.argv[2] || 'plugins/Bilibili-Allinone/scripts/bilibili.airborne.js';
 const src = fs.readFileSync(file, 'utf8');
 const a = src.indexOf('/* ==== Savues');
 const b = src.indexOf('var C=');

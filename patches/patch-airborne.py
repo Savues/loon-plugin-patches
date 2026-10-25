@@ -588,7 +588,7 @@ def patch(src):
 def main():
     ap = argparse.ArgumentParser(description='给 Sparkle 的空降助手打可配置补丁')
     ap.add_argument('src', nargs='?', help='已下载的上游脚本；省略则联网拉取')
-    ap.add_argument('-o', '--out', default='plugins/Bilibili-Airborne/bilibili.airborne.js')
+    ap.add_argument('-o', '--out', default='plugins/Bilibili-Allinone/scripts/bilibili.airborne.js')
     ap.add_argument('--dry-run', action='store_true', help='只做替换与校验，不写文件')
     a = ap.parse_args()
 

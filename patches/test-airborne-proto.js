@@ -1,7 +1,7 @@
 // test-airborne-proto.js —— 整份产物能否在 Loon 式全局下加载；注入的弹幕能否 protobuf 往返
 const fs = require('fs');
 // 可传 argv[2] 指定别的产物（变异测试用）
-const ART = process.argv[2] || require('path').resolve(__dirname, '../plugins/Bilibili-Airborne/bilibili.airborne.js');
+const ART = process.argv[2] || require('path').resolve(__dirname, '../plugins/Bilibili-Allinone/scripts/bilibili.airborne.js');
 let fail = 0;
 const ck = (n, c, x = '') => { console.log((c ? '✓ ' : '✗ ') + n + (c ? '' : '  → ' + x)); if (!c) fail++; };
 

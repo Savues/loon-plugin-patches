@@ -17,7 +17,7 @@ TESTS = [
     ("plugins/iTunes-Spoof/test/itunes-spoof.test.mjs", "iTunes-Spoof 参数修复 + 托管"),
     ("plugins/AntiRevoke/test/manifest.test.mjs", "AntiRevoke 清单"),
     ("plugins/Reven-Mirror/test/manifest.test.mjs", "Reven-Mirror 托管正确性"),
-    ("plugins/Bilibili-Dedup/vip.test.mjs", "Bilibili-Dedup VIP 伪装"),
+    ("plugins/Bilibili-Allinone/tests/vip.test.mjs", "Allinone VIP 伪装"),
     ("plugins/GeoFix/parse.test.mjs", "GeoFix 链接解析"),
     ("plugins/GeoFix/ui.test.mjs", "GeoFix 网页界面"),
     ("plugins/GeoFix/smoke.test.mjs", "GeoFix 冒烟"),

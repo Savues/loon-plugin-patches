@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 // 路径一律相对本文件定位：写死 /var/minis 的话，别人 clone 下来这条闸门直接跑不了
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OLD_P = resolve(HERE, "baseline-v7.18.lpx");
-const NEW_P = resolve(HERE, "Bilibili-Dedup.lpx");
-if (!existsSync(OLD_P)) { console.error("找不到对照基线 baseline-v7.18.lpx（发布前请重新生成）"); process.exit(2); }
+const OLD_P = resolve(HERE, "baseline-v8.0.lpx");
+const NEW_P = resolve(HERE, "../Bilibili-Allinone.lpx");
+if (!existsSync(OLD_P)) { console.error("找不到对照基线 baseline-v8.0.lpx（发布前请重新生成）"); process.exit(2); }
 const OLD = readFileSync(OLD_P, "utf8");
 const NEW = readFileSync(NEW_P, "utf8");
 const sec = (txt, name) => {

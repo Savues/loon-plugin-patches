@@ -3,7 +3,7 @@
 const fs = require('fs'), zlib = require('zlib'), path = require('path');
 
 const DIR = path.resolve(__dirname, 'fixtures');
-const SRC = path.resolve(__dirname, '../plugins/Bilibili-Airborne/chronos.js');
+const SRC = path.resolve(__dirname, '../plugins/Bilibili-Allinone/scripts/chronos.js');
 let fail = 0;
 const ck = (n, c, x = '') => { console.log((c ? '✓ ' : '✗ ') + n + (c ? '' : '  → ' + x)); if (!c) fail++; };
 
@@ -29,7 +29,7 @@ ck('输出与 Dedup 实测结果逐字节一致', got.equals(expect),
 const text = Buffer.from(got.subarray(5)).toString('latin1');
 ck('chronos#1 已改写为表里的 md5', text.includes('7d0a357c92ee4a002c0970e88d1b38b6'));
 ck('chronos#2 指向本仓库 zip',
-   text.includes('/plugins/Bilibili-Airborne/chronos/7d0a357c92ee4a002c0970e88d1b38b6.zip'));
+   text.includes('/plugins/Bilibili-Allinone/chronos/7d0a357c92ee4a002c0970e88d1b38b6.zip'));
 ck('chronos#3 sign 已删除', !text.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDbULF5yrEbrmhi2vsa97QXFvkq0rK'));
 ck('帧头改成未压缩(0x00)', got[0] === 0x00, String(got[0]));
 ck('长度字段正确', got.readUInt32BE(1) === got.length - 5);
@@ -75,7 +75,7 @@ let chapOut = null;
 global.$done = (o) => { chapOut = o; };
 global.$response = { body: new Uint8Array(mkFrame(chap)) };
 global.$request = { headers: {} };
-(0, eval)(fs.readFileSync(path.resolve(__dirname, '../plugins/Bilibili-Airborne/chronos.js'), 'utf8'));
+(0, eval)(fs.readFileSync(path.resolve(__dirname, '../plugins/Bilibili-Allinone/scripts/chronos.js'), 'utf8'));
 ck('含章节的响应确实被处理了', !!(chapOut && chapOut.response));
 if (chapOut && chapOut.response) {
   const before = splitPb(chap);
