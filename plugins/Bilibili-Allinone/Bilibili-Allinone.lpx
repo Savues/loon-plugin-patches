@@ -104,7 +104,7 @@ request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-s
 ^https:\/\/api\.bilibili\.com\/x\/push\/popup\/setting\? mock-response-body data-type=text status-code=200 data="{"code":0,"message":"OK","ttl":1,"data":{}}"
 ^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
-^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAAAIKAA==" mock-data-is-base64=true
+response if ${url} ~= /^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$/i then response.body.mock("text", "AAAAAAIKAA==", 200, true)
 ^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAABQfiwgAAAAAAAIDAwAAAAAAAAAAAA==" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
 ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
