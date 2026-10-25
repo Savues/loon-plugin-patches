@@ -37,6 +37,14 @@ if (data.ad_info && (data.ad_info.ad_type === 'fake' ||
   dirty = true
 }
 
+// v2.1.0 (用户裁决: 完全无用直接屏蔽):
+// words = 「发现」预置词 (与 top_word 同款伪装投放, 8条全无广告标记) → 整体清空
+if (Array.isArray(data.words) && data.words.length) { data.words = []; dirty = true }
+// hots 推荐栏目全删: 实时热门书影音/热门讨论/热门话题/热搜榜/追剧小组
+for (const key of ['subjects', 'top_groups', 'gallery_topics', 'hot_search_board', 'follow_tv_groups']) {
+  if (data[key] !== undefined) { delete data[key]; dirty = true }
+}
+
 if (dirty) { $done({ body: JSON.stringify(data) }); return }
 pass()
 })()
