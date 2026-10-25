@@ -39,7 +39,7 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v4.5）
+lc-forensics-final.c    # 源码（当前版本 v4.6）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
@@ -74,15 +74,18 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 ## 输出格式
 
 ```json
-{"ts":1792938830.25,"ev":"req","v":"4.5-dual-sel","method":"POST",
- "url":"https://api.douban.com/v2/app_ads/splash_show","bodyLen":4509,
- "stream":0,"ret":"ok","cls":"__NSURLSessionLocal","pid":61291}
+{"ts":1792938830.25,"up":12.471,"ev":"req","v":"4.6-tid-session","method":"POST",
+ "url":"https://api.douban.com/v2/app_ads/splash_show","dup":2,"bodyLen":4509,
+ "stream":0,"tid":17,"ret":"ok","cls":"__NSURLSessionLocal","pid":61291}
+{"ts":...,"up":...,"ev":"gap","sec":23.4,...}   ← 静默>10s 后的首条请求前自动插入
 {"ts":...,"ev":"stage","tag":"S3-hooked:2",...}
 ```
 
+- `tid` = `task.taskIdentifier`，请求行唯一标识 —— 与 `lcf-resp` 模块（响应体捕获，独立按需安装）的 `data` 行以 `tid` 拼接，重建 请求→响应 对
+- `up` = 模块加载起的长时钟（CLOCK_MONOTONIC），宿主时钟虚拟化免疫，行序/间隔分析一律以它为准；`ts` 仅作绝对时间参考（偶发错乱，已知无害）
+- `dup` = 同 URL 第几次出现（≥2 才写）；批量埋点一眼可辨
 - `ret:"NIL"` = 原实现返回 nil（App 拿到空 task，立即值得排查）
-- `ev`：`stage`（装配阶段）/ `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）
-- 已知无害瑕疵：`ts` 偶发错乱（多组偏移，LC 虚拟化时钟所致），**行序仍可信**
+- `ev`：`stage`（装配阶段）/ `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）/ `gap`（静默边界，用户操作的隐式分界）
 
 ## 版本史（豆瓣真机二分实证）
 
@@ -94,7 +97,8 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | v4.2 | 修死锁 + 防递归 | 仍闪退（豆瓣 13 个 session 子类 + mssdk 并发，全类改 IMP 高危） |
 | v4.3 | 安装面收窄到系统基类 | 仍闪退（死在 ctor+2s 定时回调窗口） |
 | **v4.4** | **纯减法二分**：零枚举/零定时器/零 resume，单 selector + 分阶段同步落盘 | **豆瓣稳定，44 条/启动** ✅ |
-| **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | **豆瓣 334 条/会话** ✅ 当前版本 |
+| **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | **豆瓣 334 条/会话** ✅ |
+| **v4.6** | 纯日志侧增强：`tid`（lcf-resp 拼接键）+ `up` 单调时钟（时钟虚拟化免疫）+ `dup` 计数 + `gap` 行（静默>10s = 隐式操作边界） | 待真机验证 · 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
