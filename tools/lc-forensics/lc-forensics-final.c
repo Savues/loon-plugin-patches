@@ -19,7 +19,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "5.2-ascii-preview"
+#define LCF_VERSION "5.3-lineguard"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define DEDUP_CAP 512
@@ -118,6 +118,16 @@ static void lc_stage(const char* tag){
 }
 
 static void lc_write_locked(const char* line){
+    /* v5.3: 行分隔兜底 — snprintf 截断可能吞掉结尾 \n (v5.2 实测 34 行两行粘连),
+     * 写前检查末字符, 非 \n 一律补上 */
+    size_t len = strlen(line);
+    char buf2[1600];
+    if (len > 0 && line[len-1] != '\n' && len < sizeof(buf2)){
+        memcpy(buf2, line, len);
+        buf2[len] = '\n';
+        buf2[len+1] = 0;
+        line = buf2;
+    }
     int fd = lc_openlog();
     if (fd >= 0 && write(fd, line, strlen(line)) < 0){
         close(g_fd); g_fd = -1;
@@ -337,7 +347,7 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
 
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
-        char line[256];
+        char line[1600];   /* v5.3: 256→1600 — preview 127B + 头尾 ~130B 曾逼近 256 上限, snprintf 截断吞 \n 致两行粘连 */
         lcf_data_line(self, dd, line, sizeof(line));
         lc_lock(); lc_write_locked(line); lc_unlock();
     }
