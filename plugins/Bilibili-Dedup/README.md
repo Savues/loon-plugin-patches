@@ -1,11 +1,11 @@
 # Bilibili-Dedup · 哔哩哔哩去广告(合并版)
 
-> **版本 v7.44** · 订阅以 lpx 内版本为准
+> **版本 v7.45** · 订阅以 lpx 内版本为准
 
 > B 站去广告 + 本地会员伪装，与 blockAds 合集去重后独立运行。
 > Bilibili ad-block and local-VIP spoofing, de-duplicated from blockAds.
 
-**v7.44** · 21 参数 / 5 Rule / 14 Rewrite / 6 Script / 5 MITM 域名 · 更新 `2026-10-21`
+**v7.45** · 22 参数 / 5 Rule / 14 Rewrite / 6 Script / 5 MITM 域名 · 更新 `2026-10-25`
 
 | | 中文 | English |
 |---|---|---|
@@ -53,7 +53,7 @@
 | 时间 | 提交 | 变更 |
 |---|---|---|
 | `2026-10-21T23:30` | `6761fa0` | 🔴 **修复本插件导致的弹幕丢失**（间歇性，`bili-inter` iPhone 上最明显；关闭插件即恢复）。根因：`protobuf.response.js` 在 `ViewProgressReply`/`PlayerOnline` 处理器调用的 `ii()` 会把 `chronos` 字段的**弹幕引擎包** URL 改写到 `plugins/Bilibili-Airborne/chronos/<md5>.zip` 并清 `sign`——v7.26 迁移只移走了规则与 zip 资产，这段内嵌劫持漏了。服务端更新引擎包后 md5 不在映射表，按 UA 回落 `inter=8c3feda2…zip`，**而该文件并不在仓库中 → App 下载 404 → 弹幕引擎初始化失败 → 无弹幕**（App 连续重试，HAR 中 404 与失败播放同秒；间歇性是因为 chronos 仅在换包/引擎初始化时触发）。修法：`ii()` 改为 no-op，官方 md5/file/sign 原样透传，chronos 注入职责完全归 [Bilibili-Airborne] 插件；`protobuf.response.js?v=723`。排查方法（本地回放脚本对比 in/out 字节、以 `$httpClient` 外呼与 `activityMeta` 清空作脚本指纹、4 连 404 定位）见迭代记录 |
-| `2026-10-21T00:40` | `79b5138` | **v7.44** 调整 iPad/国际版「我的」页默认隐藏列表（`MineHideIds`/`MineInterHideIds` 默认值微调） |
+| `2026-10-25T23:40` | — | **v7.45** 默认参数按用户选定调整 7 处：`myMid`=14895065、`vipVerify`=蓝V·企业认证、`vipVerifyTitle`=躺平创新官方账号、`vipBadgeIcon`=企业认证、`vipAvatarBadge`=开、`MineInterHideIds`=494,3084（钱包 741 / NFT 1028 移出默认隐藏）、`LogLevel`=OFF（kokoryh `logLevel` 本就 off）。vip.js 国际版默认隐藏列表同步 |
 | `2026-10-20T22:45` | `a437833` | **v7.43** 修复 iPad「我的」页会员角标/伪装完全不生效。根因：`x/v2/account/mine/ipad` 这一个端点上，[Bilibili-UI] 也挂着一条 `http-response` 规则（`Enhanced-mine.response.js`）。**Loon 对同一请求只执行先命中的那一条**（仓库内另有实证：同端点 `[Rewrite]` 与 `[Script]` 同命中时也只跑 Rewrite），Bilibili-UI 的规则先命中并 `$done` → 本插件的 `vip.js` 整个不执行。抓包实证：响应里 `data.vip` 原样未改（`type:1,status:0`、`label.text=""`）、`data.avatar` 里 **0 个 `ICON_LAYER`**，而同包内开屏接口的插件注入正常，说明是规则被抢而非脚本本身出错。修法：`ipad_*_sections` 服务项过滤并入 `vip.js`（新参数 `MineHideIds`，默认值与原 Bilibili-UI 完全一致），Bilibili-UI v3.6.0 摘除该规则与参数；顺带修正 `filterSectionsV2` 返回值被丢弃导致「仅过滤服务项时不改写响应」的隐患。**已真机验证**（2026-10-20T23:47 抓包：`vip.type=2/status=1`、`avatar` 4 层含 2 个 `ICON_LAYER`（local 4 企业认证）、`ipad_sections` 仍正确过滤为 748/749/764） |
 | `2026-10-02T01:35` | — | **v7.24** `vip` 档换粉底大会员牌。上一版沿用官方灰底（理由是「该档权限等同非会员」），用户实测后要求换彩色，改用 `vip-basic-pink`，与另三个档位统一为粉底扁平。附带把「彩色昵称为何发灰」的抓包结论写进 README：`nickname_color` 字段已正确注入（`#FB7299`），但 App 端仍显示灰色 —— 28 个真实大会员样本中 27 个该字段为 `None`，说明彩色昵称是独立开通的功能、不随会员身份附带，**这是如实反映而非插件失灵**。功能零变化，`vip.js` 只改 1 个文件名 |
 | `2026-10-02T00:55` | — | **v7.23** 会员伪装换纯文字牌子图。用户实测「带图案的不好看」，十年/百年两档从火车版（`ten-cannon`）与 2023 活动带星版换成官方纯文字版 `vip-ten-pink` / `vip-hundred-pink`；`vip-assets/` 按官方 `label.image` 抓包补齐到 16 张并统一为 `vip-<档位>-<样式>.png` 命名，4 个旧名作废。**推翻一条旧结论**：此前记「App 走文字渲染、`image` 留空即可」，新抓包（1116 条）中 `x/v2/space` 触发 6 次 `/bfs/vip/` 图片请求，证明 `label.image` 确实生效。功能零变化，`vip.js` 只改 4 个文件名 |
@@ -185,16 +185,16 @@ Push-notification permission popup.
 |---|---|---|---|
 | `localVIP` | switch | 开 | 账号页总开关 |
 | `localVIPSpace` | switch | 开 | 个人资料页开关 |
-| `myMid` | input | 空 | 我的 UID；**留空则空间页伪装不生效**，他人主页始终不受影响 |
+| `myMid` | input | `14895065` | 我的 UID；**留空则空间页伪装不生效**，他人主页始终不受影响 |
 | `vipAllUsers` | switch | 关 | 彩蛋：开启后**所有人的主页**都按上面的设置显示。真会员 vip/牌子不碰；开「头像角标」时其角标图层替换成选定样式 |
 | `vipTargetMid` | input | 空 | 彩蛋：只让该 UID 的主页按上面的设置显示 |
 | `vipTheme` | select | 最强绿鲤鱼 | 5 种主题 |
 | `vipText` / `vipBg` / `vipFg` / `vipImg` | input | 空 | 留空用主题默认；`vipImg` **我的页与个人主页都生效** |
-| `vipVerify` | select | 关 | 彩蛋·认证标识：黄V·UP主认证（type0/role7）/ 蓝V·企业认证（type1/role3）。同时写 icon（国际版画闪电必需，HAR 实证）与 ICON_LAYER 角标（iPad/国内）。旧版 vipFakeVerify 开关值兼容 |
-| `vipVerifyTitle` | input | 空 | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
-| `vipAvatarBadge` | switch | 关 | 头像下方会员角标。原理见下节 |
-| `vipBadgeIcon` | select | 大会员 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
-| `MineInterHideIds` | input | `494,741,1028,3084` | [国际版我的页] `sections_v2` 隐藏 id，**默认隐藏 离线缓存/钱包/NFT/稍后再看；保留 联系客服/稿件管理** |
+| `vipVerify` | select | 蓝V·企业认证 | 彩蛋·认证标识：黄V·UP主认证（type0/role7）/ 蓝V·企业认证（type1/role3）。同时写 icon（国际版画闪电必需，HAR 实证）与 ICON_LAYER 角标（iPad/国内）。旧版 vipFakeVerify 开关值兼容 |
+| `vipVerifyTitle` | input | `躺平创新官方账号` | 认证标题（黄/蓝共用），留空：黄V「认证用户」/ 蓝V「官方账号」 |
+| `vipAvatarBadge` | switch | 开 | 头像下方会员角标。原理见下节 |
+| `vipBadgeIcon` | select | 企业认证 | 角标样式（local 枚举实测定案）：1=大会员"大"字、2=小会员"小"字、3=认证+会员闪电、4=企业/机构认证、5=数字藏品标识、6=未知留测试。动态系列：数字藏品·动态（标准粉紫 GIF）、数字藏品·紫动态（深紫系列 GIF）、大会员+藏品动态（双标识并存） |
+| `MineInterHideIds` | input | `494,3084` | [国际版我的页] `sections_v2` 隐藏 id，**默认隐藏 离线缓存/稍后再看；保留 钱包/NFT/联系客服/稿件管理**（v7.45 起） |
 | `MineHideIds` | input | `755,756,757,758,759,760,2541,965,747,750` | [iPad HD 我的页] `ipad_upper/recommend/more/sections` 隐藏 id，**默认隐藏 推荐服务/更多服务(青少年守护)/常用功能(离线缓存/稍后再看)；保留 创作中心全组/我的客服/历史记录/收藏/设置**。留空=全部显示 |
 | `vipLabelAnnual` | switch | 关 | 牌子配色覆盖：强制 label_theme=annual_vip，客户端按主题表渲染配色 → 任意主题（含绿鲤鱼小会员）的牌子变粉色年度款，覆盖 vipBg/vipFg |
 
@@ -277,7 +277,7 @@ vip/牌子/认证零改动。
 | `purifyComment` | 开 | 移除评论区置顶商品广告 |
 | `displayUpList` | `show` | 最常访问：`show`/`hide`/`auto` |
 | `logLevel` | `off` | kokoryh 脚本日志 |
-| `LogLevel` | `WARN` | BiliUniverse 脚本日志 |
+| `LogLevel` | `OFF` | BiliUniverse 脚本日志 |
 
 > 界面（顶栏/标签页/底栏）由 [Bilibili-UI](../Bilibili-UI/) 负责，本插件不控制。
 

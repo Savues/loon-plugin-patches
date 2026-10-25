@@ -66,7 +66,7 @@ node selftest.js                                  # 内核自测 (46 项)
 
 | 插件 Plugin | 用途 Purpose | 状态 Status |
 |---|---|---|
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.44** |
+| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化<br>Bilibili ad-block · VIP spoof · comics | **v7.45** |
 | [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签<br>SponsorBlock standalone · 自动跳/只提醒两档 · 类别中文化 · · 整篇软广单独提醒 · fully configurable | **v1.6** |
 | [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关<br>Home tabs & bottom nav switches | **v3.1** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |

@@ -34,6 +34,7 @@ const EXPECTED_REWRITE_DELTA = [
                                // 不用 bundle 是因为它内部 switch(gC.pathname) 只认 bangumi / cinema-tab
   "push\\/popup\\/setting",     // v7.25 加：屏蔽「打开推送通知」弹窗。整条响应就是弹窗素材
                                //（data.notices/contents/banner 全给客户端渲染），置空 data 即可
+  "loon-sim",                  // v7.45：版本探针随版本号 bump（7.44→7.45），基线 v7.18 无探针行
 ];
 const allowed = (line) => EXPECTED_REWRITE_DELTA.some((k) => line.includes(k));
 const ro = sec(OLD, "Rewrite"), rn = sec(NEW, "Rewrite");
