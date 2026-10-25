@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.5-fin-restore"
+#define LCF_VERSION "6.6-no-errdesc"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -585,26 +585,17 @@ static void didfin_hook(id self, SEL _cmd, id error){
             g_diag_fin_enter++;
             lc_stage("diag-fin-enter");
         }
-        /* v6.5 第一步: 只恢复 fin 行 (持锁写, 无 flush — v6.0 崩点疑 flush,
-         * 分段恢复: fin 行本版验证, flush 重组下版解锁外) */
+        /* v6.6: fin 行【不碰 error 对象】—
+         * v6.5 实锤: msgSend(error, localizedDescription) = 崩点
+         * (v6.2-6.4 空壳不调它则稳, v6.0/6.5 调它则崩, 双 App 一致)
+         * NSError 的 UserInfo 惰性求值在 LC guest 环境不安全。
+         * state:err 只记 tid, 错误摘要放弃 */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         char line[384];
-        if (error){
-            const char* msg = (const char*)objc_msgSend(error, s_localizedDesc);
-            char* p = line; size_t rem = sizeof(line);
-            int w = snprintf(p, rem,
-                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"err\",\"err\":",
-                lc_now(), ++g_seq, tid);
-            p += w; rem -= (size_t)w;
-            lc_json_str(&p, &rem, msg ? msg : "");
-            snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
-            lc_lock(); lc_write_locked(line); lc_unlock();
-        } else {
-            snprintf(line, sizeof(line),
-                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"ok\",\"pid\":%d}\n",
-                lc_now(), ++g_seq, tid, (int)getpid());
-            lc_lock(); lc_write_locked(line); lc_unlock();
-        }
+        snprintf(line, sizeof(line),
+            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"pid\":%d}\n",
+            lc_now(), ++g_seq, tid, error ? "err" : "ok", (int)getpid());
+        lc_lock(); lc_write_locked(line); lc_unlock();
         if (g_diag_fin_enter == 3){
             g_diag_fin_enter = 4;
             lc_stage("diag-fin-survived");

@@ -8,6 +8,32 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.6] - 2026-10-26 · no-errdesc
+
+### 动机：v6.5 双 App 崩在 diag-fin-enter——凶手二分完成
+
+v6.3 空壳稳定 / v6.5 只加回 fin 行就崩——差异只剩 fin 行写入的三步：
+`msgSend(self, s_tid)`（空壳也有，安全）／ `lc_write_locked`（v5.x 同款，安全）／
+**`msgSend(error, localizedDescription)`（v6.0 与 v6.5 都有，v6.3 没有）**。
+统一解释成立：**localizedDescription 就是崩点**——NSError 的 UserInfo
+惰性求值在 LC guest 环境触发链式内部调用，不安全。
+
+### 改动
+
+fin 行**不碰 error 对象**：`state:"err"/"ok"` 只按 error 非 nil 判定，
+错误摘要放弃。fin 能力保住。
+
+### 教训（铁律候选第三条 ObjC 版）
+
+**不要对 hook 回调的参数做深属性求值**（localizedDescription / debugDescription /
+UserInfo 这类惰性求值属性）——LC guest 环境下不安全；浅层 selector
+（statusCode / length / 指针判空）才可以。
+
+### 实证（待真机）
+
+86672B，md5 `3f8b5bec`。判读：fin 行（无 err 字段）+ survived 成对 = 全绿；
+flush 重组恢复（移锁外）留 v6.7。
+
 ## [6.5] - 2026-10-26 · fin-restore
 
 ### 动机：v6.4 双 App 全绿后的两项收尾
