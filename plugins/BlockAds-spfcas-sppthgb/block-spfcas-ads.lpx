@@ -1,4 +1,4 @@
-#!name=JavDB 去广告与公告 v1.9.3
+#!name=JavDB 去广告与公告 v1.9.4
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告与首页横幅（spfcas/sppthgb 域投放）。
 #!author=@Savues <https://github.com/Savues>
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/BlockAds-spfcas-sppthgb/icon.png
@@ -24,6 +24,7 @@ DOMAIN-SUFFIX,api.liquidlink.cn,REJECT
 
 # Optional: block ad click-through tracking domains
 DOMAIN-SUFFIX,afengy.com,REJECT
+DOMAIN-SUFFIX,jdforrepam.com,REJECT
 DOMAIN-SUFFIX,win1823.com,REJECT
 DOMAIN-SUFFIX,jopeki.com,REJECT
 DOMAIN-SUFFIX,zenaruk.com,REJECT
@@ -31,6 +32,8 @@ DOMAIN-SUFFIX,tkock.com,REJECT
 DOMAIN-SUFFIX,kac.2vtt7a4.xyz,REJECT
 
 [Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/tp\.spfcas\.com\/gw\/loon-sim\.probe\.block_spfcas_ads/i then reject(200, "1.9.4")
 # Remove splash_ad: set enabled=false (keep structure to avoid bottom bar issue)
 ^https://apidd\.(czssdgz|spthgb|btyjscl)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
 ^https://api\.(aliycloud|ffaoa)\.com/api/v1/startup.*$ response-body-json-jq '.data.splash_ad.enabled = false'
