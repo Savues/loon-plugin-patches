@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.1-taskkey"
+#define LCF_VERSION "7.2-reqbody"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -285,6 +285,27 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
     *out_tail = p; *out_tailrem = rem;
 }
 
+/* v7.2: POST body 落盘 (锁外 IO) — 文件名 lcf-req/<tid>-<method>.bin
+ * 广告 SDK 上报内容取证 (stats/batch / event 等) */
+static void lcf_reqbody_write(unsigned long long tid, const char* method, id body, unsigned long long blen){
+    if (!body || blen == 0 || blen > (2*1024*1024)) return;   /* 2MB 上限 */
+    static SEL bytesSel = 0;
+    if (!bytesSel) bytesSel = sel_registerName("bytes");
+    const void* p = (const void*)objc_msgSend(body, bytesSel);
+    if (!p) return;
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return;
+    char dir[512], path[560];
+    snprintf(dir, sizeof(dir), "%s/Documents/lcf-req", home);
+    mkdir(dir, 0755);
+    snprintf(path, sizeof(path), "%s/%llu-%s.bin", dir, tid, method ? method : "GET");
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd >= 0){
+        write(fd, p, (size_t)blen);
+        close(fd);
+    }
+}
+
 /* hook 1: dataTaskWithRequest:completionHandler: */
 static id dtwrh_hook(id self, SEL _cmd, id req, id handler){
     id task = ((id(*)(id,SEL,id,id))g_orig_dtwrh)(self, _cmd, req, handler);
@@ -294,6 +315,20 @@ static id dtwrh_hook(id self, SEL _cmd, id req, id handler){
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
     lc_lock(); lc_write_locked(line); lc_unlock();
+    /* v7.2: POST body 落盘 (锁外 IO) */
+    if (req && task){
+        id b = (id)objc_msgSend(req, s_body);
+        if (b){
+            unsigned long long blen = (unsigned long long)(uintptr_t)objc_msgSend(b, s_len);
+            if (blen > 0 && blen <= (2*1024*1024)){
+                unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(task, s_tid);
+                char m[16] = "GET";
+                id mo = (id)objc_msgSend(req, s_HTTPMethod);
+                if (mo){ const char* c = (const char*)objc_msgSend(mo, s_utf8); if (c) snprintf(m, sizeof(m), "%.10s", c); }
+                lcf_reqbody_write(tid, m, b, blen);
+            }
+        }
+    }
     return task;
 }
 
@@ -306,6 +341,19 @@ static id dtwr_hook(id self, SEL _cmd, id req){
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
     lc_lock(); lc_write_locked(line); lc_unlock();
+    if (req && task){
+        id b = (id)objc_msgSend(req, s_body);
+        if (b){
+            unsigned long long blen = (unsigned long long)(uintptr_t)objc_msgSend(b, s_len);
+            if (blen > 0 && blen <= (2*1024*1024)){
+                unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(task, s_tid);
+                char m[16] = "GET";
+                id mo = (id)objc_msgSend(req, s_HTTPMethod);
+                if (mo){ const char* c = (const char*)objc_msgSend(mo, s_utf8); if (c) snprintf(m, sizeof(m), "%.10s", c); }
+                lcf_reqbody_write(tid, m, b, blen);
+            }
+        }
+    }
     return task;
 }
 

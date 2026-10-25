@@ -8,6 +8,30 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [7.2] - 2026-10-26 · reqbody
+
+### 动机：广告 SDK 上报内容取证
+
+POST 请求的 `bodyLen` 有、内容无——穿山甲 `stats/batch`、腾讯
+`sdk.e.qq.com/event` 这类上报的**请求体**正是"SDK 在传什么数据"的直接证据
+（设备指纹 / 行为流标 / 归因字段都在里面）。
+
+### 改动
+
+- 两个创建 hook 里对 `HTTPBody`（NSData）非空且 ≤2MB 的请求，
+  `bytes` 浅层 selector 取指针后写 `Documents/lcf-req/<tid>-<method>.bin`
+  （锁外 IO——铁律）。HTTPBodyStream 的请求跳过（流式无内容可取）。
+- 目录 `lcf-req/` 与 `lcf-resp/` 平行，tid 仍是对接键。
+
+### 判读
+
+豆瓣稳定 + `lcf-req/` 出现 `*-POST.bin` 文件，内容与 `stats/batch` 等
+URL 对上 = SDK 上报取证能力达成。
+
+### 实证（待真机）
+
+70176B，md5 `af1b1328`。
+
 ## [7.1] - 2026-10-26 · taskkey
 
 ### 动机：v7.0 数据挖出 tid 复用——重组串写风险
