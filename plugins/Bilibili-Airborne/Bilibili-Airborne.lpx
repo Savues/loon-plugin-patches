@@ -1,5 +1,5 @@
-#!name=B站空降助手 v1.59
-#!desc=视频空降助手：识别弹幕/评论里的时间点，一键跳转（airSelfAction 默认开启，含只提醒与汇总弹窗模式）。v1.59 国际版修复：iPhone 国际版的 ViewProgress 走 viewunite.v1 端点，此前重签规则只匹配 view.v1 → 国际版从未重签（弹幕能显示但自动跳降级、chronos 校验文件里的降落伞图标仍是原图）。现已兼容 view|viewunite 两种端点，iPhone 国际版不再有降落伞图标。
+#!name=B站空降助手 v1.60
+#!desc=视频空降助手：识别弹幕/评论里的时间点，一键跳转（airSelfAction 默认开启，含只提醒与汇总弹窗模式）。v1.60 弹幕字号默认 25→37（用户选定；真实弹幕只有 25/18，25=与普通弹幕一致，50=大字版，均可选回）。v1.59 国际版修复：iPhone 国际版的 ViewProgress 走 viewunite.v1 端点，此前重签规则只匹配 view.v1 → 国际版从未重签（弹幕能显示但自动跳降级、chronos 校验文件里的降落伞图标仍是原图）。现已兼容 view|viewunite 两种端点，iPhone 国际版不再有降落伞图标。
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/icon.png?v=2
 #!author=@Savues <https://github.com/Savues>
 #!tag=空降助手,SponsorBlock,Bilibili
@@ -7,7 +7,7 @@
 #!system_version=15
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
-#!date=2026-10-25 21:30:00
+#!date=2026-10-25 22:30:00
 
 [Argument]
 Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
@@ -22,7 +22,7 @@ airInfoDelay = input,"3",tag=提醒延后秒数,desc=「只提醒」的弹幕比
 airInfoMode = select,"5","1","4",tag=提醒弹幕样式,desc=5=顶部：最显眼，但停留时间最短（固定时长，约几秒）；1=滚动：停留最久，暂停视频也保留，但容易混进一堆弹幕里；4=底部。默认 5。自动跳的那条不受此项影响，始终是顶部空降弹幕。
 airUpLike = select,"off","on",tag=UP主点赞标记,desc=注入的弹幕是否带「UP主点赞」属性位（attr 第 2 位）。on=带（部分客户端会显示 👍 图标，弹幕更显眼）；off=不带（默认）。与「本人弹幕标记」相互独立
 airOwn = select,"on","off",tag=本人弹幕标记,desc=注入的弹幕是否带「自己」属性位（attr 第 18 位）。on=带：客户端会把弹幕当作你本人发的，画上方框、更显眼（默认）；off=与普通弹幕完全一致
-airFontSize = select,"25","50","37","18",tag=弹幕字号,desc=注入弹幕的字号。实测真实弹幕只有 25 和 18，默认 25 与普通弹幕一致（曾有 50 的大字版，若字号影响居中可改回 25）
+airFontSize = select,"37","50","25","18",tag=弹幕字号,desc=注入弹幕的字号。v1.60 默认 37（用户选定）。实测真实弹幕只有 25 和 18：25=与普通弹幕一致，50=大字版
 airSelfAction = select,"on","off",tag=提醒也走空降路径,desc=给「只提醒」和汇总弹幕带上一个指向自身位置的空降动作。实测带动作的弹幕（空指部已就位）在 App 里完全居中，不带动作的普通顶部弹幕会整体偏右一个徽标宽度；指向自身的动作不会改变播放（跳到自己所在的位置）。若发现视频被往回拉就改 off
 airInfo = input,"⚠️ {cat} {start}→{end}",tag=只提醒的文案,desc=占位符同上，{cat} 会渲染成中文（如「一键三连」「自我推广」）。例：这里有 {dur}s {cat}，想看就自己拖
 airSummary = select,"single","off",tag=片头汇总,desc=视频开头列出本视频里会被处理的片段。同类片段会折叠成一行（如「恰饭广告 ×2 · 34:55–35:11 | 52:31–52:40」），最多列 5 类，超出会标注「等 N 类」。single：列成一条汇总弹幕；off：不列。文案复用「只提醒的文案」——模板里写了 {list} 就用你的，否则用内置文案

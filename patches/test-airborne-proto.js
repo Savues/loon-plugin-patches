@@ -96,9 +96,9 @@ inject(styleMsg.elems,
   { airSummary: 'off', airCategories: 'sponsor', airFullMode: 'notice', airActions: 'skip' });
 const sAuto = styleMsg.elems[1], sNote = styleMsg.elems[2];
 ck('自动档是顶部大字 + 有 action',
-  sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 50 && !!sAuto.action,
+  sAuto.midHash === '1948dd5d' && sAuto.mode === 5 && sAuto.fontsize === 37 && !!sAuto.action,
   JSON.stringify({ m: sAuto.midHash, mode: sAuto.mode, fs: sAuto.fontsize, a: sAuto.action }));
-ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 50,
+ck('提醒档同样是顶部大字', sNote.midHash === '1948dd5d' && sNote.mode === 5 && sNote.fontsize === 37,
   JSON.stringify({ m: sNote.midHash, mode: sNote.mode, fs: sNote.fontsize }));
 ck('提醒档带指向自身的动作（原地跳，不会跳走）', sNote.action === 'airborne:' + sNote.progress, sNote.action);
 // 自动档固定在片段起点 +2 秒；提醒档默认延后到 +8 秒（片头那条起点是 0，2 秒看不见）
@@ -401,9 +401,10 @@ const HAR_ARG = { airSummary: 'single', airCategories: 'intro', airNoticeCategor
     inject(m.elems, SEGS, Object.assign({ airSummary: 'single', airCategories: 'sponsor' }, arg));
     return m.elems.filter(x => x.ctime === '1735660800');
   };
-  ck('默认字号 50（大字版）', mk({}).every(x => x.fontsize === 50),
+  ck('默认字号 37（v1.60 用户选定）', mk({}).every(x => x.fontsize === 37),
      JSON.stringify(mk({}).map(x => x.fontsize)));
-  ck('airFontSize=50 可切回大字', mk({ airFontSize: '50' }).every(x => x.fontsize === 50));
+  ck('airFontSize=50 可切大字', mk({ airFontSize: '50' }).every(x => x.fontsize === 50));
+  ck('airFontSize=25 与普通弹幕一致', mk({ airFontSize: '25' }).every(x => x.fontsize === 25));
   ck('airFontSize 非法值退回 25', mk({ airFontSize: '99' }).every(x => x.fontsize === 25));
   ck('id 是 64 位大整数且 idStr 与之一致',
      mk({}).every(x => String(x.id).length >= 18 && x.idStr === String(x.id)),

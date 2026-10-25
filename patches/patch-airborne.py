@@ -323,10 +323,10 @@ function __airAttr(a) {
     if (String(__airVal(a, "airUpLike", "off")) === "on") v += 0x4;
     return v;
 }
-/** 注入弹幕的字号：实测 12908 条真实弹幕只有 25 / 18，默认 25 与普通弹幕一致 */
+/** 注入弹幕的字号：实测 12908 条真实弹幕只有 25 / 18，v1.60 起默认 37（用户选定；25=与普通弹幕一致，50=大字版） */
 function __airFontSize(a) {
-    var v = String(__airVal(a, "airFontSize", "50"));
-    return v === "50" || v === "37" || v === "18" ? Number(v) : 25;
+    var v = String(__airVal(a, "airFontSize", "37"));
+    return v === "37" || v === "50" || v === "18" ? Number(v) : 25;
 }
 /** 弹幕 id：真实弹幕是 64 位大整数（App 可能按 id 缓存布局，别用 "1"/"2" 这种）。
  *  用字符串拼接而不是算术——2221e18 超出 JS 安全整数范围，加法会把 id 算成同一个数 */
