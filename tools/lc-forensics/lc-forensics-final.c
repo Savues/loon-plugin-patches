@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.1-httpcheck"
+#define LCF_VERSION "6.2-diag-enter"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -354,8 +354,9 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
 }
 
-/* v6.0 前向声明 */
+/* v6.2 前向声明 */
 static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd);
+extern int g_diag_reasm_enter, g_diag_resp_enter, g_diag_fin_enter;
 
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
@@ -365,7 +366,15 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         lc_write_locked(line);
         /* v6.0: 分片进重组缓冲 */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        if (g_diag_reasm_enter < 3){
+            g_diag_reasm_enter++;
+            lc_stage("diag-reasm-enter");
+        }
         lcf_reasm_append_locked(tid, dd);
+        if (g_diag_reasm_enter == 3){
+            g_diag_reasm_enter = 4;
+            lc_stage("diag-reasm-survived");
+        }
         lc_unlock();
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd)(self, _cmd, dd, completion);
@@ -466,7 +475,12 @@ static void lcf_reasm_flush_locked(unsigned long long tid){
  * v6.1 安全修正: response 参数可能是 NSURLResponse 通用型 (非 HTTP),
  * 直接发 statusCode → doesNotRecognizeSelector → 崩 (v6.0 闪退根因)。
  * 判别: isKindOfClass(NSHTTPURLResponse) 才读 HTTP 专属字段。
- * 返回: line[0]==0 表示跳过 */
+ * 返回: line[0]==0 表示跳过
+ * v6.2: 入口/出口标记 (前3次) — 闪退点定位 */
+int g_diag_resp_enter = 0;
+int g_diag_fin_enter = 0;
+int g_diag_reasm_enter = 0;
+
 static void lcf_resp_line(id self, id response, char* line, size_t cap){
     line[0] = 0;
     unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
@@ -523,11 +537,20 @@ static void lcf_resp_line(id self, id response, char* line, size_t cap){
 
 static void didresp_hook(id self, SEL _cmd, id response, void* completion){
     if (g_orig_didresp && response){
-        /* v6.1: 整段 try/catch 兜底 — 元数据提取绝不影响原请求流 */
+        /* v6.2: enter 标记 (前3次) — 闪退点定位 */
+        if (g_diag_resp_enter < 3){
+            g_diag_resp_enter++;
+            lc_stage("diag-resp-enter");
+        }
+        /* v6.1: 元数据提取绝不影响原请求流; line 置空跳过 */
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
         if (line[0]){
             lc_lock(); lc_write_locked(line); lc_unlock();
+        }
+        if (g_diag_resp_enter == 3){
+            g_diag_resp_enter = 4;
+            lc_stage("diag-resp-survived");
         }
     }
     ((void(*)(id,SEL,id,void*))g_orig_didresp)(self, _cmd, response, completion);
@@ -535,6 +558,10 @@ static void didresp_hook(id self, SEL _cmd, id response, void* completion){
 
 static void didfin_hook(id self, SEL _cmd, id error){
     if (g_orig_didfin){
+        if (g_diag_fin_enter < 3){
+            g_diag_fin_enter++;
+            lc_stage("diag-fin-enter");
+        }
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         char line[384];
         char errinfo[160] = "";
@@ -560,6 +587,10 @@ static void didfin_hook(id self, SEL _cmd, id error){
         lc_lock();
         lcf_reasm_flush_locked(tid);
         lc_unlock();
+        if (g_diag_fin_enter == 3){
+            g_diag_fin_enter = 4;
+            lc_stage("diag-fin-survived");
+        }
     }
     ((void(*)(id,SEL,id))g_orig_didfin)(self, _cmd, error);
 }

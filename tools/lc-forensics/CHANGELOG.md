@@ -8,6 +8,36 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.2] - 2026-10-26 · diag-enter
+
+### 动机：v6.1 双 App 仍闪退——且分流证据变了
+
+- 豆瓣：ctor 九行全落，零 req（同 v6.0）
+- **JavDB：1 条 req 成功落盘后死**——req→resp/data/fin 之间的触发链有凶手
+- 静态审查到头：`isKindOfClass` 判别（v6.1）、error 判 nil、realloc 守卫
+  全部在位，纯 C 下无更多可静态排除的崩溃点（objc_msgSend 崩溃无法 catch）
+
+### 改动（诊断，不改功能）
+
+三个新 hook（didresp / didfin / reasm-append）各加**前 3 次入口/幸存标记**
+（走 base 文件通道）：`diag-resp-enter` → `diag-resp-survived` 等六种。
+崩溃瞬间 base 日志停在哪个标记上，凶手即锁定。
+
+### 判读表
+
+| base 日志最后标记 | 凶手 |
+|------|------|
+| `diag-resp-enter`（无 survived） | lcf_resp_line 内（encjson/msgSend 段）|
+| `diag-fin-enter` | didfin_hook 内 |
+| `diag-reasm-enter` | 重组追加（dispatch API/realloc）|
+| 全 survived 且有 resp/fin 行 | 崩在更后面（排除法重排）|
+
+### 实证（待真机）
+
+86608B，md5 `c56c3b35`。
+
+---
+
 ## [6.1] - 2026-10-26 · httpcheck
 
 ### 动机：v6.0 闪退——ctor 全过，死在第一个响应触发时
