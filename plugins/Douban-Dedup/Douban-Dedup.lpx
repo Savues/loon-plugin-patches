@@ -1,16 +1,32 @@
-#!name=豆瓣开屏广告屏蔽
-#!version=1.0.1
-#!date=2026-10-24
-#!desc=屏蔽豆瓣开屏广告：拦截启动广告素材与配置接口。开屏时长字段篡改待后续版本处理。
+#!name=豆瓣去广告 v2.0.0
+#!desc=拦截广告与营销内容：开屏（api域app_ads全族+frodo域home_ads双链路）、信息流广告（erebor/feed_ad竞价投放）、首页横幅、电影页广告、搜索页预制广告词与滚动词清洗（dale广告条目+穿山甲SDK配置）。浏览卡死事故经当前Loon版本对照实验证实不复现。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
-#!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
-[Rule]
+#!version=2.0.0
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/icon.png
+#!tag=去广告
+#!date=2026-10-25 15:30:00
 
-[URL Rewrite]
-^https?:\/\/api\.douban\.com\/v2\/app_ads.+ reject
-# ^https?:\/\/api\.douban\.com\/v2\/app_ads\/splash_preload reject
-# ^https?:\/\/api\.douban\.com\/v2\/app_ads\/splash_show reject
+[Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/gw\/loon-sim\.probe\.douban_dedup/i then reject(200, "2.0.0")
 
-[MITM]
-hostname = api.douban.com
+# === 开屏: api 域 (honue 原版规则, 保留) ===
+request if ${url} ~= /^https?:\/\/api\.douban\.com\/v2\/app_ads.+/i then reject
+
+# === 开屏: frodo 域链路 (2026-10-25 HAR 实证: api 域被拦但开屏仍现, 广告走此链) ===
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/home_ads/i then reject_dict(200)
+
+# === 信息流广告: erebor 竞价投放 (纯广告接口, 正常推荐在 elendil/recommend_feed 不受影响) ===
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/erebor\/feed_ad/i then reject_dict(200)
+
+# === 首页横幅 + 电影页广告 ===
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/home_banner/i then reject_dict(200)
+request if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/movie\/ad/i then reject_dict(200)
+
+[Script]
+# 搜索页预制广告词清洗 (原 SearchAd 稳定逻辑并入; dale 广告条目删除 + top_word 整字段删 + 穿山甲配置清)
+response if ${url} ~= /^https?:\/\/frodo\.douban\.com\/api\/v2\/search\/(?:found_words|hots)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban-Dedup/src/douban-search-ad.js") with tag="搜索页广告词清洗", requires_body=true
+
+[MitM]
+hostname=api.douban.com, frodo.douban.com
