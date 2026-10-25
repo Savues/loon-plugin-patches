@@ -33,7 +33,18 @@ const REVERSES = [
   [/("adParaGoldCoin"\s*:\s*)1/g, '$10'],
   [/("openScreen"\s*:\s*)1/g, '$10'],
   [/("fullScreen"\s*:\s*)1/g, '$10'],
+  // --- v0.6: 高嫌疑开关 (用户拍板: 有嫌疑就加, 26个) ---
+  // 悬浮窗/浮层
+  [/("floatWindow(?:AB|MGC)"\s*:\s*)true/g, '$1false'],
+  [/("(?:channel_float_refresh_open|showTopFloatLayer_single|msi_showFloatLayer_onMainThread|coupons_float_layer_get_sharedStorage|sharkpush_meishi_float_picasso|gc_poidetail_float_video)"\s*:\s*)true/g, '$1false'],
+  // 券/优惠弹层
+  [/("(?:head_coupon_ios|head_coupon_layer_ios|coupon_dialog_is_open_by_url|receiveCoupon|iOS_enableHostSendCoupon|findCouponUpgradeEnable|enable_coupon_detail_pre_request)"\s*:\s*)true/g, '$1false'],
+  // 横幅
+  [/("(?:traffic_platform_banner_switch|open_banner_optimized|updateNewMliveBanner|is_fix_banner_promotion|enable_city_commerce_activity)"\s*:\s*)true/g, '$1false'],
+  // 引导/运营
+  [/("(?:iOS_enableGuideComment|guide_detail|guide_page_preload_result_page|enable_live_activity_pike|enableMannulReceiveOperational|popupLimitStatus)"\s*:\s*)true/g, '$1false'],
 ];
+
 let body = $response.body;
 if (typeof body === 'string' && body.length > 1000) {
   let changed = false;
