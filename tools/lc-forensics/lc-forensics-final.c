@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.3-fin-nop"
+#define LCF_VERSION "6.4-deadlock-fix"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -362,20 +362,22 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
         char line[1600];
         lcf_data_line(self, dd, line, sizeof(line));
-        lc_lock();
-        lc_write_locked(line);
-        /* v6.0: 分片进重组缓冲 */
-        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        /* v6.4 修复: diag 标记必须在拿锁之前写 — lc_stage 内部 lc_lock,
+         * 持锁区再调 = 自旋死锁 (v6.3 豆瓣黑屏根因, 与 v4.1 同型) */
         if (g_diag_reasm_enter < 3){
             g_diag_reasm_enter++;
             lc_stage("diag-reasm-enter");
         }
+        lc_lock();
+        lc_write_locked(line);
+        /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
+        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         lcf_reasm_append_locked(tid, dd);
+        lc_unlock();
         if (g_diag_reasm_enter == 3){
             g_diag_reasm_enter = 4;
             lc_stage("diag-reasm-survived");
         }
-        lc_unlock();
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd)(self, _cmd, dd, completion);
 }
@@ -562,8 +564,8 @@ static void didfin_hook(id self, SEL _cmd, id error){
             g_diag_fin_enter++;
             lc_stage("diag-fin-enter");
         }
-        /* v6.3: 主体禁用 (二分) — 崩点锁定在 enter 与 survived 之间,
-         * 本轮只留空壳+原IMP直调; 若稳定, 下一版逐段恢复 */
+        /* v6.4: 主体仍禁用 — didfin 主体含 reasm flush (open/mkdir/write),
+         * 且 fin 行写入历史崩点未定位, 留待数据通路验证后再逐段恢复 */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         (void)tid;
         if (g_diag_fin_enter == 3){

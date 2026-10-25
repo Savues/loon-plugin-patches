@@ -8,6 +8,47 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.4] - 2026-10-26 · deadlock-fix
+
+### 动机：v6.3 双 App 分流——JavDB 恢复、豆瓣黑屏（非闪退）
+
+- **JavDB**：`fin-enter → fin-survived` 成对出现，3 条 req 正常——
+  **v6.0/v6.1 的闪退凶手确认在 didfin 主体** ✅
+- **豆瓣**：进程活着但黑屏，日志停在 `data` 行（tid=1 第一片）——
+  stage 序列里**没有 `diag-reasm-enter`**，而 data 行（写在 append 之前）
+  已落盘 → 卡死点 = `lc_stage("diag-reasm-enter")` 本身！
+
+### 根因（与 v4.1 同型的死锁第二次复发）
+
+`didd_hook` 的执行序是 `lc_lock() → lc_write_locked → [持锁区] lc_stage(...)`，
+而 `lc_stage` 内部会 `lc_lock()`——**同一自旋锁不可重入**，
+网络队列线程自己等自己 → 主线程等网络 → 黑屏挂起（死锁不崩溃，
+所以不是闪退而是僵死）。v6.2 的诊断标记本身成了死锁点。
+
+### 改动
+
+- `didd_hook`：诊断标记移到拿锁**之前**/锁释放**之后**；
+  持锁区内只剩 `lc_write_locked`（不拿锁）和 `lcf_reasm_append_locked`
+  （不拿锁）——持锁区净空
+- `didfin_hook` 主体继续禁用（其 flush 含 open/mkdir/write，
+  恢复时必须移到锁外，留待下版）
+
+### 判读
+
+豆瓣恢复（data 行后继续 req 流）+ `diag-reasm-enter/survived` 成对出现。
+
+### 实证
+
+70048B，md5 `c92afebd`。
+
+### 铁律重申（第三次踩同一坑）
+
+**持锁区内禁止调用任何内部拿锁的函数**（lc_stage/lc_emit/…）。
+v4.1 教训只写了"emit"，lc_stage 是同一个坑的另一个入口——
+规则应表述为：自旋锁不可重入，持锁区只调 *_locked 变体。
+
+---
+
 ## [6.3] - 2026-10-26 · fin-nop
 
 ### 动机：v6.2 诊断标记锁定凶手范围
