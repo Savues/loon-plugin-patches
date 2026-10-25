@@ -19,7 +19,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "5.1-data-capture"
+#define LCF_VERSION "5.2-ascii-preview"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define DEDUP_CAP 512
@@ -306,20 +306,21 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
     unsigned long long size = dispatch_data_get_size(dd);
 
-    /* 预览: 只 map 不持有; map 失败则跳过 preview (size 仍有) */
+    /* 预览: 只 map 不持有; map 失败则跳过 preview (size 仍有)
+     * v5.2: 严格 ASCII 化 — >=0x80 一律 '.' (JSON 必须是合法 UTF-8,
+     * 二进制分片里的 0xa4 等字节直写会产生非法序列, 损坏整行) */
     const void* buf = 0; size_t blen = 0, seg = 0;
     char preview[128] = "";
     if (size > 0){
         dispatch_data_t mapped = dispatch_data_create_map(dd, &buf, &blen, &seg);
         if (buf && blen > 0){
             size_t n = blen < sizeof(preview) ? blen : sizeof(preview) - 1;
-            /* 控制/引号字符转义后的 JSON 安全预览 */
             char* q = preview;
             for (size_t i = 0; i < n && (size_t)(q - preview) < sizeof(preview) - 8; i++){
                 unsigned char c = ((const unsigned char*)buf)[i];
                 if (c == '"' || c == '\\'){ *q++ = '\\'; *q++ = (char)c; }
-                else if (c >= 0x20 && c != 0x7f){ *q++ = (char)c; }
-                else { *q++ = '.'; }
+                else if (c >= 0x20 && c < 0x7f){ *q++ = (char)c; }
+                else { *q++ = '.'; }   /* 控制符 + >=0x80 全部替换 */
             }
             *q = 0;
         }
