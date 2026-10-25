@@ -82,6 +82,25 @@ console.log(bad.length?bad.join(" | "):"REGEX_OK");'''
 out = subprocess.run(['node', '-e', src], capture_output=True, text=True)
 ck('regex 编译通过且匹配正确', 'REGEX_OK' in out.stdout, (out.stdout + out.stderr)[:300])
 
+# ---- chronos 重签规则（http-response）：v1.59 起须同时覆盖 view.v1 与 viewunite.v1 ----
+# 国际版 iPhone 的 ViewProgress 走 viewunite 端点，漏掉 = 国际版永不重签
+# （弹幕能显示但自动跳降级、降落伞图标仍是原图，2026-10-25 HAR 实证）
+rrx = re.search(r'http-response (\S+) script-path=', s).group(1)
+ck('重签 regex 头尾锚定', rrx.startswith('^') and rrx.endswith('$'))
+rsrc = 'const r = new RegExp(%s);\n' % json.dumps(rrx.replace('\\/', '/')) + '''
+const yes=["https://grpc.biliapi.net/bilibili.app.view.v1.View/ViewProgress",
+           "https://app.bilibili.com/bilibili.app.view.v1.View/ViewProgress",
+           "https://grpc.biliapi.net/bilibili.app.viewunite.v1.View/ViewProgress",
+           "https://app.biliapi.net/bilibili.app.viewunite.v1.View/ViewProgress"];
+const no =["https://grpc.biliapi.net/bilibili.app.view.v1.View/View",
+           "https://grpc.biliapi.net/bilibili.app.viewunite.v1.View/View",
+           "https://grpc.biliapi.net/bilibili.community.service.dm.v1.DM/DmSegMobile"];
+let bad=[]; yes.forEach(u=>{if(!r.test(u))bad.push("no-match "+u)});
+          no.forEach(u=>{if(r.test(u))bad.push("false-match "+u)});
+console.log(bad.length?bad.join(" | "):"REGEX_OK");'''
+rout = subprocess.run(['node', '-e', rsrc], capture_output=True, text=True)
+ck('重签 regex 覆盖 view+viewunite', 'REGEX_OK' in rout.stdout, (rout.stdout + rout.stderr)[:300])
+
 def expand(rx):                       # 把 (a|b) 组展开，才能正确提取主机名
     prev = None
     while prev != rx:
