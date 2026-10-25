@@ -1,5 +1,5 @@
 #!name=Apple 证书吊销检查屏蔽 v1.2
-#!desc=屏蔽 OCSP/CRL/证书验证域名，让已过期或已被吊销的证书仍能通过握手。仅影响"吊销状态查询"，不影响 TLS 加密与证书链验证。17 条域名无条件生效（[Rule] 段无开关能力，v1.1 的 enable= 写法经实测为死开关已移除；如需临时停用请在 Loon 中禁用本插件）。【上游 Salem，Apache-2.0】
+#!desc=屏蔽 OCSP/CRL/证书吊销查询域名，让已过期或已被吊销的证书仍能完成 TLS 握手（侧载/企业证书场景）。不影响加密强度与证书链验证，仅跳过吊销状态检查。
 #!author=原作者: Salem（Apache-2.0）| 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRevoke/icon.jpg

@@ -1,5 +1,5 @@
 #!name=豆瓣搜索页广告词屏蔽
-#!desc=只剥离搜索框滚动广告与「发现」横滚标签里的预制广告词，真实热搜完整保留。⚠️需要解密 frodo.douban.com；若浏览个人主页/小组页出现加载失败，请改用 Douban-Dedup（honue 原版纯移植）。若主页加载正常，用本插件的开关关掉脚本即可退回纯开屏拦截。
+#!desc=剥离豆瓣搜索框滚动广告词与「发现」横滚标签里的预制广告，仅动广告数据不动搜索功能。
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-SearchAd
 #!date=2026-10-01

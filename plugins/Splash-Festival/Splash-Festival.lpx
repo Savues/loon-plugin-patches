@@ -1,5 +1,5 @@
 #!name=开屏节日定制(Splash Festival) v40.2
-#!desc=强制展示指定节日/活动品牌皮肤（22官方+53历史共73个），或屏蔽节日开屏。补齐 forcibly/select_show_list/selectList 门控字段，非节日也能生效。新增自动节日（含农历）/轮换/随机。
+#!desc=强制展示指定节日/活动品牌开屏皮肤（22 官方 + 53 历史共 75 个可选，含春节/国庆/双11/会员日等），替代广告开屏。
 #!author=Savues
 #!tag=开屏,Splash,Bilibili
 #!system=iOS, iPadOS

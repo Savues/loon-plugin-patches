@@ -1,5 +1,5 @@
 #!name=【一次性】参数形状诊断
-#!desc=🔧 临时诊断插件：把 Loon 实际传给脚本的 $argument 原样回显成 599 响应，一次抓包定论。用完请删除本插件。
+#!desc=🔧 临时诊断工具：把 Loon 实际传给脚本的 $argument 原样回显到通知，用于排查参数形状问题。
 #!author=诊断用 · Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!tag=诊断,MITM

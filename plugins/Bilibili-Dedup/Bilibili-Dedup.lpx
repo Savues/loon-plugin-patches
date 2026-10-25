@@ -1,5 +1,5 @@
 #!name=小破站去广告(合并版) v7.44
-#!desc=B 站去广告 + 本地会员伪装 + 漫画净化。v7.44 修复 iPad「我的」页会员角标不显示：Bilibili-UI 的 mine/ipad 规则先命中、vip.js 整个不执行；该规则已摘除，ipad_*_sections 过滤功能并入 vip.js（MineHideIds）。
+#!desc=B 站去广告 + 本地会员伪装 + 漫画净化三合一：信息流/开屏/动态广告过滤，大会员功能本地解锁，漫画净化。
 #!author=原作者: ClydeTime, VirgilClyne, app2smile, RuCu6, Maasea (BiliUniverse), kokoryh | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,Bilibili
 #!system=iOS, iPadOS

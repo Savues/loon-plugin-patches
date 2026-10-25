@@ -1,5 +1,5 @@
 #!name=Zepp-AdBlock v1.3.0
-#!desc=Zepp(华米)去广告 · 开屏/首页弹窗广告/公告板运营卡/设备页推广/运动周月报推广卡/运动横幅/训练视频广告 + 高德广告SDK
+#!desc=拦截开屏（startpage_ad）、首页弹窗、公告板运营卡、设备页推广、运动周月报推广卡与训练视频广告。
 #!version=1.3.0
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches

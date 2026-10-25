@@ -1,5 +1,5 @@
 #!name=我的页字段消费测试 (Debug)
-#!desc=调试版：强制 DEBUG 日志，查看 Loon 日志里的 [Enhanced-Mine] 前缀
+#!desc=测试插件：验证我的页字段消费行为，调试用。
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png

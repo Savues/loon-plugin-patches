@@ -1,5 +1,5 @@
 #!name=Reven
-#!desc=支持一键解锁 RevenueCat、Superwall 和 Adapty (Adapty 需卸载重装 App 才生效)。如果遇到解锁后报错或闪退的 App (比如 Filebar)，可以直接在插件设置里填名字跳过它！(默认填 '-' 代表全部 App 正常解锁)
+#!desc=一键解锁 RevenueCat / Superwall / Adapty 订阅校验（Adapty 需卸载重装生效），镜像伪装会员状态。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Reven-Mirror
 #!tag=通杀脚本

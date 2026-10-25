@@ -1,5 +1,5 @@
 #!name=AdGuard 收据校验改写 v1.01
-#!desc=把 iOS/iPadOS 收据校验接口的回包本地伪造成「已购买终身版」，纯本地生成，不请求任何第三方。装上即生效，可在插件页一键关闭。【上游 Passer_by_yun，去混淆重写】
+#!desc=把 iOS/iPadOS 收据校验接口的回包本地伪造成「已购买终身 Pro」状态，解锁 AdGuard 高级功能（需配合本地验证环境）。
 #!author=原作者: Passer_by_yun | 去混淆与本地化: Savues[https://github.com/Savues/loon-plugin-patches]
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/deezertidal/private/main/icons/adguard.png

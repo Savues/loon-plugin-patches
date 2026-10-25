@@ -1,5 +1,5 @@
 #!name=YouTube去广告+双语字幕 v1.21
-#!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽，装完即用。5 个脚本由本仓库托管，不依赖第三方 CDN。需启用 MitM over HTTP/2 与 QUIC 回退保护。本修改版仓库: https://github.com/Savues/loon-plugin-patches
+#!desc=去广告 + 双语字幕（译文在上）+ 底栏按钮屏蔽的测试通道版本，稳定功能会合并入正式版。
 #!author=去广告: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 字幕翻译: VirgilClyne / DualSubs | 整合: Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,YouTube,字幕翻译
 #!system=iOS, iPadOS

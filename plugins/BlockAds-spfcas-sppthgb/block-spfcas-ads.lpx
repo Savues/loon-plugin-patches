@@ -1,5 +1,5 @@
 #!name=JavDB 去广告与公告 v1.9.3
-#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告、首页轮播广告。覆盖所有已知 API 域名。保留正常影片/磁力/搜索功能。需开启 MITM 并信任证书。
+#!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告与首页横幅（spfcas/sppthgb 域投放）。
 #!author=Savues <https://github.com/Savues/loon-plugin-patches>
 #!tag=去广告,JavDB,启动公告
 #!system=iOS, iPadOS

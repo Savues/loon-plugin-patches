@@ -1,6 +1,6 @@
 #!name=什么值得买去广告 v1.4.0
 #!version=1.4.0
-#!desc=移除开屏广告、信息流广告、各类横幅广告、搜索页广告、文章内广告，移除活动皮肤、精简我的页面。
+#!desc=移除开屏/信息流/搜索广告与热榜、微信通知弹窗，屏蔽 UMP 开屏 SDK、友盟 DSP 与自建埋点域名；首页清洗已本地化（不依赖远程 jq）。
 #!openUrl=https://apps.apple.com/app/id518213356
 #!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
 #!tag=去广告

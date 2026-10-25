@@ -1,5 +1,5 @@
 #!name=Locally 模型劫持
-#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体换成你指定的任意仓库。在插件参数里填目标 repo id，然后在 App 里点任意模型的下载。【v1.6 修 usedStorage】
+#!desc=把 Locally 从 HuggingFace 下载的模型仓库整体重定向到你指定的镜像源，解决直连下载慢/失败。
 #!author=Savues
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Locally-HF-Swap
 #!date=2026-10-03
