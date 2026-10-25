@@ -15,6 +15,11 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Douban
 
 ---
 
+## 更新记录
+
+- **v2.6.1** (2026-10-26)：新增「每日福利」悬浮窗图拦截（`view/treasury_image/raw/public/`）。lc-forensics v8.3 requrl 实证：悬浮窗"券"红包图来自 treasury_image 图床（img3.doubanio.com），SD 缓存键=MD5(去scheme URL) 精确匹配。**[MitM] 新增 img3.doubanio.com**（图床域名，首次进解密面）。
+- v2.6.0 (2026-10-25)：CPS 分销商城 H5 全链 + interstitial 插屏 + halfhill 全族 + erebor 激励/特殊广告。
+
 ## 镜像什么
 
 上游那 1 条 Rewrite 逐字保留，连它自己写的两条注释也留着：
