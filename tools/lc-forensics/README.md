@@ -39,19 +39,20 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v8.2）
+lc-forensics-final.c    # 源码（当前版本 v8.3）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v8.2.dylib # 构建产物（可直接 Import）
+lc-forensics-v8.3.dylib # 构建产物（可直接 Import）
 | **v7.1** | 重组键 (tid, taskkey) 双键防串写 + fin errCode | 豆瓣恢复：errCode 全线，-1004×221 证实长连接架构 |
 | **v7.2** | POST body 落盘 lcf-req/<tid>-<method>.bin | 200 个 POST 文件；splash_show 明文归因参数全解 |
 | **v7.3-v7.5** | seq 原子化（占位+回填）三轮修复：±1 毛刺 → 撞号 → 改造残留 | 677 行 seq 严格连续 1→677 |
 | **v8.0** | req/req-delegate 回填补齐（全量核对）| seq 零重复零空耗零遗漏 |
 | **v8.1** | +图片通道 hook（双冒号版 didReceiveDispatchData）| S4:3 双通道装上；但分片双记 + 券图仍缺席（URL MD5 无一匹配）|
-| **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加（防重复）| 当前版本 |
+| **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加 | **1:1 双记确认**；重组命中券图 129317B PNG ✅ 但创建请求漏抓 |
+| **v8.3** | data 行 +requrl（读 task.currentRequest）——分片自带 URL，不依赖创建 hook | 当前版本 |
 
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```

@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.2-data-src"
+#define LCF_VERSION "8.3-data-url"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -75,6 +75,7 @@ static SEL s_HTTPMethod, s_URL, s_absStr, s_body, s_len, s_bstream, s_utf8;
 static SEL s_tid;     /* taskIdentifier */
 static SEL s_dtwrh, s_dtwr;
 static SEL s_curReq, s_allHdr, s_statusCode, s_mime, s_hdrValue;   /* v6.0 */
+static SEL s_URL_req;                                              /* v8.3: request.URL */
 static SEL s_response;                                             /* v6.8: task.response */
 static SEL s_localizedDesc;                                        /* v6.0 */
 static Class g_clsSession;
@@ -423,6 +424,22 @@ extern dispatch_data_t dispatch_data_create_map(dispatch_data_t, const void**, s
 static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, const char* src){
     unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
     unsigned long long size = dispatch_data_get_size(dd);
+    /* v8.3: task.currentRequest.URL.absoluteString — 分片自带请求 URL
+     * (创建 hook 漏抓的 task — 如券图 — 靠此字段现形) */
+    char requrl[420] = "";
+    {
+        id creq = (id)objc_msgSend(self, s_curReq);
+        if (creq){
+            id u = (id)objc_msgSend(creq, s_URL_req);
+            if (u){
+                id abs = (id)objc_msgSend(u, s_absStr);
+                if (abs){
+                    const char* c = (const char*)objc_msgSend(abs, s_utf8);
+                    if (c) snprintf(requrl, sizeof(requrl), "%s", c);
+                }
+            }
+        }
+    }
 
     /* 预览: 只 map 不持有; map 失败则跳过 preview (size 仍有)
      * v5.2: 严格 ASCII 化 — >=0x80 一律 '.' (JSON 必须是合法 UTF-8,
@@ -446,8 +463,11 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, c
     }
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
-        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"src\":\"%s\",\"tid\":%llu,\"bytes\":%llu,\"preview\":",
-        lc_now(), 0, src, tid, size);
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"src\":\"%s\",\"tid\":%llu,\"requrl\":",
+        lc_now(), 0, src, tid);
+    p += w; rem -= (size_t)w;
+    lc_json_str(&p, &rem, requrl);
+    w = snprintf(p, rem, ",\"bytes\":%llu,\"preview\":", size);
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, preview);
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
@@ -914,6 +934,7 @@ static void lcf_ctor(void){
     g_clsSession = (Class)objc_getClass("NSURLSession");
     g_clsLocalTask = (Class)objc_getClass("__NSCFLocalSessionTask");
     s_curReq        = sel_registerName("currentRequest");
+    s_URL_req       = sel_registerName("URL");
     s_allHdr        = sel_registerName("allHeaderFields");
     s_statusCode    = sel_registerName("statusCode");
     s_mime          = sel_registerName("MIMEType");
