@@ -95,6 +95,19 @@ curl -s https://<域名>/<路径> | head -c 50   # {} = reject_dict 生效；真
 判读速查表见 PLUGIN-DEV-GUIDE §7（size=2/status=0/DNS 127.0.0.1 等）。
 ISH 已信任 Loon 根证书，**不需要 `-k`**。
 
+### ★ 设备侧深度取证：lc-forensics（App 层真相，curl/MITM 覆盖不到）
+
+curl/DNS 只能验证「Loon 代理层」的拦截；**部分 App 会绕过代理**（豆瓣 frodo 域实证：
+MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲区）。
+`tools/lc-forensics/`（Live Container tweak dylib）在 App 进程内取证：
+
+- **何时用**：①规则验证通过（探针绿+HAR 全 `{}`）但广告仍出现 ②定位悬浮窗/预载缓存类
+  广告的数据源 ③需要 POST body（SDK 上报）或完整响应体（字段级规则设计）
+- **怎么用**：Import dylib → Sign → 冷启动目标 App → 读 `Documents/forensics.jsonl`
+  （req/fin/data 行）+ `lcf-resp/`（重组响应体）+ `lcf-req/`（请求体）
+- **实战闭环**：豆瓣悬浮窗 URL（treasury_image 图床）三重验证 → Douban-Dedup v2.6.1 规则
+- 详细能力/输出格式/铁律 → `tools/lc-forensics/README.md`
+
 ## 5. 已实证铁律（勿重复怀疑，证据可查）
 
 | # | 铁律 | 证据 |
@@ -117,6 +130,7 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 | 16 | **--check / node --check 过 ≠ 脚本能工作** — 顶层执行型脚本被截断只剩定义时语法仍合法但真机 $done 永不调用=超时失效; check v1.7.2 已静态查 $done, 逻辑对错仍须端到端 run | horn_clean rfind 截断事故 v0.6 |
 | 17 | **远程配置主干道 (horn/橙配类) 只能键级反转不能 reject** — 美团 horn mergeRequest 1.1MB/169模块 = 全App配置; 清洗用等长正则替换(性能+零结构破坏) | 美团 v0.4~v0.6 |
 | 18 | **主 API 走长连接的 App, 明文层+配置层即插件边界** — 美团/支付宝主数据在 mtgsdk/mobilegw 长连接; HTTP 可达的只有素材CDN/AB配置/horn配置/少量明文API | 美团三份HAR 3600条实证 |
+| 19 | **MITM/HAR 层验证有系统性盲区** — App 可能绕过代理拿原始数据 (豆瓣 frodo 域: MITM 全 `{}` 但 App 收到原始广告); "HAR 全 `{}`"≠拦截生效, 设备侧验证用 lc-forensics (App 进程内视角) | 豆瓣 v8.0 双源对拍 2026-10-26 |
 
 完整禁止事项（12 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
 
@@ -145,6 +159,7 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 | 模拟器版本历史 | `tools/loon-sim/CHANGELOG.md` |
 | 官方转换器的 6 个已知问题 | `tools/loon-sim/docs/converter.md` |
 | 新 ISH 环境部署模拟器 | `tools/loon-sim/DEPLOY.md` |
+| 设备侧取证模块（App 层真实验证）| `tools/lc-forensics/`（README 含能力/铁律）|
 | 开发流程 skill（含通道地图/取证方法）| `/var/minis/skills/loon-plugin-dev/SKILL.md` |
 
 ## 8. 你（模型）的行为准则

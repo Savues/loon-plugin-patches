@@ -24,4 +24,5 @@ sh tools/loon-sim/version-probe.sh <plugin.lpx              # ✅ 绿了才能�
 
 详细规范 → [AI-GUIDE.md](AI-GUIDE.md) · 人类向教学 → [PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)
 **🤖 Skill**: `/var/minis/skills/loon-plugin-dev/SKILL.md`（触发词命中 Loon/去广告/插件开发/HAR 时**必须先读**——含流程、铁律、通道地图）
+**🔬 设备侧取证**: `tools/lc-forensics/`（App 进程内 hook——"HAR 全 `{}` 但广告仍出现"时用它拿 App 层真相，README 含使用边界）
 **新环境部署模拟器** → [tools/loon-sim/DEPLOY.md](tools/loon-sim/DEPLOY.md)
