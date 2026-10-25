@@ -8,6 +8,45 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [4.8] - 2026-10-25 · resp-probe-merged
+
+### 动机：lcf-resp 独立 dylib 无法加载（加载层谜题）
+
+独立探针 dylib（v0.1/v0.2）在豆瓣四轮启动中零产出。排查证据链：
+
+- Mach-O 结构级与 base 完全一致（flags/platform/filetype/LC_ID）
+- Sign 生效（文件膨胀 +19.6KB，与 base 同规格）
+- Import 流程走过后仍不加载（mtime 23:42 重签确认）
+- **用户确认从未出现错误弹窗**——而 LC 源码（TweakLoader.m GitHub 实读）
+  规定 dlopen 失败必弹 alert → dlopen 没失败
+- LC 源码：全局 tweaks = 目录遍历无注册表，每个文件要么成功要么弹窗
+- base 的 S1-ctor 也是 ctor 期写入且每轮都在 → "ctor 沙盒未就绪"假设被推翻
+
+四者合取：**探针 dylib 不在 LC 进程实际枚举的目录列表里**（LC 视图的
+Tweaks 目录与 iSH 挂载投影可能不同步；base 生效因它初始经 Import UI 进的
+是真身目录）。继续追这个加载层谜题性价比低——探针逻辑是现成的，并进 base
+单文件运行即可绕开。
+
+### 改动
+
+- lcf-resp v0.2 的 introspection 探针**并入 base**：ctor 启动后台线程 →
+  轮询 base 日志出现（沙盒就绪）→ 对 `__NSCFLocalSessionTask` /
+  `__NSCFURLSessionTask` / `__NSCFLocalSessionDataTask` 三类做
+  `class_copyMethodList` 单类方法表 introspection → 名单写
+  `Documents/lcf-resp.jsonl`（文件独立，ev 字段区分职责）
+- 零 hook 不变（introspection 只读；单类查询不属铁律 3 的全局枚举）
+- 新增符号：`class_copyMethodList` / `sel_getName` / `method_getName` /
+  `pthread_create/detach` / `usleep`（全部 dynamic_lookup）
+
+### 实证（待真机）
+
+构建校验 69056B，30 个外部符号全部 dynamic_lookup，无
+`getClassList`/`dispatch_after`/`release`，md5 `bd549250`。
+预期：豆瓣启动后 `lcf-resp.jsonl` 出现 `probe×3 → done`。
+**反向判读价值**：若本轮出现 → 100% 实锤独立 dylib 未被加载（而非探针代码问题）。
+
+---
+
 ## [4.7] - 2026-10-25 · seq-anchor
 
 ### 动机：v4.6 真机取证发现 CLOCK_MONOTONIC 也被虚拟化

@@ -1,21 +1,23 @@
 /*
- * lc-forensics v4.7 "seq-anchor" — Live Container 通用网络取证 dylib
+ * lc-forensics v4.8 "resp-probe-merged" — Live Container 通用网络取证 dylib
  *
- * v4.6 → v4.7 (真机时钟取证后的修正, 仍是纯日志侧):
- *   F. seq 字段: 进程内自增序号 — 行序唯一锚点。
- *      【环境事实】LC guest 里 clock_gettime(CLOCK_MONOTONIC) 也被虚拟化:
- *      v4.6 实测 up 出现 4 组时钟域 (真monotonic/wall/mach基准/纳秒级),
- *      任何系统时钟都不可信 → seq 是唯一绝对单调量 (零系统调用)
- *   G. up 字段删除 (四组噪声无分析价值; ts 保留作参考)
- *   H. gap 消毒: 相邻行 ts 差 ∈ (10s, 60s] 才产 gap 行;
- *      时钟跳变 (差值巨大/倒退) 一律忽略 — 宁漏勿假
+ * v4.7 → v4.8 (lcf-resp 独立 dylib 无法加载 → 并体方案):
+ *   把 lcf-resp v0.2 的 introspection 探针并进 base, 单文件运行:
+ *   - ctor 后台线程等待 base 首写 (S1-ctor 落盘 = 沙盒就绪信号)
+ *   - 就绪后对 __NSCFLocalSessionTask / __NSCFURLSessionTask /
+ *     __NSCFLocalSessionDataTask 三类做 class_copyMethodList 方法表
+ *     introspection, 名单写入 Documents/lcf-resp.jsonl
+ *   - 零 hook (introspection 只读), 探针职责用独立文件+ev 字段区分
+ *   - 若本轮 lcf-resp.jsonl 出现 → 反向证明独立 dylib 未被 LC 加载
  *
- * 继承安全模式 (豆瓣 288 行实证 + v4.5 334 行实证):
- *   仅 NSURLSession 基类 2 个创建 selector, 无枚举/定时器/resume/release
+ * 继承 v4.7 安全模式: 基类 2 selector, seq 锚点, gap 消毒,
+ * 无枚举/定时器/resume/release (探针的 class_copyMethodList 是单类查询,
+ * 不属铁律3禁止的全局类枚举)
  */
 
-#define LCF_VERSION "4.7-seq-anchor"
+#define LCF_VERSION "4.8-resp-probe-merged"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
+#define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define DEDUP_CAP 512          /* URL 去重表容量 (环形) */
 #define GAP_MIN 10.0           /* 静默下限 (秒) */
 #define GAP_MAX 60.0           /* 可信窗口上限 — 超过视为时钟跳变 */
@@ -29,6 +31,11 @@
 #include <sys/time.h>
 #include <time.h>
 #include <stdint.h>
+
+typedef unsigned long pthread_t;
+extern int pthread_create(pthread_t*, const void*, void* (*)(void*), void*);
+extern int pthread_detach(pthread_t);
+extern int usleep(unsigned int);
 
 typedef void* SEL;
 typedef struct lcf_obj_s { void* isa; } *id;
@@ -246,9 +253,114 @@ static id dtwr_hook(id self, SEL _cmd, id req){
     return task;
 }
 
+/* ==================================================================
+ * lcf-resp 并体探针 (v4.8): 方法表 introspection, 零 hook
+ * ================================================================== */
+extern SEL         method_getName(Method);
+extern const char* sel_getName(SEL);
+extern Method*     class_copyMethodList(Class, unsigned int*);
+
+static int g_resp_fd = -1;
+static char g_resp_path[512] = "";
+
+static int lc_open_resp(void){
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return -1;
+    char want[512];
+    snprintf(want, sizeof(want), "%s/" RESP_LOG_RELATIVE, home);
+    if (g_resp_fd >= 0 && strcmp(want, g_resp_path) == 0) return g_resp_fd;
+    if (g_resp_fd >= 0) close(g_resp_fd);
+    snprintf(g_resp_path, sizeof(g_resp_path), "%s", want);
+    g_resp_fd = open(want, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+    return g_resp_fd;
+}
+
+static void lc_resp_write(const char* line){
+    lc_lock();
+    int fd = lc_open_resp();
+    if (fd >= 0 && write(fd, line, strlen(line)) < 0){
+        close(g_resp_fd); g_resp_fd = -1;
+    }
+    lc_unlock();
+}
+
+/* 单类方法表 introspection → 一行 JSON (探针核心, 只读) */
+static void lcf_resp_probe_class(const char* clsname){
+    Class cls = (Class)objc_getClass(clsname);
+    if (!cls){
+        char line[192];
+        snprintf(line, sizeof(line),
+            "{\"ts\":%.3f,\"ev\":\"probe\",\"cls\":\"%s\",\"absent\":1,\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+            lc_now(), clsname, (int)getpid());
+        lc_resp_write(line);
+        return;
+    }
+    unsigned int n = 0;
+    Method* list = class_copyMethodList(cls, &n);
+    size_t cap = (size_t)n * 100 + 128;
+    char* buf = (char*)malloc(cap);
+    if (!buf){ if (list) free(list); return; }
+    size_t off = 0;
+    buf[off] = 0;
+    int ncand = 0;
+    for (unsigned int i = 0; i < n && off + 100 < cap; i++){
+        SEL s = (SEL)method_getName(list[i]);
+        const char* nm = s ? sel_getName(s) : "?";
+        int w = snprintf(buf + off, cap - off, "%s%s", i ? "|" : "", nm);
+        if (w > 0) off += (size_t)w;
+        if (strstr(nm, "didReceiveData") || strstr(nm, "didReceive") ||
+            strstr(nm, "_onqueue")){
+            ncand++;
+        }
+    }
+    size_t need = off + 256;
+    char* full = (char*)malloc(need);
+    if (full){
+        snprintf(full, need,
+            "{\"ts\":%.3f,\"ev\":\"probe\",\"cls\":\"%s\",\"methods\":%u,\"cands\":%d,\"list\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+            lc_now(), clsname, n, ncand, buf, (int)getpid());
+        lc_resp_write(full);
+        free(full);
+    }
+    free(buf);
+    if (list) free(list);
+}
+
+/* 后台线程: 等 base 首写完成 (沙盒就绪) 后跑 introspection */
+static void* lcf_resp_probe_thread(void* arg){
+    (void)arg;
+    for (int i = 0; i < 240; i++){          /* ≤120s: base 日志出现 = 就绪 */
+        const char* home = getenv("HOME");
+        if (home && home[0]){
+            char p[512];
+            snprintf(p, sizeof(p), "%s/" LOG_RELATIVE, home);
+            struct stat st;
+            if (stat(p, &st) == 0 && st.st_size > 0) break;
+        }
+        usleep(500 * 1000);
+    }
+    lcf_resp_probe_class("__NSCFLocalSessionTask");
+    lcf_resp_probe_class("__NSCFURLSessionTask");
+    lcf_resp_probe_class("__NSCFLocalSessionDataTask");
+    char line[128];
+    snprintf(line, sizeof(line),
+        "{\"ts\":%.3f,\"ev\":\"done\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+        lc_now(), (int)getpid());
+    lc_resp_write(line);
+    return 0;
+}
+
 __attribute__((constructor))
 static void lcf_ctor(void){
     lc_stage("S1-ctor");
+
+    /* v4.8: 启动 resp 探针线程 (等沙盒就绪后 introspection) */
+    {
+        pthread_t t;
+        if (pthread_create(&t, 0, lcf_resp_probe_thread, 0) == 0){
+            pthread_detach(t);
+        }
+    }
 
     s_HTTPMethod = sel_registerName("HTTPMethod");
     s_URL        = sel_registerName("URL");

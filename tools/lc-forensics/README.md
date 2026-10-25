@@ -39,13 +39,13 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v4.7）
+lc-forensics-final.c    # 源码（当前版本 v4.8）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v4.7.dylib # 构建产物（可直接 Import）
+lc-forensics-v4.8.dylib # 构建产物（可直接 Import）
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
 
@@ -106,7 +106,8 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v4.4** | **纯减法二分**：零枚举/零定时器/零 resume，单 selector + 分阶段同步落盘 | **豆瓣稳定，44 条/启动** ✅ |
 | **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | **豆瓣 334 条/会话** ✅ |
 | **v4.6** | 纯日志侧增强：`tid` + `up` 单调时钟 + `dup` 计数 + `gap` 行 | 豆瓣 288 行全合法；**发现 CLOCK_MONOTONIC 也被虚拟化（up 出现 4 组时钟域）** |
-| **v4.7** | `seq` 进程内序号（唯一行序锚点，零系统调用）替代 `up`；`gap` 搬回 `ts` 域并消毒（差值 ∈ (10s,60s] 才可信，跳变忽略） | 当前版本 |
+| **v4.7** | `seq` 进程内序号（唯一行序锚点，零系统调用）替代 `up`；`gap` 搬回 `ts` 域并消毒（差值 ∈ (10s,60s] 才可信，跳变忽略） | 豆瓣 248 行，seq 1→248 严格递增 ✅ |
+| **v4.8** | lcf-resp 探针并入（独立 dylib 加载层谜题 → 单文件并体）：ctor 后台线程 → 沙盒就绪 → 三类 Task 方法表 introspection → `lcf-resp.jsonl` | 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
