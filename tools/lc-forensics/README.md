@@ -1,0 +1,107 @@
+# lc-forensics · Live Container 通用网络取证模块
+
+> iOS 容器化运行器 Live Container 的通用 tweak dylib：hook 容器内**任意 App** 的
+> NSURLSession 请求，逐条落盘到各 App 沙盒的 `Documents/forensics.jsonl`。
+> 零 App 特定逻辑 —— 装一次，所有 guest App 通用。
+
+## 它能做什么
+
+在 **无 Mac、无越狱** 的环境下（本项目在 iSH / Alpine Linux 交叉编译），
+为容器内 App 建立一条独立于抓包工具（Loon MITM / Stream / Charles）的取证通道：
+
+- 记录每个 HTTP(S) 请求的 `method / url / bodyLen / stream` 与返回状态 `ret`
+- 直接写进 App 自己的沙盒，读取走文件挂载（iSH 可直接读）
+- JSONL 格式，逐行独立，可 `rg` / `jq` 直接分析
+- 阶段标记 `stage` 行（S1-ctor / S2-sels / S3-hooked）—— 模块死在哪一步，磁盘上有证据
+
+## 与抓包工具的分工（实测结论）
+
+| 维度 | Loon MITM / HAR | lc-forensics |
+|------|----------------|--------------|
+| 通道 | MITM 代理 + 证书 | 进程内 hook（无需任何网络配置） |
+| 能看到 | 全部明文 HTTP(S) | 仅走 NSURLSession 的请求 |
+| 看不到 | 证书锁定、非 HTTP 协议、TCP 长连接业务流 | TCP 长连接、dart:io（Flutter dio）、WKWebView 内部流量 |
+| 适用 | 插件规则开发验证 | App 行为取证：谁在什么时刻发了什么请求 |
+
+**重要边界**（豆瓣/JavDB 实测）：很多 App 的业务主流量不走 NSURLSession
+（豆瓣业务走 TCP 长连接，JavDB 走 dio/dart:io），本模块抓到的是
+**启动链路 + SDK 上报 + 广告联盟 + 部分业务请求**。豆瓣实测一次冷启动约 44 条，
+包括开屏广告 (`app_ads/splash_*`)、信息流广告配置 (`erebor/stock`)、
+风控上报 (`mssdk.volces.com/ri/report`) 等 —— 这些恰是去广告插件治理最需要的链路。
+
+## 目录内容
+
+```
+lc-forensics-final.c    # 源码（当前版本 v4.5）
+lc-forensics.c          # v4.0-4.3 迭代版（全功能，含被实证排除的枚举/定时器路径）
+lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
+build.sh                # 一键构建
+shim/                   # Alpine musl → darwin 编译垫片
+lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
+dylib 产物在 /var/minis/attachments/（iSH 内），仓库不存二进制
+```
+
+## 构建（iSH / Alpine aarch64，无需 macOS）
+
+工具链：`clang` (Alpine 15) + `ld64.lld` + `ldid`。
+
+```sh
+sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
+```
+
+关键编译参数（缺一不可）：
+
+- `--target=arm64-apple-ios15.0.0` —— 必须明确 iOS 平台，`darwin` 目标会被 ld64.lld 拒绝（平台不匹配）
+- `-undefined dynamic_lookup` —— 全部 Foundation/ObjC 符号运行时由宿主进程解析（无 SDK 的标准 tweak 做法）
+- `-D__WCHAR_TYPE__=unsigned` —— musl 与 darwin 头的 wchar 冲突规避
+- 链接校验：外部符号 `n_desc=0xfe00`（`DYNAMIC_LOOKUP_ORDINAL`）= 绑定正确
+
+## 部署（真机）
+
+1. dylib 导入 iOS 文件 App → Live Container → **Tweaks 标签** → `+` Import Tweak
+2. LC 自动用自家证书重签（AMFI 只认 LC 信任链，ad-hoc 签名会被拒）
+3. **确认 guest App 进程真的重启**（LC 多任务模式下"关闭"只是挂起——用 Restart/强制终止）
+4. 冷启动 App，操作几秒后读日志：
+   `Live Container/Data/Application/<guest-UUID>/Documents/forensics.jsonl`
+
+## 输出格式
+
+```json
+{"ts":1792938830.25,"ev":"req","v":"4.5-dual-sel","method":"POST",
+ "url":"https://api.douban.com/v2/app_ads/splash_show","bodyLen":4509,
+ "stream":0,"ret":"ok","cls":"__NSURLSessionLocal","pid":61291}
+{"ts":...,"ev":"stage","tag":"S3-hooked:2",...}
+```
+
+- `ret:"NIL"` = 原实现返回 nil（App 拿到空 task，立即值得排查）
+- `ret` 永远是字符串（v4.3 前的 `ret:ok` 无引号是旧格式瑕疵）
+- `ev`：`stage`（装配阶段）/ `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）
+- 已知无害瑕疵：`ts` 偶发错乱（多组偏移，LC 虚拟化时钟所致），**行序仍可信**
+
+## 版本史（豆瓣真机二分实证）
+
+| 版本 | 形态 | 结果 |
+|------|------|------|
+| v2.x | 单 selector swizzle | 能抓，但每启动只 1 条 |
+| v4.0 | 14 selector + 全类枚举 + 定时器 | **豆瓣闪退**（getter 返回值误 release） |
+| v4.1 | 修 release | 仍闪退（自旋锁不可重入死锁：持锁区调 emit） |
+| v4.2 | 修死锁 + 防递归 | 仍闪退（豆瓣 13 个 session 子类 + mssdk 并发，全类改 IMP 高危） |
+| v4.3 | 安装面收窄到系统基类 | 仍闪退（死在 ctor+2s 定时回调窗口） |
+| **v4.4** | **纯减法二分**：零枚举/零定时器/零 resume，单 selector + 分阶段同步落盘 | **豆瓣稳定，44 条/启动** ✅ |
+| **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | 当前版本 |
+
+### 铁律（血泪换来的，动代码前必读）
+
+1. **ObjC getter 返回值绝不 release** —— 不持有就不放，一次都不行
+2. **手写自旋锁持锁区禁止调用任何可能 emit/加锁的函数** —— 死锁 = watchdog 击杀
+3. **永不引入 objc_getClassList 全类枚举** —— 容器 runtime 有 mssdk 等其他注入者，每个第三方类都是雷
+4. **永不引入 dispatch_after 定时器链** —— LC guest 豆瓣环境实证死亡窗口
+5. **永不 hook resume** —— 第二安装面，风险无收益
+6. 每行带版本号 + 阶段标记同步落盘 —— 版本归属乌龙/取证空白的双保险
+
+## 环境速查
+
+- LC guest 容器路径是**嵌套**的：`LC宿主/Documents/Data/Application/<guest-UUID>`，
+  代码里永远 `getenv("HOME")` 实时取，绝不硬编码 `/var/mobile/Containers/...`（不存在，写入静默失败）
+- LC 的 Sign 按钮只重签**已有副本**；更新代码必须重新 Import 或覆盖文件
+- `ctor` 早期沙盒未就绪，写文件会静默失败 —— 本模块全程同步写 + 实时 HOME，无此问题
