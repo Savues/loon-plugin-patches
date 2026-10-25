@@ -6,8 +6,11 @@ const fs = require('fs');
 const path = require('path');
 
 // Load the script
-const scriptPath = path.join(__dirname, 'Enhanced-mine.response.js');
+const scriptPath = path.join(__dirname, './Enhanced.response.js');
 const scriptCode = fs.readFileSync(scriptPath, 'utf-8');
+
+// vm 沙盒没有宿主的 TextDecoder/TextEncoder（Enhanced.response.js 的工具链会用到）
+const textEncDec = { TextDecoder, TextEncoder };
 
 console.log('=== Bilibili-UI Mine iPad Replay Test ===\n');
 
@@ -65,9 +68,7 @@ function createMockEnv(arg) {
   const $argument = Object.assign({}, arg, { LogLevel: 'OFF' });
   const mockBody = JSON.stringify(createMockResponse());
   let doneResult = null;
-
-  const env = {
-    $argument: $argument,
+  const env = Object.assign({}, textEncDec, {
     $request: {
       url: 'https://app.bilibili.com/x/v2/account/mine/ipad?access_key=xxx',
       headers: { 'User-Agent': 'bili-hd2/37100100 CFNetwork/1.0 Darwin/24.6.0 os/ios model/iPad' }
@@ -85,7 +86,7 @@ function createMockEnv(arg) {
       warn: function() {},
       error: function() {}
     }
-  };
+  });
 
   env.getDoneResult = function() { return doneResult; };
   return env;
@@ -154,7 +155,7 @@ console.log('\n--- Test 5: 异常字段缺失兜底 ---');
 {
   var mockBody2 = JSON.stringify({ code: 0, data: { ipad_upper_sections: [{ id: 751 }] } });
   var doneResult = null;
-  var env = {
+  var env = Object.assign({}, textEncDec, {
     $argument: { MineEnable: true, MineHideIds: '751' },
     $request: { url: 'https://app.bilibili.com/x/v2/account/mine/ipad', headers: { 'User-Agent': 'bili-hd2/37100100' } },
     $response: { body: mockBody2 },
@@ -163,7 +164,7 @@ console.log('\n--- Test 5: 异常字段缺失兜底 ---');
     $environment: {},
     process: { versions: { node: '22.0.0' } },
     console: { log: function() {}, warn: function() {}, error: function() {} }
-  };
+  });
   var ctx = vm.createContext(env);
   vm.runInContext(scriptCode, ctx);
   assert(doneResult !== undefined, '异常情况下仍返回 $done');

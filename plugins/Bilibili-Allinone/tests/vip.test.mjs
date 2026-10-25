@@ -10,7 +10,7 @@ import assert from "node:assert";
 
 const SRC = readFileSync(new URL("../scripts/vip.js", import.meta.url), "utf8");
 const DUE = 253402214399000;
-const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/ma./scripts/upstream/vip-assets";
+const IMG = "https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/vip-assets";
 const URL_MINE = "https://app.bilibili.com/x/v2/account/myinfo?access_key=x";
 const URL_SPACE = "https://app.bilibili.com/x/v2/space?mid=14895065";
 // 注：lab5 已把 grpc 的 View/View 与 Reply/MainList 从清单移除（那些响应里没有 vip 字段），
@@ -197,7 +197,7 @@ t("牌子图·四个档位全部是纯文字版，无 cannon / 2023 图案款", 
   }
 });
 t("牌子图·引用的文件在 vip-assets 里真实存在（改名后不会静默 404）", () => {
-  const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "upstream", "vip-assets");
+  const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "upstream", "vip-assets");
   for (const k of ["vip", "annual_vip", "ten_annual_vip", "hundred_annual_vip"]) {
     const L = json(run({ body: mineNonMember(), url: URL_MINE, arg: { vipTheme: k } })).data.vip.label;
     assert.ok(existsSync(path.join(dir, path.basename(L.image))), "仓库里没有 " + L.image);

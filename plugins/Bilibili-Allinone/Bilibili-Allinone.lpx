@@ -1,0 +1,135 @@
+#!name=B站四合一(去广告+界面+空降+开屏) v8.0.0
+#!desc=Bilibili-Allinone: 四插件合体 — ①去广告+会员伪装+漫画净化(Bilibili-Dedup) ②首页标签页/底栏(Bilibili-UI) ③空降助手 SponsorBlock(Bilibili-Airborne) ④开屏节日定制(Splash-Festival)。参数 67 个按 tag 分组; ViewProgress 由 bundle 单管线处理(清洗+chronos 重签), 消除跨插件规则互抢。
+#!author=@Savues <https://github.com/Savues>
+#!tag=去广告,Bilibili,Allinone
+#!system=iOS, iPadOS
+#!system_version=15
+#!loon_version=3.4.0(962)
+#!homepage=https://github.com/Savues/loon-plugin-patches
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/icon.png?v=2
+#!date=2026-10-26 00:30:00
+
+[Argument]
+# ======== 去广告 / 会员伪装 (原 Bilibili-Dedup v7.45) ========
+localVIP = switch,true,tag=我的页会员伪装,desc=控制「我的」页（myinfo/mine/account）；关掉后不再改写这里的会员信息。个人主页另有开关
+vipTheme = select,"fools_day_hundred_annual_vip","hundred_annual_vip","ten_annual_vip","annual_vip","vip",tag=会员主题,desc=最强绿鲤鱼/百年/十年/年度/大会员。大会员用官方灰版（该档权限等同非会员）
+vipBg = input,"",tag=标签背景色,desc=留空则用主题默认色
+vipFg = input,"",tag=标签文字色,desc=留空则用主题默认色
+localVIPSpace = switch,true,tag=个人主页会员伪装,desc=伪装 /x/v2/space 空间页的会员标
+myMid = input,"14895065",tag=我的UID,desc=个人主页伪装只作用于该 UID；留空则不生效。「我的」页伪装不受此项影响
+vipAllUsers = switch,false,tag=彩蛋·全员大会员,desc=开启后所有用户的个人主页都按上面的设置显示。真会员的 vip/牌子数据不碰；但开了「头像角标」时其角标图层会被替换成你选的样式
+vipTargetMid = input,"",tag=彩蛋·指定UID,desc=只让该 UID 的个人主页按上面的设置显示。可与「我的UID」叠加；同时开「全员」时全员优先
+vipVerify = select,"蓝V·企业认证","黄V·UP主认证",tag=彩蛋·认证标识,desc=名字下方显示认证文字。黄V=个人 UP 主认证（type0/role7）；蓝V=企业认证（type1/role3，HAR 真实样本逐字段对照）。与头像角标独立；旧版 vipFakeVerify 开关值仍兼容（视作黄V）
+vipVerifyTitle = input,"躺平创新官方账号",tag=认证标题,desc=留空：黄V显示「认证用户」、蓝V显示「官方账号」
+vipImg = input,"",tag=牌子图片URL,desc=留空则用主题自带
+vipText = input,"",tag=牌子文字,desc=留空则用主题默认。绿鲤鱼主题默认为「小会员」
+vipBadgeIcon = select,"企业认证","大会员","小会员","认证闪电","数字藏品","数字藏品·动态","数字藏品·紫动态","大会员+藏品动态","测试·local6",tag=头像角标样式,desc=实测定案：1=大会员大字、2=小会员小字、3=认证闪电、4=企业认证、5=数字藏品。动态系列两色：标准粉紫（j8AeXAkEul）/深紫（IOHoVs1ebP）；大会员+藏品动态=双标识并存。6 未知留测试。真实会员不受影响
+vipLabelAnnual = switch,false,tag=牌子配色·年度粉,desc=开启后 label_theme 强制 annual_vip：客户端牌子按主题表渲染配色，任意主题（含绿鲤鱼小会员）的牌子都变粉色年度大会员款，覆盖 vipBg/vipFg 自定义色。关闭则跟随 vipTheme（绿鲤鱼不在主题表、用自带绿色）
+vipAvatarBadge = switch,true,tag=头像角标,desc=在头像下方显示会员角标。原理：向 avatar 新协议（新头像视图的图层系统）追加真年度大会员的 ICON_LAYER 角标图层。与牌子主题、认证彩蛋互相独立，可任意组合；真实会员响应不改动
+MineInterHideIds = input,"494,3084",tag=[我的页·国际版] 隐藏 id（逗号分隔）,desc=默认隐藏 离线缓存/稍后再看；保留 钱包/NFT/联系客服/稿件管理（v7.45 起 741钱包 与 1028NFT 从默认隐藏中移出）
+MineHideIds = input,"755,756,757,758,759,760,2541,965,747,750",tag=[我的页·iPad HD] 隐藏 id（逗号分隔）,desc=默认隐藏 推荐/更多/常用功能部分；保留 创作中心全组/我的客服/历史/收藏/设置。留空=全部显示
+LogLevel = select,"OFF","WARN","ERROR","INFO","DEBUG","ALL",tag=[调试] 日志等级
+displayUpList=select,"show","hide","auto",tag=[动态]最常访问显示方式,desc=show:始终显示;hide:隐藏;auto:仅直播时显示
+purifyComment=switch,true,false,tag=移除评论区置顶广告,desc=移除评论区置顶的电商广告
+optimizeRequest=switch,true,false,tag=优化评论区加载异常,desc=优化评论区加载速度
+logLevel=select,"off","error","warn","info","debug",tag=脚本日志等级(kokoryh),desc=与上方 LogLevel(BiliUniverse) 是两个不同参数名
+# ======== 界面增强 (原 Bilibili-UI v3.6.0; LogLevel 与上面共用) ========
+Home.Switch = switch,true,tag=[首页] 启用自定义
+Home.Tab_2036 = switch,false,tag=[首页] 标签页 直播
+Home.Tab_2037 = switch,true,tag=[首页] 标签页 推荐
+Home.Tab_780 = switch,false,tag=[首页] 标签页 热门
+Home.Tab_545 = switch,false,tag=[首页] 标签页 番剧
+Home.Tab_774 = switch,true,tag=[首页] 标签页 动画（港澳台）
+Home.Tab_151 = switch,false,tag=[首页] 标签页 影视
+Home.Tab_801 = switch,true,tag=[首页] 标签页 韩综（港澳台）
+Home.Tab_2280 = switch,false,tag=[首页] 标签页 校园
+Home.Tab_default = select,"2037","2036","780","545","774","151","801","2280",tag=[首页] 默认标签页,desc=需先在上方勾选该项
+Home.Tab = input,"",tag=[首页] 备用输入框,desc=仅当上方开关一个都没开时生效。逗号分隔，可填接口下发的其他 id
+Home.Bot_home = switch,true,tag=[底部] 首页
+Home.Bot_channel = switch,false,tag=[底部] 频道
+Home.Bot_dynamic = switch,true,tag=[底部] 动态
+Home.Bot_publish = switch,false,tag=[底部] 发布
+Home.Bot_ogv = switch,false,tag=[底部] 番剧
+Home.Bot_mall = switch,false,tag=[底部] 会员购
+Home.Bot_messages = switch,false,tag=[底部] 消息
+Home.Bot_mine = switch,true,tag=[底部] 我的
+# ======== 空降助手 (原 Bilibili-Airborne v1.60; logLevel 与 kokoryh 共用) ========
+Airborne = switch,true,tag=空降助手,desc=总开关。关闭后不再向弹幕响应注入空降弹幕
+airCategories = input,"sponsor,selfpromo,interaction,intro,outro,padding",tag=自动跳的类型,desc=英文逗号分隔。这些类别的片段会带空降动作（自动执行，点一下也能跳）。可选：sponsor(恰饭) selfpromo(自我推广) exclusive_access interaction poi_highlight intro(开场) outro(片尾) preview(预告) filler padding(黑屏填充) music_offtopic。填 off = 全关
+airActions = input,"skip",tag=允许哪些动作,desc=App 端只能"跳转"，所以只有 skip / full / poi 有实际效果。full=整段即此类，会直接空降到片尾；poi=精彩时刻，空降到那个时间点；mute 填了无效。
+airMinDuration = input,"0",tag=片段最小时长(秒),desc=比这个短的片段不跳。默认 0 = 不限，所有片段都处理。想只跳掉足够长的（如 ≥8 秒）就填 8
+airMode = select,"jump","mark",tag=空降方式,desc=jump：自动跳的类型带空降动作（需 chronos 重签）；mark：全部降级为只显示文字，一律不跳
+airNoticeCategories = input,"exclusive_access,poi_highlight,preview,filler,music_offtopic",tag=只提醒的类型,desc=这些类别的片段只在弹幕栏显示一行文字提醒，**不会跳转**，跳不跳你自己拖进度条。默认填的是所有**不在自动跳列表里**的类别，两档并集正好是 bsbsb 全部 11 类。把某类从这里删掉（并加进上面那档）就改成自动跳；反过来就变成只提醒
+airFullMode = select,"notice","jump","off",tag=整篇软广的处理,desc=社区把整个视频标记为某一类时（片段是零长度的整篇标记，官方有 8306 条独家/整篇恰饭）。notice：不再单独出提醒，整篇信息由「片头汇总」里那一行「XX 整篇」表达；关掉汇总时才会单独提醒；jump：直接空降到片尾；off：完全不处理。默认 notice 最安全——独家首发类（如电影）常常有真内容
+airNotice = input,"空指部已就位",tag=自动跳的文案,desc=支持占位符 {cat}=类别中文名 {catid}=类别原始id {start}=起点 {end}=终点 {dur}=时长(秒)。例：跳过{cat} {start}→{end}
+airInfoDelay = input,"3",tag=提醒延后秒数,desc=「只提醒」的弹幕比它所标注片段的起点晚几秒出现。默认 3 秒。整篇软广的片段起点是 0 秒，不延后的话弹幕落在第 2 秒，实测来不及看；只影响提醒档，自动跳固定在片段起点 +2 秒（它必须一开始就位才能跳）。填 0 = 回到 +2 秒
+airInfoMode = select,"5","1","4",tag=提醒弹幕样式,desc=5=顶部：最显眼，但停留时间最短（固定时长，约几秒）；1=滚动：停留最久，暂停视频也保留，但容易混进一堆弹幕里；4=底部。默认 5。自动跳的那条不受此项影响，始终是顶部空降弹幕。
+airUpLike = select,"off","on",tag=UP主点赞标记,desc=注入的弹幕是否带「UP主点赞」属性位（attr 第 2 位）。on=带（部分客户端会显示 👍 图标，弹幕更显眼）；off=不带（默认）。与「本人弹幕标记」相互独立
+airOwn = select,"on","off",tag=本人弹幕标记,desc=注入的弹幕是否带「自己」属性位（attr 第 18 位）。on=带：客户端会把弹幕当作你本人发的，画上方框、更显眼（默认）；off=与普通弹幕完全一致
+airFontSize = select,"37","50","25","18",tag=弹幕字号,desc=注入弹幕的字号。v1.60 默认 37（用户选定）。实测真实弹幕只有 25 和 18：25=与普通弹幕一致，50=大字版
+airSelfAction = select,"on","off",tag=提醒也走空降路径,desc=给「只提醒」和汇总弹幕带上一个指向自身位置的空降动作。实测带动作的弹幕（空指部已就位）在 App 里完全居中，不带动作的普通顶部弹幕会整体偏右一个徽标宽度；指向自身的动作不会改变播放（跳到自己所在的位置）。若发现视频被往回拉就改 off
+airInfo = input,"⚠️ {cat} {start}→{end}",tag=只提醒的文案,desc=占位符同上，{cat} 会渲染成中文（如「一键三连」「自我推广」）。例：这里有 {dur}s {cat}，想看就自己拖
+airSummary = select,"single","off",tag=片头汇总,desc=视频开头列出本视频里会被处理的片段。同类片段会折叠成一行（如「恰饭广告 ×2 · 34:55–35:11 | 52:31–52:40」），最多列 5 类，超出会标注「等 N 类」。single：列成一条汇总弹幕；off：不列。文案复用「只提醒的文案」——模板里写了 {list} 就用你的，否则用内置文案
+airSummaryAnchor = select,"auto","start",tag=汇总钉在哪,desc=auto：顺着开头的自动跳往后爬，把汇总钉在用户真正开始看内容的那一刻。视频开头就有片头/恰饭时 App 会在第 2 秒直接跳走，汇总若还钉在第 3 秒就永远看不到（实测 BV1PyHi6vEpA 开场动画 00:00–00:32，2 秒跳到 32 秒）。start：永远钉在开头，保留旧行为
+airSummaryColor = select,"白色","红色","橙色","黄色","绿色","青色","紫色","灰色",tag=汇总颜色,desc=片头汇总那条弹幕的颜色。一条弹幕只能有一个颜色，所以折叠后的多行汇总所有行共用这个颜色。默认白色（顶部弹幕背景偏深，白色最不刺眼）
+airSummaryLines = select,"6","5","4","3","off",tag=汇总最多几行,desc=单条弹幕能占几行。实测手机端**最多 6 行**，超出的整条弹幕会被忽略、什么也看不见（用户 BV1EDHC6CEDJ 7 行时汇总完全不显示）。默认 6 刚好用满预算；切 off = 不限（行数再多也可能整条不显示）
+chronos = switch,true,tag=chronos 重签,desc=让 App 能加载到校验文件，空降弹幕才会自动跳。关掉后弹幕仍会显示、点了也能跳，只是不会自动跳
+# ======== 开屏节日 (原 Splash-Festival v40.3) ========
+festival = select,"11周年","中秋节","重阳节","元旦","端午节","七夕节","万圣节","圣诞节1.0","圣诞节2.0","妇女节","劳动节","10周年","12周年","13周年","BML 2021","BW 2020","BW 2021","2233款式一","2233款式二","2233款式三","2233款式四","Slogan","自动节日","随机","随机·全部","随机·半透明","轮换","轮换·全部","轮换·半透明","屏蔽开屏","2026春节-马灯笼","2026春节-马头琴","2026春节-马球","2026五一","2026高考","2026端午节","2026中秋节","2025春节-打铁花","2025春节-放御灯","2025春节-滚灯球","2025春节-聚天宫","2025春节-跨火盆","2025春节-舞龙狮","2025元宵节","2025妇女节","2025清明","2025劳动节","2025端午节","2025暑假过半","2025七夕节","2025教师节","2025中秋节","2025高考","2024春节-款式一","2024春节-款式二","2024春节-款式三","2024春节-款式四","2024元宵节","2024妇女节","2024清明","2024劳动节","2024高考","2024端午节","2024暑假快乐","2024七夕节","2024重阳节","2024教师节","2024中秋节","2023跨年","2023暑假过半","2023七夕节","2023七夕款式二","2023七夕款式三","2023七夕款式四","2023七夕款式五","2023七夕款式六","2023开学季","2023中秋节","2023万圣节款式一","2023万圣节款式二","2023端午节",tag=节日皮肤,desc=自动节日=按当天日期自动选皮肤（含农历，优先用今年的历史皮肤）；随机/轮换=每次冷启动换一个皮肤（默认官方22个，·全部=73个，·半透明=8张透明角色图）；也可选「屏蔽开屏」彻底屏蔽开屏（清 show/select_show_list/selectList/preload 并归零 forcibly，客户端不创建开屏视图）
+enabled = switch,true,tag=启用,desc=开启后冷启动 B 站生效
+splashMode = select,"official","full","half",tag=显示模式,desc=官方=按官方设定（full铺满/half缩放，默认）；full=强制铺满全屏；half=强制缩放完整不裁切
+imgMode = select,"auto","landscape","portrait",tag=图片方向,desc=auto=按设备自动（iPad用横图/手机用竖图，默认）；landscape=强制横图；portrait=强制竖图
+logo = select,"隐藏","官方",tag=B站logo,desc=隐藏=不叠加logo角标（v40.3 起默认，历史满版插画上更干净）；官方=保留官方Bilibili角标
+duration = select,"官方","1毫秒","10毫秒","50毫秒","0.1秒","0.2秒","0.5秒","1秒","2秒","3秒","5秒",tag=显示时长,desc=官方=按服务器设定（默认）；数值越小越接近跳过开屏（0 会被客户端当成未设置，故不提供）。注意：必须有「特殊开屏图」时客户端才读该参数——用「屏蔽开屏」会让它回落默认图+默认时长
+
+[Rule]
+DOMAIN,api.biliapi.com,REJECT
+DOMAIN,app.biliapi.com,REJECT
+DOMAIN,api.biliapi.net,REJECT
+DOMAIN,app.biliapi.net,REJECT
+AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYWORD,tracker), (DOMAIN-KEYWORD,p2p)))),REJECT
+
+[Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${{url}} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.0")
+
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_dedup/i then reject(200, "7.45")
+
+# 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
+# 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
+# /pgc/page/bangumi 与 /pgc/page/cinema/tab，裸路径它即使被路由到也处理不了。
+^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\? reject-dict
+^https:\/\/api\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab(\/v2)?)|v2\/search\/square|vip\/ads\/materials)\? mock-response-body data-type=text status-code=200 data="{"code":-404,"message":"-404","ttl":1,"data":null}"
+^https:\/\/api\.bilibili\.com\/x\/push\/popup\/setting\? mock-response-body data-type=text status-code=200 data="{"code":0,"message":"OK","ttl":1,"data":{}}"
+^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
+^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
+^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$ mock-response-body data-type=text data="AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA" mock-data-is-base64=true
+^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAABQfiwgAAAAAAAIDAwAAAAAAAAAAAA==" mock-data-is-base64=true
+^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
+^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
+^https:\/\/api\.bilibili\.com\/pgc\/view\/v2\/app\/season\? response-body-json-jq 'del(.data.payment)'
+^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/(list|show|event\/list2)\? response-body-json-jq '.data |= with_entries(if .key | IN("show", "event_list") then .value = [] else . end)'
+^https:\/\/api\.bili(bili\.com|api\.net)\/pgc\/page\/?\? response-body-json-jq '.result.modules |= map(if (.style // "") | startswith("banner") then .items |= map(select((.link // "") | contains("play"))) elif (.style // "") | startswith("function") then .items |= map(select((.blink // "") | startswith("bilibili"))) elif .module_id | IN(241, 1283, 1284, 1441) then .items = [] elif (.style // "") | startswith("tip") then .items = [] else . end)'
+^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\? response-body-json-jq 'if .data.items then .data.items |= map(select((.banner_item == null) and (.ad_info == null) and (.card_goto == "av") and (.card_type | IN("small_cover_v2", "large_cover_single_v9", "large_cover_v1")))) end'
+^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
+
+[Script]
+# -- 去广告/会员伪装 (原 Dedup; ViewProgress 的 chronos 重签已并入 protobuf.response.js 的 ii()) --
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/vip.js?v=744, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual},{MineInterHideIds},{MineHideIds}], tag=会员伪装, enable={localVIP}
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/vip.js?v=744, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual},{myMid},{vipAllUsers},{vipTargetMid},{vipVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/upstream/protobuf.request.js?v=722, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/upstream/protobuf.response.js?v=723, argument=[{displayUpList}, {purifyComment}, {chronos}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
+http-response ^https?:\/\/(api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?)|api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\?|api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/upstream/adblock.bundle.js?v=722, requires-body=1, argument=[{LogLevel}], tag=BiliUniverse去广告
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/upstream/adblock-hotsearch.js?v=722, requires-body=1, timeout=10, tag=去除搜索推荐
+# -- 界面增强 (原 UI; LogLevel 共用) --
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/resource\/show\/tab\/v2\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/Enhanced.response.js, argument=[{Home.Switch},{Home.Tab_2036},{Home.Tab_2037},{Home.Tab_780},{Home.Tab_545},{Home.Tab_774},{Home.Tab_151},{Home.Tab_801},{Home.Tab_2280},{Home.Tab_default},{Home.Tab},{Home.Bot_home},{Home.Bot_channel},{Home.Bot_dynamic},{Home.Bot_publish},{Home.Bot_ogv},{Home.Bot_mall},{Home.Bot_messages},{Home.Bot_mine},{LogLevel}], tag=标签页与底栏
+# -- 空降助手 (原 Airborne; ViewProgress 重签走 ii()) --
+http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/bilibili.airborne.js, argument=[{airFullMode},{airInfoDelay},{airInfoMode},{airSummary},{airSummaryAnchor},{airSummaryColor},{airSummaryLines},{airCategories},{airNoticeCategories},{airActions},{airMinDuration},{airMode},{airNotice},{airInfo},{airUpLike},{airOwn},{airFontSize},{airSelfAction},{logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={Airborne}, tag=空降助手
+# -- 开屏节日 (原 Splash) --
+http-response ^https?:\/\/app\.bilibili\.com\/x\/v2\/splash\/brand\/list\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/splash-poc.js?v=40.4, argument=[{festival},{splashMode},{imgMode},{logo},{duration}], tag=节日开屏注入, enable={enabled}
+
+[Mitm]
+# 并集 = Dedup 5 域 + app.biliapi.net (Airborne 规则匹配该 host; 当前被上面 [Rule] REJECT, 保留以备规则调整)
+hostname=line3-h5-mobile-api.biligame.com, app.bilibili.com, api.bilibili.com, grpc.biliapi.net, api.live.bilibili.com, app.biliapi.net
+h2 = true
