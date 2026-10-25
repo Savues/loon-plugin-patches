@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.4-volatile-seq"
+#define LCF_VERSION "7.5-seq-final"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -300,7 +300,7 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
     char* p = line; size_t rem = cap;
     int n = snprintf(p, rem,
         "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"%s\",\"v\":\"" LCF_VERSION "\",\"method\":\"%s\",\"url\":",
-        ts, ++g_seq, ev, method);
+        ts, 0, ev, method);
     p += n; rem -= (size_t)n;
     lc_json_str(&p, &rem, url);
     n = snprintf(p, rem, "%s%s,\"tid\":%llu",
@@ -422,7 +422,7 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
         "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"bytes\":%llu,\"preview\":",
-        lc_now(), ++g_seq, tid, size);
+        lc_now(), 0, tid, size);
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, preview);
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
@@ -611,7 +611,7 @@ static void lcf_resp_line(id self, id response, char* line, size_t cap){
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
         "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"resp\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"status\":%ld,\"mime\":",
-        lc_now(), ++g_seq, tid, status);
+        lc_now(), 0, tid, status);
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, mimetype);
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
@@ -698,7 +698,7 @@ static void didfin_hook(id self, SEL _cmd, id error){
         char line[384];
         snprintf(line, sizeof(line),
             "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"status\":%ld,\"errCode\":%ld,\"mime\":",
-            lc_now(), ++g_seq, tid, error ? "err" : "ok", status, errcode);
+            lc_now(), 0, tid, error ? "err" : "ok", status, errcode);
         {
             char* p2 = line + strlen(line);
             size_t rem2 = sizeof(line) - strlen(line);
