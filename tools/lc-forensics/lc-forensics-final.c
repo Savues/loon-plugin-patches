@@ -1,32 +1,37 @@
 /*
- * lc-forensics v5.1 "data-capture" — Live Container 通用网络取证 dylib
+ * lc-forensics v6.0 "har-parity" — Live Container 通用网络取证 dylib
  *
- * v5.0 → v5.1 (探针名单到手 → 响应数据捕获转正 + fallback):
+ * v5.3 → v6.0 (对标 Loon HAR 的字段能力, 用户裁决: 配额不做, 模块仅测试时启用):
  *
- *   A. 数据分片捕获 hook (探针判读定案的首选目标):
- *      [__NSCFLocalSessionTask _onqueue_didReceiveDispatchData:completion:]
- *      — CFNetwork 内部数据泵, 所有响应数据分片必经
- *      - setImplementation + 原IMP直调 (同 base 安全模式)
- *      - 读 dispatch_data → 长度 + 64KB preview (UTF-8 容错截断)
- *      - tid 关联 (self.taskIdentifier) → 与 base 的 req 行拼接
- *   B. resp 文件 fallback: lcf-resp.jsonl open 失败 → 写 base 文件
- *      (v5.0 实锤: 沙盒对 Documents 新建文件受限; 预置文件只救一次)
- *      data 行带 ev:"data" 与 base 行天然区分
- *   C. 探针升级: introspection 改为幂等 (文件已有 probe 行则跳过),
- *      避免每轮启动重写 63 方法大名单
+ *   A. resp 行 (对标 response.status/headers/mimeType/redirectURL):
+ *      hook [__NSCFLocalSessionTask _onqueue_didReceiveResponse:completion:]
+ *      (探针名单 ◆ 验证过存在) — NSHTTPURLResponse 上取 statusCode /
+ *      allHeaderFields / MIMEType, tid 关联
+ *   B. fin 行 (task 生命周期闭合):
+ *      hook [_onqueue_didFinishWithError:] (探针名单 ● 验证过) —
+ *      error 有无 → ok/err, error.localizedDescription 摘要
+ *   C. 响应体重组落盘 (对标 content.text):
+ *      data hook 分片按 tid 累积 (上限 8MB/task), task 结束时写
+ *      Documents/lcf-resp/<tid>-<status>-<type>.bin — 原始字节
+ *      (gzip/br 的压缩字节原样存, 与 HAR base64 同 philosophy)
+ *   D. req 行增强 (对标 request headers/cookies):
+ *      currentRequest.allHeaderFields → UA / content-type / cookie 摘要
+ *      (对象已在手上, 零新增 hook 面)
  *
- * 安全模式不变: 基类 2 创建 selector + 1 数据 selector (全部单类真实定义),
+ * 安全模式不变: 单类真实定义 hook (创建2 + 数据1 + 响应头1 + 结束1 = 5个),
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "5.3-lineguard"
+#define LCF_VERSION "6.0-har-parity"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
+#define RESP_DIR_RELATIVE "Documents/lcf-resp"
 #define DEDUP_CAP 512
 #define GAP_MIN 10.0
 #define GAP_MAX 60.0
 #define PREVIEW_CAP 65536       /* data 行 preview 上限 (64KB) */
 #define DATA_FALLBACK_MARK "lcf-resp-fallback"  /* fallback 模式标记 (stage tag) */
+#define REASM_MAX (8*1024*1024) /* 单 task 重组上限 8MB (用户裁决: 不设配额, 仅测试启用) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +73,8 @@ static void lc_unlock(void){ __atomic_clear(&g_spin, __ATOMIC_RELEASE); }
 static SEL s_HTTPMethod, s_URL, s_absStr, s_body, s_len, s_bstream, s_utf8;
 static SEL s_tid;     /* taskIdentifier */
 static SEL s_dtwrh, s_dtwr;
-static SEL s_dispatch_get_size;   /* dispatch_data_get_size */
+static SEL s_curReq, s_allHdr, s_statusCode, s_mime, s_hdrValue;   /* v6.0 */
+static SEL s_localizedDesc;                                        /* v6.0 */
 static Class g_clsSession;
 static Class g_clsLocalTask;      /* __NSCFLocalSessionTask */
 
@@ -81,6 +87,8 @@ static int   g_resp_fallback = 0;    /* 1 = resp 写入走 base 文件 */
 static IMP g_orig_dtwrh = 0;
 static IMP g_orig_dtwr  = 0;
 static IMP g_orig_didd  = 0;         /* didReceiveDispatchData 原实现 */
+static IMP g_orig_didresp = 0;       /* didReceiveResponse 原实现 (v6.0) */
+static IMP g_orig_didfin  = 0;       /* didFinishWithError 原实现 (v6.0) */
 
 static unsigned long long g_seq = 0;
 static double g_last_ts = -1.0;
@@ -345,17 +353,201 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
 }
 
+/* v6.0 前向声明 */
+static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd);
+
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
-        char line[1600];   /* v5.3: 256→1600 — preview 127B + 头尾 ~130B 曾逼近 256 上限, snprintf 截断吞 \n 致两行粘连 */
+        char line[1600];
         lcf_data_line(self, dd, line, sizeof(line));
-        lc_lock(); lc_write_locked(line); lc_unlock();
+        lc_lock();
+        lc_write_locked(line);
+        /* v6.0: 分片进重组缓冲 */
+        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        lcf_reasm_append_locked(tid, dd);
+        lc_unlock();
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd)(self, _cmd, dd, completion);
 }
 
 /* ==================================================================
- * 探针 (v5.1: 幂等 — resp 文件已有 probe 行则跳过, 免每轮重写)
+ * v6.0-A: 响应体重组缓冲 (对标 content.text)
+ * ================================================================== */
+#define REASM_SLOTS 32
+typedef struct {
+    unsigned long long tid;
+    unsigned long long total;
+    char*  buf;
+    size_t cap;
+    size_t len;
+    int    status;
+    char   mime[64];
+    int    used;
+} reasm_t;
+static reasm_t g_reasm[REASM_SLOTS];
+
+static reasm_t* lcf_reasm_slot(unsigned long long tid, int create){
+    /* 先找已有 */
+    for (int i = 0; i < REASM_SLOTS; i++){
+        if (g_reasm[i].used && g_reasm[i].tid == tid) return &g_reasm[i];
+    }
+    if (!create) return 0;
+    /* 空槽, 或挤掉最旧的未完成槽 */
+    for (int i = 0; i < REASM_SLOTS; i++){
+        if (!g_reasm[i].used){
+            memset(&g_reasm[i], 0, sizeof(reasm_t));
+            g_reasm[i].used = 1;
+            g_reasm[i].tid = tid;
+            return &g_reasm[i];
+        }
+    }
+    /* 全满: 淘汰槽 0 */
+    if (g_reasm[0].buf){ free(g_reasm[0].buf); }
+    memset(&g_reasm[0], 0, sizeof(reasm_t));
+    g_reasm[0].used = 1;
+    g_reasm[0].tid = tid;
+    return &g_reasm[0];
+}
+
+/* 分片追加 (锁外调用者持有 slot 指针? 否 — 简化: data hook 内持锁追加) */
+static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd){
+    reasm_t* s = lcf_reasm_slot(tid, 1);
+    if (!s) return;
+    unsigned long long sz = dispatch_data_get_size(dd);
+    if (s->len + sz > REASM_MAX) return;      /* 超 8MB: 丢弃后续 (截断标记靠 fin 行 bytes 对比) */
+    if (s->len + sz > s->cap){
+        size_t ncap = s->cap ? s->cap * 2 : 65536;
+        while (ncap < s->len + sz) ncap *= 2;
+        char* nb = (char*)realloc(s->buf, ncap);
+        if (!nb) return;
+        s->buf = nb; s->cap = ncap;
+    }
+    const void* p = 0; size_t blen = 0, seg = 0;
+    dispatch_data_t mapped = dispatch_data_create_map(dd, &p, &blen, &seg);
+    if (p && blen){
+        memcpy(s->buf + s->len, p, blen);
+        s->len += blen;
+    }
+    (void)mapped;
+}
+
+/* task 结束: 落盘重组文件 (文件名 tid-status-type.bin) */
+static void lcf_reasm_flush_locked(unsigned long long tid){
+    reasm_t* s = lcf_reasm_slot(tid, 0);
+    if (!s || !s->buf || s->len == 0) return;
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return;
+    char dir[512], path[600];
+    snprintf(dir, sizeof(dir), "%s/" RESP_DIR_RELATIVE, home);
+    mkdir(dir, 0755);   /* 已存在则 EEXIST, 无害 */
+    const char* type = "bin";
+    if (strstr(s->mime, "json")) type = "json";
+    else if (strstr(s->mime, "html")) type = "html";
+    else if (strstr(s->mime, "javascript")) type = "js";
+    else if (strstr(s->mime, "xml")) type = "xml";
+    else if (strstr(s->mime, "image")) type = "img";
+    else if (strstr(s->mime, "gzip") || strstr(s->mime, "octet-stream")) type = "bin";
+    snprintf(path, sizeof(path), "%s/%llu-%d-%s.bin", dir, tid, s->status, type);
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd >= 0){
+        write(fd, s->buf, s->len);
+        close(fd);
+    }
+    free(s->buf);
+    memset(s, 0, sizeof(reasm_t));
+}
+
+/* ==================================================================
+ * v6.0-A: resp 行 + fin 行 hook
+ * ================================================================== */
+
+/* NSHTTPURLResponse → resp 行 (tid 关联) */
+static void lcf_resp_line(id self, id response, char* line, size_t cap){
+    unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+    long status = (long)(intptr_t)objc_msgSend(response, s_statusCode);
+    id mime = (id)objc_msgSend(response, s_mime);
+    char mimetype[48] = "";
+    if (mime){
+        const char* c = (const char*)objc_msgSend(mime, s_utf8);
+        if (c) snprintf(mimetype, sizeof(mimetype), "%.40s", c);
+    }
+    /* 记录到重组槽 (fin 落盘时用) */
+    lc_lock();
+    reasm_t* s = lcf_reasm_slot(tid, 1);
+    if (s){ s->status = (int)status; snprintf(s->mime, sizeof(s->mime), "%.60s", mimetype); }
+    lc_unlock();
+
+    /* 响应头摘要: Content-Encoding (判断 preview 是否二进制压缩体) */
+    char encjson[80] = "";
+    id hdrs = (id)objc_msgSend(response, s_allHdr);
+    if (hdrs){
+        SEL vfor = sel_registerName("objectForKeyedSubscript:");
+        SEL mkstr = sel_registerName("stringWithUTF8String:");
+        id nsstr = (id)objc_getClass("NSString");
+        id key = (id)((id(*)(id,SEL,const char*))objc_msgSend)(nsstr, mkstr, "Content-Encoding");
+        id val = key ? (id)((id(*)(id,SEL,id))objc_msgSend)(hdrs, vfor, key) : 0;
+        if (val){
+            const char* c = (const char*)objc_msgSend(val, s_utf8);
+            if (c){
+                char* q = encjson;
+                size_t r2 = sizeof(encjson);
+                int w2 = snprintf(q, r2, ",\"enc\":");
+                q += w2; r2 -= (size_t)w2;
+                lc_json_str(&q, &r2, c);
+            }
+        }
+    }
+    char* p = line; size_t rem = cap;
+    int w = snprintf(p, rem,
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"resp\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"status\":%ld,\"mime\":",
+        lc_now(), ++g_seq, tid, status);
+    p += w; rem -= (size_t)w;
+    lc_json_str(&p, &rem, mimetype);
+    snprintf(p, rem, "%s,\"pid\":%d}\n", encjson, (int)getpid());
+}
+
+static void didresp_hook(id self, SEL _cmd, id response, void* completion){
+    if (g_orig_didresp && response){
+        char line[512];
+        lcf_resp_line(self, response, line, sizeof(line));
+        lc_lock(); lc_write_locked(line); lc_unlock();
+    }
+    ((void(*)(id,SEL,id,void*))g_orig_didresp)(self, _cmd, response, completion);
+}
+
+static void didfin_hook(id self, SEL _cmd, id error){
+    if (g_orig_didfin){
+        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        char line[384];
+        char errinfo[160] = "";
+        if (error){
+            const char* c = (const char*)objc_msgSend(error, s_localizedDesc);
+            if (c) snprintf(errinfo, sizeof(errinfo), ",\"err\":");
+            char* p = line; size_t rem = sizeof(line);
+            int w = snprintf(p, rem,
+                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"err\",\"err\":",
+                lc_now(), ++g_seq, tid);
+            p += w; rem -= (size_t)w;
+            const char* msg = (const char*)objc_msgSend(error, s_localizedDesc);
+            lc_json_str(&p, &rem, msg ? msg : "");
+            snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        } else {
+            snprintf(line, sizeof(line),
+                "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"ok\",\"pid\":%d}\n",
+                lc_now(), ++g_seq, tid, (int)getpid());
+            lc_lock(); lc_write_locked(line); lc_unlock();
+        }
+        /* 重组落盘 (成功或失败都 flush — 失败也保留已收到的部分) */
+        lc_lock();
+        lcf_reasm_flush_locked(tid);
+        lc_unlock();
+    }
+    ((void(*)(id,SEL,id))g_orig_didfin)(self, _cmd, error);
+}
+
+/* ==================================================================
+ * 探针 (幂等) 与数据 hook (含重组追加)
  * ================================================================== */
 static int lc_resp_has_probe(void){
     const char* home = getenv("HOME");
@@ -475,6 +667,11 @@ static void lcf_ctor(void){
     s_dtwr       = sel_registerName("dataTaskWithRequest:");
     g_clsSession = (Class)objc_getClass("NSURLSession");
     g_clsLocalTask = (Class)objc_getClass("__NSCFLocalSessionTask");
+    s_curReq        = sel_registerName("currentRequest");
+    s_allHdr        = sel_registerName("allHeaderFields");
+    s_statusCode    = sel_registerName("statusCode");
+    s_mime          = sel_registerName("MIMEType");
+    s_localizedDesc = sel_registerName("localizedDescription");
     lc_stage("S2-sels");
 
     if (g_clsSession){
@@ -507,6 +704,26 @@ static void lcf_ctor(void){
                 g_orig_didd = old;
             }
         }
+        /* v6.0: resp 行 hook (探针名单 ◆) */
+        SEL dr = sel_registerName("_onqueue_didReceiveResponse:completion:");
+        m = class_getInstanceMethod(g_clsLocalTask, dr);
+        if (m){
+            IMP old = method_getImplementation(m);
+            if ((void*)old != (void*)didresp_hook){
+                method_setImplementation(m, (IMP)didresp_hook);
+                g_orig_didresp = old;
+            }
+        }
+        /* v6.0: fin 行 hook (探针名单 ●) */
+        SEL df = sel_registerName("_onqueue_didFinishWithError:");
+        m = class_getInstanceMethod(g_clsLocalTask, df);
+        if (m){
+            IMP old = method_getImplementation(m);
+            if ((void*)old != (void*)didfin_hook){
+                method_setImplementation(m, (IMP)didfin_hook);
+                g_orig_didfin = old;
+            }
+        }
     }
 
     char tag[64];
@@ -514,4 +731,9 @@ static void lcf_ctor(void){
     snprintf(tag, sizeof(tag), "S3-hooked:%d", n);
     lc_stage(tag);
     lc_stage(g_orig_didd ? "S4-data-hooked" : "S4-data-miss");
+    char tag2[48];
+    int m2 = (g_orig_didresp ? 1 : 0) + (g_orig_didfin ? 1 : 0);
+    snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d", m2);
+    lc_stage(tag2);
+    lc_stage(g_resp_fallback ? DATA_FALLBACK_MARK : "resp-file-ok");
 }

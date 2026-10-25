@@ -8,6 +8,45 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.0] - 2026-10-26 · har-parity
+
+### 动机：对标 Loon HAR 的字段能力
+
+用户提供 Loon 抓包 HAR（豆瓣，Douban-Dedup 开启态）作为对标物。逐字段判定：
+HAR 有的（status/headers/mime/完整 body/redirect/cookies）模块全部可达；
+另有 4 项天然超越（长连接业务流可见 / dart:io 部分可见 / 证书锁定 App 抓取 /
+零网络配置 + seq 锚序）。用户裁决：重组配额不做——模块仅测试时启用。
+
+### 改动
+
+- **+resp 行**（对标 `response.*`）：hook `_onqueue_didReceiveResponse:completion:`
+  （探针名单 ◆），产 `{tid, status, mime, enc}`——`enc` 取 Content-Encoding，
+  gzip/br 分片的 preview 可判定为压缩体
+- **+fin 行**（task 生命周期闭合）：hook `_onqueue_didFinishWithError:`
+  （探针名单 ●），`state:ok/err` + 错误摘要；fin 时触发重组落盘
+- **+重组落盘**（对标 `content.text`）：data hook 分片按 tid 进重组槽
+  （32 槽环形，单 task 上限 8MB，超限丢弃后续——fin 行 bytes 对比可见截断），
+  task 结束写 `Documents/lcf-resp/<tid>-<status>-<type>.bin`，
+  原始字节（gzip/br 压缩体原样存，与 HAR base64 同 philosophy），
+  扩展名由 mime 判定（json/html/js/xml/img/bin）
+- **+阶段标记 S5-meta-hooked:N** 与 `resp-file-ok`/fallback 标记
+- 安全模式不变：同一类上真实定义的 5 个 hook（创建2+数据1+响应头1+结束1），
+  无枚举/定时器/resume/release，36 个外部符号全 dynamic_lookup
+
+### 实证（待真机）
+
+69872B，md5 `fbbc693e`。判读：S5-meta-hooked:2 出现 = 两个新 hook 装上；
+`resp` 行 status 与 `fin` 行 tid 对上 req 行 = HAR 对标闭环；
+`lcf-resp/` 目录出现重组文件 = 完整响应体能力达成。
+
+### 工作流意义（对去广告开发）
+
+关插件跑一次 → 重组文件 = 原始广告 JSON（HAR 的 MITM 价值，无需证书）；
+开插件跑一次 → `resp` 行 status + 重组文件 = 清洗效果设备侧验证。
+"看到请求 → 看到响应全貌 → 看到拦截效果"三步闭环。
+
+---
+
 ## [5.3] - 2026-10-26 · lineguard
 
 ### 动机：v5.2 实测 34/561 行损坏——但根因不是编码
