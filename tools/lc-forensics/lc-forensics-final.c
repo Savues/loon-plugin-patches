@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.1-imgchannel"
+#define LCF_VERSION "8.2-data-src"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -420,7 +420,7 @@ typedef const struct dispatch_source_vtable_s* dispatch_source_t;
 extern unsigned long   dispatch_data_get_size(dispatch_data_t);
 extern dispatch_data_t dispatch_data_create_map(dispatch_data_t, const void**, size_t*, size_t*);
 
-static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
+static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, const char* src){
     unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
     unsigned long long size = dispatch_data_get_size(dd);
 
@@ -446,8 +446,8 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     }
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
-        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"bytes\":%llu,\"preview\":",
-        lc_now(), 0, tid, size);
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"src\":\"%s\",\"tid\":%llu,\"bytes\":%llu,\"preview\":",
+        lc_now(), 0, src, tid, size);
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, preview);
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
@@ -460,7 +460,7 @@ extern int g_diag_reasm_enter, g_diag_resp_enter, g_diag_fin_enter;
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
         char line[1600];
-        lcf_data_line(self, dd, line, sizeof(line));
+        lcf_data_line(self, dd, line, sizeof(line), "didd1");
         /* v6.4 修复: diag 标记必须在拿锁之前写 — lc_stage 内部 lc_lock,
          * 持锁区再调 = 自旋死锁 (v6.3 豆瓣黑屏根因, 与 v4.1 同型) */
         if (g_diag_reasm_enter < 3){
@@ -499,7 +499,7 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
 static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd2 && dd){
         char line[1600];
-        lcf_data_line(self, dd, line, sizeof(line));
+        lcf_data_line(self, dd, line, sizeof(line), "didd2");
         /* v7.3: seq 锁内回填 (data 行前缀 seq:0 占位) */
         lc_lock();
         char* cut = strstr(line, ",\"pid\":");
@@ -511,9 +511,7 @@ static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         } else {
             lc_write_locked(line);
         }
-        /* 重组缓冲 (双键: tid + taskkey) */
-        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
+        /* v8.2: 重组只在 didd1 追加 (didd2 是同一分片的第二回调, 双追加会重复) */
         lc_unlock();
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd2)(self, _cmd, dd, completion);
