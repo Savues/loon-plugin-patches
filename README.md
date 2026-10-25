@@ -66,11 +66,11 @@ node selftest.js                                  # 内核自测 (46 项)
 
 | 插件 Plugin | 用途 Purpose | 状态 Status |
 |---|---|---|
-| [Bilibili-Allinone](plugins/Bilibili-Allinone/) | **四合一**: 去广告+会员伪装 · 标签页/底栏 · 空降助手 · 开屏节日（68 参数, ViewProgress 单管线）<br>All-in-one: ad-block + VIP spoof · home tabs · SponsorBlock · splash festival | **v8.0.1** ★ |
-| [Bilibili-Dedup](plugins/Bilibili-Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化（独立版, 功能已并入 Allinone）<br>standalone, superseded by Allinone | **v7.45** |
-| [Bilibili-Airborne](plugins/Bilibili-Airborne/) | 空降助手独立版 · **跳过类型/动作/时长/文案全可配** · 自动跳靠自带 chronos 重签（已并入 Allinone）<br>SponsorBlock standalone, superseded by Allinone | **v1.60** |
-| [Bilibili-UI](plugins/Bilibili-UI/) | 首页标签页 / 底栏真开关（已并入 Allinone）<br>Home tabs & bottom nav, superseded by Allinone | **v3.6.0** |
-| [Splash-Festival](plugins/Splash-Festival/) | 开屏节日定制 · 75 皮肤 · 自动节日/轮换（已并入 Allinone）<br>Splash festival, superseded by Allinone | **v40.3** |
+| [Bilibili-Allinone](plugins/Bilibili-Allinone/) | **四合一**: 去广告+会员伪装 · 标签页/底栏 · 空降助手 · 开屏节日（67 参数, ViewProgress 单管线）<br>All-in-one: ad-block + VIP spoof · home tabs · SponsorBlock · splash festival | **v8.0.1** ★ |
+| [Bilibili-Dedup](plugins/Bilibili-Allinone/archive/Dedup/) | B 站去广告 · 大会员伪装 · 漫画净化（已归档 → Allinone/archive/Dedup）<br>archived into Allinone | **v7.45** |
+| [Bilibili-Airborne](plugins/Bilibili-Allinone/archive/Airborne/) | 空降助手独立版 · 全可配 · chronos 重签（已归档 → Allinone/archive/Airborne）<br>archived into Allinone | **v1.60** |
+| [Bilibili-UI](plugins/Bilibili-Allinone/archive/UI/) | 首页标签页 / 底栏真开关（已归档 → Allinone/archive/UI）<br>archived into Allinone | **v3.6.0** |
+| [Splash-Festival](plugins/Bilibili-Allinone/archive/Splash/) | 开屏节日定制 · 75 皮肤 · 自动节日/轮换（已归档 → Allinone/archive/Splash）<br>archived into Allinone | **v40.3** |
 | [GeoFix](plugins/GeoFix/) | 网络定位重定向 · 完全本地 · 短地址 savues.com<br>Network-location redirect · fully self-contained | **v1.2** |
 | [YouTube-Dedup](plugins/YouTube-Dedup/) | 消除与 blockAds 的重复改写 · 修 config 崩溃<br>Dedupe against blockAds · config parse fix | **v5.1** |
 | [YouTube-Test](plugins/YouTube-Test/) | 去广告 + 双语字幕合订 · 脚本全托管<br>Ad-block + bilingual subs, self-hosted | **v1.0** |
@@ -392,7 +392,7 @@ and to #5 (upstream product name kept in the directory and `#!name`).
 `Bilibili-Airborne` 把上游脚本里**写死的常量**（查询类别 `category=sponsor`、最短 8 秒、
 动作白名单 `skip`、提示文案）改成了 `[Argument]` 可配置项，因此触及了原则 2 的边界。
 改动全是「常量 → 参数」，没有新增业务逻辑；唯二的行为增量（空类别短路、注入幂等守卫）
-都是防御性的。逐条对照见 [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Airborne/UPSTREAM.md)。
+都是防御性的。逐条对照见 [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Allinone/archive/Airborne/UPSTREAM.md)。
 
 This plugin turns the upstream's hard-coded constants into `[Argument]` options.
 That crosses the line drawn by principle 2, deliberately and with full disclosure.
@@ -435,8 +435,8 @@ Synced upstream every 6 hours, with the Bilibili + YouTube + Spotify + PinDuoDuo
 | [patches/README.md](patches/README.md) | 退场范围与判定依据 · Removal scope and detection rules |
 | [tools/README.md](tools/README.md) | `har-diff.py` 抓包对比工具 · HAR diff tool |
 | [GeoFix/UPSTREAM.md](plugins/GeoFix/UPSTREAM.md) | 定位插件的出处与移植逐条对照 · Provenance & porting diff |
-| [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Airborne/UPSTREAM.md) | 空降助手的出处、9 处锚点逐条对照 · Provenance & patch diff |
-| [Bilibili-Airborne/ITERATION.md](plugins/Bilibili-Airborne/ITERATION.md) | 空降助手的独立化与**自动跳转九层消融**全过程 · Post-mortem |
+| [Bilibili-Airborne/UPSTREAM.md](plugins/Bilibili-Allinone/archive/Airborne/UPSTREAM.md) | 空降助手的出处、9 处锚点逐条对照 · Provenance & patch diff |
+| [Bilibili-Airborne/ITERATION.md](plugins/Bilibili-Allinone/archive/Airborne/ITERATION.md) | 空降助手的独立化与**自动跳转九层消融**全过程 · Post-mortem |
 | [GeoFix/ITERATION.md](plugins/GeoFix/ITERATION.md) | 定位插件 18 次提交的完整复盘 · Full post-mortem |
 | [YouTube-Dedup/ITERATION.md](plugins/YouTube-Dedup/ITERATION.md) | 去广告插件 config 崩溃的定位过程 · How the config parse crash was found |
 | [PinDuoDuo/UPSTREAM.md](plugins/PinDuoDuo/UPSTREAM.md) | 拼多多插件的出处与逐条改动依据 · Provenance & per-change reasoning |

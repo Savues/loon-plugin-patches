@@ -6,7 +6,7 @@
 `blockAds.plugin`（[fmz200/wool_scripts](https://github.com/fmz200/wool_scripts)，730+ App）
 内置了 kokoryh 的完整 B 站规则集、一份 YouTube 响应体脚本、一份 Spotify Protobuf 脚本，
 以及 9 条拼多多端点拦截，
-与本仓库的 [Bilibili-Dedup](../plugins/Bilibili-Dedup/README.md)、
+与本仓库的 [Bilibili-Dedup](../plugins/Bilibili-Allinone/archive/Dedup/README.md)、
 [YouTube-Dedup](../plugins/YouTube-Dedup/README.md)、
 [Spotify-Dedup](../plugins/Spotify-Dedup/README.md) 和
 [PinDuoDuo](../plugins/PinDuoDuo/README.md) 冲突或重叠。
@@ -208,7 +208,7 @@ python3 patches/test-patch-blockads.py
 
 > 另一个补丁器：把 `kokoryh/Sparkle` 的 `bilibili.protobuf.request.js` 改成
 > 「跳过类型 / 动作 / 时长 / 文案」全部可配置。详细复盘见
-> [Bilibili-Airborne/ITERATION.md](../plugins/Bilibili-Airborne/ITERATION.md)。
+> [Bilibili-Airborne/ITERATION.md](../plugins/Bilibili-Allinone/archive/Airborne/ITERATION.md)。
 
 ## 为什么需要补丁
 
@@ -234,7 +234,7 @@ python3 patches/patch-airborne.py /path/to/upstream.js -o out.js
 # 任何一处锚点没精确命中一次 → 直接 exit，不产出文件
 ```
 
-产物：`plugins/Bilibili-Airborne/bilibili.airborne.js`（**构建物，勿手改**）
+产物：`plugins/Bilibili-Allinone/scripts/bilibili.airborne.js`（**构建物，勿手改**）
 上游：`https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.request.js`
 
 ## 回归测试 · Regression tests

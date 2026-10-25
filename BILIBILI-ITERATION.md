@@ -4,6 +4,9 @@
 > 记录每个版本改了什么、为什么错、怎么发现的。
 > Every version: what changed, why it was wrong, and how the mistake was found.
 
+> 📁 **2026-10-26 起本插件已合并入 [Bilibili-Allinone](plugins/Bilibili-Allinone/)**，源码归档于
+> `plugins/Bilibili-Allinone/archive/Dedup/`。本文保留为历史迭代记录（v1.0~v7.10 时代），后续演进见 Allinone README 与 git log。
+
 **English summary** — 49 commits, 2026-09-27. Six failure patterns emerged; the most costly
 was *injecting a field the app never reads* (two `vip` objects on the profile page — the header
 reads `data.card.vip`, the plugin wrote `data.vip`). The second was *copying another author's

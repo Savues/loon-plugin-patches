@@ -33,4 +33,4 @@ Airborne 的 `logLevel`（kokoryh 链）与 Dedup 同名同档 → 合一。合�
 - 上游 Sparkle 同步由 `sync-airborne.yml` 每 6 小时执行，产物写 `scripts/bilibili.airborne.js`，
   锚点失配会红（设计如此）。
 - 改 `upstream/protobuf.response.js` 必须同步 bump lpx 的 `?v=` 缓存戳（v723→v724 回退事故教训）。
-- 旧四插件目录保留为运行时依赖（lpx 的 script-path 引用），归档于 `archive/`（阶段 6）。
+- 旧四插件目录已归档至 `archive/{Airborne,Dedup,UI,Splash}/`（git mv 保留历史；lpx 的 script-path 一律指向 Allinone 自身路径，不依赖 archive）。
