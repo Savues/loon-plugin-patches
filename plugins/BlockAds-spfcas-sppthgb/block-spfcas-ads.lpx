@@ -1,4 +1,5 @@
 #!name=JavDB 去广告与公告 v1.9.5
+#!version=1.9.5
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告与首页横幅（spfcas/sppthgb 域投放）。
 #!author=@Savues <https://github.com/Savues>
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/BlockAds-spfcas-sppthgb/icon.png
