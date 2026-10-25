@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.0-multi-app"
+#define LCF_VERSION "8.1-imgchannel"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -89,6 +89,7 @@ static int   g_resp_fallback = 0;    /* 1 = resp 写入走 base 文件 */
 static IMP g_orig_dtwrh = 0;
 static IMP g_orig_dtwr  = 0;
 static IMP g_orig_didd  = 0;         /* didReceiveDispatchData 原实现 */
+static IMP g_orig_didd2 = 0;         /* 双冒号版 (图片通道, v8.1) */
 static IMP g_orig_didresp = 0;       /* didReceiveResponse 原实现 (v6.0) */
 static IMP g_orig_didresp2 = 0;      /* didReceiveResponse:redirectRequest: 原实现 (v6.5) */
 static IMP g_orig_didfin  = 0;       /* didFinishWithError 原实现 (v6.0) */
@@ -487,6 +488,35 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         }
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd)(self, _cmd, dd, completion);
+}
+
+/* ==================================================================
+ * v8.1: 图片通道 hook — _task_onqueue_didReceiveDispatchData:completionHandler:
+ * SDWebImage 等图片库的 task 数据走这个双冒号版 selector,
+ * 与主栈的 _onqueue_didReceiveDispatchData:completion: (单冒号) 签名不同
+ * ================================================================== */
+
+static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
+    if (g_orig_didd2 && dd){
+        char line[1600];
+        lcf_data_line(self, dd, line, sizeof(line));
+        /* v7.3: seq 锁内回填 (data 行前缀 seq:0 占位) */
+        lc_lock();
+        char* cut = strstr(line, ",\"pid\":");
+        if (cut){
+            *cut = 0;
+            char suffix[64];
+            snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
+            lc_write_seq_locked(line, suffix);
+        } else {
+            lc_write_locked(line);
+        }
+        /* 重组缓冲 (双键: tid + taskkey) */
+        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
+        lc_unlock();
+    }
+    ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd2)(self, _cmd, dd, completion);
 }
 
 /* ==================================================================
@@ -938,13 +968,25 @@ static void lcf_ctor(void){
                 g_orig_didfin = old;
             }
         }
+        /* v8.1: 图片通道 hook (双冒号版) */
+        SEL dd2 = sel_registerName("_task_onqueue_didReceiveDispatchData:completionHandler:");
+        m = class_getInstanceMethod(g_clsLocalTask, dd2);
+        if (m){
+            IMP old = method_getImplementation(m);
+            if ((void*)old != (void*)didd2_hook){
+                method_setImplementation(m, (IMP)didd2_hook);
+                g_orig_didd2 = old;
+            }
+        }
     }
 
     char tag[64];
     int n = (g_orig_dtwrh ? 1 : 0) + (g_orig_dtwr ? 1 : 0);
     snprintf(tag, sizeof(tag), "S3-hooked:%d", n);
     lc_stage(tag);
-    lc_stage(g_orig_didd ? "S4-data-hooked" : "S4-data-miss");
+    snprintf(tag, sizeof(tag), "S4-data-hooked:%d",
+             (g_orig_didd?1:0) + (g_orig_didd2?2:0));
+    lc_stage(tag);
     char tag2[48];
     int m2 = (g_orig_didresp ? 1 : 0) + (g_orig_didresp2 ? 1 : 0) + (g_orig_didfin ? 1 : 0);
     snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d", m2);
