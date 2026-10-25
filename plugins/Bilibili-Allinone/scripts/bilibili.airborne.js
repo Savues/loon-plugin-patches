@@ -1,0 +1,421 @@
+// Built at: 2026/10/7 08:31:48
+
+/* ==== Savues/loon-plugin-patches · 空降助手可配置补丁 ==== */
+var __airVal = (a, k, d) => {
+    if (!a) return d;
+    var v = a[k];
+    if (v == null || v === "") {          // 容错：参数名首字母大小写不一致时也能认
+        for (var key in a) { if (key.toLowerCase() === k.toLowerCase()) { v = a[key]; break; } }
+    }
+    return (v == null || v === "") ? d : v;
+};
+var __airSplit = v => String(v).split(/[,，、\s]+/).filter(Boolean);
+/** __airCats(a,0)=自动跳列表（airCategories）；__airCats(a,1)=只提醒列表（airNoticeCategories） */
+var __airCats = function (a, which) {
+    var v = which === 1
+        ? __airVal(a, "airNoticeCategories", "exclusive_access,poi_highlight,preview,filler,music_offtopic")
+        : __airVal(a, "airCategories", "sponsor,selfpromo,interaction,intro,outro,padding");
+    // 关掉这一档的写法：off / none / no / 0 / 空（大小写不敏感，填 "OFF" 也认）
+    return __airSplit(v).map(function (x) { return x.toLowerCase(); })
+        .filter(function (x) { return x && x !== "off" && x !== "none" && x !== "no" && x !== "0"; });
+};
+var __airAny = function (a) {
+    return __airCats(a, 0).concat(__airCats(a, 1)).filter(function (x, i, s) { return s.indexOf(x) === i; });
+};
+var __airQS = a => "categories=" + encodeURIComponent(JSON.stringify(__airAny(a)));
+function __airOK(a, t, r, n, d) {
+    // 整篇即此类（segment 是 [0,0]，全靠 videoDuration 定位）：独立于类别列表，由 airFullMode 决定
+    if (t === "full") {
+        var fm = String(__airVal(a, "airFullMode", "notice"));
+        return fm !== "off" && Number(d) > 0;
+    }
+    r = String(r).toLowerCase();          // 与 __airCats 的归一化保持一致
+    t = String(t).toLowerCase();
+    var auto = __airCats(a, 0).indexOf(r) >= 0;   // 自动跳列表
+    var info = __airCats(a, 1).indexOf(r) >= 0;   // 只提醒列表
+    if (!auto && !info) return false;                      // 两个列表都没收录
+    if (info) {                                             // 只提醒档：不跳，动作对它没有意义
+        if (t === "skip" && n < Number(__airVal(a, "airMinDuration", 0))) return false;
+        return true;
+    }
+    if (__airSplit(__airVal(a, "airActions", "skip")).map(function (x) { return x.toLowerCase(); })
+        .indexOf(t) < 0) return false;
+    if (t !== "skip") return true;                          // poi 等时间点：长度天然为 0
+    return n >= Number(__airVal(a, "airMinDuration", 0));
+}
+/** 这条片段要不要带空降动作 */
+function __airIsAuto(a, t, r) {
+    if (t === "full") return String(__airVal(a, "airFullMode", "notice")) === "jump";
+    if (__airCats(a, 1).indexOf(String(r).toLowerCase()) >= 0) return false;   // 提醒档优先：同一类在两档时以提醒为准
+    return __airCats(a, 0).indexOf(String(r).toLowerCase()) >= 0;
+}
+function __airEnd(seg) {   // 空降目标（秒）
+    return seg[3] === "full" ? Number(seg[4]) : seg[1];
+}
+var __airColors = {
+    sponsor: 0xFF5C5C, selfpromo: 0xFFB400, interaction: 0x5CC8FF, intro: 0xB4B4B4,
+    outro: 0xB4B4B4, exclusive_access: 0xC08CFF, poi_highlight: 0xFFD100, preview: 0xFF8FC7,
+    filler: 0x6EE7C8, padding: 0x8C8C8C, music_offtopic: 0x9BE15D
+};
+/** 片头汇总的配色预设。字段 #5 是标准 0xRRGGBB 整数，用户在 App 上看到的就是这个值。 */
+var AIR_SUMMARY_COLORS = {
+    "白色": 0xFFFFFF, "红色": 0xFF5C5C, "橙色": 0xFFB400, "黄色": 0xFFD100,
+    "绿色": 0x6EE7C8, "青色": 0x5CC8FF, "紫色": 0xC08CFF, "灰色": 0xB4B4B4
+};
+function __airSummaryColor(a) {
+    var n = String(__airVal(a, "airSummaryColor", "白色"));
+    return AIR_SUMMARY_COLORS[n] || AIR_SUMMARY_COLORS["白色"];   // 认不出的值静默退回白色
+}
+function __airColor(cat) {
+    return __airColors[cat] == null ? 0xFFFFFF : __airColors[cat];
+}
+function __airRange(seg) {   // 一段的时间范围；整篇标记没有起止时间
+    if (seg[3] === "full") return "整篇";
+    return __airFmt(seg[0]) + "–" + __airFmt(__airEnd(seg));
+}
+function __airDur(seg) {     // 这一段有多长；整篇没有"多长"的概念
+    if (seg[3] === "full") return "";
+    return " · " + Math.round(seg[1] - seg[0]) + "s";
+}
+/**
+ * 把片段按**类别**分组，每类折叠成一行 —— 一个视频里同类的片段往往有好几段
+ * （实测 BV1VeHQ6tEaS 两段恰饭），逐段各占一行时类别名重复出现，纯属噪音：
+ *     恰饭广告 34:55–35:11
+ *     恰饭广告 52:31–52:40
+ * 折叠成一行类别 + 每段各占一行，并把**每段**的时长标出来：
+ *     恰饭广告 ×2
+ *     34:55–35:11 · 16s
+ *     52:31–52:40 · 9s
+ * 单段一行写完：恰饭广告 · 34:55–35:11 · 16s
+ * 每行宽度都在 20 列上下，不会像 v1.23 那样被横向截断（三段同类就到 53 列）。
+ * 返回 {text, cat, n} 数组，cat 供上色用，text 可含换行。
+ * 「整篇恰饭」（sponsor+full）不参与折叠 —— 它是独立置顶那一行，不是普通条目。
+ */
+function __airGroups(segs) {
+    var order = [], byCat = {}, i, s, c;
+    for (i = 0; i < segs.length; i++) {
+        s = segs[i];
+        if (s[2] === "sponsor" && s[3] === "full") continue;
+        c = s[2];
+        if (!byCat[c]) { byCat[c] = []; order.push(c); }
+        byCat[c].push(s);
+    }
+    return order.map(function (c) {
+        var arr = byCat[c], n = __airNames[c] || c || "";
+        // 整篇标记没有起止时间也没有"多长"；软广披露用一句大家熟悉的电视腔说清它是什么
+        // （官方定义：UP主免费或获品牌方补贴后使用的产品/服务，仅整篇标记）
+        if (arr.length === 1 && arr[0][3] === "full") return { cat: c, n: 1,
+            text: c === "exclusive_access" ? "⚠️警告：本片为品牌方合作内容" : n + " 整篇" };
+        var lines = arr.map(function (x) {
+            return (__airRange(x) + __airDur(x)).trim();   // __airDur 自带前导空格
+        });
+        return {
+            cat: c,
+            n: arr.length,
+            text: arr.length === 1 ? n + " · " + lines[0]
+                                   : n + " ×" + arr.length + "\n" + lines.join("\n")
+        };
+    });
+}
+/**
+ * 汇总能占几行。实测（2026-10-10，用户手机）**单条弹幕最多 6 行**，超出的整条被忽略、
+ * 什么也看不见 —— 所以默认按 6 兜住。off = 不限。
+ * （参数是 select，认不出的值一律退回 6。）
+ */
+function __airLineCap(a) {
+    var v = String(__airVal(a, "airSummaryLines", "6"));
+    return v === "off" ? 0 : (v === "3" || v === "4" || v === "5" || v === "6" ? Number(v) : 6);
+}
+/**
+ * 把「标题行 + 各类别块」按行上限裁剪。blocks 是 [{name, lines:[...]}]。
+ *
+ * ⚠️ 末尾的「…另 N 处（…）」标记**并进最后一行**而不是单独占一行 —— 这样能腾回一行，
+ * 多显示一段。v1.30 用的是"预留一行给标记"，白白浪费；而且标记只写「另 1 类」很模糊，
+ * 这里改成**点名**：被藏的段报起点、被藏的类报名称。
+ *
+ * 另一个坑：部分显示的那个块本身是**显示出来的**，不能算进「另 N 类」，
+ * 只算它后面那些整块没放下的（v1.30 误把它算进去了，1 个类别被标成「另 1 类」）。
+ */
+function __airFit(blocks, cap) {
+    var total = 1, i, j;                                   // 1 = 标题行
+    for (i = 0; i < blocks.length; i++) total += blocks[i].lines.length;
+    if (!cap || total <= cap) return blocks;
+    var room = cap - 1;                                    // 只留标题行；标记不占行
+    var kept = [], used = 0, hidSegs = [], hidBlocks = [];
+    for (i = 0; i < blocks.length; i++) {
+        var b = blocks[i].lines;
+        if (used + b.length <= room) { kept.push(b); used += b.length; continue; }
+        if (room - used >= 1) {                             // 放不下：至少露出块头（类别名+条数）
+            var k = room - used;
+            kept.push(b.slice(0, k));
+            used += k;
+            for (j = k; j < b.length; j++) hidSegs.push(b[j].split("–")[0].trim());
+            for (j = i + 1; j < blocks.length; j++) hidBlocks.push(blocks[j].name);
+        } else {
+            for (j = 1; j < b.length; j++) hidSegs.push(b[j].split("–")[0].trim());
+            hidBlocks.push(blocks[i].name);
+            for (j = i + 1; j < blocks.length; j++) hidBlocks.push(blocks[j].name);
+        }
+        break;
+    }
+    var out = [], i2;
+    for (i2 = 0; i2 < kept.length; i2++) out = out.concat(kept[i2]);
+    var tail = [];
+    if (hidSegs.length) tail.push(hidSegs.length + " 处（" + __airNames4(hidSegs) + "）");
+    if (hidBlocks.length) tail.push(hidBlocks.length + " 类（" + __airNames4(hidBlocks) + "）");
+    if (tail.length) {
+        var mark = "…另 " + tail.join("，");
+        if (out.length) out[out.length - 1] = out[out.length - 1] + "  " + mark;
+        else out.push(mark);
+    }
+    return [{name: "", lines: out}];
+}
+/** 名单最多点 3 个名，多了补「等」——否则最后一行会被撑得很长 */
+function __airNames4(a) {
+    return a.slice(0, 3).join("、") + (a.length > 3 ? " 等" : "");
+}
+function __airFmt(t) {
+    t = Math.max(0, Math.floor(t));
+    var h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, s = t % 60;   // 超过 1 小时补上小时段
+    var p = function (x) { return (x < 10 ? "0" : "") + x; };
+    return h ? h + ":" + p(m) + ":" + p(s) : p(m) + ":" + p(s);
+}
+var __airNames = {
+    sponsor: "恰饭广告", selfpromo: "自我推广", exclusive_access: "软广",
+    interaction: "三连提醒", poi_highlight: "精彩时刻", intro: "开场动画", outro: "片尾",
+    preview: "内容预告", padding: "黑屏填充", filler: "离题闲聊", music_offtopic: "非音乐部分"
+};
+// 汇总首行的短名（⚠️ 恰饭×1 自推×1 ｜ N 处 共计Ms）
+var __airShort = {
+    sponsor: "恰饭", selfpromo: "自推", exclusive_access: "软广", interaction: "三连",
+    intro: "开场", outro: "片尾", poi_highlight: "高光", preview: "预告",
+    padding: "黑屏", filler: "闲聊", music_offtopic: "非音乐"
+};
+/** 汇总首行：⚠️ 每类短名×次数 ｜ 总段数 处 共计总时长s（按首次出现排序）。
+ *  整篇标记不参与——它们由两句警告句表达，计进 ×N/处/秒 都是重复计数 */
+function __airTally(a, segs) {
+    var order = [], by = {}, total = 0, i, c, n = 0;
+    for (i = 0; i < segs.length; i++) {
+        if (segs[i][3] === "full") continue;
+        c = segs[i][2];
+        if (!by[c]) { by[c] = 0; order.push(c); }
+        by[c]++; n++;
+        total += Math.round(__airEnd(segs[i]) - segs[i][0]);
+    }
+    if (!n) return "";                                    // 全是整篇 → 首行交给警告句
+    return order.map(function (k) { return (__airShort[k] || __airNames[k] || k) + "×" + by[k]; })
+        .join(" ") + " ｜ " + n + " 处" + (total ? " 共计" + total + "s" : "");
+}
+function __airText(a, seg, list, tpl) {
+    // list != null 表示这是「片头汇总」弹幕：没有单一片段，{cat}/{start}/{end}/{dur} 一律渲染为空，
+    // 只保留 {list}（以及模板里本来就有的文字）。tpl 可显式指定模板。
+    var sum = list != null, e = __airEnd(seg), c = seg[2] || "";
+    var t = tpl != null ? tpl
+            : __airVal(a, seg[5] ? "airNotice" : "airInfo",
+                       seg[5] ? "空指部已就位" : "⚠️ {cat} {start}→{end}");
+    var s = String(t)
+        .replace(/\{list\}/g, sum ? list : "")
+        .replace(/\{catid\}/g, sum ? "" : c)
+        .replace(/\{cat\}/g, sum ? "" : (__airNames[c] || c))
+        .replace(/\{start\}/g, sum ? "" : __airFmt(seg[0]))
+        .replace(/\{end\}/g, sum ? "" : __airFmt(e))
+        .replace(/\{dur\}/g, sum ? "" : Math.round(e - seg[0]));
+    // 起止相同的片段（如三连提醒 45→45）只显示一个时间点，"00:45→00:45"是废话
+    if (!sum) s = s.replace(/(\d{1,3}:\d{2}(?::\d{2})?) ?→ ?\1(?!\d)/g, "$1");
+    return sum ? s.replace(/[ \t]*→[ \t]*/g, " ").split("\n")
+                    .map(function (x) { return x.trim(); }).filter(Boolean).join("\n") : s;
+}
+function __airAction(a, seg, l) {
+    if (!seg[5]) return "";                                                    // 只提醒档：只出文字
+    if (String(__airVal(a, "airMode", "jump")) === "mark") return "";          // 全局降级为只提醒
+    return "airborne:" + l;
+}
+/**
+ * 顺着「开头的自动跳」往后爬，返回用户实际会落到的位置（秒）。
+ *
+ * 为什么需要：视频一开头就有片头/恰饭时，App 会在片段起点+2 秒执行空降动作直接
+ * seek 走（实测 BV1PyHi6vEpA：intro[0,32.005]，2 秒跳到 32 秒）。而汇总弹幕原本
+ * 钉在第 3 秒，正好落在被跳过的那 29 秒里 —— 用户永远看不到。实测那个视频的
+ * 响应里就是 progress=3000 的汇总 + progress=2000 的空降动作。
+ *
+ * 只跟"真的会带动作"的片段走（提醒档不 seek、airMode=mark 全局降级后也不 seek），
+ * 所以关掉自动跳时锚点仍是 0，行为与以前完全一致。
+ */
+function __airLand(a, segs) {
+    // 容差 2 秒 = 空降动作的触发偏移（片段起点 +2s 才 seek）。落到 10s 时 [12,20]
+    // 这段仍会在 14s 把人再拽走，所以 10 <= 12 <= 10+2 也要跟着爬。
+    var EPS = 2, t = 0, n = 0, q, moved;
+    do {
+        moved = false;
+        for (q = 0; q < segs.length; q++) {
+            if (__airAction(a, segs[q], 0) === "") continue;      // 不会 seek 的片段不用管
+            var e = __airEnd(segs[q]);
+            if (segs[q][0] <= t + EPS && e > t) { t = e; moved = true; break; }
+        }
+    } while (moved && ++n < 20);                                   // 防重叠片段造成的死循环
+    return t;
+}
+/** 落点已经越过片尾（典型是"整篇即此类"且开了空降）→ 汇总钉哪儿都看不见干脆不注入 */
+function __airLandPast(a, segs) {
+    var dur = Number(segs[0] && segs[0][4]) || 0;
+    if (!dur) return false;
+    return __airLand(a, segs) * 1000 + 2000 >= dur * 1000;
+}
+/**
+ * 注入弹幕的 attr（弹幕属性位）。普通弹幕是 0x100000；0x140004 里含
+ * 「UP主点赞」位（第 2 位，值 4）——部分客户端会因此显示 👍 图标。
+ * 默认 off = 与普通弹幕一致，不冒充被 UP 主点赞的弹幕。
+ */
+function __airAttr(a) {
+    // 两位独立控制：0x40000=「自己」位（本人弹幕画方框，airOwn 默认 on）
+    //              0x4=「UP主点赞」位（部分客户端画 👍，airUpLike 默认 off）
+    // 都不要时 = 0x100000，与真实普通弹幕完全一致
+    var v = 0x100000;
+    if (String(__airVal(a, "airOwn", "on")) !== "off") v += 0x40000;   // 非法值退回默认 on
+    if (String(__airVal(a, "airUpLike", "off")) === "on") v += 0x4;
+    return v;
+}
+/** 注入弹幕的字号：实测 12908 条真实弹幕只有 25 / 18，v1.60 起默认 37（用户选定；25=与普通弹幕一致，50=大字版） */
+function __airFontSize(a) {
+    var v = String(__airVal(a, "airFontSize", "37"));
+    return v === "37" || v === "50" || v === "18" ? Number(v) : 25;
+}
+/** 弹幕 id：真实弹幕是 64 位大整数（App 可能按 id 缓存布局，别用 "1"/"2" 这种）。
+ *  用字符串拼接而不是算术——2221e18 超出 JS 安全整数范围，加法会把 id 算成同一个数 */
+function __airId(a, n, ms) {
+    return "2221" + String(100000000000000 + Math.floor(ms || 0) + n);
+}
+/** 弹幕 oid = 视频 cid（由请求带下来）。兜底 "0"：空串不是合法 int64，序列化会抛错 */
+function __airOid(a) {
+    return a && a.__airOid ? String(a.__airOid) : "0";
+}
+function __airInject(msg, segs, a) {
+    var elems = Array.isArray(msg) ? msg : msg && msg.elems;   // 调用点传的是 protobuf 消息对象
+    if (!elems || !segs || !segs.length) return;
+    // 幂等守卫：本脚本注入的弹幕有固定签名（ctime/dmFrom），已存在就不再注入
+    if (elems.some(function (x) { return x && x.ctime === "1735660800" && x.dmFrom === 1; })) return;
+    var built = nn(segs, a);
+    var sumMode = String(__airVal(a, "airSummary", "single"));   // 提前声明：下面的提醒过滤要用
+    // 落点之后的「地板」：汇总与提醒都不该出现在会被跳过的区间里
+    var floorMs = __airLand(a, segs) * 1000 + 2000;
+    // 两档都用上游同一样式（mode 5 / 字号 50 / midHash 1948dd5d），提醒档只是不带 action。
+    // ⚠️ 曾把提醒档降级成普通滚动弹幕，结论是错的：用户看不到的原因是
+    //    App 的「弹幕显示区域」设得太小把顶部裁掉了，不是被 App 丢弃。
+    //
+    // 但「整篇软广」那条的片段起点是 0，按上游的 +2 秒就落在第 2 秒——那时人眼
+    // 还没落到屏幕上。实测其它提醒（片段在视频中段）都能正常看到，只有它不行。
+    // 所以提醒档统一改成「片段起点 + airInfoDelay 秒」，让两档的出现时机一致且看得见。
+    var delay = Math.max(0, Number(__airVal(a, "airInfoDelay", 3))) * 1000;
+    var want = String(__airVal(a, "airInfoMode", "5"));
+    var donor = null;
+    for (var j = 0; j < elems.length && want !== "5"; j++) {
+        var e = elems[j];
+        if (e && e.midHash && e.midHash !== "1948dd5d") { donor = [e.midHash, e.attr]; break; }
+    }
+    for (var i = 0; i < built.length; i++) {
+        if (built[i].action) continue;                       // 自动跳那条不动
+        // 原本是"片段起点 + delay"；若这个起点落在开头的跳过区间里，一起挪到落点之后，
+        // 否则这条提醒也和汇总一样看不见（同一族的洞）
+        built[i].progress = Math.max(Math.floor(segs[i][0] * 1000) + delay, floorMs);
+        built[i].mode = Number(want) || 5;
+        built[i].color = __airColor(segs[i][2]);        // 按类别上色
+        // 非顶部样式时不能顶着空降标志：借一条真实弹幕的 midHash/attr 更稳
+        if (donor) { built[i].midHash = donor[0]; built[i].attr = donor[1]; }
+        // 借用空降渲染路径：实测带 action 的弹幕（空指部）完全居中，不带 action 的
+        // 普通顶部弹幕会被 App 整体挤右一个徽标宽度。动作指向**自身位置**——
+        // App 在弹幕出现的那一刻执行跳转，而那时播放位置就是它，等于原地跳
+        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+            built[i].action = "airborne:" + built[i].progress;
+        }
+        // 整篇标记的独立提醒让位给汇总里那一行（汇总没开时必须保留，否则信息全丢）
+        if (segs[i][3] === "full" && sumMode !== "off" && !__airLandPast(a, segs)) {
+            built[i].content = "";
+        }
+        // 开头片段（起点=0）的提醒也去掉：汇总已覆盖，否则开头两条弹幕
+        if (segs[i][0] === 0 && sumMode !== "off" && !__airLandPast(a, segs)) {
+            built[i].content = "";
+        }
+    }
+    // 上面两条规则都在 built[i] ↔ segs[i] 对齐时判断，删完再统一过滤（别在下游按索引删）
+    built = built.filter(function (x) { return x.content !== ""; });
+
+    // 片头汇总：把这个视频里「会被处理」的所有片段在开头一次列完。
+    // 同类折叠成一行（__airGroups），一条弹幕装不下太多时按「类」截断。
+    var sum = sumMode;
+    if (sum !== "off" && !__airLandPast(a, segs)) {
+        var groups = __airGroups(segs);
+        // 整篇就是恰饭 → 置顶一行明确提示（不参与上面的折叠）
+        var hasFullAd = segs.some(function (x) { return x[2] === "sponsor" && x[3] === "full"; });
+        // 两句整篇警告置顶，统计、明细跟在后面；警告不占 __airFit 的名额，
+        // 从行数预算里先扣掉（总行数与「警告混在 blocks 里」的老行为一致）
+        var warns = hasFullAd ? ["⚠️警告：本片为恰饭广告"] : [];
+        var details = [];
+        groups.forEach(function (g) {
+            if (g.text.indexOf("⚠️警告") === 0) {          // 整篇软广那句（唯一会带警告前缀的组）
+                if (warns.indexOf(g.text) < 0) warns.push(g.text);
+            } else {
+                details.push({ name: __airNames[g.cat] || g.cat, lines: g.text.split("\n") });
+            }
+        });
+        // 单类别：统计首行已点名类别+条数，类别头行是复读 → 去掉，首行直接统领明细。
+        // 只作用于默认路径：自定义 {list} 模板没有统计首行，剥掉名字会丢信息
+        function stripHeads(bl) {
+            return bl.length !== 1 ? bl : bl.map(function (b) {
+                return { name: b.name,
+                         lines: b.lines.length > 1 ? b.lines.slice(1)
+                              : [String(b.lines[0]).replace(b.name + " · ", "")] };
+            });
+        }
+        var tally = __airTally(a, segs);
+        var cap = __airLineCap(a);
+        var custom = String(__airVal(a, "airInfo", "")).indexOf("{list}") >= 0;
+        // 自定义模板：保持老格式（警告作为普通块混进 {list}），别悄悄丢信息
+        var fitBlocks = custom
+            ? (hasFullAd ? [{name: "恰饭广告", lines: [warns[0]]}] : [])
+                .concat(details)
+                .concat(warns.slice(hasFullAd ? 1 : 0)
+                        .map(function (w) { return {name: w, lines: [w]}; }))
+            : stripHeads(details);
+        // __airFit 的 cap 含"标题行"（内部留 1），而我们传入的预算要覆盖 警告+统计+明细 的总行数
+        var budget = custom ? cap
+            : cap ? Math.max(2, cap - warns.length - (tally ? 1 : 0) + 1) : 0;   // 0 = 不限
+        // 整条弹幕最多 6 行（实测）。放不下的整块丢弃、部分块截断，
+        // 末尾把「被藏的是什么」并进最后一行
+        var labels = [];
+        __airFit(fitBlocks, budget).forEach(function (b) {
+            labels = labels.concat(b.lines);
+        });
+        var sumAt = String(__airVal(a, "airSummaryAnchor", "auto")) === "start"
+            ? delay : Math.max(delay, floorMs) + 500;   // auto 模式 +500ms 避免与第 1 段提醒同进度；start 模式退回旧行为
+        // 汇总文案复用 airInfo 模板：模板里含 {list} 就用它，否则用内置文案。
+        // 默认：警告置顶 → 统计 → 明细；全是整篇时没有统计可做，警告句本身就是整条汇总。
+        // 警告句已在场时统计行不再带 ⚠️，免得两个警示符挤在一个开头
+        var tpl = custom
+            ? String(__airVal(a, "airInfo", ""))
+            : (warns.length ? warns.join("\n") + "\n" : "")
+              + (tally ? (warns.length ? "" : "⚠️ ") + tally + "\n" : "") + "{list}";
+        var synth = [[0, 0, "", "skip", 0, 0]];
+        var head = nn(synth, a);
+        head[0].content = __airText(a, synth[0], labels.join("\n"), tpl);
+        head[0].progress = sumAt;
+        if (String(__airVal(a, "airSelfAction", "on")) === "on") {
+            head[0].action = "airborne:" + sumAt;      // 指向自身，同样不会改变播放
+        }
+        head[0].mode = Number(want) || 5;
+        head[0].color = __airSummaryColor(a);                 // 整条汇总一个颜色（一条弹幕只能有一个）
+        if (donor) { head[0].midHash = donor[0]; head[0].attr = donor[1]; }
+        built = head.concat(built);   // 整篇提醒的让位已在上面按对齐索引处理过
+    }
+    // 全部注入：实测 App 会渲染跨页弹幕（汇总在第 1 页响应里、进度 3500ms 也能显示），
+    // 所以不分页过滤——过滤只会让自动跳过/提醒在「App 没请求那一页」时彻底丢失
+    elems.push.apply(elems, built);
+}
+/** bsbsb 单次查询（en 的重试体）：成功返回片段数组，失败抛出 */
+async function __airSeg(s, e, t) {
+    var r = await Pt(s, e, t), n = r.status, i = r.body;
+    B.debug("[SponsorBlock]", { videoId: e, status: n, body: i });
+    if (n !== 200 || !i || i === "[]") return [];
+    return tn(i, s.argument);
+}
+var C=s=>async(e,t)=>{let n=i=>async()=>{let r=i===s.length?t:s[i];if(r)return await r(e,n(i+1))};return n(0)()};function le(s){let e=23442827791579n,t=1n<<51n,n=58n,i="FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf",r=["B","V","1","0","0","0","0","0","0","0","0","0"],l=r.length-1,o=(t|BigInt(s))^e;for(;o>0;)r[l]=i[Number(o%BigInt(n))],o=o/n,l-=1;return[r[3],r[9]]=[r[9],r[3]],[r[4],r[7]]=[r[7],r[4]],r.join("")}function ue(s){return s instanceof Uint8Array}function rt(s){return typeof s!="object"||s===null?String(s):s instanceof Error?`${s.toString()} ${JSON.stringify({stack:s.stack})}`:Array.isArray(s)?JSON.stringify(s):typeof s.toString=="function"&&s.toString!==Object.prototype.toString?s.toString():JSON.stringify(s)}function W(s){return $utils.ungzip(s)}var it=(r=>(r[r.DEBUG=1]="DEBUG",r[r.INFO=2]="INFO",r[r.WARN=3]="WARN",r[r.ERROR=4]="ERROR",r[r.OFF=5]="OFF",r))(it||{}),B=class{static level=4;static setLevel(e){this.level=Number(e)||it[e.toUpperCase()]||4}static log(...e){console.log(e.map(t=>rt(t)).join(" "))}static debug(...e){this.level>1||this.log("[DEBUG]",...e)}static info(...e){this.level>2||this.log("[INFO]",...e)}static warn(...e){this.level>3||this.log("[WARN]",...e)}static error(...e){this.level>4||this.log("[ERROR]",...e)}};var A=class extends Error{constructor(t,n=`Process exited with code ${t}`){super(n);this.code=t}code;name="Exit";toString(){return`[${this.name}] ${this.message}`}},$=class extends Error{name="Abort"};function fe(s=0){throw new A(s)}var F=class{static createInstance(){if(typeof $loon<"u")return new ce;if(typeof $task<"u")throw new Error("QuantumultX is not supported");return new j}request;response;state={};argument={};#e;get url(){return this.#e||(this.#e=new URL(this.request.url)),this.#e}get path(){return this.url.pathname}get method(){return this.request.method}constructor(){this.request=this.createRequest(typeof $request<"u"?$request:null),this.response=this.createResponse(typeof $response<"u"?$response:null)}getJSON(e){let t=this.getVal(e);return t?JSON.parse(t):null}setJSON(e,t){this.setVal(JSON.stringify(e),t)}exit(){$done({})}onerror(e){if(e instanceof $){this.state.type="abort";return}if(this.state.type="exit",e instanceof A){e.code!==0&&B.error(e.toString());return}B.error(e,this.toString())}end(){let e=this.state.type;e==="response"?this.done(this.response):e==="fakeResponse"?this.done({response:this.response}):e==="request"?this.done(this.request):e==="abort"?this.abort():this.exit()}toString(){let{method:e,url:t}=this.request,{status:n,body:i}=this.response;return JSON.stringify({method:e,url:t,status:n,body:i})}},j=class extends F{createRequest(e){return Object.create(e,{bodyBytes:{get(){return this.body},set(t){this.body=t}}})}createResponse(e){return Object.create(e,{bodyBytes:{get(){return this.body},set(t){this.body=t}}})}initArgument(e){if(Object.assign(this.argument,e),typeof $argument=="string")try{Object.assign(this.argument,JSON.parse($argument))}catch(t){B.log(t)}}getVal(e){return $persistentStore.read(e)}setVal(e,t){$persistentStore.write(e,t)}fetch(e){let{method:t,body:n,timeout:i=5,...r}=e;return new Promise((l,o)=>{$httpClient[t.toLowerCase()]({...r,body:n,"binary-mode":ue(n),timeout:i},(a,u,d)=>{if(a)return o(a);l(this.createResponse({...u,body:d}))})})}notify(e="",t="",n="",i={}){let{openUrl:r,clipboard:l,mediaUrl:o,dismiss:a,sound:u=!0}=i,d={url:r,text:l,"media-url":o,"auto-dismiss":a,sound:u};r?d.action="open-url":l&&(d.action="clipboard"),$notification.post(e,t,n,d)}done(e){$done({...e})}abort(){$done({abort:!0})}},ce=class extends j{initArgument(e){super.initArgument(e),typeof $argument=="object"&&Object.assign(this.argument,$argument)}fetch(e){return e.timeout=(e.timeout??5)*1e3,e.alpn="h2",super.fetch(e)}notify(e="",t="",n="",i={}){let{openUrl:r,mediaUrl:l,clipboard:o,delay:a}=i,u={openUrl:r,mediaUrl:l,clipboard:o};$notification.post(e,t,n,u,a)}abort(){$done()}};var q=class{middleware=[];use(e){return this.middleware.push(e),this}run(){let e=F.createInstance();C(this.middleware)(e).catch(t=>e.onerror(t)).finally(()=>e.end())}};var st=(s,e)=>e().then(()=>{s.state.type="fakeResponse"});var v=async(s,e)=>{let t=s.response.bodyBytes;s.response.bodyBytes=t[0]?W(t.subarray(5)):t.subarray(5),await e(),t=s.response.bodyBytes;let n=t.length,i=new Uint8Array(5+n);i[0]=0,i[1]=n>>>24,i[2]=n>>>16&255,i[3]=n>>>8&255,i[4]=n&255,i.set(t,5),s.response.bodyBytes=i};var ot=s=>(e,t)=>(e.initArgument(s),B.setLevel(String(e.argument.logLevel)),B.debug("[Argument]",e.argument),t());var at=ot({displayUpList:"show",purifyComment:!0,sponsorBlock:!0}),lt=(s,e)=>e().then(()=>{if(s.response.h2_trailers!==void 0||s.request.headers.te!=="trailers")return;let t=s.response.headers;Object.hasOwn(t,"grpc-status")||(s.response.headers={...t,"grpc-status":"0"})});var S=class{path;methods;stack;constructor(e,t,n){this.path=e,this.methods=t,this.stack=n}};var _t=(s,e)=>e.path===s.path,ut=(s,e)=>e.request.url.endsWith(s.path);var _=class{stack=[];matchPath;constructor(e={}){this.matchPath=e.matchPath||_t}use(...e){return this.register("",[],e)}get(e,...t){return this.register(e,["GET"],t)}post(e,...t){return this.register(e,["POST"],t)}routes(){return(e,t)=>{let n=this.match(e);if(!n.route)return t();e.state.route=!0;let i=n.pathAndMethod.flatMap(r=>r.stack);return C(i)(e,t)}}routeNotMatched(){return(e,t)=>t().then(()=>{if(!e.state.route)throw new Error("Unexpected request")})}match(e){let t={path:[],pathAndMethod:[],route:!1};for(let n of this.stack)(n.path===""||this.matchPath(n,e))&&(t.path.push(n),(n.methods.length===0||n.methods.includes(e.method))&&(t.pathAndMethod.push(n),n.methods.length>0&&(t.route=!0)));return t}register(e,t,n){if(Array.isArray(e))for(let i of e)this.stack.push(new S(i,t,n));else this.stack.push(new S(e,t,n));return this}};function K(s){let e=typeof s;if(e=="object"){if(Array.isArray(s))return"array";if(s===null)return"null"}return e}function ft(s){return s!==null&&typeof s=="object"&&!Array.isArray(s)}var O="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split(""),J=[];for(let s=0;s<O.length;s++)J[O[s].charCodeAt(0)]=s;J[45]=O.indexOf("+");J[95]=O.indexOf("/");function ct(s){let e=s.length*3/4;s[s.length-2]=="="?e-=2:s[s.length-1]=="="&&(e-=1);let t=new Uint8Array(e),n=0,i=0,r,l=0;for(let o=0;o<s.length;o++){if(r=J[s.charCodeAt(o)],r===void 0)switch(s[o]){case"=":i=0;case`
+`:case"\r":case"	":case" ":continue;default:throw Error("invalid base64 string.")}switch(i){case 0:l=r,i=1;break;case 1:t[n++]=l<<2|(r&48)>>4,l=r,i=2;break;case 2:t[n++]=(l&15)<<4|(r&60)>>2,l=r,i=3;break;case 3:t[n++]=(l&3)<<6|r,i=0;break}}if(i==1)throw Error("invalid base64 string.");return t.subarray(0,n)}function dt(s){let e="",t=0,n,i=0;for(let r=0;r<s.length;r++)switch(n=s[r],t){case 0:e+=O[n>>2],i=(n&3)<<4,t=1;break;case 1:e+=O[i|n>>4],i=(n&15)<<2,t=2;break;case 2:e+=O[i|n>>6],e+=O[n&63],t=0;break}return t&&(e+=O[i],e+="=",t==1&&(e+="=")),e}var p;(function(s){s.symbol=Symbol.for("protobuf-ts/unknown"),s.onRead=(t,n,i,r,l)=>{(e(n)?n[s.symbol]:n[s.symbol]=[]).push({no:i,wireType:r,data:l})},s.onWrite=(t,n,i)=>{for(let{no:r,wireType:l,data:o}of s.list(n))i.tag(r,l).raw(o)},s.list=(t,n)=>{if(e(t)){let i=t[s.symbol];return n?i.filter(r=>r.no==n):i}return[]},s.last=(t,n)=>s.list(t,n).slice(-1)[0];let e=t=>t&&Array.isArray(t[s.symbol])})(p||(p={}));var c;(function(s){s[s.Varint=0]="Varint",s[s.Bit64=1]="Bit64",s[s.LengthDelimited=2]="LengthDelimited",s[s.StartGroup=3]="StartGroup",s[s.EndGroup=4]="EndGroup",s[s.Bit32=5]="Bit32"})(c||(c={}));function pt(){let s=0,e=0;for(let n=0;n<28;n+=7){let i=this.buf[this.pos++];if(s|=(i&127)<<n,(i&128)==0)return this.assertBounds(),[s,e]}let t=this.buf[this.pos++];if(s|=(t&15)<<28,e=(t&112)>>4,(t&128)==0)return this.assertBounds(),[s,e];for(let n=3;n<=31;n+=7){let i=this.buf[this.pos++];if(e|=(i&127)<<n,(i&128)==0)return this.assertBounds(),[s,e]}throw new Error("invalid varint")}function X(s,e,t){for(let r=0;r<28;r=r+7){let l=s>>>r,o=!(!(l>>>7)&&e==0),a=(o?l|128:l)&255;if(t.push(a),!o)return}let n=s>>>28&15|(e&7)<<4,i=e>>3!=0;if(t.push((i?n|128:n)&255),!!i){for(let r=3;r<31;r=r+7){let l=e>>>r,o=!!(l>>>7),a=(o?l|128:l)&255;if(t.push(a),!o)return}t.push(e>>>31&1)}}var G=65536*65536;function de(s){let e=s[0]=="-";e&&(s=s.slice(1));let t=1e6,n=0,i=0;function r(l,o){let a=Number(s.slice(l,o));i*=t,n=n*t+a,n>=G&&(i=i+(n/G|0),n=n%G)}return r(-24,-18),r(-18,-12),r(-12,-6),r(-6),[e,n,i]}function H(s,e){if(e>>>0<=2097151)return""+(G*e+(s>>>0));let t=s&16777215,n=(s>>>24|e<<8)>>>0&16777215,i=e>>16&65535,r=t+n*6777216+i*6710656,l=n+i*8147497,o=i*2,a=1e7;r>=a&&(l+=Math.floor(r/a),r%=a),l>=a&&(o+=Math.floor(l/a),l%=a);function u(d,y){let m=d?String(d):"";return y?"0000000".slice(m.length)+m:m}return u(o,0)+u(l,o)+u(r,1)}function pe(s,e){if(s>=0){for(;s>127;)e.push(s&127|128),s=s>>>7;e.push(s)}else{for(let t=0;t<9;t++)e.push(s&127|128),s=s>>7;e.push(1)}}function mt(){let s=this.buf[this.pos++],e=s&127;if((s&128)==0)return this.assertBounds(),e;if(s=this.buf[this.pos++],e|=(s&127)<<7,(s&128)==0)return this.assertBounds(),e;if(s=this.buf[this.pos++],e|=(s&127)<<14,(s&128)==0)return this.assertBounds(),e;if(s=this.buf[this.pos++],e|=(s&127)<<21,(s&128)==0)return this.assertBounds(),e;s=this.buf[this.pos++],e|=(s&15)<<28;for(let t=5;(s&128)!==0&&t<10;t++)s=this.buf[this.pos++];if((s&128)!=0)throw new Error("invalid varint");return this.assertBounds(),e>>>0}var b;function Kt(){let s=new DataView(new ArrayBuffer(8));b=globalThis.BigInt!==void 0&&typeof s.getBigInt64=="function"&&typeof s.getBigUint64=="function"&&typeof s.setBigInt64=="function"&&typeof s.setBigUint64=="function"?{MIN:BigInt("-9223372036854775808"),MAX:BigInt("9223372036854775807"),UMIN:BigInt("0"),UMAX:BigInt("18446744073709551615"),C:BigInt,V:s}:void 0}Kt();function ht(s){if(!s)throw new Error("BigInt unavailable, see https://github.com/timostamm/protobuf-ts/blob/v1.0.8/MANUAL.md#bigint-support")}var yt=/^-?[0-9]+$/,Z=4294967296,Y=2147483648,z=class{constructor(e,t){this.lo=e|0,this.hi=t|0}isZero(){return this.lo==0&&this.hi==0}toNumber(){let e=this.hi*Z+(this.lo>>>0);if(!Number.isSafeInteger(e))throw new Error("cannot convert to safe number");return e}},R=class s extends z{static from(e){if(b)switch(typeof e){case"string":if(e=="0")return this.ZERO;if(e=="")throw new Error("string is no integer");e=b.C(e);case"number":if(e===0)return this.ZERO;e=b.C(e);case"bigint":if(!e)return this.ZERO;if(e<b.UMIN)throw new Error("signed value for ulong");if(e>b.UMAX)throw new Error("ulong too large");return b.V.setBigUint64(0,e,!0),new s(b.V.getInt32(0,!0),b.V.getInt32(4,!0))}else switch(typeof e){case"string":if(e=="0")return this.ZERO;if(e=e.trim(),!yt.test(e))throw new Error("string is no integer");let[t,n,i]=de(e);if(t)throw new Error("signed value for ulong");return new s(n,i);case"number":if(e==0)return this.ZERO;if(!Number.isSafeInteger(e))throw new Error("number is no integer");if(e<0)throw new Error("signed value for ulong");return new s(e,e/Z)}throw new Error("unknown value "+typeof e)}toString(){return b?this.toBigInt().toString():H(this.lo,this.hi)}toBigInt(){return ht(b),b.V.setInt32(0,this.lo,!0),b.V.setInt32(4,this.hi,!0),b.V.getBigUint64(0,!0)}};R.ZERO=new R(0,0);var k=class s extends z{static from(e){if(b)switch(typeof e){case"string":if(e=="0")return this.ZERO;if(e=="")throw new Error("string is no integer");e=b.C(e);case"number":if(e===0)return this.ZERO;e=b.C(e);case"bigint":if(!e)return this.ZERO;if(e<b.MIN)throw new Error("signed long too small");if(e>b.MAX)throw new Error("signed long too large");return b.V.setBigInt64(0,e,!0),new s(b.V.getInt32(0,!0),b.V.getInt32(4,!0))}else switch(typeof e){case"string":if(e=="0")return this.ZERO;if(e=e.trim(),!yt.test(e))throw new Error("string is no integer");let[t,n,i]=de(e);if(t){if(i>Y||i==Y&&n!=0)throw new Error("signed long too small")}else if(i>=Y)throw new Error("signed long too large");let r=new s(n,i);return t?r.negate():r;case"number":if(e==0)return this.ZERO;if(!Number.isSafeInteger(e))throw new Error("number is no integer");return e>0?new s(e,e/Z):new s(-e,-e/Z).negate()}throw new Error("unknown value "+typeof e)}isNegative(){return(this.hi&Y)!==0}negate(){let e=~this.hi,t=this.lo;return t?t=~t+1:e+=1,new s(t,e)}toString(){if(b)return this.toBigInt().toString();if(this.isNegative()){let e=this.negate();return"-"+H(e.lo,e.hi)}return H(this.lo,this.hi)}toBigInt(){return ht(b),b.V.setInt32(0,this.lo,!0),b.V.setInt32(4,this.hi,!0),b.V.getBigInt64(0,!0)}};k.ZERO=new k(0,0);var bt={readUnknownField:!0,readerFactory:s=>new me(s)};function gt(s){return s?Object.assign(Object.assign({},bt),s):bt}var me=class{constructor(e,t){this.varint64=pt,this.uint32=mt,this.buf=e,this.len=e.length,this.pos=0,this.view=new DataView(e.buffer,e.byteOffset,e.byteLength),this.textDecoder=t??new TextDecoder("utf-8",{fatal:!0,ignoreBOM:!0})}tag(){let e=this.uint32(),t=e>>>3,n=e&7;if(t<=0||n<0||n>5)throw new Error("illegal tag: field no "+t+" wire type "+n);return[t,n]}skip(e){let t=this.pos;switch(e){case c.Varint:for(;this.buf[this.pos++]&128;);break;case c.Bit64:this.pos+=4;case c.Bit32:this.pos+=4;break;case c.LengthDelimited:let n=this.uint32();this.pos+=n;break;case c.StartGroup:let i;for(;(i=this.tag()[1])!==c.EndGroup;)this.skip(i);break;default:throw new Error("cant skip wire type "+e)}return this.assertBounds(),this.buf.subarray(t,this.pos)}assertBounds(){if(this.pos>this.len)throw new RangeError("premature EOF")}int32(){return this.uint32()|0}sint32(){let e=this.uint32();return e>>>1^-(e&1)}int64(){return new k(...this.varint64())}uint64(){return new R(...this.varint64())}sint64(){let[e,t]=this.varint64(),n=-(e&1);return e=(e>>>1|(t&1)<<31)^n,t=t>>>1^n,new k(e,t)}bool(){let[e,t]=this.varint64();return e!==0||t!==0}fixed32(){return this.view.getUint32((this.pos+=4)-4,!0)}sfixed32(){return this.view.getInt32((this.pos+=4)-4,!0)}fixed64(){return new R(this.sfixed32(),this.sfixed32())}sfixed64(){return new k(this.sfixed32(),this.sfixed32())}float(){return this.view.getFloat32((this.pos+=4)-4,!0)}double(){return this.view.getFloat64((this.pos+=8)-8,!0)}bytes(){let e=this.uint32(),t=this.pos;return this.pos+=e,this.assertBounds(),this.buf.subarray(t,t+e)}string(){return this.textDecoder.decode(this.bytes())}};function h(s,e){if(!s)throw new Error(e)}var Jt=34028234663852886e22,Gt=-34028234663852886e22,Xt=4294967295,Ht=2147483647,Yt=-2147483648;function E(s){if(typeof s!="number")throw new Error("invalid int 32: "+typeof s);if(!Number.isInteger(s)||s>Ht||s<Yt)throw new Error("invalid int 32: "+s)}function U(s){if(typeof s!="number")throw new Error("invalid uint 32: "+typeof s);if(!Number.isInteger(s)||s>Xt||s<0)throw new Error("invalid uint 32: "+s)}function D(s){if(typeof s!="number")throw new Error("invalid float 32: "+typeof s);if(Number.isFinite(s)&&(s>Jt||s<Gt))throw new Error("invalid float 32: "+s)}var wt={writeUnknownFields:!0,writerFactory:()=>new he};function kt(s){return s?Object.assign(Object.assign({},wt),s):wt}var he=class{constructor(e){this.stack=[],this.textEncoder=e??new TextEncoder,this.chunks=[],this.buf=[]}finish(){this.chunks.push(new Uint8Array(this.buf));let e=0;for(let i=0;i<this.chunks.length;i++)e+=this.chunks[i].length;let t=new Uint8Array(e),n=0;for(let i=0;i<this.chunks.length;i++)t.set(this.chunks[i],n),n+=this.chunks[i].length;return this.chunks=[],t}fork(){return this.stack.push({chunks:this.chunks,buf:this.buf}),this.chunks=[],this.buf=[],this}join(){let e=this.finish(),t=this.stack.pop();if(!t)throw new Error("invalid state, fork stack empty");return this.chunks=t.chunks,this.buf=t.buf,this.uint32(e.byteLength),this.raw(e)}tag(e,t){return this.uint32((e<<3|t)>>>0)}raw(e){return this.buf.length&&(this.chunks.push(new Uint8Array(this.buf)),this.buf=[]),this.chunks.push(e),this}uint32(e){for(U(e);e>127;)this.buf.push(e&127|128),e=e>>>7;return this.buf.push(e),this}int32(e){return E(e),pe(e,this.buf),this}bool(e){return this.buf.push(e?1:0),this}bytes(e){return this.uint32(e.byteLength),this.raw(e)}string(e){let t=this.textEncoder.encode(e);return this.uint32(t.byteLength),this.raw(t)}float(e){D(e);let t=new Uint8Array(4);return new DataView(t.buffer).setFloat32(0,e,!0),this.raw(t)}double(e){let t=new Uint8Array(8);return new DataView(t.buffer).setFloat64(0,e,!0),this.raw(t)}fixed32(e){U(e);let t=new Uint8Array(4);return new DataView(t.buffer).setUint32(0,e,!0),this.raw(t)}sfixed32(e){E(e);let t=new Uint8Array(4);return new DataView(t.buffer).setInt32(0,e,!0),this.raw(t)}sint32(e){return E(e),e=(e<<1^e>>31)>>>0,pe(e,this.buf),this}sfixed64(e){let t=new Uint8Array(8),n=new DataView(t.buffer),i=k.from(e);return n.setInt32(0,i.lo,!0),n.setInt32(4,i.hi,!0),this.raw(t)}fixed64(e){let t=new Uint8Array(8),n=new DataView(t.buffer),i=R.from(e);return n.setInt32(0,i.lo,!0),n.setInt32(4,i.hi,!0),this.raw(t)}int64(e){let t=k.from(e);return X(t.lo,t.hi,this.buf),this}sint64(e){let t=k.from(e),n=t.hi>>31,i=t.lo<<1^n,r=(t.hi<<1|t.lo>>>31)^n;return X(i,r,this.buf),this}uint64(e){let t=R.from(e);return X(t.lo,t.hi,this.buf),this}};var Rt={emitDefaultValues:!1,enumAsInteger:!1,useProtoFieldName:!1,prettySpaces:0},Bt={ignoreUnknownFields:!1};function It(s){return s?Object.assign(Object.assign({},Bt),s):Bt}function Nt(s){return s?Object.assign(Object.assign({},Rt),s):Rt}var Q=Symbol.for("protobuf-ts/message-type");function ye(s){let e=!1,t=[];for(let n=0;n<s.length;n++){let i=s.charAt(n);i=="_"?e=!0:/\d/.test(i)?(t.push(i),e=!0):e?(t.push(i.toUpperCase()),e=!1):n==0?t.push(i.toLowerCase()):t.push(i)}return t.join("")}var f;(function(s){s[s.DOUBLE=1]="DOUBLE",s[s.FLOAT=2]="FLOAT",s[s.INT64=3]="INT64",s[s.UINT64=4]="UINT64",s[s.INT32=5]="INT32",s[s.FIXED64=6]="FIXED64",s[s.FIXED32=7]="FIXED32",s[s.BOOL=8]="BOOL",s[s.STRING=9]="STRING",s[s.BYTES=12]="BYTES",s[s.UINT32=13]="UINT32",s[s.SFIXED32=15]="SFIXED32",s[s.SFIXED64=16]="SFIXED64",s[s.SINT32=17]="SINT32",s[s.SINT64=18]="SINT64"})(f||(f={}));var I;(function(s){s[s.BIGINT=0]="BIGINT",s[s.STRING=1]="STRING",s[s.NUMBER=2]="NUMBER"})(I||(I={}));var P;(function(s){s[s.NO=0]="NO",s[s.PACKED=1]="PACKED",s[s.UNPACKED=2]="UNPACKED"})(P||(P={}));function xt(s){var e,t,n,i;return s.localName=(e=s.localName)!==null&&e!==void 0?e:ye(s.name),s.jsonName=(t=s.jsonName)!==null&&t!==void 0?t:ye(s.name),s.repeat=(n=s.repeat)!==null&&n!==void 0?n:P.NO,s.opt=(i=s.opt)!==null&&i!==void 0?i:s.repeat||s.oneof?!1:s.kind=="message",s}function Tt(s){if(typeof s!="object"||s===null||!s.hasOwnProperty("oneofKind"))return!1;switch(typeof s.oneofKind){case"string":return s[s.oneofKind]===void 0?!1:Object.keys(s).length==2;case"undefined":return Object.keys(s).length==1;default:return!1}}var ee=class{constructor(e){var t;this.fields=(t=e.fields)!==null&&t!==void 0?t:[]}prepare(){if(this.data)return;let e=[],t=[],n=[];for(let i of this.fields)if(i.oneof)n.includes(i.oneof)||(n.push(i.oneof),e.push(i.oneof),t.push(i.oneof));else switch(t.push(i.localName),i.kind){case"scalar":case"enum":(!i.opt||i.repeat)&&e.push(i.localName);break;case"message":i.repeat&&e.push(i.localName);break;case"map":e.push(i.localName);break}this.data={req:e,known:t,oneofs:Object.values(n)}}is(e,t,n=!1){if(t<0)return!0;if(e==null||typeof e!="object")return!1;this.prepare();let i=Object.keys(e),r=this.data;if(i.length<r.req.length||r.req.some(l=>!i.includes(l))||!n&&i.some(l=>!r.known.includes(l)))return!1;if(t<1)return!0;for(let l of r.oneofs){let o=e[l];if(!Tt(o))return!1;if(o.oneofKind===void 0)continue;let a=this.fields.find(u=>u.localName===o.oneofKind);if(!a||!this.field(o[o.oneofKind],a,n,t))return!1}for(let l of this.fields)if(l.oneof===void 0&&!this.field(e[l.localName],l,n,t))return!1;return!0}field(e,t,n,i){let r=t.repeat;switch(t.kind){case"scalar":return e===void 0?t.opt:r?this.scalars(e,t.T,i,t.L):this.scalar(e,t.T,t.L);case"enum":return e===void 0?t.opt:r?this.scalars(e,f.INT32,i):this.scalar(e,f.INT32);case"message":return e===void 0?!0:r?this.messages(e,t.T(),n,i):this.message(e,t.T(),n,i);case"map":if(typeof e!="object"||e===null)return!1;if(i<2)return!0;if(!this.mapKeys(e,t.K,i))return!1;switch(t.V.kind){case"scalar":return this.scalars(Object.values(e),t.V.T,i,t.V.L);case"enum":return this.scalars(Object.values(e),f.INT32,i);case"message":return this.messages(Object.values(e),t.V.T(),n,i)}break}return!0}message(e,t,n,i){return n?t.isAssignable(e,i):t.is(e,i)}messages(e,t,n,i){if(!Array.isArray(e))return!1;if(i<2)return!0;if(n){for(let r=0;r<e.length&&r<i;r++)if(!t.isAssignable(e[r],i-1))return!1}else for(let r=0;r<e.length&&r<i;r++)if(!t.is(e[r],i-1))return!1;return!0}scalar(e,t,n){let i=typeof e;switch(t){case f.UINT64:case f.FIXED64:case f.INT64:case f.SFIXED64:case f.SINT64:switch(n){case I.BIGINT:return i=="bigint";case I.NUMBER:return i=="number"&&!isNaN(e);default:return i=="string"}case f.BOOL:return i=="boolean";case f.STRING:return i=="string";case f.BYTES:return e instanceof Uint8Array;case f.DOUBLE:case f.FLOAT:return i=="number"&&!isNaN(e);default:return i=="number"&&Number.isInteger(e)}}scalars(e,t,n,i){if(!Array.isArray(e))return!1;if(n<2)return!0;if(Array.isArray(e)){for(let r=0;r<e.length&&r<n;r++)if(!this.scalar(e[r],t,i))return!1}return!0}mapKeys(e,t,n){let i=Object.keys(e);switch(t){case f.INT32:case f.FIXED32:case f.SFIXED32:case f.SINT32:case f.UINT32:return this.scalars(i.slice(0,n).map(r=>parseInt(r)),t,n);case f.BOOL:return this.scalars(i.slice(0,n).map(r=>r=="true"?!0:r=="false"?!1:r),t,n);default:return this.scalars(i,t,n,I.STRING)}}};function N(s,e){switch(e){case I.BIGINT:return s.toBigInt();case I.NUMBER:return s.toNumber();default:return s.toString()}}var te=class{constructor(e){this.info=e}prepare(){var e;if(this.fMap===void 0){this.fMap={};let t=(e=this.info.fields)!==null&&e!==void 0?e:[];for(let n of t)this.fMap[n.name]=n,this.fMap[n.jsonName]=n,this.fMap[n.localName]=n}}assert(e,t,n){if(!e){let i=K(n);throw(i=="number"||i=="boolean")&&(i=n.toString()),new Error(`Cannot parse JSON ${i} for ${this.info.typeName}#${t}`)}}read(e,t,n){this.prepare();let i=[];for(let[r,l]of Object.entries(e)){let o=this.fMap[r];if(!o){if(!n.ignoreUnknownFields)throw new Error(`Found unknown field while reading ${this.info.typeName} from JSON format. JSON key: ${r}`);continue}let a=o.localName,u;if(o.oneof){if(l===null&&(o.kind!=="enum"||o.T()[0]!=="google.protobuf.NullValue"))continue;if(i.includes(o.oneof))throw new Error(`Multiple members of the oneof group "${o.oneof}" of ${this.info.typeName} are present in JSON.`);i.push(o.oneof),u=t[o.oneof]={oneofKind:a}}else u=t;if(o.kind=="map"){if(l===null)continue;this.assert(ft(l),o.name,l);let d=u[a];for(let[y,m]of Object.entries(l)){this.assert(m!==null,o.name+" map value",null);let x;switch(o.V.kind){case"message":x=o.V.T().internalJsonRead(m,n);break;case"enum":if(x=this.enum(o.V.T(),m,o.name,n.ignoreUnknownFields),x===!1)continue;break;case"scalar":x=this.scalar(m,o.V.T,o.V.L,o.name);break}this.assert(x!==void 0,o.name+" map value",m);let T=y;o.K==f.BOOL&&(T=T=="true"?!0:T=="false"?!1:T),T=this.scalar(T,o.K,I.STRING,o.name).toString(),d[T]=x}}else if(o.repeat){if(l===null)continue;this.assert(Array.isArray(l),o.name,l);let d=u[a];for(let y of l){this.assert(y!==null,o.name,null);let m;switch(o.kind){case"message":m=o.T().internalJsonRead(y,n);break;case"enum":if(m=this.enum(o.T(),y,o.name,n.ignoreUnknownFields),m===!1)continue;break;case"scalar":m=this.scalar(y,o.T,o.L,o.name);break}this.assert(m!==void 0,o.name,l),d.push(m)}}else switch(o.kind){case"message":if(l===null&&o.T().typeName!="google.protobuf.Value"){this.assert(o.oneof===void 0,o.name+" (oneof member)",null);continue}u[a]=o.T().internalJsonRead(l,n,u[a]);break;case"enum":if(l===null)continue;let d=this.enum(o.T(),l,o.name,n.ignoreUnknownFields);if(d===!1)continue;u[a]=d;break;case"scalar":if(l===null)continue;u[a]=this.scalar(l,o.T,o.L,o.name);break}}}enum(e,t,n,i){if(e[0]=="google.protobuf.NullValue"&&h(t===null||t==="NULL_VALUE",`Unable to parse field ${this.info.typeName}#${n}, enum ${e[0]} only accepts null.`),t===null)return 0;switch(typeof t){case"number":return h(Number.isInteger(t),`Unable to parse field ${this.info.typeName}#${n}, enum can only be integral number, got ${t}.`),t;case"string":let r=t;e[2]&&t.substring(0,e[2].length)===e[2]&&(r=t.substring(e[2].length));let l=e[1][r];return typeof l>"u"&&i?!1:(h(typeof l=="number",`Unable to parse field ${this.info.typeName}#${n}, enum ${e[0]} has no value for "${t}".`),l)}h(!1,`Unable to parse field ${this.info.typeName}#${n}, cannot parse enum value from ${typeof t}".`)}scalar(e,t,n,i){let r;try{switch(t){case f.DOUBLE:case f.FLOAT:if(e===null)return 0;if(e==="NaN")return Number.NaN;if(e==="Infinity")return Number.POSITIVE_INFINITY;if(e==="-Infinity")return Number.NEGATIVE_INFINITY;if(e===""){r="empty string";break}if(typeof e=="string"&&e.trim().length!==e.length){r="extra whitespace";break}if(typeof e!="string"&&typeof e!="number")break;let l=Number(e);if(Number.isNaN(l)){r="not a number";break}if(!Number.isFinite(l)){r="too large or small";break}return t==f.FLOAT&&D(l),l;case f.INT32:case f.FIXED32:case f.SFIXED32:case f.SINT32:case f.UINT32:if(e===null)return 0;let o;if(typeof e=="number"?o=e:e===""?r="empty string":typeof e=="string"&&(e.trim().length!==e.length?r="extra whitespace":o=Number(e)),o===void 0)break;return t==f.UINT32?U(o):E(o),o;case f.INT64:case f.SFIXED64:case f.SINT64:if(e===null)return N(k.ZERO,n);if(typeof e!="number"&&typeof e!="string")break;return N(k.from(e),n);case f.FIXED64:case f.UINT64:if(e===null)return N(R.ZERO,n);if(typeof e!="number"&&typeof e!="string")break;return N(R.from(e),n);case f.BOOL:if(e===null)return!1;if(typeof e!="boolean")break;return e;case f.STRING:if(e===null)return"";if(typeof e!="string"){r="extra whitespace";break}try{encodeURIComponent(e)}catch(a){a="invalid UTF8";break}return e;case f.BYTES:if(e===null||e==="")return new Uint8Array(0);if(typeof e!="string")break;return ct(e)}}catch(l){r=l.message}this.assert(!1,i+(r?" - "+r:""),e)}};var ne=class{constructor(e){var t;this.fields=(t=e.fields)!==null&&t!==void 0?t:[]}write(e,t){let n={},i=e;for(let r of this.fields){if(!r.oneof){let u=this.field(r,i[r.localName],t);u!==void 0&&(n[t.useProtoFieldName?r.name:r.jsonName]=u);continue}let l=i[r.oneof];if(l.oneofKind!==r.localName)continue;let o=r.kind=="scalar"||r.kind=="enum"?Object.assign(Object.assign({},t),{emitDefaultValues:!0}):t,a=this.field(r,l[r.localName],o);h(a!==void 0),n[t.useProtoFieldName?r.name:r.jsonName]=a}return n}field(e,t,n){let i;if(e.kind=="map"){h(typeof t=="object"&&t!==null);let r={};switch(e.V.kind){case"scalar":for(let[a,u]of Object.entries(t)){let d=this.scalar(e.V.T,u,e.name,!1,!0);h(d!==void 0),r[a.toString()]=d}break;case"message":let l=e.V.T();for(let[a,u]of Object.entries(t)){let d=this.message(l,u,e.name,n);h(d!==void 0),r[a.toString()]=d}break;case"enum":let o=e.V.T();for(let[a,u]of Object.entries(t)){h(u===void 0||typeof u=="number");let d=this.enum(o,u,e.name,!1,!0,n.enumAsInteger);h(d!==void 0),r[a.toString()]=d}break}(n.emitDefaultValues||Object.keys(r).length>0)&&(i=r)}else if(e.repeat){h(Array.isArray(t));let r=[];switch(e.kind){case"scalar":for(let a=0;a<t.length;a++){let u=this.scalar(e.T,t[a],e.name,e.opt,!0);h(u!==void 0),r.push(u)}break;case"enum":let l=e.T();for(let a=0;a<t.length;a++){h(t[a]===void 0||typeof t[a]=="number");let u=this.enum(l,t[a],e.name,e.opt,!0,n.enumAsInteger);h(u!==void 0),r.push(u)}break;case"message":let o=e.T();for(let a=0;a<t.length;a++){let u=this.message(o,t[a],e.name,n);h(u!==void 0),r.push(u)}break}(n.emitDefaultValues||r.length>0||n.emitDefaultValues)&&(i=r)}else switch(e.kind){case"scalar":i=this.scalar(e.T,t,e.name,e.opt,n.emitDefaultValues);break;case"enum":i=this.enum(e.T(),t,e.name,e.opt,n.emitDefaultValues,n.enumAsInteger);break;case"message":i=this.message(e.T(),t,e.name,n);break}return i}enum(e,t,n,i,r,l){if(e[0]=="google.protobuf.NullValue")return!r&&!i?void 0:null;if(t===void 0){h(i);return}if(!(t===0&&!r&&!i))return h(typeof t=="number"),h(Number.isInteger(t)),l||!e[1].hasOwnProperty(t)?t:e[2]?e[2]+e[1][t]:e[1][t]}message(e,t,n,i){return t===void 0?i.emitDefaultValues?null:void 0:e.internalJsonWrite(t,i)}scalar(e,t,n,i,r){if(t===void 0){h(i);return}let l=r||i;switch(e){case f.INT32:case f.SFIXED32:case f.SINT32:return t===0?l?0:void 0:(E(t),t);case f.FIXED32:case f.UINT32:return t===0?l?0:void 0:(U(t),t);case f.FLOAT:D(t);case f.DOUBLE:return t===0?l?0:void 0:(h(typeof t=="number"),Number.isNaN(t)?"NaN":t===Number.POSITIVE_INFINITY?"Infinity":t===Number.NEGATIVE_INFINITY?"-Infinity":t);case f.STRING:return t===""?l?"":void 0:(h(typeof t=="string"),t);case f.BOOL:return t===!1?l?!1:void 0:(h(typeof t=="boolean"),t);case f.UINT64:case f.FIXED64:h(typeof t=="number"||typeof t=="string"||typeof t=="bigint");let o=R.from(t);return o.isZero()&&!l?void 0:o.toString();case f.INT64:case f.SFIXED64:case f.SINT64:h(typeof t=="number"||typeof t=="string"||typeof t=="bigint");let a=k.from(t);return a.isZero()&&!l?void 0:a.toString();case f.BYTES:return h(t instanceof Uint8Array),t.byteLength?dt(t):l?"":void 0}}};function V(s,e=I.STRING){switch(s){case f.BOOL:return!1;case f.UINT64:case f.FIXED64:return N(R.ZERO,e);case f.INT64:case f.SFIXED64:case f.SINT64:return N(k.ZERO,e);case f.DOUBLE:case f.FLOAT:return 0;case f.BYTES:return new Uint8Array(0);case f.STRING:return"";default:return 0}}var re=class{constructor(e){this.info=e}prepare(){var e;if(!this.fieldNoToField){let t=(e=this.info.fields)!==null&&e!==void 0?e:[];this.fieldNoToField=new Map(t.map(n=>[n.no,n]))}}read(e,t,n,i){this.prepare();let r=i===void 0?e.len:e.pos+i;for(;e.pos<r;){let[l,o]=e.tag(),a=this.fieldNoToField.get(l);if(!a){let m=n.readUnknownField;if(m=="throw")throw new Error(`Unknown field ${l} (wire type ${o}) for ${this.info.typeName}`);let x=e.skip(o);m!==!1&&(m===!0?p.onRead:m)(this.info.typeName,t,l,o,x);continue}let u=t,d=a.repeat,y=a.localName;switch(a.oneof&&(u=u[a.oneof],u.oneofKind!==y&&(u=t[a.oneof]={oneofKind:y})),a.kind){case"scalar":case"enum":let m=a.kind=="enum"?f.INT32:a.T,x=a.kind=="scalar"?a.L:void 0;if(d){let L=u[y];if(o==c.LengthDelimited&&m!=f.STRING&&m!=f.BYTES){let ae=e.uint32()+e.pos;for(;e.pos<ae;)L.push(this.scalar(e,m,x))}else L.push(this.scalar(e,m,x))}else u[y]=this.scalar(e,m,x);break;case"message":if(d){let L=u[y],ae=a.T().internalBinaryRead(e,e.uint32(),n);L.push(ae)}else u[y]=a.T().internalBinaryRead(e,e.uint32(),n,u[y]);break;case"map":let[T,jt]=this.mapEntry(a,e,n);u[y][T]=jt;break}}}mapEntry(e,t,n){let i=t.uint32(),r=t.pos+i,l,o;for(;t.pos<r;){let[a,u]=t.tag();switch(a){case 1:e.K==f.BOOL?l=t.bool().toString():l=this.scalar(t,e.K,I.STRING);break;case 2:switch(e.V.kind){case"scalar":o=this.scalar(t,e.V.T,e.V.L);break;case"enum":o=t.int32();break;case"message":o=e.V.T().internalBinaryRead(t,t.uint32(),n);break}break;default:throw new Error(`Unknown field ${a} (wire type ${u}) in map entry for ${this.info.typeName}#${e.name}`)}}if(l===void 0){let a=V(e.K);l=e.K==f.BOOL?a.toString():a}if(o===void 0)switch(e.V.kind){case"scalar":o=V(e.V.T,e.V.L);break;case"enum":o=0;break;case"message":o=e.V.T().create();break}return[l,o]}scalar(e,t,n){switch(t){case f.INT32:return e.int32();case f.STRING:return e.string();case f.BOOL:return e.bool();case f.DOUBLE:return e.double();case f.FLOAT:return e.float();case f.INT64:return N(e.int64(),n);case f.UINT64:return N(e.uint64(),n);case f.FIXED64:return N(e.fixed64(),n);case f.FIXED32:return e.fixed32();case f.BYTES:return e.bytes();case f.UINT32:return e.uint32();case f.SFIXED32:return e.sfixed32();case f.SFIXED64:return N(e.sfixed64(),n);case f.SINT32:return e.sint32();case f.SINT64:return N(e.sint64(),n)}}};var ie=class{constructor(e){this.info=e}prepare(){if(!this.fields){let e=this.info.fields?this.info.fields.concat():[];this.fields=e.sort((t,n)=>t.no-n.no)}}write(e,t,n){this.prepare();for(let r of this.fields){let l,o,a=r.repeat,u=r.localName;if(r.oneof){let d=e[r.oneof];if(d.oneofKind!==u)continue;l=d[u],o=!0}else l=e[u],o=!1;switch(r.kind){case"scalar":case"enum":let d=r.kind=="enum"?f.INT32:r.T;if(a)if(h(Array.isArray(l)),a==P.PACKED)this.packed(t,d,r.no,l);else for(let y of l)this.scalar(t,d,r.no,y,!0);else l===void 0?h(r.opt):this.scalar(t,d,r.no,l,o||r.opt);break;case"message":if(a){h(Array.isArray(l));for(let y of l)this.message(t,n,r.T(),r.no,y)}else this.message(t,n,r.T(),r.no,l);break;case"map":h(typeof l=="object"&&l!==null);for(let[y,m]of Object.entries(l))this.mapEntry(t,n,r,y,m);break}}let i=n.writeUnknownFields;i!==!1&&(i===!0?p.onWrite:i)(this.info.typeName,e,t)}mapEntry(e,t,n,i,r){e.tag(n.no,c.LengthDelimited),e.fork();let l=i;switch(n.K){case f.INT32:case f.FIXED32:case f.UINT32:case f.SFIXED32:case f.SINT32:l=Number.parseInt(i);break;case f.BOOL:h(i=="true"||i=="false"),l=i=="true";break}switch(this.scalar(e,n.K,1,l,!0),n.V.kind){case"scalar":this.scalar(e,n.V.T,2,r,!0);break;case"enum":this.scalar(e,f.INT32,2,r,!0);break;case"message":this.message(e,t,n.V.T(),2,r);break}e.join()}message(e,t,n,i,r){r!==void 0&&(n.internalBinaryWrite(r,e.tag(i,c.LengthDelimited).fork(),t),e.join())}scalar(e,t,n,i,r){let[l,o,a]=this.scalarInfo(t,i);(!a||r)&&(e.tag(n,l),e[o](i))}packed(e,t,n,i){if(!i.length)return;h(t!==f.BYTES&&t!==f.STRING),e.tag(n,c.LengthDelimited),e.fork();let[,r]=this.scalarInfo(t);for(let l=0;l<i.length;l++)e[r](i[l]);e.join()}scalarInfo(e,t){let n=c.Varint,i,r=t===void 0,l=t===0;switch(e){case f.INT32:i="int32";break;case f.STRING:l=r||!t.length,n=c.LengthDelimited,i="string";break;case f.BOOL:l=t===!1,i="bool";break;case f.UINT32:i="uint32";break;case f.DOUBLE:n=c.Bit64,i="double";break;case f.FLOAT:n=c.Bit32,i="float";break;case f.INT64:l=r||k.from(t).isZero(),i="int64";break;case f.UINT64:l=r||R.from(t).isZero(),i="uint64";break;case f.FIXED64:l=r||R.from(t).isZero(),n=c.Bit64,i="fixed64";break;case f.BYTES:l=r||!t.byteLength,n=c.LengthDelimited,i="bytes";break;case f.FIXED32:n=c.Bit32,i="fixed32";break;case f.SFIXED32:n=c.Bit32,i="sfixed32";break;case f.SFIXED64:l=r||k.from(t).isZero(),n=c.Bit64,i="sfixed64";break;case f.SINT32:i="sint32";break;case f.SINT64:l=r||k.from(t).isZero(),i="sint64";break}return[n,i,r||l]}};function Ot(s){let e=s.messagePrototype?Object.create(s.messagePrototype):Object.defineProperty({},Q,{value:s});for(let t of s.fields){let n=t.localName;if(!t.opt)if(t.oneof)e[t.oneof]={oneofKind:void 0};else if(t.repeat)e[n]=[];else switch(t.kind){case"scalar":e[n]=V(t.T,t.L);break;case"enum":e[n]=0;break;case"map":e[n]={};break}}return e}function g(s,e,t){let n,i=t,r;for(let l of s.fields){let o=l.localName;if(l.oneof){let a=i[l.oneof];if(a?.oneofKind==null)continue;if(n=a[o],r=e[l.oneof],r.oneofKind=a.oneofKind,n==null){delete r[o];continue}}else if(n=i[o],r=e,n==null)continue;switch(l.repeat&&(r[o].length=n.length),l.kind){case"scalar":case"enum":if(l.repeat)for(let u=0;u<n.length;u++)r[o][u]=n[u];else r[o]=n;break;case"message":let a=l.T();if(l.repeat)for(let u=0;u<n.length;u++)r[o][u]=a.create(n[u]);else r[o]===void 0?r[o]=a.create(n):a.mergePartial(r[o],n);break;case"map":switch(l.V.kind){case"scalar":case"enum":Object.assign(r[o],n);break;case"message":let u=l.V.T();for(let d of Object.keys(n))r[o][d]=u.create(n[d]);break}break}}}function Dt(s,e,t){if(e===t)return!0;if(!e||!t)return!1;for(let n of s.fields){let i=n.localName,r=n.oneof?e[n.oneof][i]:e[i],l=n.oneof?t[n.oneof][i]:t[i];switch(n.kind){case"enum":case"scalar":let o=n.kind=="enum"?f.INT32:n.T;if(!(n.repeat?Et(o,r,l):Mt(o,r,l)))return!1;break;case"map":if(!(n.V.kind=="message"?Ut(n.V.T(),se(r),se(l)):Et(n.V.kind=="enum"?f.INT32:n.V.T,se(r),se(l))))return!1;break;case"message":let a=n.T();if(!(n.repeat?Ut(a,r,l):a.equals(r,l)))return!1;break}}return!0}var se=Object.values;function Mt(s,e,t){if(e===t)return!0;if(s!==f.BYTES)return!1;let n=e,i=t;if(n.length!==i.length)return!1;for(let r=0;r<n.length;r++)if(n[r]!=i[r])return!1;return!0}function Et(s,e,t){if(e.length!==t.length)return!1;for(let n=0;n<e.length;n++)if(!Mt(s,e[n],t[n]))return!1;return!0}function Ut(s,e,t){if(e.length!==t.length)return!1;for(let n=0;n<e.length;n++)if(!s.equals(e[n],t[n]))return!1;return!0}var At=Object.getOwnPropertyDescriptors(Object.getPrototypeOf({})),Zt=At[Q]={},w=class{constructor(e,t,n){this.defaultCheckDepth=16,this.typeName=e,this.fields=t.map(xt),this.options=n??{},Zt.value=this,this.messagePrototype=Object.create(null,At),this.refTypeCheck=new ee(this),this.refJsonReader=new te(this),this.refJsonWriter=new ne(this),this.refBinReader=new re(this),this.refBinWriter=new ie(this)}create(e){let t=Ot(this);return e!==void 0&&g(this,t,e),t}clone(e){let t=this.create();return g(this,t,e),t}equals(e,t){return Dt(this,e,t)}is(e,t=this.defaultCheckDepth){return this.refTypeCheck.is(e,t,!1)}isAssignable(e,t=this.defaultCheckDepth){return this.refTypeCheck.is(e,t,!0)}mergePartial(e,t){g(this,e,t)}fromBinary(e,t){let n=gt(t);return this.internalBinaryRead(n.readerFactory(e),e.byteLength,n)}fromJson(e,t){return this.internalJsonRead(e,It(t))}fromJsonString(e,t){let n=JSON.parse(e);return this.fromJson(n,t)}toJson(e,t){return this.internalJsonWrite(e,Nt(t))}toJsonString(e,t){var n;let i=this.toJson(e,t);return JSON.stringify(i,null,(n=t?.prettySpaces)!==null&&n!==void 0?n:0)}toBinary(e,t){let n=kt(t);return this.internalBinaryWrite(e,n.writerFactory(),n).finish()}internalJsonRead(e,t,n){if(e!==null&&typeof e=="object"&&!Array.isArray(e)){let i=n??this.create();return this.refJsonReader.read(e,i,t),i}throw new Error(`Unable to parse message ${this.typeName} from JSON ${K(e)}.`)}internalJsonWrite(e,t){return this.refJsonWriter.write(e,t)}internalBinaryWrite(e,t,n){return this.refBinWriter.write(e,t,n),t}internalBinaryRead(e,t,n,i){let r=i??this.create();return this.refBinReader.read(e,r,n,t),r}};var Ft=(t=>(t[t.TAB_NONE=0]="TAB_NONE",t[t.TAB_INTRODUCTION=1]="TAB_INTRODUCTION",t))(Ft||{}),Ve=(a=>(a[a.UNKNOWN=0]="UNKNOWN",a[a.UGC_HEADLINE=3]="UGC_HEADLINE",a[a.ACTIVITY=18]="ACTIVITY",a[a.RELATED_RECOMMEND=28]="RELATED_RECOMMEND",a[a.PAY_BAR=29]="PAY_BAR",a[a.SPECIALTAG=37]="SPECIALTAG",a[a.MERCHANDISE=55]="MERCHANDISE",a[a.VIDEO_MENTIONS=63]="VIDEO_MENTIONS",a))(Ve||{}),Le=(o=>(o[o.CARD_TYPE_UNKNOWN=0]="CARD_TYPE_UNKNOWN",o[o.AV=1]="AV",o[o.GAME=4]="GAME",o[o.CM_TYPE=5]="CM_TYPE",o[o.LIVE=6]="LIVE",o[o.AI_RECOMMEND=7]="AI_RECOMMEND",o[o.COURSE=11]="COURSE",o))(Le||{}),Te=class extends w{constructor(){super("bilibili.app.viewunite.v1.ViewReply",[{no:3,name:"req_user",kind:"message",T:()=>be},{no:5,name:"tab",kind:"message",T:()=>ge},{no:7,name:"cm",kind:"scalar",opt:!0,T:12}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 3:r.reqUser=be.internalBinaryRead(e,e.uint32(),n,r.reqUser);break;case 5:r.tab=ge.internalBinaryRead(e,e.uint32(),n,r.tab);break;case 7:r.cm=e.bytes();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.reqUser&&be.internalBinaryWrite(e.reqUser,t.tag(3,c.LengthDelimited).fork(),n).join(),e.tab&&ge.internalBinaryWrite(e.tab,t.tag(5,c.LengthDelimited).fork(),n).join(),e.cm!==void 0&&t.tag(7,c.LengthDelimited).bytes(e.cm);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Ce=new Te,Oe=class extends w{constructor(){super("bilibili.app.viewunite.v1.ReqUser",[{no:7,name:"elec_plus_btn",kind:"scalar",opt:!0,T:12}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 7:r.elecPlusBtn=e.bytes();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.elecPlusBtn!==void 0&&t.tag(7,c.LengthDelimited).bytes(e.elecPlusBtn);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},be=new Oe,Ee=class extends w{constructor(){super("bilibili.app.viewunite.v1.Tab",[{no:1,name:"tab_module",kind:"message",repeat:2,T:()=>we}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.tabModule=[],e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.tabModule.push(we.internalBinaryRead(e,e.uint32(),n));break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){for(let r=0;r<e.tabModule.length;r++)we.internalBinaryWrite(e.tabModule[r],t.tag(1,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},ge=new Ee,Ue=class extends w{constructor(){super("bilibili.app.viewunite.v1.TabModule",[{no:1,name:"tab_type",kind:"enum",T:()=>["bilibili.app.viewunite.v1.TabType",Ft]},{no:2,name:"introduction",kind:"message",oneof:"tab",T:()=>ke}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.tabType=0,t.tab={oneofKind:void 0},e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.tabType=e.int32();break;case 2:r.tab={oneofKind:"introduction",introduction:ke.internalBinaryRead(e,e.uint32(),n,r.tab.introduction)};break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.tabType!==0&&t.tag(1,c.Varint).int32(e.tabType),e.tab.oneofKind==="introduction"&&ke.internalBinaryWrite(e.tab.introduction,t.tag(2,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},we=new Ue,De=class extends w{constructor(){super("bilibili.app.viewunite.v1.IntroductionTab",[{no:2,name:"modules",kind:"message",repeat:2,T:()=>Re}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.modules=[],e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 2:r.modules.push(Re.internalBinaryRead(e,e.uint32(),n));break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){for(let r=0;r<e.modules.length;r++)Re.internalBinaryWrite(e.modules[r],t.tag(2,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},ke=new De,Me=class extends w{constructor(){super("bilibili.app.viewunite.v1.Module",[{no:1,name:"type",kind:"enum",T:()=>["bilibili.app.viewunite.v1.ModuleType",Ve]},{no:5,name:"head_line",kind:"message",oneof:"data",T:()=>Be},{no:22,name:"relates",kind:"message",oneof:"data",T:()=>Ie}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.type=0,t.data={oneofKind:void 0},e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.type=e.int32();break;case 5:r.data={oneofKind:"headLine",headLine:Be.internalBinaryRead(e,e.uint32(),n,r.data.headLine)};break;case 22:r.data={oneofKind:"relates",relates:Ie.internalBinaryRead(e,e.uint32(),n,r.data.relates)};break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.type!==0&&t.tag(1,c.Varint).int32(e.type),e.data.oneofKind==="headLine"&&Be.internalBinaryWrite(e.data.headLine,t.tag(5,c.LengthDelimited).fork(),n).join(),e.data.oneofKind==="relates"&&Ie.internalBinaryWrite(e.data.relates,t.tag(22,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Re=new Me,Ae=class extends w{constructor(){super("bilibili.app.viewunite.v1.Headline",[{no:1,name:"label",kind:"scalar",opt:!0,T:12}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.label=e.bytes();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.label!==void 0&&t.tag(1,c.LengthDelimited).bytes(e.label);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Be=new Ae,Fe=class extends w{constructor(){super("bilibili.app.viewunite.v1.Relates",[{no:1,name:"cards",kind:"message",repeat:2,T:()=>Ne}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.cards=[],e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.cards.push(Ne.internalBinaryRead(e,e.uint32(),n));break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){for(let r=0;r<e.cards.length;r++)Ne.internalBinaryWrite(e.cards[r],t.tag(1,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Ie=new Fe,Se=class extends w{constructor(){super("bilibili.app.viewunite.v1.RelateCard",[{no:1,name:"relate_card_type",kind:"enum",T:()=>["bilibili.app.viewunite.v1.RelateCardType",Le]},{no:11,name:"cm_stock",kind:"scalar",T:12},{no:12,name:"basic_info",kind:"message",T:()=>xe}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.relateCardType=0,t.cmStock=new Uint8Array(0),e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.relateCardType=e.int32();break;case 11:r.cmStock=e.bytes();break;case 12:r.basicInfo=xe.internalBinaryRead(e,e.uint32(),n,r.basicInfo);break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.relateCardType!==0&&t.tag(1,c.Varint).int32(e.relateCardType),e.cmStock.length&&t.tag(11,c.LengthDelimited).bytes(e.cmStock),e.basicInfo&&xe.internalBinaryWrite(e.basicInfo,t.tag(12,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Ne=new Se,Pe=class extends w{constructor(){super("bilibili.app.viewunite.v1.CardBasicInfo",[{no:6,name:"unique_id",kind:"scalar",T:9}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.uniqueId="",e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 6:r.uniqueId=e.string();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.uniqueId!==""&&t.tag(6,c.LengthDelimited).string(e.uniqueId);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},xe=new Pe;var ve=(t=>(t[t.NONE_TYPE=0]="NONE_TYPE",t[t.VIP_GRADUAL_COLOR=60001]="VIP_GRADUAL_COLOR",t))(ve||{});var $e=class extends w{constructor(){super("bilibili.community.service.dm.v1.DmSegMobileReq",[{no:1,name:"pid",kind:"scalar",T:3},{no:2,name:"oid",kind:"scalar",T:3},{no:3,name:"type",kind:"scalar",T:5},{no:4,name:"segment_index",kind:"scalar",T:3},{no:6,name:"ps",kind:"scalar",T:3},{no:7,name:"pe",kind:"scalar",T:3}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.pid="0",t.oid="0",t.type=0,t.segmentIndex="0",t.ps="0",t.pe="0",e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.pid=e.int64().toString();break;case 2:r.oid=e.int64().toString();break;case 3:r.type=e.int32();break;case 4:r.segmentIndex=e.int64().toString();break;case 6:r.ps=e.int64().toString();break;case 7:r.pe=e.int64().toString();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.pid!=="0"&&t.tag(1,c.Varint).int64(e.pid),e.oid!=="0"&&t.tag(2,c.Varint).int64(e.oid),e.type!==0&&t.tag(3,c.Varint).int32(e.type),e.segmentIndex!=="0"&&t.tag(4,c.Varint).int64(e.segmentIndex),e.ps!=="0"&&t.tag(6,c.Varint).int64(e.ps),e.pe!=="0"&&t.tag(7,c.Varint).int64(e.pe);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},St=new $e,je=class extends w{constructor(){super("bilibili.community.service.dm.v1.DmSegMobileReply",[{no:1,name:"elems",kind:"message",repeat:2,T:()=>We}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.elems=[],e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.elems.push(We.internalBinaryRead(e,e.uint32(),n));break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){for(let r=0;r<e.elems.length;r++)We.internalBinaryWrite(e.elems[r],t.tag(1,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},_e=new je,qe=class extends w{constructor(){super("bilibili.community.service.dm.v1.DanmakuElem",[{no:1,name:"id",kind:"scalar",T:3},{no:2,name:"progress",kind:"scalar",T:5},{no:3,name:"mode",kind:"scalar",T:5},{no:4,name:"fontsize",kind:"scalar",T:5},{no:5,name:"color",kind:"scalar",T:5},{no:6,name:"mid_hash",kind:"scalar",T:9},{no:7,name:"content",kind:"scalar",T:9},{no:8,name:"ctime",kind:"scalar",T:3},{no:9,name:"weight",kind:"scalar",T:5},{no:10,name:"action",kind:"scalar",T:9},{no:11,name:"pool",kind:"scalar",T:5},{no:12,name:"id_str",kind:"scalar",T:9},{no:13,name:"attr",kind:"scalar",T:5},{no:22,name:"animation",kind:"scalar",T:9},{no:23,name:"extra",kind:"scalar",T:9},{no:24,name:"colorful",kind:"enum",T:()=>["bilibili.community.service.dm.v1.DmColorfulType",ve]},{no:25,name:"type",kind:"scalar",T:5},{no:26,name:"oid",kind:"scalar",T:3},{no:27,name:"dm_from",kind:"scalar",T:5}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.id="0",t.progress=0,t.mode=0,t.fontsize=0,t.color=0,t.midHash="",t.content="",t.ctime="0",t.weight=0,t.action="",t.pool=0,t.idStr="",t.attr=0,t.animation="",t.extra="",t.colorful=0,t.type=0,t.oid="0",t.dmFrom=0,e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.id=e.int64().toString();break;case 2:r.progress=e.int32();break;case 3:r.mode=e.int32();break;case 4:r.fontsize=e.int32();break;case 5:r.color=e.int32();break;case 6:r.midHash=e.string();break;case 7:r.content=e.string();break;case 8:r.ctime=e.int64().toString();break;case 9:r.weight=e.int32();break;case 10:r.action=e.string();break;case 11:r.pool=e.int32();break;case 12:r.idStr=e.string();break;case 13:r.attr=e.int32();break;case 22:r.animation=e.string();break;case 23:r.extra=e.string();break;case 24:r.colorful=e.int32();break;case 25:r.type=e.int32();break;case 26:r.oid=e.int64().toString();break;case 27:r.dmFrom=e.int32();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.id!=="0"&&t.tag(1,c.Varint).int64(e.id),e.progress!==0&&t.tag(2,c.Varint).int32(e.progress),e.mode!==0&&t.tag(3,c.Varint).int32(e.mode),e.fontsize!==0&&t.tag(4,c.Varint).int32(e.fontsize),e.color!==0&&t.tag(5,c.Varint).int32(e.color),e.midHash!==""&&t.tag(6,c.LengthDelimited).string(e.midHash),e.content!==""&&t.tag(7,c.LengthDelimited).string(e.content),e.ctime!=="0"&&t.tag(8,c.Varint).int64(e.ctime),e.weight!==0&&t.tag(9,c.Varint).int32(e.weight),e.action!==""&&t.tag(10,c.LengthDelimited).string(e.action),e.pool!==0&&t.tag(11,c.Varint).int32(e.pool),e.idStr!==""&&t.tag(12,c.LengthDelimited).string(e.idStr),e.attr!==0&&t.tag(13,c.Varint).int32(e.attr),e.animation!==""&&t.tag(22,c.LengthDelimited).string(e.animation),e.extra!==""&&t.tag(23,c.LengthDelimited).string(e.extra),e.colorful!==0&&t.tag(24,c.Varint).int32(e.colorful),e.type!==0&&t.tag(25,c.Varint).int32(e.type),e.oid!=="0"&&t.tag(26,c.Varint).int64(e.oid),e.dmFrom!==0&&t.tag(27,c.Varint).int32(e.dmFrom);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},We=new qe;var Qe=(a=>(a[a.UNKNOWN=0]="UNKNOWN",a[a.OGV_GRADE=1]="OGV_GRADE",a[a.UP_PROTECTION=2]="UP_PROTECTION",a[a.CM=3]="CM",a[a.UP_SELECTION=4]="UP_SELECTION",a[a.OPERATION=5]="OPERATION",a[a.VOTE=6]="VOTE",a[a.ESPORTS_GRADE=7]="ESPORTS_GRADE",a))(Qe||{}),Xe=class extends w{constructor(){super("bilibili.main.community.reply.v1.MainListReply",[{no:11,name:"cm",kind:"scalar",opt:!0,T:12},{no:14,name:"top_replies",kind:"message",repeat:2,T:()=>Ke},{no:27,name:"mixed_cards",kind:"scalar",repeat:2,T:12},{no:28,name:"subject_top_cards",kind:"message",repeat:2,T:()=>Ge}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.topReplies=[],t.mixedCards=[],t.subjectTopCards=[],e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 11:r.cm=e.bytes();break;case 14:r.topReplies.push(Ke.internalBinaryRead(e,e.uint32(),n));break;case 27:r.mixedCards.push(e.bytes());break;case 28:r.subjectTopCards.push(Ge.internalBinaryRead(e,e.uint32(),n));break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.cm!==void 0&&t.tag(11,c.LengthDelimited).bytes(e.cm);for(let r=0;r<e.topReplies.length;r++)Ke.internalBinaryWrite(e.topReplies[r],t.tag(14,c.LengthDelimited).fork(),n).join();for(let r=0;r<e.mixedCards.length;r++)t.tag(27,c.LengthDelimited).bytes(e.mixedCards[r]);for(let r=0;r<e.subjectTopCards.length;r++)Ge.internalBinaryWrite(e.subjectTopCards[r],t.tag(28,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},et=new Xe,He=class extends w{constructor(){super("bilibili.main.community.reply.v1.ReplyInfo",[{no:12,name:"content",kind:"message",T:()=>Je}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 12:r.content=Je.internalBinaryRead(e,e.uint32(),n,r.content);break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.content&&Je.internalBinaryWrite(e.content,t.tag(12,c.LengthDelimited).fork(),n).join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Ke=new He,Ye=class extends w{constructor(){super("bilibili.main.community.reply.v1.Content",[{no:1,name:"message",kind:"scalar",T:9},{no:5,name:"urls",kind:"map",K:9,V:{kind:"message",T:()=>oe}}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.message="",t.urls={},e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.message=e.string();break;case 5:this.binaryReadMap5(r.urls,e,n);break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}binaryReadMap5(e,t,n){let i=t.uint32(),r=t.pos+i,l,o;for(;t.pos<r;){let[a,u]=t.tag();switch(a){case 1:l=t.string();break;case 2:o=oe.internalBinaryRead(t,t.uint32(),n);break;default:throw new globalThis.Error("unknown map entry field for bilibili.main.community.reply.v1.Content.urls")}}e[l??""]=o??oe.create()}internalBinaryWrite(e,t,n){e.message!==""&&t.tag(1,c.LengthDelimited).string(e.message);for(let r of globalThis.Object.keys(e.urls))t.tag(5,c.LengthDelimited).fork().tag(1,c.LengthDelimited).string(r),t.tag(2,c.LengthDelimited).fork(),oe.internalBinaryWrite(e.urls[r],t,n),t.join().join();let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Je=new Ye,Ze=class extends w{constructor(){super("bilibili.main.community.reply.v1.Url",[{no:1,name:"title",kind:"scalar",T:9},{no:5,name:"app_name",kind:"scalar",T:9},{no:6,name:"app_package_name",kind:"scalar",T:9}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.title="",t.appName="",t.appPackageName="",e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.title=e.string();break;case 5:r.appName=e.string();break;case 6:r.appPackageName=e.string();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.title!==""&&t.tag(1,c.LengthDelimited).string(e.title),e.appName!==""&&t.tag(5,c.LengthDelimited).string(e.appName),e.appPackageName!==""&&t.tag(6,c.LengthDelimited).string(e.appPackageName);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},oe=new Ze,ze=class extends w{constructor(){super("bilibili.main.community.reply.v1.SubjectTopCard",[{no:1,name:"type",kind:"enum",T:()=>["bilibili.main.community.reply.v1.Type",Qe]}])}create(e){let t=globalThis.Object.create(this.messagePrototype);return t.type=0,e!==void 0&&g(this,t,e),t}internalBinaryRead(e,t,n,i){let r=i??this.create(),l=e.pos+t;for(;e.pos<l;){let[o,a]=e.tag();switch(o){case 1:r.type=e.int32();break;default:let u=n.readUnknownField;if(u==="throw")throw new globalThis.Error(`Unknown field ${o} (wire type ${a}) for ${this.typeName}`);let d=e.skip(a);u!==!1&&(u===!0?p.onRead:u)(this.typeName,r,o,a,d)}}return r}internalBinaryWrite(e,t,n){e.type!==0&&t.tag(1,c.Varint).int32(e.type);let i=n.writeUnknownFields;return i!==!1&&(i==!0?p.onWrite:i)(this.typeName,e,t),t}},Ge=new ze;function Pt(s,e,t=""){return t=t!=="0"?t:"",s.fetch({method:"get",url:`https://bsbsb.top/api/skipSegments?videoID=${e}&cid=${t}&`+__airQS(s.argument),headers:{origin:"https://github.com/kokoryh/Sparkle/blob/master/release/surge/module/bilibili.sgmodule","x-ext-version":"1.0.0"},timeout:3})}var Vt=(s,e)=>{let t=Ce.fromBinary(s.response.bodyBytes);return t.cm=void 0,t.reqUser&&(t.reqUser.elecPlusBtn=void 0),t.tab?.tabModule.forEach(n=>{n.tab.oneofKind==="introduction"&&(n.tab.introduction.modules=zt(n.tab.introduction.modules))}),s.response.bodyBytes=Ce.toBinary(t),e()};function zt(s){let e=[18,29,37,55,63];return s.filter(t=>e.includes(t.type)?!1:(t.type===3&&t.data.oneofKind==="headLine"?t.data.headLine.label=void 0:t.type===28&&t.data.oneofKind==="relates"&&(t.data.relates.cards=Qt(t.data.relates.cards)),!0))}function Qt(s){let e=[4,5,6,7,11];return s.filter(t=>!e.includes(t.relateCardType)&&!t.cmStock.length&&!t.basicInfo?.uniqueId)}var Lt=(s,e)=>{let{purifyComment:t}=s.argument,n=et.fromBinary(s.response.bodyBytes);n.cm=void 0,n.mixedCards.length=0;let i=[3,5];if(n.subjectTopCards=n.subjectTopCards.filter(r=>!i.includes(r.type)),t){let r=/https:\/\/b23\.tv\/(?:cm|mall)/,l=/淘宝|某宝|天猫|京东|狗东|拼多多|饿了么|美团|转转|妙界|神气小鹿/;n.topReplies=n.topReplies.filter(o=>{let a=o.content?.urls||{},u=o.content?.message||"";return!Object.keys(a).some(d=>r.test(d))&&!r.test(u)&&!l.test(u)})}return s.response.bodyBytes=et.toBinary(n),e()};var tt=async(s,e)=>{let{headers:t,bodyBytes:n,h2_trailers:i}=await Wt(s);return s.response.headers=t,s.response.bodyBytes=n,s.response.h2_trailers=i,e()},Ct=async(s,e)=>{let t=s.request.bodyBytes,n=t[0]?W(t.subarray(5)):t.subarray(5),i=St.fromBinary(n);i.type!==1&&fe();let{pid:r,oid:l}=i,o=le(r);s.argument.__airOid=l,[{headers:a,bodyBytes:u,h2_trailers:d},y]=await Promise.all([Wt(s,1),en(s,o,l)]);if(s.response.headers=a,s.response.bodyBytes=u,s.response.h2_trailers=d,y.length)return s.state.segments=y,e()};async function Wt(s,e=2){let{method:t,url:n,headers:i,bodyBytes:r}=s.request,l=new URL(n),o=["grpc.biliapi.net","app.bilibili.com"],a=o.indexOf(l.hostname),u=Math.min(a+e,o.length);for(let d=a;d<u;d++){l.hostname=o[d];let y={method:t,url:l.toString(),headers:i,body:r,timeout:3};try{let m=await s.fetch(y);if(m.status===200&&m.bodyBytes)return m;B.info("[Bilibili] Invalid response",{method:y.method,url:y.url,status:m.status,headers:m.headers,body:m.bodyBytes})}catch(m){B.info("[Bilibili]",m,{method:y.method,url:y.url})}}B.error("[Bilibili] All hosts failed",{method:s.method,url:s.request.url}),fe(1)}async function en(s,e,t){if(!__airAny(s.argument).length)return[];try{return await __airSeg(s,e,t)}catch(n){B.info("[SponsorBlock]",n)}try{return await __airSeg(s,e,t)}catch(n){return B.info("[SponsorBlock]",n),[]}}function tn(s,a){return JSON.parse(s).reduce((e,{actionType:t,category:r,segment:n,videoDuration:o})=>(n&&__airOK(a,t,r,n[1]-n[0],o)&&e.push([n[0],n[1],r,t,o,__airIsAuto(a,t,r)?1:0]),e),[])}var $t=(s,e)=>{let t=_e.fromBinary(s.response.bodyBytes);return __airInject(t,s.state.segments,s.argument),s.response.bodyBytes=_e.toBinary(t),e()};function nn(s,a){return s.map((t,n)=>{let i=String(n+1),r=Math.floor(t[0]*1e3)+2e3,l=Math.floor(__airEnd(t)*1e3);return{id:__airId(a,n,r),progress:r,mode:5,fontsize:__airFontSize(a),color:16777215,midHash:"1948dd5d",content:__airText(a,t),ctime:"1735660800",weight:11,action:__airAction(a,t,l),pool:0,idStr:__airId(a,n,r),attr:__airAttr(a),animation:"",extra:"",colorful:0,type:1,oid:__airOid(a),dmFrom:1}})}var M=new _({matchPath:ut});M.post("v1.DM/DmSegMobile",Ct,v,$t);M.post("viewunite.v1.View/View",tt,v,Vt);M.post("v1.Reply/MainList",tt,v,Lt);var nt=new q;nt.use(st).use(lt).use(at).use(M.routes()).use(M.routeNotMatched());nt.run();
