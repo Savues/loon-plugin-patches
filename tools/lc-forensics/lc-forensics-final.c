@@ -1,27 +1,24 @@
 /*
- * lc-forensics v4.6 "tid-session" — Live Container 通用网络取证 dylib
+ * lc-forensics v4.7 "seq-anchor" — Live Container 通用网络取证 dylib
  *
- * v4.5 → v4.6 (纯日志侧增强, 零新增 hook 面 — 铁律不动):
- *   A. tid 字段: task.taskIdentifier — 请求行的唯一标识, 为 lcf-resp
- *      (响应体捕获独立模块) 提供拼接键; AI 可重建 请求→响应 对
- *   B. up 字段: CLOCK_MONOTONIC 相对秒数 — 宿主时钟虚拟化免疫,
- *      行序/间隔永不歧义 (ts 保留作绝对时间参考)
- *   C. dup 计数: 同 URL 出现次数 (穿山甲 166 条同类埋点 → 一眼可辨)
- *   D. gap 行: 请求间静默 >10s 自动插 {"ev":"gap","sec":N}
- *      = 隐式用户操作边界 (无 UI hook, 纯日志侧推断)
- *   E. tidLookup 表: (task对象 → url) 环形缓存 256 条 — data 行的
- *      URL 回填依赖, 本模块预留 (base 模块的 data 行由 lcf-resp 产出)
+ * v4.6 → v4.7 (真机时钟取证后的修正, 仍是纯日志侧):
+ *   F. seq 字段: 进程内自增序号 — 行序唯一锚点。
+ *      【环境事实】LC guest 里 clock_gettime(CLOCK_MONOTONIC) 也被虚拟化:
+ *      v4.6 实测 up 出现 4 组时钟域 (真monotonic/wall/mach基准/纳秒级),
+ *      任何系统时钟都不可信 → seq 是唯一绝对单调量 (零系统调用)
+ *   G. up 字段删除 (四组噪声无分析价值; ts 保留作参考)
+ *   H. gap 消毒: 相邻行 ts 差 ∈ (10s, 60s] 才产 gap 行;
+ *      时钟跳变 (差值巨大/倒退) 一律忽略 — 宁漏勿假
  *
- * 继承 v4.5 安全模式 (豆瓣 334 行实证):
- *   仅 NSURLSession 基类 2 个创建 selector (setImplementation + 原IMP直调)
- *   无枚举 / 无定时器 / 无 resume / 无 release
- *   阶段标记同步落盘
+ * 继承安全模式 (豆瓣 288 行实证 + v4.5 334 行实证):
+ *   仅 NSURLSession 基类 2 个创建 selector, 无枚举/定时器/resume/release
  */
 
-#define LCF_VERSION "4.6-tid-session"
+#define LCF_VERSION "4.7-seq-anchor"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define DEDUP_CAP 512          /* URL 去重表容量 (环形) */
-#define GAP_SEC 10             /* 静默阈值 */
+#define GAP_MIN 10.0           /* 静默下限 (秒) */
+#define GAP_MAX 60.0           /* 可信窗口上限 — 超过视为时钟跳变 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,22 +61,15 @@ static char  g_path[512] = "";
 static IMP g_orig_dtwrh = 0;
 static IMP g_orig_dtwr  = 0;
 
-/* 进程基准单调时钟 (ctor 时刻 = up:0.000) */
-static struct timespec g_mono0;
-/* 上一条请求的 up 时刻 (gap 检测) */
-static double g_last_up = -1.0;
+/* 进程内行序计数器 (唯一可靠锚点 — 系统时钟全被虚拟化) */
+static unsigned long long g_seq = 0;
+/* 上一条请求的 wall ts (gap 检测, 消毒逻辑见 lc_req_line) */
+static double g_last_ts = -1.0;
 
 static double lc_now(void){
     struct timeval tv;
     gettimeofday(&tv, 0);
     return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-}
-
-static double lc_up(void){
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)(ts.tv_sec - g_mono0.tv_sec)
-         + (double)(ts.tv_nsec - g_mono0.tv_nsec) / 1000000000.0;
 }
 
 static int lc_openlog(void){
@@ -101,8 +91,8 @@ static void lc_stage(const char* tag){
     if (fd >= 0){
         char line[192];
         int n = snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"up\":%.3f,\"ev\":\"stage\",\"tag\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
-            lc_now(), lc_up(), tag, (int)getpid());
+            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"stage\",\"tag\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+            lc_now(), ++g_seq, tag, (int)getpid());
         if (write(fd, line, (size_t)n) < 0){
             close(g_fd); g_fd = -1;
         }
@@ -163,8 +153,7 @@ static unsigned lc_dup_count_locked(const char* url){
 }
 
 /* ---------- 请求行公共构造 ---------- */
-/* 产出: {"ts":..,"up":..,"ev":EV,"v":..,"method":M,"url":U,"dup":N,bodyinfo,"tid":T,...tail
- * tail 由调用方拼 (ret/cls/pid + "}\n") */
+/* 产出: {"ts":..,"seq":N,"ev":EV,...,"tid":T,...tail */
 static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
                         char** out_tail, size_t* out_tailrem){
     char method[16] = "?";
@@ -199,28 +188,32 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
         tid = (unsigned long long)(uintptr_t)objc_msgSend(task, s_tid);
     }
 
-    double up = lc_up();
+    double ts = lc_now();
     char dupinfo[24] = "";
     lc_lock();
     if (url[0]){
         dupn = lc_dup_count_locked(url);
         if (dupn > 1) snprintf(dupinfo, sizeof(dupinfo), ",\"dup\":%u", dupn);
-        /* gap 检测: 距上条请求静默超阈值 → 插一行 (此行在请求行之前) */
-        if (g_last_up > 0 && up - g_last_up > (double)GAP_SEC){
-            char gapline[128];
-            int gn = snprintf(gapline, sizeof(gapline),
-                "{\"ts\":%.3f,\"up\":%.3f,\"ev\":\"gap\",\"sec\":%.1f,\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
-                lc_now(), up, up - g_last_up, (int)getpid());
-            lc_write_locked(gapline);
+        /* gap 消毒: ts 差 ∈ (GAP_MIN, GAP_MAX] 才可信为真实静默;
+         * 差值巨大/负值 = 时钟跳变/域切换, 一律忽略 (宁漏勿假) */
+        if (g_last_ts > 0){
+            double d = ts - g_last_ts;
+            if (d > GAP_MIN && d <= GAP_MAX){
+                char gapline[160];
+                int gn = snprintf(gapline, sizeof(gapline),
+                    "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"gap\",\"sec\":%.1f,\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+                    ts, ++g_seq, d, (int)getpid());
+                lc_write_locked(gapline);
+            }
         }
-        g_last_up = up;
+        g_last_ts = ts;
     }
     lc_unlock();
 
     char* p = line; size_t rem = cap;
     int n = snprintf(p, rem,
-        "{\"ts\":%.3f,\"up\":%.3f,\"ev\":\"%s\",\"v\":\"" LCF_VERSION "\",\"method\":\"%s\",\"url\":",
-        lc_now(), up, ev, method);
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"%s\",\"v\":\"" LCF_VERSION "\",\"method\":\"%s\",\"url\":",
+        ts, ++g_seq, ev, method);
     p += n; rem -= (size_t)n;
     lc_json_str(&p, &rem, url);
     n = snprintf(p, rem, "%s%s,\"tid\":%llu",
@@ -255,7 +248,6 @@ static id dtwr_hook(id self, SEL _cmd, id req){
 
 __attribute__((constructor))
 static void lcf_ctor(void){
-    clock_gettime(CLOCK_MONOTONIC, &g_mono0);
     lc_stage("S1-ctor");
 
     s_HTTPMethod = sel_registerName("HTTPMethod");

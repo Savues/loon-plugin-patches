@@ -39,7 +39,7 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v4.6）
+lc-forensics-final.c    # 源码（当前版本 v4.7）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
@@ -74,18 +74,21 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 ## 输出格式
 
 ```json
-{"ts":1792938830.25,"up":12.471,"ev":"req","v":"4.6-tid-session","method":"POST",
+{"ts":1792938830.25,"seq":147,"ev":"req","v":"4.7-seq-anchor","method":"POST",
  "url":"https://api.douban.com/v2/app_ads/splash_show","dup":2,"bodyLen":4509,
  "stream":0,"tid":17,"ret":"ok","cls":"__NSURLSessionLocal","pid":61291}
-{"ts":...,"up":...,"ev":"gap","sec":23.4,...}   ← 静默>10s 后的首条请求前自动插入
-{"ts":...,"ev":"stage","tag":"S3-hooked:2",...}
+{"ts":...,"seq":148,"ev":"gap","sec":23.4,...}   ← ts 差∈(10s,60s] 才产；时钟跳变自动忽略
+{"ts":...,"seq":1,"ev":"stage","tag":"S3-hooked:2",...}
 ```
 
-- `tid` = `task.taskIdentifier`，请求行唯一标识 —— 与 `lcf-resp` 模块（响应体捕获，独立按需安装）的 `data` 行以 `tid` 拼接，重建 请求→响应 对
-- `up` = 模块加载起的长时钟（CLOCK_MONOTONIC），宿主时钟虚拟化免疫，行序/间隔分析一律以它为准；`ts` 仅作绝对时间参考（偶发错乱，已知无害）
+- **`seq` = 行序唯一锚点**：进程内自增序号，零系统调用。【环境事实】LC guest 里
+  `CLOCK_MONOTONIC` 也被虚拟化（v4.6 实测 `up` 出现 4 组时钟域），任何系统时钟都不可信——
+  AI 分析行序/去重/关联一律以 `seq` 为准
+- `tid` = `task.taskIdentifier`，与 `lcf-resp` 模块（响应体捕获，独立按需安装）的 `data` 行以 `tid` 拼接，重建 请求→响应 对
+- `ts` 仅作绝对时间参考（会被虚拟化，出现跳变/多域），**不用作行序**
 - `dup` = 同 URL 第几次出现（≥2 才写）；批量埋点一眼可辨
 - `ret:"NIL"` = 原实现返回 nil（App 拿到空 task，立即值得排查）
-- `ev`：`stage`（装配阶段）/ `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）/ `gap`（静默边界，用户操作的隐式分界）
+- `ev`：`stage` / `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）/ `gap`（消毒后的静默边界）
 
 ## 版本史（豆瓣真机二分实证）
 
@@ -98,7 +101,8 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | v4.3 | 安装面收窄到系统基类 | 仍闪退（死在 ctor+2s 定时回调窗口） |
 | **v4.4** | **纯减法二分**：零枚举/零定时器/零 resume，单 selector + 分阶段同步落盘 | **豆瓣稳定，44 条/启动** ✅ |
 | **v4.5** | v4.4 安全模式 + 委托版 `dataTaskWithRequest:` | **豆瓣 334 条/会话** ✅ |
-| **v4.6** | 纯日志侧增强：`tid`（lcf-resp 拼接键）+ `up` 单调时钟（时钟虚拟化免疫）+ `dup` 计数 + `gap` 行（静默>10s = 隐式操作边界） | 待真机验证 · 当前版本 |
+| **v4.6** | 纯日志侧增强：`tid` + `up` 单调时钟 + `dup` 计数 + `gap` 行 | 豆瓣 288 行全合法；**发现 CLOCK_MONOTONIC 也被虚拟化（up 出现 4 组时钟域）** |
+| **v4.7** | `seq` 进程内序号（唯一行序锚点，零系统调用）替代 `up`；`gap` 搬回 `ts` 域并消毒（差值 ∈ (10s,60s] 才可信，跳变忽略） | 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
