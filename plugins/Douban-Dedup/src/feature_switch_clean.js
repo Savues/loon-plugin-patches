@@ -40,6 +40,12 @@ for (const k of TOGGLES) {
 // 标题党(clickbait)配置清空
 if (d.clickbait_config !== undefined) { delete d.clickbait_config; dirty = true }
 
+// v2.4.0: 底栏"新日历"tab清空 (tabitem.market — 原商城位被运营改成日历入口, 用户裁决无用)
+if (d.tabitem && typeof d.tabitem === 'object' && d.tabitem.market !== undefined) {
+  d.tabitem.market = null  // 与 home/subject/group 的正常 null 形态一致 → App 按无此 tab 处理
+  dirty = true
+}
+
 if (dirty) { $done({ body: JSON.stringify(data) }); return }
 pass()
 })()
