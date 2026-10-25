@@ -9,10 +9,16 @@
 在 **无 Mac、无越狱** 的环境下（本项目在 iSH / Alpine Linux 交叉编译），
 为容器内 App 建立一条独立于抓包工具（Loon MITM / Stream / Charles）的取证通道：
 
-- 记录每个 HTTP(S) 请求的 `method / url / bodyLen / stream` 与返回状态 `ret`
-- 直接写进 App 自己的沙盒，读取走文件挂载（iSH 可直接读）
-- JSONL 格式，逐行独立，可 `rg` / `jq` 直接分析
-- 阶段标记 `stage` 行（S1-ctor / S2-sels / S3-hooked）—— 模块死在哪一步，磁盘上有证据
+- **请求流**：每个 HTTP(S) 请求的 `method / url / tid / bodyLen` + `seq` 严格连续锚序
+  （时钟虚拟化免疫）+ `dup` 重复计数 + `gap` 静默边界（用户操作推断）
+- **响应体**：`data` 行（分片字节量 + ASCII 预览）+ **重组落盘**
+  `lcf-resp/<tid>-<status>-<type>.bin`（完整原始字节——海报/JSON/HTML 全可还原）
+- **请求体**：POST body 落盘 `lcf-req/<tid>-<method>.bin`（广告 SDK 上报内容取证）
+- **生命周期**：`fin` 行（state ok/err + HTTP 状态码 + mime + errCode 失败分类）
+- **输出形态**：全部写进 App 自己的沙盒（iSH 文件挂载直接读），JSONL 逐行独立，
+  可 `rg` / `jq` 直接分析；阶段标记 `stage` 行——模块死在哪一步，磁盘上有证据
+- 实战产出示例：豆瓣"每日福利"悬浮窗的图片 URL（`treasury_image` 图床）
+  就是从重组文件+requrl 字段三重验证实锤的，直接转化为 Douban-Dedup v2.6.1 的拦截规则
 
 ## 与抓包工具的分工（实测结论）
 
@@ -46,13 +52,6 @@ build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
 lc-forensics-v8.3.dylib # 构建产物（可直接 Import）
-| **v7.1** | 重组键 (tid, taskkey) 双键防串写 + fin errCode | 豆瓣恢复：errCode 全线，-1004×221 证实长连接架构 |
-| **v7.2** | POST body 落盘 lcf-req/<tid>-<method>.bin | 200 个 POST 文件；splash_show 明文归因参数全解 |
-| **v7.3-v7.5** | seq 原子化（占位+回填）三轮修复：±1 毛刺 → 撞号 → 改造残留 | 677 行 seq 严格连续 1→677 |
-| **v8.0** | req/req-delegate 回填补齐（全量核对）| seq 零重复零空耗零遗漏 |
-| **v8.1** | +图片通道 hook（双冒号版 didReceiveDispatchData）| S4:3 双通道装上；但分片双记 + 券图仍缺席（URL MD5 无一匹配）|
-| **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加 | **1:1 双记确认**；重组命中券图 129317B PNG ✅ 但创建请求漏抓 |
-| **v8.3** | data 行 +requrl（读 task.currentRequest）——分片自带 URL，不依赖创建 hook | 当前版本 |
 
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
@@ -116,7 +115,16 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v4.6** | 纯日志侧增强：`tid` + `up` 单调时钟 + `dup` 计数 + `gap` 行 | 豆瓣 288 行全合法；**发现 CLOCK_MONOTONIC 也被虚拟化（up 出现 4 组时钟域）** |
 | **v4.7** | `seq` 进程内序号（唯一行序锚点，零系统调用）替代 `up`；`gap` 搬回 `ts` 域并消毒（差值 ∈ (10s,60s] 才可信，跳变忽略） | 豆瓣 248 行，seq 1→248 严格递增 ✅ |
 | **v4.8** | lcf-resp 探针并入（独立 dylib 加载层谜题 → 单文件并体）：ctor 后台线程 → 沙盒就绪 → 三类 Task 方法表 introspection → `lcf-resp.jsonl` | 双 App 加载但探针线程零产出 |
-| **v5.0** | 探针可观测化：线程关键节点全部写 base 日志（probe-thread-start / wait-passed / done / pthread-fail），resp 文件写入问题不再致盲 | 当前版本 |
+| **v6.0-v6.4** | resp/fin/reqbody 元数据 hook（task 内部方法）四轮闪退/黑屏 | didfin 主体=闪退凶手；localizedDescription/allHeaderFields 深求值=雷 |
+| **v6.5-v6.8** | 状态码换路线：`task.response` 公开属性（fin 行承载） | **双 App 全绿**，resp 能力达成 |
+| **v6.9-v7.0** | 重组 flush 恢复（锁纪律：持锁区只摘槽，IO 锁外）+ take_slot 堆分配 | 18 个重组文件落盘 JSON 可读；豆瓣竞态修复 |
+| **v7.1** | 重组键 (tid, taskkey) 双键防串写 + fin errCode | 豆瓣恢复：errCode 全线，-1004×221 证实长连接架构 |
+| **v7.2** | POST body 落盘 lcf-req/<tid>-<method>.bin | 200 个 POST 文件；splash_show 明文归因参数全解 |
+| **v7.3-v7.5** | seq 原子化（占位+回填）三轮修复：±1 毛刺 → 撞号 → 改造残留 | 677 行 seq 严格连续 1→677 |
+| **v8.0** | req/req-delegate 回填补齐（全量核对）| seq 零重复零空耗零遗漏 |
+| **v8.1** | +图片通道 hook（双冒号版 didReceiveDispatchData）| S4:3 双通道装上；但分片双记 + 券图仍缺席（URL MD5 无一匹配）|
+| **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加 | **1:1 双记确认**；重组命中券图 129317B PNG ✅ 但创建请求漏抓 |
+| **v8.3** | data 行 +requrl（读 task.currentRequest）——分片自带 URL，不依赖创建 hook | 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
@@ -126,6 +134,13 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 4. **永不引入 dispatch_after 定时器链** —— LC guest 豆瓣环境实证死亡窗口
 5. **永不 hook resume** —— 第二安装面，风险无收益
 6. 每行带版本号 + 阶段标记同步落盘 —— 版本归属乌龙/取证空白的双保险
+7. **不对 hook 回调参数做深属性求值**（localizedDescription / allHeaderFields / UserInfo
+   等惰性求值属性）—— LC guest 环境不安全；浅层 selector（statusCode / length / 判空）才可以
+8. **CFNetwork task 内部方法（connection:* / _task_*）慎 hook** —— 存在非 msgSend 调用路径，
+   C 函数签名不匹配即崩；优先用 task 公开属性（currentRequest / response）
+9. **持锁区只调 `*_locked` 变体** —— lc_stage / lc_emit 内部都拿锁，重入即死锁（黑屏型，两次踩坑）
+10. **批量改码必须全量核对** —— `rg` 计数关键模式（如 ++g_seq 出现次数应为恒定值），
+    改造残留会让真根因被表象掩盖（v7.3-v7.5 三轮教训）
 
 ## 维护约定
 
