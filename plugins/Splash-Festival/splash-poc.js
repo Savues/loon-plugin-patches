@@ -66,7 +66,8 @@ function normalizeFestival(v) {
 var MODE_SEL = A.splashMode || "official";
 var IMG_MODE = A.imgMode || "auto";
 // v39：logo 开关 + 显示时长。中文标签做值（Loon select 不支持 label=value，见 .lpx 注释）
-var LOGO_SEL = A.logo || "官方";
+// v40.3：logo 默认「隐藏」（用户选定）；官方角标在满版历史插画上偏脏
+var LOGO_SEL = A.logo || "隐藏";
 var DUR_SEL = A.duration || "官方";
 // 档位说明：0 会被客户端当成「未设置」回落默认（用户实测），所以不提供 0 档。
 // 下限在哪由真机探（0.1 秒以下是否还被尊重 / 是否被钳到某个最小值）。
@@ -76,6 +77,8 @@ var DUR_MAP = { "1毫秒": 1, "10毫秒": 10, "50毫秒": 50,
 // 注意用 undefined 判断而不是 !!：将来若加「0秒」档，0 也能正确写入（|| 0 会把 0 吃掉）
 var DUR_MS = Object.prototype.hasOwnProperty.call(DUR_MAP, DUR_SEL) ? DUR_MAP[DUR_SEL] : undefined;
 var sel = normalizeFestival(A.festival);
+// v40.3：festival 缺省时兜底「11周年」（bili11，用户选定）——原来落到 midautumn
+if (!sel) sel = "bili11";
 
 // ════════════════════════════════════════════════════════════════════
 // v37-a：自动节日（festival = 自动节日）
@@ -334,6 +337,8 @@ function __isPad() {
 }
 
 var sel = normalizeFestival(A.festival);
+// v40.3：festival 缺省时兜底「11周年」（bili11，用户选定）——原来落到 midautumn
+if (!sel) sel = "bili11";
 try {
   const j = JSON.parse($response.body);
   if (!j.data) j.data = {};
@@ -386,7 +391,7 @@ try {
       targetHash = h.hash;
       targetName = h.name;
     } else {
-      const id = FESTIVALS[sel] || FESTIVALS.midautumn;
+      const id = FESTIVALS[sel] || FESTIVALS.bili11;
       const vend = VENDORED[id];
       if (!vend) {
         $done({ body: JSON.stringify(j) });

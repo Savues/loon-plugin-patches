@@ -31,10 +31,10 @@
 | 参数 | 类型 | 选项 | 默认 | 说明 |
 |---|---|---|---|---|
 | `enabled` | switch | — | true | 启用插件 |
-| `festival` | select | 73 个皮肤 + 7 个自动模式 + 屏蔽 | midautumn | 选择展示的节日/活动品牌皮肤；`自动节日` / `随机` / `随机·全部` / `随机·半透明` / `轮换` / `轮换·全部` / `轮换·半透明` 见「功能」 |
+| `festival` | select | 73 个皮肤 + 7 个自动模式 + 屏蔽 | bili11（11周年） | 选择展示的节日/活动品牌皮肤；`自动节日` / `随机` / `随机·全部` / `随机·半透明` / `轮换` / `轮换·全部` / `轮换·半透明` 见「功能」 |
 | `splashMode` | select | official / full / half | official | **显示模式**：`official` = 官方设定（full=铺满 / half=缩放）；`full` = 强制铺满全屏；`half` = 强制缩放完整不裁切 |
 | `imgMode` | select | auto / landscape / portrait | auto | **图片方向**：`auto` = 按设备自动（iPad 横图 / 手机竖图）；`landscape` = 强制横图；`portrait` = 强制竖图 |
-| `logo` | select | 官方 / 隐藏 | 官方 | **B 站 logo 角标**：`隐藏` = 不叠加官方 Bilibili 角标（历史满版插画上更干净） |
+| `logo` | select | 官方 / 隐藏 | 隐藏（v40.3 起） | **B 站 logo 角标**：`隐藏` = 不叠加官方 Bilibili 角标（历史满版插画上更干净） |
 | `duration` | select | 官方 / 1毫秒 / 10毫秒 / 50毫秒 / 0.1秒 / 0.2秒 / 0.5秒 / 1秒 / 2秒 / 3秒 / 5秒 | 官方 | **显示时长**（ms）。数值越小越接近跳过开屏 |
 
 > `splashMode` 和 `imgMode` 可自由组合。例如：`splashMode=half` + `imgMode=landscape` = 强制横图 + 缩放完整。

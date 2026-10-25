@@ -179,8 +179,8 @@ run('imgMode=landscape 强制横图', { festival: '中秋节', imgMode: 'landsca
 });
 
 // —— 未知值兜底 ——
-run('未知 festival → 兜底 midautumn(38)', { festival: '不存在的皮肤' }, PHONE, (j) => {
-  return [showIds(j) === '14', `show=[${showIds(j)}]`];
+run('未知 festival 值 → 兜底 bili11(v40.3，13.png)', { festival: '不存在的皮肤' }, PHONE, (j) => {
+  return [showIds(j) === '14' && endsWith(thumbOf(j, 14), '13.png'), `show=[${showIds(j)}] thumb=${thumbOf(j, 14).split('/').pop()}`];
 });
 
 // —— v35.3 门控字段（反汇编 BFCBrandSplashDispatcher 得出）——
@@ -436,12 +436,31 @@ run('logo=隐藏 → list 条目与 show 条目的 show_logo 都为 false',
       `list=${it.show_logo} show=${sh.show_logo}`];
   });
 
-run('logo=官方（默认）→ 不动 show_logo',
-  { festival: '中秋节' }, PHONE, (j) => {
+run('logo=官方 → 不动 show_logo', { festival: '中秋节', logo: '官方' }, PHONE, (j) => {
     const it = j.data.list.find(x => x.id === 14) || {};
     const sh = (j.data.show || [])[0] || {};
     return [it.show_logo === true && sh.show_logo === true,
       `list=${it.show_logo} show=${sh.show_logo}`];
+  });
+
+run('logo 缺省（v40.3 默认隐藏）→ show_logo=false',
+  { festival: '中秋节' }, PHONE, (j) => {
+    const it = j.data.list.find(x => x.id === 14) || {};
+    const sh = (j.data.show || [])[0] || {};
+    return [it.show_logo === false && sh.show_logo === false,
+      `list=${it.show_logo} show=${sh.show_logo}`];
+  });
+
+// —— v40.3：默认皮肤 11周年（用户选定）——
+run('festival 缺省（v40.3 默认）→ 11周年(bili11, id=13)', { }, PHONE, (j) => {
+    const t = thumbOf(j, 14);
+    return [endsWith(t, '13.png') && showIds(j) === '14',
+      `id14.thumb=${t.split('/').pop()} show=[${showIds(j)}]`];
+  });
+
+run('未知 festival 键 → 兜底 bili11(13.png)（与上一条等价，守 HISTORICAL 分支外的 FESTIVALS 回落）',
+  { festival: '2023不存在的皮肤' }, PHONE, (j) => {
+    return [endsWith(thumbOf(j, 14), '13.png'), `id14.thumb=${thumbOf(j, 14).split('/').pop()}`];
   });
 
 run('duration=3秒 → list 与 show 都是 3000',
