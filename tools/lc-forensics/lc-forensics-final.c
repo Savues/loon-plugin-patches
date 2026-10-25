@@ -15,7 +15,7 @@
  * 不属铁律3禁止的全局类枚举)
  */
 
-#define LCF_VERSION "4.8-resp-probe-merged"
+#define LCF_VERSION "4.9-probe-diag"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define DEDUP_CAP 512          /* URL 去重表容量 (环形) */
@@ -329,6 +329,15 @@ static void lcf_resp_probe_class(const char* clsname){
 /* 后台线程: 等 base 首写完成 (沙盒就绪) 后跑 introspection */
 static void* lcf_resp_probe_thread(void* arg){
     (void)arg;
+    int waited = 0;
+    /* v4.9 判别行: 线程活着的第一证据 (在等待循环之前写) */
+    {
+        char line[192];
+        snprintf(line, sizeof(line),
+            "{\"ts\":%.3f,\"ev\":\"thread-start\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+            lc_now(), (int)getpid());
+        lc_resp_write(line);
+    }
     for (int i = 0; i < 240; i++){          /* ≤120s: base 日志出现 = 就绪 */
         const char* home = getenv("HOME");
         if (home && home[0]){
@@ -338,6 +347,7 @@ static void* lcf_resp_probe_thread(void* arg){
             if (stat(p, &st) == 0 && st.st_size > 0) break;
         }
         usleep(500 * 1000);
+        waited++;
     }
     lcf_resp_probe_class("__NSCFLocalSessionTask");
     lcf_resp_probe_class("__NSCFURLSessionTask");
@@ -347,6 +357,14 @@ static void* lcf_resp_probe_thread(void* arg){
         "{\"ts\":%.3f,\"ev\":\"done\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
         lc_now(), (int)getpid());
     lc_resp_write(line);
+    /* v4.9: 探针结束时再写一行带等待轮数 (区分'就绪即跑'与'120s超时强跑') */
+    {
+        char line2[160];
+        snprintf(line2, sizeof(line2),
+            "{\"ts\":%.3f,\"ev\":\"done2\",\"waited\":%d,\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+            lc_now(), waited, (int)getpid());
+        lc_resp_write(line2);
+    }
     return 0;
 }
 
