@@ -1,6 +1,6 @@
 #!name=YouTube去广告(精简版) v5.1.1
 #!desc=针对「广告拦截合集内置重复脚本」的精简版 v5.1.0。去广告、画中画、后台播放、隐藏Shorts/上传按钮功能完整保留。仅解密 youtubei.googleapis.com，最大限度降低App加载延迟。v5.1 依据真机抓包修复了 config 端点解析崩溃（UMP onesie 密钥采不到），并移除了对 log_event 响应（实为 GIF）的无效解析。字幕翻译已强制关闭，字幕请交由「YouTube双语翻译」插件处理。需启用 MitM over HTTP/2 与 QUIC 回退保护。 本修改版仓库: https://github.com/Savues/loon-plugin-patches。
-#!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
 #!system_version=15

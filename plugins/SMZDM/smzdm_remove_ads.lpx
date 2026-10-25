@@ -2,7 +2,7 @@
 #!version=1.4.0
 #!desc=移除开屏/信息流/搜索广告与热榜、微信通知弹窗，屏蔽 UMP 开屏 SDK、友盟 DSP 与自建埋点域名；首页清洗已本地化（不依赖远程 jq）。
 #!openUrl=https://apps.apple.com/app/id518213356
-#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=
 #!system_version=

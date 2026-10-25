@@ -1,6 +1,6 @@
 #!name=我的页字段消费测试 (Debug)
 #!desc=测试插件：验证我的页字段消费行为，调试用。
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
 #!tag=测试,我的页

@@ -1,6 +1,6 @@
 #!name=JavDB 调试-4 仅清空广告数组
 #!desc=仅清空 /api/v1/ads 的三个广告数组，不修改 enabled 字段
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
 #!system_version=15

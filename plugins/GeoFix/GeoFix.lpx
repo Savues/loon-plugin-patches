@@ -1,6 +1,6 @@
 #!name=GeoFix 网络定位重定向 v1.11
 #!desc=重写 Apple 网络定位接口返回的 WiFi/基站定位结果，把定位固定到你指定的坐标（自定义经纬度）。
-#!author=原作者: 见 UPSTREAM.md | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=定位,QA
 #!system=iOS, iPadOS
 #!system_version=16

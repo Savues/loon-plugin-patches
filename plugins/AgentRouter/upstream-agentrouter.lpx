@@ -1,6 +1,6 @@
 #!name=AgentRouter签到
 #!desc=每日自动签到，查看奖励、余额与累计消耗。
-#!author=773075692, MaYIHEI
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/MaYIHEI/paperclip/tree/main/app/agentrouter
 #!icon=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png
 #!tag=签到

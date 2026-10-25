@@ -1,6 +1,6 @@
 #!name=豆瓣搜索页广告词屏蔽
 #!desc=剥离豆瓣搜索框滚动广告词与「发现」横滚标签里的预制广告，仅动广告数据不动搜索功能。
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-SearchAd
 #!date=2026-10-01
 #!version=1.0

@@ -1,6 +1,6 @@
 #!name=我的页调试版（结果写入响应体）
 #!desc=调试版：把参数解析、过滤结果直接写入响应体的 _debug 字段，抓包即可看到
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
 #!tag=测试,我的页

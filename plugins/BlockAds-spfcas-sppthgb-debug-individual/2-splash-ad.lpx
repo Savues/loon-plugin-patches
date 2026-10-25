@@ -1,6 +1,6 @@
 #!name=JavDB 调试-2 仅开屏广告
 #!desc=仅将 startup API 的 splash_ad.enabled 设为 false（保留结构）
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
 #!system_version=15

@@ -1,7 +1,7 @@
 #!name=B站空降助手 v1.58
 #!desc=视频空降助手：识别弹幕/评论里的时间点，一键跳转（airSelfAction 默认开启，含只提醒与汇总弹窗模式）。
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Airborne/icon.png
-#!author=原作者: kokoryh (Sparkle) | 可配置化与独立插件: Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=空降助手,SponsorBlock,Bilibili
 #!system=iOS, iPadOS
 #!system_version=15

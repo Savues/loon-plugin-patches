@@ -1,6 +1,6 @@
 #!name=JavDB 调试-3 仅启动公告
 #!desc=仅将 startup API 的 settings.NOTICE 设为空字符串
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
 #!system_version=15

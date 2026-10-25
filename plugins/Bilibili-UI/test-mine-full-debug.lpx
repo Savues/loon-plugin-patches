@@ -1,6 +1,6 @@
 #!name=我的页字段测试 (含完整功能+Debug)
 #!desc=我的页服务项自定义完整功能+DEBUG日志。投稿区/推荐区/更多区隐藏/重排/区块开关。日志前缀 [Enhanced-Mine]
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
 #!tag=测试,我的页

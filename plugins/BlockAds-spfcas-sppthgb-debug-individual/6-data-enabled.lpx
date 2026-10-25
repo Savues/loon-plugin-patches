@@ -1,6 +1,6 @@
 #!name=JavDB 调试-6 仅 data.enabled=false
 #!desc=仅设置 /api/v1/ads 的 data.enabled=false
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
 #!system_version=15

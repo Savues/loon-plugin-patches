@@ -2,7 +2,7 @@
 #!version=1.0.1
 #!date=2026-10-24
 #!desc=屏蔽豆瓣开屏广告：拦截启动广告素材与配置接口。开屏时长字段篡改待后续版本处理。
-#!author=honue
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Douban-Dedup
 #!icon=https://raw.githubusercontent.com/honue/rules/master/img/douban.png
 [Rule]

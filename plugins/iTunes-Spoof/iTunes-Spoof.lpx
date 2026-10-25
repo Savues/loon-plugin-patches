@@ -1,6 +1,6 @@
 #!name=iTunes 收据校验转发 v1.02
 #!desc=把 App 的 iOS 收据校验请求转发到注入服务，回包替换为伪造的高级版凭证。【上游 Jsforbaby 原版，脚本逐字节未改】
-#!author=原作者: Jsforbaby | 托管与修复: Savues[https://github.com/Savues/loon-plugin-patches]
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/fishdown/Icon/refs/heads/master/app/RevenueCat.png
 #!tag=会员,MITM

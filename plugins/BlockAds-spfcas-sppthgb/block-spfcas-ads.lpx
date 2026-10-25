@@ -1,6 +1,6 @@
 #!name=JavDB 去广告与公告 v1.9.3
 #!desc=屏蔽 JavDB 启动广告图片、开屏广告配置、启动公告与首页横幅（spfcas/sppthgb 域投放）。
-#!author=Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,启动公告
 #!system=iOS, iPadOS
 #!system_version=15

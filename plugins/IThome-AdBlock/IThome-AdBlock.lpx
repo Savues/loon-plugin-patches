@@ -1,7 +1,7 @@
 #!name=IT之家去广告（增强版）
 #!desc=过滤 IT之家信息流广告与文末广告：带货文识别（联盟链接特征 ≥2 命中）、事件日历卡片、置顶轮播可配置移除。
 #!openUrl=https://apps.apple.com/app/id570610859
-#!author=Savues[https://github.com/Savues]
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=
 #!system_version=

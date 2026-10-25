@@ -2,7 +2,7 @@
 #!version=1.3.0
 #!desc=过滤信息流推广（直播/赞助/带货/商品五类特征）、移除图片视频实况照片水印、屏蔽点点 AI 与通知引导弹窗（可开关）、热榜整删。
 #!openUrl=https://apps.apple.com/app/id741292507
-#!author=RuCu6[https://github.com/RuCu6], fmz200[https://github.com/fmz200]
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=
 #!system_version=

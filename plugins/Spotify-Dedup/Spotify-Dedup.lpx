@@ -1,6 +1,6 @@
 #!name=Spotify去广告(合订版) v1.4
 #!desc=合并 kelee「Spotify去广告」的开关版脚本 + 730 合集的 gae2 老端点拦截 + QUIC 封锁。消除与 blockAds 合集的重复改写。脚本写入 35 项账号属性（目录/离线/有声书/洗牌等），并屏蔽播放页「探索」与设置页会员信息两个独立端点。v1.4 移除了会导致部分歌曲无法播放的三项假权限。tab / useractivity 两个开关改后需重新登录 Spotify 方可生效。本修改版仓库: https://github.com/Savues/loon-plugin-patches。
-#!author=原作者: 001ProMax | 合并整理: Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
 #!system_version=15

@@ -1,6 +1,6 @@
 #!name=YouTube去广告(去重版) v5.1.1
 #!desc=去广告精简版（针对「广告拦截合集内置重复脚本」冲突优化）：开屏/信息流/贴片广告过滤，装完即用无需配置。
-#!author=原作者: Maasea, VirgilClyne, Choler, DivineEngine, app2smile | 修改整合: Savues <https://github.com/Savues/loon-plugin-patches>
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=iOS, iPadOS, macOS
 #!system_version=15

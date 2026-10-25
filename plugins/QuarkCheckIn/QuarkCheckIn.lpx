@@ -1,6 +1,6 @@
 #!name=夸克网盘签到
 #!desc=每天自动签到领网盘空间：7 天一轮（普通会员 20-100MB/天，SVIP 最高 1024MB/天），自动签到默认开启，附带奖励与余额查询。
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/QuarkCheckIn
 #!date=2026-09-29
 #!icon=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/agentrouter/icon.png

@@ -1,6 +1,6 @@
 #!name=JavDB 调试-7 双层 enabled=false
 #!desc=仅设置 data.enabled=false 和 data.ads.enabled=false，不清空数组
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告,JavDB,调试
 #!system=iOS, iPadOS
 #!system_version=15

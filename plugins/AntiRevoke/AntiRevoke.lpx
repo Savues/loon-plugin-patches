@@ -1,6 +1,6 @@
 #!name=Apple 证书吊销检查屏蔽 v1.2
 #!desc=屏蔽 OCSP/CRL/证书吊销查询域名，让已过期或已被吊销的证书仍能完成 TLS 握手（侧载/企业证书场景）。不影响加密强度与证书链验证，仅跳过吊销状态检查。
-#!author=原作者: Salem（Apache-2.0）| 分组开关改造: Savues[https://github.com/Savues/loon-plugin-patches]
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/AntiRevoke/icon.jpg
 #!tag=证书,MITM,调试

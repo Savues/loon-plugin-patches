@@ -1,7 +1,7 @@
 #!name=Zepp-AdBlock v1.3.0
 #!desc=拦截开屏（startpage_ad）、首页弹窗、公告板运营卡、设备页推广、运动周月报推广卡与训练视频广告。
 #!version=1.3.0
-#!author=Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Zepp-AdBlock/icon.png
 

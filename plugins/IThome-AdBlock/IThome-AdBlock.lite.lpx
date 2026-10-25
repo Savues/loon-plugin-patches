@@ -1,7 +1,7 @@
 #!name=IT之家去广告（修复版）
 #!desc=过滤IT之家信息流广告和文末广告，自定义移除置顶和轮播图。修复：补全首页 feed 等未覆盖端点，解决双11红包等活动卡片漏拦截。
 #!openUrl=https://apps.apple.com/app/id570610859
-#!author=Savues[https://github.com/Savues]
+#!author=@Savues <https://github.com/Savues>
 #!tag=去广告
 #!system=
 #!system_version=

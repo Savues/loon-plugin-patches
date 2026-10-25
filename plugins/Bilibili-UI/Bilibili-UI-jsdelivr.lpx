@@ -1,6 +1,6 @@
 #!name=小破站界面增强 v3.6.0 (jsDelivr)
 #!desc=【首页标签页】【底部导航栏】仅手机/国际版布局有效；iPad HD 布局不走网络管线，不可改。我的页服务项自定义（iPad HD）已于 v3.6.0 移交 Bilibili-Dedup（MineHideIds）。需启用 MitM over HTTP/2。
-#!author=原作者: VirgilClyne, app2smile, Maasea (Biliverse) | 真开关改造: Savues
+#!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-UI/icon.png
 #!tag=界面增强,Bilibili
