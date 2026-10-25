@@ -8,6 +8,40 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [5.1] - 2026-10-26 · data-capture
+
+### 动机：预置文件实验实锤"新建受限" + 方法表名单到手
+
+在两个 guest 容器手动 `touch` 预置 `lcf-resp.jsonl` 后，探针立即写满
+2741B——**"沙盒对 Documents 新建文件受限、append 已存在文件放行"实锤**。
+同时拿到 `__NSCFLocalSessionTask` 全部 63 个方法（豆瓣=JavDB 完全一致），
+数据接收候选定案：
+
+- ★ 首选 `_onqueue_didReceiveDispatchData:completion:`（CFNetwork 内部数据泵）
+- ◆ 响应头 `_onqueue_didReceiveResponse:completion:` 等
+- ● 结束 `_onqueue_didFinishWithError:` 等
+- `__NSCFURLSessionTask`/`__NSCFLocalSessionDataTask` 在 iOS 26 已不存在
+
+### 改动
+
+- **+数据分片捕获 hook**：`__NSCFLocalSessionTask` 真实定义的
+  `_onqueue_didReceiveDispatchData:completion:`（探针定案首选），
+  `setImplementation` + 原 IMP 直调；`dispatch_data_create_map` 只读映射
+  （不持有——铁律 1），产 `data` 行：`tid` + `bytes` + 128B 预览（控制符转义）
+- **fallback**：`lcf-resp.jsonl` open 失败 → 永久切 base 文件通道
+  （`lcf-resp-fallback` stage 标记），data 行 `ev:"data"` 与 base 行天然区分
+- **探针幂等**：resp 文件已有 `probe` 行则跳过（免每轮重写 63 方法大名单）
+- 阶段标记增 `S4-data-hooked` / `S4-data-miss`
+
+### 实证（待真机）
+
+69408B，33 个外部符号全 dynamic_lookup（新增 `dispatch_data_get_size/create_map`），
+无 `getClassList`/`release`/`dispatch_after`，md5 `5d59e9e5`。
+判读：`S4-data-hooked` 出现后，`data` 行的 `tid` 应能对上 `req` 行——
+请求→响应对正式建成。
+
+---
+
 ## [5.0] - 2026-10-25 · probe-observable
 
 ### 动机：v4.9 判别行全无 → 但判别行设计有盲区

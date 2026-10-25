@@ -1,26 +1,32 @@
 /*
- * lc-forensics v4.8 "resp-probe-merged" — Live Container 通用网络取证 dylib
+ * lc-forensics v5.1 "data-capture" — Live Container 通用网络取证 dylib
  *
- * v4.7 → v4.8 (lcf-resp 独立 dylib 无法加载 → 并体方案):
- *   把 lcf-resp v0.2 的 introspection 探针并进 base, 单文件运行:
- *   - ctor 后台线程等待 base 首写 (S1-ctor 落盘 = 沙盒就绪信号)
- *   - 就绪后对 __NSCFLocalSessionTask / __NSCFURLSessionTask /
- *     __NSCFLocalSessionDataTask 三类做 class_copyMethodList 方法表
- *     introspection, 名单写入 Documents/lcf-resp.jsonl
- *   - 零 hook (introspection 只读), 探针职责用独立文件+ev 字段区分
- *   - 若本轮 lcf-resp.jsonl 出现 → 反向证明独立 dylib 未被 LC 加载
+ * v5.0 → v5.1 (探针名单到手 → 响应数据捕获转正 + fallback):
  *
- * 继承 v4.7 安全模式: 基类 2 selector, seq 锚点, gap 消毒,
- * 无枚举/定时器/resume/release (探针的 class_copyMethodList 是单类查询,
- * 不属铁律3禁止的全局类枚举)
+ *   A. 数据分片捕获 hook (探针判读定案的首选目标):
+ *      [__NSCFLocalSessionTask _onqueue_didReceiveDispatchData:completion:]
+ *      — CFNetwork 内部数据泵, 所有响应数据分片必经
+ *      - setImplementation + 原IMP直调 (同 base 安全模式)
+ *      - 读 dispatch_data → 长度 + 64KB preview (UTF-8 容错截断)
+ *      - tid 关联 (self.taskIdentifier) → 与 base 的 req 行拼接
+ *   B. resp 文件 fallback: lcf-resp.jsonl open 失败 → 写 base 文件
+ *      (v5.0 实锤: 沙盒对 Documents 新建文件受限; 预置文件只救一次)
+ *      data 行带 ev:"data" 与 base 行天然区分
+ *   C. 探针升级: introspection 改为幂等 (文件已有 probe 行则跳过),
+ *      避免每轮启动重写 63 方法大名单
+ *
+ * 安全模式不变: 基类 2 创建 selector + 1 数据 selector (全部单类真实定义),
+ * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "5.0-probe-observable"
+#define LCF_VERSION "5.1-data-capture"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
-#define DEDUP_CAP 512          /* URL 去重表容量 (环形) */
-#define GAP_MIN 10.0           /* 静默下限 (秒) */
-#define GAP_MAX 60.0           /* 可信窗口上限 — 超过视为时钟跳变 */
+#define DEDUP_CAP 512
+#define GAP_MIN 10.0
+#define GAP_MAX 60.0
+#define PREVIEW_CAP 65536       /* data 行 preview 上限 (64KB) */
+#define DATA_FALLBACK_MARK "lcf-resp-fallback"  /* fallback 模式标记 (stage tag) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +57,9 @@ extern IMP         method_getImplementation(Method);
 extern void        method_setImplementation(Method, IMP);
 extern Class       object_getClass(id);
 extern const char* object_getClassName(id);
+extern SEL         method_getName(Method);
+extern const char* sel_getName(SEL);
+extern Method*     class_copyMethodList(Class, unsigned int*);
 
 static volatile char g_spin = 0;
 static void lc_lock(void){ while(__atomic_test_and_set(&g_spin, __ATOMIC_ACQUIRE)) {} }
@@ -58,21 +67,23 @@ static void lc_unlock(void){ __atomic_clear(&g_spin, __ATOMIC_RELEASE); }
 
 static SEL s_HTTPMethod, s_URL, s_absStr, s_body, s_len, s_bstream, s_utf8;
 static SEL s_tid;     /* taskIdentifier */
-static SEL s_dtwrh;   /* dataTaskWithRequest:completionHandler: */
-static SEL s_dtwr;    /* dataTaskWithRequest: */
+static SEL s_dtwrh, s_dtwr;
+static SEL s_dispatch_get_size;   /* dispatch_data_get_size */
 static Class g_clsSession;
+static Class g_clsLocalTask;      /* __NSCFLocalSessionTask */
 
 static int   g_fd = -1;
 static char  g_path[512] = "";
+static int   g_resp_fd = -1;
+static char  g_resp_path[512] = "";
+static int   g_resp_fallback = 0;    /* 1 = resp 写入走 base 文件 */
 
 static IMP g_orig_dtwrh = 0;
 static IMP g_orig_dtwr  = 0;
+static IMP g_orig_didd  = 0;         /* didReceiveDispatchData 原实现 */
 
-/* 进程内行序计数器 (唯一可靠锚点 — 系统时钟全被虚拟化) */
 static unsigned long long g_seq = 0;
-/* 上一条请求的 wall ts (gap 检测, 消毒逻辑见 lc_req_line) */
 static double g_last_ts = -1.0;
-
 static double lc_now(void){
     struct timeval tv;
     gettimeofday(&tv, 0);
@@ -91,7 +102,6 @@ static int lc_openlog(void){
     return g_fd;
 }
 
-/* 阶段标记: 立即同步落盘 */
 static void lc_stage(const char* tag){
     lc_lock();
     int fd = lc_openlog();
@@ -107,7 +117,6 @@ static void lc_stage(const char* tag){
     lc_unlock();
 }
 
-/* 已持锁的同步写 */
 static void lc_write_locked(const char* line){
     int fd = lc_openlog();
     if (fd >= 0 && write(fd, line, strlen(line)) < 0){
@@ -135,12 +144,42 @@ static void lc_json_str(char** p, size_t* rem, const char* s){
     *p = q;
 }
 
-/* ---------- URL 去重计数表 (环形, 内存内, 不落盘) ---------- */
+/* ==================================================================
+ * resp 文件通道 (v5.1: fallback 到 base 文件)
+ * ================================================================== */
+static int lc_open_resp(void){
+    if (g_resp_fallback) return lc_openlog();   /* fallback: 借 base 文件 */
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return -1;
+    char want[512];
+    snprintf(want, sizeof(want), "%s/" RESP_LOG_RELATIVE, home);
+    if (g_resp_fd >= 0 && strcmp(want, g_resp_path) == 0) return g_resp_fd;
+    if (g_resp_fd >= 0) close(g_resp_fd);
+    snprintf(g_resp_path, sizeof(g_resp_path), "%s", want);
+    g_resp_fd = open(want, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+    if (g_resp_fd < 0){
+        g_resp_fallback = 1;                     /* 新建失败 → 永久切 base 通道 */
+        lc_stage(DATA_FALLBACK_MARK);
+        return lc_openlog();
+    }
+    return g_resp_fd;
+}
+
+static void lc_resp_write(const char* line){
+    lc_lock();
+    int fd = lc_open_resp();
+    if (fd >= 0 && write(fd, line, strlen(line)) < 0){
+        if (g_resp_fallback){ close(g_fd); g_fd = -1; }
+        else { close(g_resp_fd); g_resp_fd = -1; }
+    }
+    lc_unlock();
+}
+
+/* ---------- URL 去重计数表 (环形) ---------- */
 typedef struct { char url[512]; unsigned n; } dupent;
 static dupent g_dup[DEDUP_CAP];
 static int    g_ndup = 0;
 
-/* 返回该 URL 的出现序号 (1-based); 已存在则原位自增 */
 static unsigned lc_dup_count_locked(const char* url){
     for (int i = 0; i < g_ndup; i++){
         if (strcmp(g_dup[i].url, url) == 0) return ++g_dup[i].n;
@@ -149,7 +188,6 @@ static unsigned lc_dup_count_locked(const char* url){
     if (g_ndup < DEDUP_CAP){
         slot = g_ndup++;
     } else {
-        /* 满: 淘汰计数最小者 (最不可能再出现的长尾) */
         int min = 0;
         for (int i = 1; i < DEDUP_CAP; i++) if (g_dup[i].n < g_dup[min].n) min = i;
         slot = min;
@@ -160,7 +198,6 @@ static unsigned lc_dup_count_locked(const char* url){
 }
 
 /* ---------- 请求行公共构造 ---------- */
-/* 产出: {"ts":..,"seq":N,"ev":EV,...,"tid":T,...tail */
 static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
                         char** out_tail, size_t* out_tailrem){
     char method[16] = "?";
@@ -201,8 +238,6 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
     if (url[0]){
         dupn = lc_dup_count_locked(url);
         if (dupn > 1) snprintf(dupinfo, sizeof(dupinfo), ",\"dup\":%u", dupn);
-        /* gap 消毒: ts 差 ∈ (GAP_MIN, GAP_MAX] 才可信为真实静默;
-         * 差值巨大/负值 = 时钟跳变/域切换, 一律忽略 (宁漏勿假) */
         if (g_last_ts > 0){
             double d = ts - g_last_ts;
             if (d > GAP_MIN && d <= GAP_MAX){
@@ -254,37 +289,78 @@ static id dtwr_hook(id self, SEL _cmd, id req){
 }
 
 /* ==================================================================
- * lcf-resp 并体探针 (v4.8): 方法表 introspection, 零 hook
+ * v5.1 数据分片捕获: _onqueue_didReceiveDispatchData:completion:
+ *
+ * dispatch_data 是不可变字节块 (CFNetwork 内部表示):
+ *   size   = dispatch_data_get_size(dd)
+ *   预览   = dispatch_data_create_map 映射后按指针读 (容错: 映射失败跳过预览)
+ * 本模块只读不持有: dispatch_data_create_map 返回的 buffer 由调用方
+ * dispatch_data 管辖, 不需要 release (铁律 1)
  * ================================================================== */
-extern SEL         method_getName(Method);
-extern const char* sel_getName(SEL);
-extern Method*     class_copyMethodList(Class, unsigned int*);
+typedef void* dispatch_data_t;
+typedef const struct dispatch_source_vtable_s* dispatch_source_t;
+extern unsigned long   dispatch_data_get_size(dispatch_data_t);
+extern dispatch_data_t dispatch_data_create_map(dispatch_data_t, const void**, size_t*, size_t*);
 
-static int g_resp_fd = -1;
-static char g_resp_path[512] = "";
+static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
+    unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+    unsigned long long size = dispatch_data_get_size(dd);
 
-static int lc_open_resp(void){
-    const char* home = getenv("HOME");
-    if (!home || !home[0]) return -1;
-    char want[512];
-    snprintf(want, sizeof(want), "%s/" RESP_LOG_RELATIVE, home);
-    if (g_resp_fd >= 0 && strcmp(want, g_resp_path) == 0) return g_resp_fd;
-    if (g_resp_fd >= 0) close(g_resp_fd);
-    snprintf(g_resp_path, sizeof(g_resp_path), "%s", want);
-    g_resp_fd = open(want, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
-    return g_resp_fd;
-}
-
-static void lc_resp_write(const char* line){
-    lc_lock();
-    int fd = lc_open_resp();
-    if (fd >= 0 && write(fd, line, strlen(line)) < 0){
-        close(g_resp_fd); g_resp_fd = -1;
+    /* 预览: 只 map 不持有; map 失败则跳过 preview (size 仍有) */
+    const void* buf = 0; size_t blen = 0, seg = 0;
+    char preview[128] = "";
+    if (size > 0){
+        dispatch_data_t mapped = dispatch_data_create_map(dd, &buf, &blen, &seg);
+        if (buf && blen > 0){
+            size_t n = blen < sizeof(preview) ? blen : sizeof(preview) - 1;
+            /* 控制/引号字符转义后的 JSON 安全预览 */
+            char* q = preview;
+            for (size_t i = 0; i < n && (size_t)(q - preview) < sizeof(preview) - 8; i++){
+                unsigned char c = ((const unsigned char*)buf)[i];
+                if (c == '"' || c == '\\'){ *q++ = '\\'; *q++ = (char)c; }
+                else if (c >= 0x20 && c != 0x7f){ *q++ = (char)c; }
+                else { *q++ = '.'; }
+            }
+            *q = 0;
+        }
+        (void)mapped;   /* mapped 与 dd 同源, 不持有 */
     }
-    lc_unlock();
+    char* p = line; size_t rem = cap;
+    int w = snprintf(p, rem,
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"bytes\":%llu,\"preview\":",
+        lc_now(), ++g_seq, tid, size);
+    p += w; rem -= (size_t)w;
+    lc_json_str(&p, &rem, preview);
+    snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
 }
 
-/* 单类方法表 introspection → 一行 JSON (探针核心, 只读) */
+static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
+    if (g_orig_didd && dd){
+        char line[256];
+        lcf_data_line(self, dd, line, sizeof(line));
+        lc_lock(); lc_write_locked(line); lc_unlock();
+    }
+    ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd)(self, _cmd, dd, completion);
+}
+
+/* ==================================================================
+ * 探针 (v5.1: 幂等 — resp 文件已有 probe 行则跳过, 免每轮重写)
+ * ================================================================== */
+static int lc_resp_has_probe(void){
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return 0;
+    char p[512];
+    snprintf(p, sizeof(p), "%s/" RESP_LOG_RELATIVE, home);
+    int fd = open(p, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return 0;
+    char buf[4096];
+    ssize_t r = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+    if (r <= 0) return 0;
+    buf[r] = 0;
+    return strstr(buf, "\"ev\":\"probe\"") != 0;
+}
+
 static void lcf_resp_probe_class(const char* clsname){
     Class cls = (Class)objc_getClass(clsname);
     if (!cls){
@@ -326,13 +402,11 @@ static void lcf_resp_probe_class(const char* clsname){
     if (list) free(list);
 }
 
-/* 后台线程: 等 base 首写完成 (沙盒就绪) 后跑 introspection */
 static void* lcf_resp_probe_thread(void* arg){
     (void)arg;
     int waited = 0;
-    /* v5.0: 关键节点全部写【base 日志】(已验证可写) — resp 文件写入若有问题不致盲 */
     lc_stage("probe-thread-start");
-    for (int i = 0; i < 240; i++){          /* ≤120s: base 日志出现 = 就绪 */
+    for (int i = 0; i < 240; i++){
         const char* home = getenv("HOME");
         if (home && home[0]){
             char p[512];
@@ -348,9 +422,11 @@ static void* lcf_resp_probe_thread(void* arg){
         snprintf(tag, sizeof(tag), "probe-wait-passed:%d", waited);
         lc_stage(tag);
     }
-    lcf_resp_probe_class("__NSCFLocalSessionTask");
-    lcf_resp_probe_class("__NSCFURLSessionTask");
-    lcf_resp_probe_class("__NSCFLocalSessionDataTask");
+    if (!lc_resp_has_probe()){
+        lcf_resp_probe_class("__NSCFLocalSessionTask");
+        lcf_resp_probe_class("__NSCFURLSessionTask");
+        lcf_resp_probe_class("__NSCFLocalSessionDataTask");
+    }
     {
         char line[128];
         snprintf(line, sizeof(line),
@@ -366,13 +442,13 @@ __attribute__((constructor))
 static void lcf_ctor(void){
     lc_stage("S1-ctor");
 
-    /* v4.8: 启动 resp 探针线程 (等沙盒就绪后 introspection) */
+    /* v5.1: 探针线程 */
     {
         pthread_t t;
         if (pthread_create(&t, 0, lcf_resp_probe_thread, 0) == 0){
             pthread_detach(t);
         } else {
-            lc_stage("probe-pthread-fail");   /* v5.0: 失败也要留痕 */
+            lc_stage("probe-pthread-fail");
         }
     }
 
@@ -387,6 +463,7 @@ static void lcf_ctor(void){
     s_dtwrh      = sel_registerName("dataTaskWithRequest:completionHandler:");
     s_dtwr       = sel_registerName("dataTaskWithRequest:");
     g_clsSession = (Class)objc_getClass("NSURLSession");
+    g_clsLocalTask = (Class)objc_getClass("__NSCFLocalSessionTask");
     lc_stage("S2-sels");
 
     if (g_clsSession){
@@ -407,8 +484,23 @@ static void lcf_ctor(void){
             }
         }
     }
+
+    /* v5.1: 数据分片捕获 hook (探针名单定案的首选目标) */
+    if (g_clsLocalTask){
+        SEL dd = sel_registerName("_onqueue_didReceiveDispatchData:completion:");
+        Method m = class_getInstanceMethod(g_clsLocalTask, dd);
+        if (m){
+            IMP old = method_getImplementation(m);
+            if ((void*)old != (void*)didd_hook){
+                method_setImplementation(m, (IMP)didd_hook);
+                g_orig_didd = old;
+            }
+        }
+    }
+
     char tag[64];
     int n = (g_orig_dtwrh ? 1 : 0) + (g_orig_dtwr ? 1 : 0);
     snprintf(tag, sizeof(tag), "S3-hooked:%d", n);
     lc_stage(tag);
+    lc_stage(g_orig_didd ? "S4-data-hooked" : "S4-data-miss");
 }
