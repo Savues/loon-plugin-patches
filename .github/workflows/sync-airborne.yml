@@ -1,4 +1,4 @@
-name: Sync Bilibili-Airborne
+name: Sync Bilibili-Allinone (Airborne)
 
 on:
   schedule:
@@ -37,17 +37,17 @@ jobs:
 
       - name: 拉取上游并施加补丁
         run: |
-          mkdir -p plugins/Bilibili-Airborne
+          mkdir -p plugins/Bilibili-Allinone/scripts
           if [ "${{ inputs.only_local }}" = "true" ]; then
             curl -fsSL -o /tmp/upstream.js \
               https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.request.js
-            python3 patches/patch-airborne.py /tmp/upstream.js -o plugins/Bilibili-Airborne/bilibili.airborne.js
+            python3 patches/patch-airborne.py /tmp/upstream.js -o plugins/Bilibili-Allinone/scripts/bilibili.airborne.js
           else
-            python3 patches/patch-airborne.py -o plugins/Bilibili-Airborne/bilibili.airborne.js
+            python3 patches/patch-airborne.py -o plugins/Bilibili-Allinone/scripts/bilibili.airborne.js
           fi
 
       - name: 逻辑单测
-        run: node patches/test-airborne.js plugins/Bilibili-Airborne/bilibili.airborne.js
+        run: node patches/test-airborne.js plugins/Bilibili-Allinone/scripts/bilibili.airborne.js
 
       - name: 加载 + protobuf 往返
         run: node patches/test-airborne-proto.js
@@ -65,7 +65,7 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import pathlib, sys
-          p = pathlib.Path('plugins/Bilibili-Airborne/bilibili.airborne.js')
+          p = pathlib.Path('plugins/Bilibili-Allinone/scripts/bilibili.airborne.js')
           s = p.read_text(encoding='utf-8', errors='ignore')
           # 必须出现：每条都对应 patch-airborne.py 里的一处锚点替换结果
           must = ['__airQS(s.argument)', '__airOK(a,t,r', '__airInject(t,', '__airText(a,t)',
@@ -89,16 +89,16 @@ jobs:
           echo "### 空降助手同步报告" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          head -1 plugins/Bilibili-Airborne/bilibili.airborne.js >> "$GITHUB_STEP_SUMMARY"
+          head -1 plugins/Bilibili-Allinone/scripts/bilibili.airborne.js >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if git diff --quiet -- plugins/Bilibili-Airborne/; then
+          if git diff --quiet -- plugins/Bilibili-Allinone/scripts/; then
             echo "上游无变化，产物与上次一致。" >> "$GITHUB_STEP_SUMMARY"
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "上游有更新：" >> "$GITHUB_STEP_SUMMARY"
             echo '```diff' >> "$GITHUB_STEP_SUMMARY"
-            git diff --stat -- plugins/Bilibili-Airborne/ | head -20 >> "$GITHUB_STEP_SUMMARY"
+            git diff --stat -- plugins/Bilibili-Allinone/scripts/ | head -20 >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -108,7 +108,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add plugins/Bilibili-Airborne/bilibili.airborne.js
+          git add plugins/Bilibili-Allinone/scripts/bilibili.airborne.js
           git commit -m "chore: 同步 Sparkle 上游并重打空降助手补丁
 
           由 .github/workflows/sync-airborne.yml 自动生成
