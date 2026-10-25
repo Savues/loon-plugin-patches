@@ -4,7 +4,39 @@
 
 ---
 
-## [0.1-probe] - 2026-10-25 · introspect
+## [0.2-probe] - 2026-10-25 · introspect+retry
+
+### 动机：v0.1 两轮真机零产出
+
+豆瓣两轮冷启动（pid 61693/61706）都没有 `lcf-resp.jsonl`。排查链：
+Mach-O 结构级对比（flags/platform/LC_ID）与 base 完全一致、Sign 时序无问题、
+用户确认全局 Tweaks 目录默认生效——嫌疑收敛到**探针自身的写入设计**：
+v0.1 的全部写入都发生在 ctor（5 行一次写完），而 ctor 时刻 guest 沙盒未就绪
+（base v2.x 时代已实证"ctor 早期写入必静默失败"），**open 全失败且 v0.1
+没有重试机制 → 产物全部蒸发**。base 没这个问题是因为它每次 hook 触发都会
+重开 fd——探针版漏掉了这个惰性重试设计。
+
+### 改动
+
+- introspection 从 ctor 移到后台线程：轮询 base 日志（`forensics.jsonl`）
+  的出现作为"沙盒已就绪"信号（最多等 120s），就绪后再 introspect
+- 写入前置探活：introspect 前先确认目标文件可 open（3 次重试）
+- `lc_write` 保留每次重开 fd 的重试语义（与 base 同款）
+- 版本号 `0.2-probe`，二进制自证不变（无 `method_setImplementation` /
+  无 `objc_getClassList`）
+
+### 实证（待真机）
+
+构建校验 67904B，`pthread_create` 引用确认等待线程已入链，md5 `d28c7080`。
+预期：豆瓣启动后 `lcf-resp.jsonl` 出现 `ctor → probe×3 → done`。
+
+### 教训
+
+**探针/模块的任何写盘动作都不能只依赖 ctor 时机**——沙盒就绪信号必须显式等待。
+"同目录另一个模块能写"不是"我的 ctor 也能写"的证明：base 的首写发生在
+hook 触发时（晚于沙盒就绪），探针的首写在 ctor（早于）——同类机制在不同
+时机下行为完全不同。
+
 
 ### 动机
 

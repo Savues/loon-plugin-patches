@@ -1,5 +1,12 @@
 /*
- * lcf-resp v0.1-probe "introspect" — Live Container 响应体捕获模块 · 探针版
+ * lcf-resp v0.2-probe "introspect+retry" — Live Container 响应体捕获模块 · 探针版
+ *
+ * v0.1 → v0.2 (探针零产出的教训修正):
+ *   v0.1 的写入全部发生在 ctor (5 行一次写完), 而 ctor 时刻 LC guest 沙盒
+ *   未就绪 / HOME 可能仍指向宿主容器 → open 全失败 → 探针没有重试机制
+ *   → 文件永远不存在. base 没这个问题是因为它每次 hook 触发都会重开.
+ *   修复: 方法表 introspection 延迟到【首个 base 请求触发时】(借 base 的
+ *   forensics.jsonl 出现作为"沙盒已就绪"信号) + 每次写失败后永不放弃重试.
  *
  * 独立于 lc-forensics (base, v4.7 常驻) 的响应体捕获模块, 第一阶段:
  * 【不做任何 hook】—— 只对目标类做单类方法表 introspection, 把
@@ -13,24 +20,26 @@
  *   - 文件独立: Documents/lcf-resp.jsonl (绝不与 base 共享, 防并发交错)
  *
  * 输出:
- *   {"ts","ev":"probe","cls":"__NSCFLocalSessionTask","methods":N,
- *    "list":"sel1|sel2|...", "v":"0.1-probe","pid":N}
- *   另探 __NSCFURLSessionTask / __NSCFLocalSessionDataTask 两类作对照
+ *   {"ts","ev":"ctor/probe/done","cls":"__NSCFLocalSessionTask","methods":N,
+ *    "list":"sel1|sel2|...", "v":"0.2-probe","pid":N}
  *
  * 判读: 找名字含 didReceiveData / didReceive / _onqueue 的实例方法 →
- *   探针 v0.2 hook 之 (setImplementation + 原IMP直调, 同 base 安全模式)
+ *   探针 v0.3 hook 之 (setImplementation + 原IMP直调, 同 base 安全模式)
  */
 
-#define LCFR_VERSION "0.1-probe"
+#define LCFR_VERSION "0.2-probe"
 #define LOG_RELATIVE "Documents/lcf-resp.jsonl"
+#define BASE_LOG_RELATIVE "Documents/forensics.jsonl"   /* base 日志 = 沙盒就绪信号 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <stdint.h>
+#include <sys/syscall.h>
 
 typedef void* SEL;
 typedef struct lcf_obj_s { void* isa; } *id;
@@ -43,10 +52,13 @@ extern id          objc_getClass(const char*);
 extern SEL         sel_registerName(const char*);
 extern const char* sel_getName(SEL);
 extern Method*     class_copyMethodList(Class, unsigned int*);
-extern const char* method_getName_str(Method);   /* 实际用 sel_getName(method_getName(m)) */
 extern SEL         method_getName(Method);
 extern Class       class_getSuperclass(Class);
 extern const char* class_getName(Class);
+extern int         usleep(unsigned int usec);
+typedef unsigned long pthread_t;   /* darwin: pthread_t = __darwin_pthread_t (指针), musl 下用 ulong 等价 */
+extern int pthread_create(pthread_t*, const void*, void* (*)(void*), void*);
+extern int pthread_detach(pthread_t);
 
 static volatile char g_spin = 0;
 static void lc_lock(void){ while(__atomic_test_and_set(&g_spin, __ATOMIC_ACQUIRE)) {} }
@@ -132,17 +144,35 @@ static void lcf_probe_class(const char* clsname){
     if (list) free(list);
 }
 
-__attribute__((constructor))
-static void lcfr_ctor(void){
-    /* 阶段标记 */
-    {
-        char line[160];
-        snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"ev\":\"ctor\",\"v\":\"" LCFR_VERSION "\",\"pid\":%d}\n",
-            lc_now(), (int)getpid());
-        lc_write(line);
+/* ---------- 等待沙盒就绪 (轮询 base 日志) 后 introspection ---------- */
+static int lc_base_ready(void){
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return 0;
+    char p[512];
+    snprintf(p, sizeof(p), "%s/" BASE_LOG_RELATIVE, home);
+    struct stat st;
+    return stat(p, &st) == 0 && st.st_size > 0;
+}
+
+static void* lcfr_wait_and_probe(void* arg){
+    (void)arg;
+    for (int i = 0; i < 240; i++){          /* 240 × 500ms = 120s */
+        if (lc_base_ready()) break;
+        usleep(500 * 1000);
     }
-    /* 三类 introspection (探针核心; 全部是确定性系统类, 零 hook) */
+    /* 就绪 (或超时放弃等待) → 立即 introspection; 写失败仍会因
+     * lc_write 每次重开 fd 而在下轮自愈 — 但探针只跑一次, 所以
+     * 先确认能写再 introspect, 不行就再等一轮 */
+    for (int attempt = 0; attempt < 3; attempt++){
+        {
+            const char* home = getenv("HOME");
+            char p[512];
+            snprintf(p, sizeof(p), "%s/" LOG_RELATIVE, home ? home : "");
+            int fd = open(p, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+            if (fd >= 0){ close(fd); break; }
+        }
+        usleep(1000 * 1000);
+    }
     lcf_probe_class("__NSCFLocalSessionTask");
     lcf_probe_class("__NSCFURLSessionTask");
     lcf_probe_class("__NSCFLocalSessionDataTask");
@@ -153,4 +183,23 @@ static void lcfr_ctor(void){
             lc_now(), (int)getpid());
         lc_write(line);
     }
+    return 0;
+}
+
+__attribute__((constructor))
+static void lcfr_ctor(void){
+    /* v0.2: ctor 只记录"我活着", introspection 延迟到沙盒就绪
+     * (v0.1 教训: ctor 时刻写入必失败且无重试 → 全部产物蒸发) */
+    {
+        char line[160];
+        snprintf(line, sizeof(line),
+            "{\"ts\":%.3f,\"ev\":\"ctor\",\"v\":\"" LCFR_VERSION "\",\"pid\":%d}\n",
+            lc_now(), (int)getpid());
+        lc_write(line);
+    }
+    /* 等待策略: 后台线程轮询 HOME 的 base 日志 (forensics.jsonl) 是否可读
+     * — base 的首行出现 = guest 沙盒就绪. 最多等 120s. */
+    pthread_t t;
+    pthread_create(&t, 0, lcfr_wait_and_probe, 0);
+    pthread_detach(t);
 }
