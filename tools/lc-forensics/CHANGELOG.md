@@ -8,6 +8,29 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [7.1] - 2026-10-26 · taskkey
+
+### 动机：v7.0 数据挖出 tid 复用——重组串写风险
+
+深挖 v7.0 会话发现 **tid 非全局唯一**：fin 之后同 tid 会再开新请求
+（连接池复用 task 对象），一轮 57 次复用、20 个 tid 被多 URL 共用。
+重组槽以单 tid 为键 → 结构上会串写（本轮 18 文件=18 data tid 是侥幸）。
+另 fin 236/303 条 status=-1（fin 时 task.response 未填充——失败/取消/重定向中）。
+
+### 改动
+
+- **重组键 (tid, taskkey) 双键**：taskkey = self 指针（task 对象唯一），
+  slot 查找/创建/摘槽全部双键；文件名不变（tid 仍首选标识），
+  同 tid 不同 task 的槽互不干扰
+- **fin 行 +errCode**：status=-1 时可区分失败类型——
+  `errCode` 是 NSError 的 @property（浅层 selector，安全；
+  与 localizedDescription 的 UserInfo 深求值不同）
+
+### 实证（待真机）
+
+70096B，md5 `90cd370e`。判读：豆瓣稳定 + lcf-resp/ 文件持续产出 +
+fin 行 errCode 字段出现。
+
 ## [7.0] - 2026-10-26 · threadsafe-take
 
 ### 动机：v6.9 重组功能验证通过但豆瓣不可用（黑屏/卡死待定性）

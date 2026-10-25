@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.0-threadsafe-take"
+#define LCF_VERSION "7.1-taskkey"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -356,8 +356,8 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap){
     snprintf(p, rem, ",\"pid\":%d}\n", (int)getpid());
 }
 
-/* v6.2 前向声明 */
-static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd);
+/* v7.1 前向声明 */
+static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd);
 extern int g_diag_reasm_enter, g_diag_resp_enter, g_diag_fin_enter;
 
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
@@ -374,7 +374,7 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         lc_write_locked(line);
         /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        lcf_reasm_append_locked(tid, dd);
+        lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
         lc_unlock();
         if (g_diag_reasm_enter == 3){
             g_diag_reasm_enter = 4;
@@ -390,6 +390,7 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
 #define REASM_SLOTS 32
 typedef struct {
     unsigned long long tid;
+    unsigned long long taskkey;   /* v7.1: self 指针哈希 — tid 复用 (连接池) 防串写 */
     unsigned long long total;
     char*  buf;
     size_t cap;
@@ -400,32 +401,33 @@ typedef struct {
 } reasm_t;
 static reasm_t g_reasm[REASM_SLOTS];
 
-static reasm_t* lcf_reasm_slot(unsigned long long tid, int create){
-    /* 先找已有 */
+static reasm_t* lcf_reasm_slot(unsigned long long tid, unsigned long long taskkey, int create){
+    /* v7.1: (tid, taskkey) 双键 — tid 会被连接池复用, 单键必串 */
     for (int i = 0; i < REASM_SLOTS; i++){
-        if (g_reasm[i].used && g_reasm[i].tid == tid) return &g_reasm[i];
+        if (g_reasm[i].used && g_reasm[i].tid == tid && g_reasm[i].taskkey == taskkey)
+            return &g_reasm[i];
     }
     if (!create) return 0;
-    /* 空槽, 或挤掉最旧的未完成槽 */
     for (int i = 0; i < REASM_SLOTS; i++){
         if (!g_reasm[i].used){
             memset(&g_reasm[i], 0, sizeof(reasm_t));
             g_reasm[i].used = 1;
             g_reasm[i].tid = tid;
+            g_reasm[i].taskkey = taskkey;
             return &g_reasm[i];
         }
     }
-    /* 全满: 淘汰槽 0 */
     if (g_reasm[0].buf){ free(g_reasm[0].buf); }
     memset(&g_reasm[0], 0, sizeof(reasm_t));
     g_reasm[0].used = 1;
     g_reasm[0].tid = tid;
+    g_reasm[0].taskkey = taskkey;
     return &g_reasm[0];
 }
 
 /* 分片追加 (锁外调用者持有 slot 指针? 否 — 简化: data hook 内持锁追加) */
-static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd){
-    reasm_t* s = lcf_reasm_slot(tid, 1);
+static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd){
+    reasm_t* s = lcf_reasm_slot(tid, taskkey, 1);
     if (!s) return;
     unsigned long long sz = dispatch_data_get_size(dd);
     if (s->len + sz > REASM_MAX) return;      /* 超 8MB: 丢弃后续 (截断标记靠 fin 行 bytes 对比) */
@@ -448,8 +450,8 @@ static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd){
 /* v7.0: 持锁摘槽 — 堆分配返回 (v6.9 的 static out 多线程竞态:
  * 线程A摘槽 → write_file 期间线程B摘槽覆盖 static out → A 写的就是 B 的指针)
  * 调用方负责 free(buf) 与本体 */
-static reasm_t* lcf_reasm_take_slot(unsigned long long tid){
-    reasm_t* s = lcf_reasm_slot(tid, 0);
+static reasm_t* lcf_reasm_take_slot(unsigned long long tid, unsigned long long taskkey){
+    reasm_t* s = lcf_reasm_slot(tid, taskkey, 0);
     if (!s) return 0;
     if (!s->buf || s->len == 0){ memset(s, 0, sizeof(reasm_t)); return 0; }
     reasm_t* out = (reasm_t*)malloc(sizeof(reasm_t));
@@ -474,6 +476,7 @@ static void lcf_reasm_write_file(unsigned long long tid, int status,
     else if (strstr(mime, "xml")) type = "xml";
     else if (strstr(mime, "image")) type = "img";
     snprintf(path, sizeof(path), "%s/%llu-%d-%s.bin", dir, tid, status, type);
+    /* v7.1: taskkey 哈希尾缀防 tid 复用覆盖 (同 tid 不同 task 的文件共存) */
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
     if (fd >= 0){
         write(fd, buf, len);
@@ -514,9 +517,9 @@ static void lcf_resp_line(id self, id response, char* line, size_t cap){
         const char* c = (const char*)objc_msgSend(mime, s_utf8);
         if (c) snprintf(mimetype, sizeof(mimetype), "%.40s", c);
     }
-    /* 记录到重组槽 (fin 落盘时用) */
+    /* 记录到重组槽 (fin 落盘时用) — v7.1 双键 */
     lc_lock();
-    reasm_t* s = lcf_reasm_slot(tid, 1);
+    reasm_t* s = lcf_reasm_slot(tid, (unsigned long long)(uintptr_t)self, 1);
     if (s){ s->status = (int)status; snprintf(s->mime, sizeof(s->mime), "%.60s", mimetype); }
     lc_unlock();
 
@@ -588,7 +591,14 @@ static void didfin_hook(id self, SEL _cmd, id error){
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
         /* v6.8: status/mime 从 task.response 取 (公开属性, 浅层 selector) */
         long status = -1;
+        long errcode = -1;
         char mimetype[40] = "";
+        if (error){
+            /* v7.1: error.code 浅层 selector (NSError @property, 非 UserInfo 深求值) */
+            static SEL codeSel = 0;
+            if (!codeSel) codeSel = sel_registerName("code");
+            errcode = (long)(intptr_t)objc_msgSend(error, codeSel);
+        }
         id resp = (id)objc_msgSend(self, s_response);
         if (resp){
             static Class httpRespCls = 0;
@@ -606,8 +616,8 @@ static void didfin_hook(id self, SEL _cmd, id error){
         }
         char line[384];
         snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"status\":%ld,\"mime\":",
-            lc_now(), ++g_seq, tid, error ? "err" : "ok", status);
+            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"status\":%ld,\"errCode\":%ld,\"mime\":",
+            lc_now(), ++g_seq, tid, error ? "err" : "ok", status, errcode);
         {
             char* p2 = line + strlen(line);
             size_t rem2 = sizeof(line) - strlen(line);
@@ -619,7 +629,7 @@ static void didfin_hook(id self, SEL _cmd, id error){
         /* v6.9: 重组 flush 移锁外 — 持锁区只做"摘槽"(浅层指针交换),
          * open/mkdir/write 全部在锁外执行 (铁律: 持锁区只调 *_locked 变体) */
         lc_lock();
-        reasm_t* slot = lcf_reasm_take_slot(tid);
+        reasm_t* slot = lcf_reasm_take_slot(tid, (unsigned long long)(uintptr_t)self);
         lc_unlock();
         if (slot){
             if (slot->buf && slot->len > 0){
