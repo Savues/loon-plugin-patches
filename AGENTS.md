@@ -19,7 +19,7 @@ sh tools/loon-sim/version-probe.sh <plugin.lpx              # ✅ 绿了才能�
 
 **三条不可违反**：
 1. 探针不绿不下终端结论（设备旧配置 = 结论作废）
-2. 不修改上游 JavaScript 的任何一行
+2. 上游 JavaScript 可改但必须本地化（拉取到 plugins/<Name>/src/ 后改 + README 记录改动与根因，勿直接引用上游 URL 改行为）——见 skill references/upstream-port.md
 3. 测试结论必须附证据（命令 + 输出）
 
 详细规范 → [AI-GUIDE.md](AI-GUIDE.md) · 人类向教学 → [PLUGIN-DEV-GUIDE.md](PLUGIN-DEV-GUIDE.md)
