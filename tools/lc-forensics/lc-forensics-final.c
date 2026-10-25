@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.7-shallow-resp"
+#define LCF_VERSION "6.8-task-resp"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -75,6 +75,7 @@ static SEL s_HTTPMethod, s_URL, s_absStr, s_body, s_len, s_bstream, s_utf8;
 static SEL s_tid;     /* taskIdentifier */
 static SEL s_dtwrh, s_dtwr;
 static SEL s_curReq, s_allHdr, s_statusCode, s_mime, s_hdrValue;   /* v6.0 */
+static SEL s_response;                                             /* v6.8: task.response */
 static SEL s_localizedDesc;                                        /* v6.0 */
 static Class g_clsSession;
 static Class g_clsLocalTask;      /* __NSCFLocalSessionTask */
@@ -575,10 +576,34 @@ static void didfin_hook(id self, SEL _cmd, id error){
          * NSError 的 UserInfo 惰性求值在 LC guest 环境不安全。
          * state:err 只记 tid, 错误摘要放弃 */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+        /* v6.8: status/mime 从 task.response 取 (公开属性, 浅层 selector) */
+        long status = -1;
+        char mimetype[40] = "";
+        id resp = (id)objc_msgSend(self, s_response);
+        if (resp){
+            static Class httpRespCls = 0;
+            if (!httpRespCls) httpRespCls = (Class)objc_getClass("NSHTTPURLResponse");
+            SEL isk = sel_registerName("isKindOfClass:");
+            typedef char (*boolmsg_t)(id, SEL, Class);
+            if (((boolmsg_t)objc_msgSend)(resp, isk, httpRespCls)){
+                status = (long)(intptr_t)objc_msgSend(resp, s_statusCode);
+                id mime = (id)objc_msgSend(resp, s_mime);
+                if (mime){
+                    const char* c = (const char*)objc_msgSend(mime, s_utf8);
+                    if (c) snprintf(mimetype, sizeof(mimetype), "%.36s", c);
+                }
+            }
+        }
         char line[384];
         snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"pid\":%d}\n",
-            lc_now(), ++g_seq, tid, error ? "err" : "ok", (int)getpid());
+            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"status\":%ld,\"mime\":",
+            lc_now(), ++g_seq, tid, error ? "err" : "ok", status);
+        {
+            char* p2 = line + strlen(line);
+            size_t rem2 = sizeof(line) - strlen(line);
+            lc_json_str(&p2, &rem2, mimetype);
+            snprintf(p2, rem2, ",\"pid\":%d}\n", (int)getpid());
+        }
         lc_lock(); lc_write_locked(line); lc_unlock();
         if (g_diag_fin_enter == 3){
             g_diag_fin_enter = 4;
@@ -714,6 +739,7 @@ static void lcf_ctor(void){
     s_statusCode    = sel_registerName("statusCode");
     s_mime          = sel_registerName("MIMEType");
     s_localizedDesc = sel_registerName("localizedDescription");
+    s_response     = sel_registerName("response");
     lc_stage("S2-sels");
 
     if (g_clsSession){
@@ -746,29 +772,11 @@ static void lcf_ctor(void){
                 g_orig_didd = old;
             }
         }
-        /* v6.5: resp 行换到数据通路 selector —
-         * _onqueue_didReceiveResponse:completion: 已证实不在豆瓣/JavDB 通路
-         * (v6.2-v6.4 diag-resp-enter 从未出现), 改装两个探针名单内的替代:
-         * connection:didReceiveResponse:completion: (delegate 回调同形)
-         * _onqueue_didReceiveResponse:redirectRequest:withCompletion: (redirect 变体) */
-        SEL dr = sel_registerName("connection:didReceiveResponse:completion:");
-        m = class_getInstanceMethod(g_clsLocalTask, dr);
-        if (m){
-            IMP old = method_getImplementation(m);
-            if ((void*)old != (void*)didresp_hook){
-                method_setImplementation(m, (IMP)didresp_hook);
-                g_orig_didresp = old;
-            }
-        }
-        SEL dr2 = sel_registerName("_onqueue_didReceiveResponse:redirectRequest:withCompletion:");
-        m = class_getInstanceMethod(g_clsLocalTask, dr2);
-        if (m){
-            IMP old = method_getImplementation(m);
-            if ((void*)old != (void*)didresp2_hook){
-                method_setImplementation(m, (IMP)didresp2_hook);
-                g_orig_didresp2 = old;
-            }
-        }
+        /* v6.8: connection:/redirect: 两个 resp hook 全部卸载 —
+         * 实证: v6.2-6.4 hook connection: 零触发(稳), v6.5 起触发即崩
+         * (status/mime 全浅层仍崩 → 崩在 hook 存在本身, 疑 CFNetwork
+         *  非msgSend调用路径与C签名不匹配); redirect 变体从未触发。
+         * 状态码改走 task 自身 response 属性 (零新hook面, 见 didfin_hook) */
         /* v6.0: fin 行 hook (探针名单 ●) */
         SEL df = sel_registerName("_onqueue_didFinishWithError:");
         m = class_getInstanceMethod(g_clsLocalTask, df);

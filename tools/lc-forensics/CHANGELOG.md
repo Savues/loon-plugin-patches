@@ -8,6 +8,29 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [6.8] - 2026-10-26 · task-resp
+
+### 动机：v6.7 排除法收口——崩在 hook 存在本身
+
+allHeaderFields 剥除后豆瓣仍在 `diag-resp-enter` 崩。此时 `lcf_resp_line`
+剩余代码全部浅层安全（statusCode/MIMEType/UTF8String/判空/持锁写）——
+排除法只剩结论：**`connection:didReceiveResponse:completion:` 这个 hook
+的存在本身致崩**（疑 CFNetwork 内部存在非 msgSend 调用路径，与我们的
+C 函数签名不匹配）。`diag-resp2-enter` 也从未出现 = redirect 变体不在通路。
+
+### 改动（换思路：零新 hook 面拿状态码）
+
+- 卸载 connection:/redirect: 两个 resp hook（回 v6.4 安全面）
+- **fin 行加 status/mime**：`task.response`（NSURLSessionTask 公开属性）→
+  isKindOfClass 判别 → statusCode（全浅层）——resp 能力等价达成
+  （时点从"响应到达"挪到"task 结束"，对 AI 分析无差）
+- fin 行格式：`state / status / mime / tid`
+
+### 实证（待真机）
+
+70016B，md5 见 git。判读：豆瓣 fin 行带 status 出现且稳定 = resp 能力
+以零风险方式达成；后续仅剩 flush 移锁外。
+
 ## [6.7] - 2026-10-26 · shallow-resp
 
 ### 动机：v6.6 巨大进展 + 新崩点精准暴露
