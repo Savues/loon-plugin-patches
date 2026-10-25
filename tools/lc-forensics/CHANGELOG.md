@@ -8,6 +8,26 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [7.0] - 2026-10-26 · threadsafe-take
+
+### 动机：v6.9 重组功能验证通过但豆瓣不可用（黑屏/卡死待定性）
+
+v6.9 的重组落盘功能本身验证通过（4 个 `.bin` 文件落盘，JSON 内容可读：
+`{"id":0,...,"type":"group"}` / `{}` / HTTPDNS ping 配置——content.text 对标达成），
+但豆瓣不可用。代码复审发现 `lcf_reasm_take_slot` 的 **`static reasm_t out`
+线程不安全**：线程 A 摘槽 → write_file（IO 慢）期间线程 B 摘槽会覆盖
+static 区 → A 写的是 B 的指针 → use-after-overwrite / 双重 free。
+豆瓣并发高（26 fin/107 行），JavDB 低（首个 fin 都晚）——暴露模式吻合。
+
+### 改动
+
+- `take_slot` 改堆分配返回（调用方 free 本体 + buf），竞态根除
+- `didfin` 调用点适配（buf/本体分别 free）
+
+### 实证（待真机）
+
+70064B，md5 `707b51c3`。
+
 ## [6.9] - 2026-10-26 · reasm-flush
 
 ### 动机：HAR 对标最后一块——完整响应体落盘

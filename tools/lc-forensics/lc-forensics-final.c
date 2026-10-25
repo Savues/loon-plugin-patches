@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "6.9-reasm-flush"
+#define LCF_VERSION "7.0-threadsafe-take"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -445,15 +445,18 @@ static void lcf_reasm_append_locked(unsigned long long tid, dispatch_data_t dd){
     (void)mapped;
 }
 
-/* v6.9: 持锁摘槽 — 只做指针交换, 不做任何 IO */
+/* v7.0: 持锁摘槽 — 堆分配返回 (v6.9 的 static out 多线程竞态:
+ * 线程A摘槽 → write_file 期间线程B摘槽覆盖 static out → A 写的就是 B 的指针)
+ * 调用方负责 free(buf) 与本体 */
 static reasm_t* lcf_reasm_take_slot(unsigned long long tid){
     reasm_t* s = lcf_reasm_slot(tid, 0);
     if (!s) return 0;
-    static reasm_t out;
     if (!s->buf || s->len == 0){ memset(s, 0, sizeof(reasm_t)); return 0; }
-    out = *s;
+    reasm_t* out = (reasm_t*)malloc(sizeof(reasm_t));
+    if (!out){ memset(s, 0, sizeof(reasm_t)); return 0; }
+    *out = *s;
     memset(s, 0, sizeof(reasm_t));
-    return &out;
+    return out;
 }
 
 /* v6.9: 锁外落盘 (open/mkdir/write — 全部 IO 不在持锁区) */
@@ -618,10 +621,13 @@ static void didfin_hook(id self, SEL _cmd, id error){
         lc_lock();
         reasm_t* slot = lcf_reasm_take_slot(tid);
         lc_unlock();
-        if (slot && slot->buf && slot->len > 0){
-            lcf_reasm_write_file(slot->tid, slot->status, slot->mime,
-                                 slot->buf, slot->len);
-            free(slot->buf);
+        if (slot){
+            if (slot->buf && slot->len > 0){
+                lcf_reasm_write_file(slot->tid, slot->status, slot->mime,
+                                     slot->buf, slot->len);
+            }
+            if (slot->buf) free(slot->buf);
+            free(slot);
         }
 
         if (g_diag_fin_enter == 3){
