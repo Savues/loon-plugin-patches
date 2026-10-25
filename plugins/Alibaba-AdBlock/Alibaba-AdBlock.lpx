@@ -1,4 +1,5 @@
 #!name=Alibaba-AdBlock v3.50.1
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/icon.png
 #!desc=阿里系去广告 · 支持支付宝/Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
 #!version=3.50.1
