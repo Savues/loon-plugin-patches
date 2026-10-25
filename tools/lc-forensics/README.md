@@ -49,6 +49,9 @@ lc-forensics-v4.7.dylib # 构建产物（可直接 Import）
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
 
+姊妹模块：[../lcf-resp/](../lcf-resp/) —— 响应体捕获（探针阶段，按需安装），
+与 base 以 `tid` 拼接请求→响应对。
+
 ## 构建（iSH / Alpine aarch64，无需 macOS）
 
 工具链：`clang` (Alpine 15) + `ld64.lld` + `ldid`。
