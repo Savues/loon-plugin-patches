@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "7.3-seq-atomic"
+#define LCF_VERSION "7.4-volatile-seq"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -93,7 +93,7 @@ static IMP g_orig_didresp = 0;       /* didReceiveResponse 原实现 (v6.0) */
 static IMP g_orig_didresp2 = 0;      /* didReceiveResponse:redirectRequest: 原实现 (v6.5) */
 static IMP g_orig_didfin  = 0;       /* didFinishWithError 原实现 (v6.0) */
 
-static unsigned long long g_seq = 0;
+static volatile unsigned long long g_seq = 0;   /* v7.4: 防 O2 跨锁缓存 (++ 取号必须真访存) */
 static double g_last_ts = -1.0;
 static double lc_now(void){
     struct timeval tv;
