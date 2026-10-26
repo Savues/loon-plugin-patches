@@ -152,7 +152,7 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v9.0-v9.3** | 唯一文件名 / errno 诊断 / volatile / 6 组 IO 探针 | 逐项排除（文件名、线程、volatile 均非根因）|
 | **v9.5** | 8 组 IO 对照矩阵（在已验证可写的函数里跑）| **锁定：无 O_TRUNC 的 open 无法新建文件** |
 | **v9.6** | 两步打开：O_TRUNC 创建 + 纯 O_WRONLY 追加 | **豆瓣 847 行 / JavDB 51 行，模块自建成功 ✅** |
-| **v9.7** | 每次启动独立日志  + latest.txt | 当前版本 |
+| **v9.7** | 每次启动独立日志 `lcf-log/forensics-<UTC>-<pid>.jsonl` + latest.txt | **豆瓣/JavDB 各启 2 次验证**：4 个独立文件、seq 各从 1 连续、latest.txt 正确、10 秒间隔仍区分 ✅ 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
