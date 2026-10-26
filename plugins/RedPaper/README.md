@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.4.1** · 订阅以 lpx 内版本为准
+> **版本 v1.4.2** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -136,8 +136,26 @@ response.json.replace("data.placeholder", [])  → response.json.delete("data.pl
 **教训（铁律级）**：JSON Action 的「值」参数只信已验证形态 —— 数字 / 字符串。
 要清空容器优先用 `delete`，不要赌 `replace(key, [])` 能被解析。
 
+### 🔴 v1.4.2：回滚模板下载拦截（reject_img 导致 App 报「网络不太顺畅」）
+
+**事故**：v1.4.0/v1.4.1 加了
+`fe-static.xhscdn.com/xhs-dsl/search_recommend_trending/ → reject_img(200)`，
+真机实测副作用：**每次打开搜索框都提示「网络不太顺畅，请检查网络设置」**。
+
+**根因**：App 请求的是 **zip 模板包**，reject_img 返回的是 **GIF 占位图**。
+App 拿到非 zip 内容 → 解压失败 → 走到 `[DslJsRuntime] downloadJs failed, cannot open zip file`
+→ 弹网络错误提示。这是典型的「拦错协议类型」事故。
+
+**回滚**：删除该 reject 规则 + 移除 `fe-static.xhscdn.com` 的 MitM（只为它服务，无其他收益）。
+模板缓存恢复原样。
+
+**教训（铁律级）**：拦截二进制资源下载（zip/图片/视频）时，
+`reject_img` / `reject_video` 的占位内容类型必须与目标一致。
+zip 请求用图片占位 = 必然解析失败 = 用户可见报错。
+**不确定内容类型时，宁可不拦。**
+
 ### 验证
-- `check`: 0 错误 0 警告（[Rewrite] 16 · [Mitm] 10）
+- `check`: 0 错误 0 警告（[Rewrite] 15 · [Mitm] 9）
 - `run` 逐条命中：ads/resource `reject_dict` ✅ / 模板 zip `reject_img` ✅ / placeholder `json.replace` ✅
 - placeholder 改写实测：179B → 80B，`placeholder=[]`，`word_request_id` 保留
 - `ci.sh` 全绿 / `audit.py` 全过
