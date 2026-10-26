@@ -142,51 +142,50 @@ ISH 已信任 Loon 根证书，**不需要 `-k`**。
 - 部分 App 主业务流量不走 NSURLSession（豆瓣走 TCP、JavDB 走 dio）→ 抓到的主要是启动链路 + SDK 上报 + 广告联盟
 - 响应落盘按 `tid-status-type.bin` 命名，**tid 会在 session 内复用** → 多请求互相覆盖
   （绕法：用 `data` 行的 `requrl` + `src=didd1` 累计 `bytes` 判断真实大小，别用文件大小）
-- 何时该用：①HAR 全 `{}` 但广告仍出现 ②定位悬浮窗/预载缓存类数据源 ③需要 POST body 或完整响应结构
-
-
-
-curl/DNS 只能验证「Loon 代理层」的拦截；**部分 App 会绕过代理**（豆瓣 frodo 域实证：
-MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲区）。
-`tools/lc-forensics/`（Live Container tweak dylib）在 App 进程内取证：
-
-- **何时用**：①规则验证通过（探针绿+HAR 全 `{}`）但广告仍出现 ②定位悬浮窗/预载缓存类
-  广告的数据源 ③需要 POST body（SDK 上报）或完整响应体（字段级规则设计）
-- **怎么用**：Import dylib → Sign → 冷启动目标 App → 读 `Documents/forensics.jsonl`
+- 何时该用：①规则验证通过（探针绿 + HAR 全 `{}`）但广告仍出现 ②定位悬浮窗/预载缓存类数据源
+  ③需要 POST body（SDK 上报）或完整响应体（字段级规则设计）
+- 怎么用：Import dylib → Sign → 冷启动目标 App → 读 `Documents/lcf-log/forensics-*.jsonl`
   （req/fin/data 行）+ `lcf-resp/`（重组响应体）+ `lcf-req/`（请求体）
-- **实战闭环**：豆瓣悬浮窗 URL（treasury_image 图床）三重验证 → Douban-Dedup v2.6.1 规则
+- 实战闭环：豆瓣悬浮窗 URL（treasury_image 图床）三重验证 → Douban-Dedup v2.6.1 规则
 - 详细能力/输出格式/铁律 → `tools/lc-forensics/README.md`
+
+> 为什么需要它：curl/DNS 只能验证「Loon 代理层」的拦截；**部分 App 会绕过代理**
+> （豆瓣 frodo 域实证：MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲区）。
 
 ## 5. 已实证铁律（勿重复怀疑，证据可查）
 
+> 与 `skill references/pitfalls.md` **一一对应**（20 条，含 5b/5c/8b/8c 子项）。
+> 本表是速查版，完整事故细节见 pitfalls.md。
+
 | # | 铁律 | 证据 |
 |---|------|------|
-| 1 | `[Rule]` 段**无 enable 字段** → `enable={}` 是死开关 | PinDuoDuo 真机 + 官方文档 |
+| 1 | `[Rule]` 段**无 enable 字段** → `enable={}` 是死开关 | PinDuoDuo 真机 + AntiRevoke 17 处 |
 | 2 | `[Rewrite]` 旧语法 `, enable={}` → 整条规则无效 | 本仓库 57 处事故 v3.38.2 |
 | 3 | `with` 未知字段 → 当前规则无效 | 官方 script-v2 文档 |
 | 4 | 带路径规则必须域名在 [Mitm] | orange/g.alicdn 三次事故 |
 | 5 | 裸路径正则**可用**（~= 查找匹配），双参 `reject(200,"文本")` 可用 | 2026-10-24 A/B 实证 |
+| 5b | **正则字面量必须闭合**（`/re/` 或 `/re/i`）— 缺尾则永不匹配且无提示 | probe-setup 生成 bug → check v1.6.8+ 拦截 |
+| 5c | **探针模板锁定** — 勿手写，跑 `probe-setup.py`；A/B 探针命名 `*_bare` 自动豁免 | check v1.7.0 六项校验 |
 | 6 | 同接口 [Rewrite] 终止类 + [Script] 并存 → Script 死代码 + 可能触发 App 重试 | cloudvideo 重试 6 次 |
-| 7 | 拦「疲劳度记录」接口会**弹得更多** | 实证 |
+| 7 | 插件 [Rule] 策略只能 DIRECT/PROXY/REJECT 系 | 官方 plugin.md 白名单 |
 | 8 | Loon 订阅更新存在「已点更新但未生效」窗口 → 一切以探针为准 | 2026-10-24 三次穿透复盘 |
-| 9 | CDN（GitHub raw）缓存 5 分钟 → push 后别急着让用户更新 | etag 实测 |
-| 10 | 插件 [Rule] 策略只能 DIRECT/PROXY/REJECT 系 | 官方 plugin.md |
-| 11 | **bundle.js 加函数 ≠ 生效** — 三件套缺一不可: ①函数定义 ②main 分发 ③**lpx [Script] 规则入口** | 摇钱树悬浮窗三轮排查 (v3.48.0~3.48.3) |
-| 12 | **改开关默认值对已持久化的用户设置无效** — 老开关复活时查历史默认值; with enable 去掉改脚本内判断; 功能不依赖单一开关 | v3.47 系列事故 |
-| 13 | **同一功能在不同 App/页面用不同通道和容器名** — 清洗规则用前缀族匹配; 每个App的通道独立判定不能类推 (天猫滚词典=HTTP, 特价版=ACCS) | 2026-10-24 多起 |
-| 14 | **ACCS 通道 HTTP 层不可达** (淘宝/特价版滚词典、一淘拍图入口等) — 插件侧拦干净 HTTP 通道即为终局 | 多起沙盒实锤 |
-| 15 | **功能主干接口只能清洗不能 reject** — 首页容器 (天猫 infinity.gateway / 一淘 home.metax / tacdata) reject = 白屏 | 一淘首页白屏 v3.46 事故 |
-| 16 | **--check / node --check 过 ≠ 脚本能工作** — 顶层执行型脚本被截断只剩定义时语法仍合法但真机 $done 永不调用=超时失效; check v1.7.2 已静态查 $done, 逻辑对错仍须端到端 run | horn_clean rfind 截断事故 v0.6 |
-| 17 | **远程配置主干道 (horn/橙配类) 只能键级反转不能 reject** — 美团 horn mergeRequest 1.1MB/169模块 = 全App配置; 清洗用等长正则替换(性能+零结构破坏) | 美团 v0.4~v0.6 |
-| 18 | **主 API 走长连接的 App, 明文层+配置层即插件边界** — 美团/支付宝主数据在 mtgsdk/mobilegw 长连接; HTTP 可达的只有素材CDN/AB配置/horn配置/少量明文API | 美团三份HAR 3600条实证 |
-| 19 | **MITM/HAR 层验证有系统性盲区** — App 可能绕过代理拿原始数据 (豆瓣 frodo 域: MITM 全 `{}` 但 App 收到原始广告); "HAR 全 `{}`"≠拦截生效, 设备侧验证用 lc-forensics (App 进程内视角) | 豆瓣 v8.0 双源对拍 2026-10-26 |
-| 20 | **`json.replace` 的值参数不能传空容器** — `[]`/`{}`/`null` 真实 Loon 静默失败(不报错不写日志); 批量形态 `["[]","{}"]` 会写入字符串。清空容器一律用 `delete`。值参数只信已验证形态(数字/字符串) | RedPaper v1.4.0 placeholder 失效→v1.4.1 修 |
-| 21 | **`reject_*` 占位内容类型必须与目标一致** — `reject_img` 拦 `.zip` → App 解压失败 → 用户可见「网络不太顺畅」; `.mp4`/`.png` 各有禁用表。**不确定内容类型时宁可不拦** | RedPaper v1.4.2 回滚事故 |
-| 22 | **LC 容器目录对 iSH 可读写** — `mounts/Live Container/Data/Application/<UUID>/` root 可写; HTTP 拦不到的本地缓存可直删; 但 App 联网会按需重下, 需配合插件拦下载源 | RedPaper v1.5.0 缓存清理 2026-10-27 |
+| 8b | **真 A/B 必须在同一插件内** — 跨插件「一绿一穿」不能归因形态差异 | 2026-10-24 两次误判 |
+| 8c | **iSH 嵌套 node 可能整体失效**（node→node 跑 JS 一律超时/Killed） | 2026-10-25 实证 |
+| 9 | GitHub raw CDN 缓存 5 分钟 → push 后别急着让用户更新 | etag 实测 |
+| 10 | **bundle.js 加函数 ≠ 生效** — 三件套缺一即静默失效（①函数 ②main 分发 ③lpx 规则入口） | 摇钱树悬浮窗 v3.48.0~3.48.3 |
+| 11 | **改开关默认值不影响已持久化的用户设置** — 老开关复活必查历史默认值 | v3.47 removeSearchWords |
+| 12 | **端到端测试必须走完整链路**（cli.js run）— 禁止 vm 直调函数 | 事故 10 被漏检的原因 |
+| 13 | **功能主干接口只能清洗不能 reject** — 首页容器 reject = 白屏 | 一淘首页白屏 v3.46 |
+| 14 | **同一功能在不同 App/页面用不同通道和容器名** — 清洗用前缀族匹配 | 天猫滚词典 vs 特价版 |
+| 15 | **ACCS 通道 HTTP 层不可达** — 插件侧拦干净 HTTP 通道即为终局 | 多起沙盒实锤 |
+| 16 | **改默认值 = 四层同步** — lpx / 脚本兜底 / 构建产物 / 测试断言 | 字号 25→37 事故 |
+| 17 | **iSH ash 环境怪癖速查**（grep 空模式挂死 / 僵尸 grep 自我增殖）— 逻辑全走 python3 | 2026-10-26 /proc 诊断 |
+| 18 | **`json.replace` 值参数不能传空容器** → 用 `delete`；值只信数字/字符串 | RedPaper v1.4.0 事故 |
+| 19 | **`reject_*` 占位内容类型必须与目标一致** → 不确定宁可不拦 | RedPaper v1.4.2 回滚 |
+| 20 | **LC 容器目录对 iSH 可读写**（仅 LC 环境）→ 本地缓存可直删 | RedPaper v1.5.0 |
 
-> 铁律 20/21 已由 `loon-sim v1.7.7` 的 check 静态拦截；22 见 §4 环境决策表。
-
-完整禁止事项（12 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
+> 铁律 18/19 已由 `loon-sim v1.7.7` check 静态检查：18 单条形态为**警告**（不阻断 CI）、
+> 批量字符串形态与 19 为**错误**（退出码 2）；20 见 §4 环境决策表。
 
 ## 6. 代码规范
 
@@ -231,6 +230,6 @@ MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲
    涉及 `json.replace` 值参数、`reject_*` 拦二进制资源时必须真机验证
    （判据：真实响应字节数是否变化）。详见 §5 铁律 18/19。
 9. **加拦截前先问「拦错会怎样」** — 拦截失败的代价是用户可见报错，比不拦更糟。
-   不确定目标内容类型时，宁可不拦。（`reject_img` 拦 zip → App 解压失败事故，见铁律 21）
+   不确定目标内容类型时，宁可不拦。（`reject_img` 拦 zip → App 解压失败事故，见铁律 19）
 10. **取证手段按环境选** — 见 §4 决策表。实机只有 HAR；LC 才有目录读写与进程内 hook。
     不要拿 LC 的结论套实机，也不要用 HAR 的数据设计字段级规则。
