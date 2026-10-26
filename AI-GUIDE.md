@@ -95,7 +95,56 @@ curl -s https://<域名>/<路径> | head -c 50   # {} = reject_dict 生效；真
 判读速查表见 PLUGIN-DEV-GUIDE §7（size=2/status=0/DNS 127.0.0.1 等）。
 ISH 已信任 Loon 根证书，**不需要 `-k`**。
 
-### ★ 设备侧深度取证：lc-forensics（App 层真相，curl/MITM 覆盖不到）
+### ★ 取证环境选择：先判断你在哪个环境，再选手段
+
+**不同环境的可用手段完全不同，选错会浪费大量时间。**（2026-10-27 实证补充）
+
+| 环境 | LC 目录可写 | lc-forensics 可用 | 能拿到什么 | 适用场景 |
+|------|:---:|:---:|---|---|
+| **实机**（正常 iPhone） | ❌ 无此路径 | ❌ 未越狱装不进 | 只有 **HAR**（Loon MITM） | 插件生效验证 |
+| **实机 + Loon** | ❌ | ❌ | **HAR = 插件处理后的响应**（最权威） | 最终验收 |
+| **LC 容器**（Live Container） | ✅ root 可读写 | ✅ 可注入 dylib | 进程内原始请求 + **App 沙盒缓存** | 数据源定位 |
+
+#### 关键认知：HAR 与 lc-forensics 的数据不同源，不能互相替代
+
+| 数据源 | `ads/resource` 实测 | 看到的是 |
+|--------|:---:|---|
+| 实机 HAR | **2B** | 插件处理**后**（reject 生效） |
+| LC lc-forensics | **48.8KB** | 插件处理**前**的原始响应 |
+
+- **HAR 回答**「插件到底生效没有」→ 看字节数变化
+- **lc-forensics 回答**「原始数据长什么样」→ 设计清洗规则用
+
+> ⚠️ 不要用 lc-forensics 的数据判断规则是否生效（它抓的是 App 收到的原始字节，
+> 部分场景下与 Loon 处理后的结果不同）；也不要用 HAR 设计字段级规则（拿不到完整结构时）。
+
+#### LC 容器目录可直接读写（2026-10-27 认知修正）
+
+**之前误判过**：以为「插件无权操作 App 私有数据」。实际 LC 就是跑 App 的容器，
+其数据目录对 iSH 是普通可写路径：
+
+```
+/var/minis/mounts/Live Container/Data/Application/<UUID>/
+  ├── Documents/     ← App 的 Documents（缓存、素材）
+  ├── Library/       ← App 的 Library（Caches、dsl_template_Directory）
+  └── SystemData/
+```
+
+- 定位容器：`Data/Application/*/LCContainerInfo.plist` 里 `appIdentifier` 反查
+- 权限：root 可读可写可删，无需越狱
+- **适用**：清理本地已缓存的广告素材/模板/配置（HTTP 层拦不到的存量）
+- 示例：`plugins/RedPaper/clean-ad-cache.sh`（支持 `--dry-run`）
+- **但**：删掉后 App 联网会按需重新下载，需配合插件拦下载源
+
+#### lc-forensics 的使用边界（勿高估）
+
+- 只看得到**走 NSURLSession** 的请求；TCP 长连接、dart:io（Flutter）、WKWebView 内部流量看不到
+- 部分 App 主业务流量不走 NSURLSession（豆瓣走 TCP、JavDB 走 dio）→ 抓到的主要是启动链路 + SDK 上报 + 广告联盟
+- 响应落盘按 `tid-status-type.bin` 命名，**tid 会在 session 内复用** → 多请求互相覆盖
+  （绕法：用 `data` 行的 `requrl` + `src=didd1` 累计 `bytes` 判断真实大小，别用文件大小）
+- 何时该用：①HAR 全 `{}` 但广告仍出现 ②定位悬浮窗/预载缓存类数据源 ③需要 POST body 或完整响应结构
+
+
 
 curl/DNS 只能验证「Loon 代理层」的拦截；**部分 App 会绕过代理**（豆瓣 frodo 域实证：
 MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲区）。
@@ -131,6 +180,11 @@ MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲
 | 17 | **远程配置主干道 (horn/橙配类) 只能键级反转不能 reject** — 美团 horn mergeRequest 1.1MB/169模块 = 全App配置; 清洗用等长正则替换(性能+零结构破坏) | 美团 v0.4~v0.6 |
 | 18 | **主 API 走长连接的 App, 明文层+配置层即插件边界** — 美团/支付宝主数据在 mtgsdk/mobilegw 长连接; HTTP 可达的只有素材CDN/AB配置/horn配置/少量明文API | 美团三份HAR 3600条实证 |
 | 19 | **MITM/HAR 层验证有系统性盲区** — App 可能绕过代理拿原始数据 (豆瓣 frodo 域: MITM 全 `{}` 但 App 收到原始广告); "HAR 全 `{}`"≠拦截生效, 设备侧验证用 lc-forensics (App 进程内视角) | 豆瓣 v8.0 双源对拍 2026-10-26 |
+| 20 | **`json.replace` 的值参数不能传空容器** — `[]`/`{}`/`null` 真实 Loon 静默失败(不报错不写日志); 批量形态 `["[]","{}"]` 会写入字符串。清空容器一律用 `delete`。值参数只信已验证形态(数字/字符串) | RedPaper v1.4.0 placeholder 失效→v1.4.1 修 |
+| 21 | **`reject_*` 占位内容类型必须与目标一致** — `reject_img` 拦 `.zip` → App 解压失败 → 用户可见「网络不太顺畅」; `.mp4`/`.png` 各有禁用表。**不确定内容类型时宁可不拦** | RedPaper v1.4.2 回滚事故 |
+| 22 | **LC 容器目录对 iSH 可读写** — `mounts/Live Container/Data/Application/<UUID>/` root 可写; HTTP 拦不到的本地缓存可直删; 但 App 联网会按需重下, 需配合插件拦下载源 | RedPaper v1.5.0 缓存清理 2026-10-27 |
+
+> 铁律 20/21 已由 `loon-sim v1.7.7` 的 check 静态拦截；22 见 §4 环境决策表。
 
 完整禁止事项（12 条）+ 案例见 PLUGIN-DEV-GUIDE §9。
 
@@ -170,3 +224,13 @@ MITM 层全 `{}` 但 App 收到原始广告数据——HAR 验证有系统性盲
 4. **不要**为通过测试而修改插件本身来适配工具（修工具，不是修样本）
 5. 测试结论必须附证据（命令 + 输出），失败要如实报告
 6. 一次只做一个改动点，改完即验证，避免大爆炸式提交
+7. **「不可达/做不到」必须实测再断言** — 不要凭直觉说「插件无权操作 App 私有数据」
+   之类的结论。先验证：`touch` 测可写性、`ls` 测路径存在、`strings` 测符号。
+   （2026-10-27 教训：三次误判 LC 容器不可写，实际 root 可读写）
+8. **模拟器绿 ≠ 完成** — `check`/`run` 只保证语法与匹配正确，不保证真实 Loon 行为一致。
+   涉及 `json.replace` 值参数、`reject_*` 拦二进制资源时必须真机验证
+   （判据：真实响应字节数是否变化）。详见 §5 铁律 18/19。
+9. **加拦截前先问「拦错会怎样」** — 拦截失败的代价是用户可见报错，比不拦更糟。
+   不确定目标内容类型时，宁可不拦。（`reject_img` 拦 zip → App 解压失败事故，见铁律 21）
+10. **取证手段按环境选** — 见 §4 决策表。实机只有 HAR；LC 才有目录读写与进程内 hook。
+    不要拿 LC 的结论套实机，也不要用 HAR 的数据设计字段级规则。
