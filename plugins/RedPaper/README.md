@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.4.0** · 订阅以 lpx 内版本为准
+> **版本 v1.4.1** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -115,6 +115,26 @@ App 沙盒/Library/dsl_template_Directory/search_recommend_trending/
 ### P3 · 搜索框占位词清空
 `search.xiaohongshu.com/api/search/fls/placeholder` → `data.placeholder[]`（搜索框轮播占位词），
 规则 `response.json.replace("data.placeholder", [])`，保留 `word_request_id` 不影响功能。
+
+### ⚠️ v1.4.1：`json.replace` 值类型坑（v1.4.0 的 P3 因此未生效）
+
+**设备实测**：v1.4.0 里 `response.json.delete("data")` 生效（trending 25B），
+但 `response.json.replace("data.placeholder", [])` **未生效**（placeholder 仍 790B）。
+
+**根因**：`json.replace` 第二个参数（值）传 `[]` / `{}` 这类空容器时，真实 Loon 解析失败静默跳过。
+仓库里真机验证通过的 `json.replace` 全部是**数字**参数（SMZDM `[0, 0]`、JD `[0, 0, 0]`），
+没有一处传数组/对象 —— 我用的 `[]` 是未验证写法。
+
+**修正**：全部改用 `delete`（与已验证生效的 trending 规则同类）：
+```
+response.json.replace("data", "{}")           → response.json.delete("data")
+response.json.replace("data.items", "[]")     → response.json.delete("data.items")
+response.json.replace("data.hint_words", "[]") → response.json.delete("data.hint_words")
+response.json.replace("data.placeholder", [])  → response.json.delete("data.placeholder")
+```
+
+**教训（铁律级）**：JSON Action 的「值」参数只信已验证形态 —— 数字 / 字符串。
+要清空容器优先用 `delete`，不要赌 `replace(key, [])` 能被解析。
 
 ### 验证
 - `check`: 0 错误 0 警告（[Rewrite] 16 · [Mitm] 10）
