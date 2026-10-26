@@ -62,9 +62,22 @@ Documents/lcf-log/
 - 旧 `Documents/forensics.jsonl` 不再写入，历史保留
 - 读取最新日志：`cat Documents/lcf-log/latest.txt` 或 `ls -t Documents/lcf-log/*.jsonl | head -1`
 
-### 实证（待真机）
+### 实证（真机验证 ✅）
 
-87088B，md5 `8125cee0`。
+87088B，md5 `8125cee0`。豆瓣 / JavDB 各启动两次，全部符合预期：
+
+| App | 文件 | 行数 | pid | seq |
+|---|---|---|---|---|
+| 豆瓣 | `forensics-20261026T103152Z-65903.jsonl` | 721 | 65903 | 1→721 连续 ✅ |
+| 豆瓣 | `forensics-20261026T103202Z-65913.jsonl` | 771 | 65913 | 1→771 连续 ✅ |
+| JavDB | `forensics-20261026T103147Z-65901.jsonl` | 37 | 65901 | 1→37 连续 ✅ |
+| JavDB | `forensics-20261026T103159Z-65912.jsonl` | 87 | 65912 | 1→87 连续 ✅ |
+
+- ✅ 每次启动独立文件，旧文件不被覆盖（会话1 保持 721 行）
+- ✅ `latest.txt` 正确指向最新文件
+- ✅ seq 每会话从 1 开始且严格连续
+- ✅ **两次启动仅间隔 10 秒仍正确区分** —— pid 兜底设计的必要性得到验证
+  （若只用秒级时间戳，同秒重启会冲突）
 
 ---
 

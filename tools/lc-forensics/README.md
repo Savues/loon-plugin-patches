@@ -1,7 +1,8 @@
 # lc-forensics · Live Container 通用网络取证模块
 
 > iOS 容器化运行器 Live Container 的通用 tweak dylib：hook 容器内**任意 App** 的
-> NSURLSession 请求，逐条落盘到各 App 沙盒的 `Documents/forensics.jsonl`。
+> NSURLSession 请求，逐条落盘到各 App 沙盒的 `Documents/lcf-log/forensics-<UTC>-<pid>.jsonl`
+> （每次启动一个独立文件）。
 > 零 App 特定逻辑 —— 装一次，所有 guest App 通用。
 
 ## 它能做什么
@@ -80,16 +81,26 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 2. LC 自动用自家证书重签（AMFI 只认 LC 信任链，ad-hoc 签名会被拒）
 3. **确认 guest App 进程真的重启**（LC 多任务模式下"关闭"只是挂起——用 Restart/强制终止）
 4. 冷启动 App，操作几秒后读日志：
-   `Live Container/Data/Application/<guest-UUID>/Documents/forensics.jsonl`
+   `Live Container/Data/Application/<guest-UUID>/Documents/lcf-log/`
+
+   每次启动生成一个独立文件，命名 `forensics-YYYYMMDDTHHMMSSZ-<pid>.jsonl`
+   （`T` 分隔日期时间、`Z` 表示 UTC；pid 兜底防同秒重启冲突）。
+   同目录 `latest.txt` 记录最新文件名。
 
 ## 输出格式
 
 ```json
-{"ts":1792938830.25,"seq":147,"ev":"req","v":"4.7-seq-anchor","method":"POST",
+{"ts":1793013356.0,"seq":1,"ev":"stage","tag":"S1-ctor","v":"9.7-per-run-log","pid":65903}
+{"ts":...,"seq":42,"ev":"req","v":"9.7-per-run-log","method":"POST",
  "url":"https://api.douban.com/v2/app_ads/splash_show","dup":2,"bodyLen":4509,
- "stream":0,"tid":17,"ret":"ok","cls":"__NSURLSessionLocal","pid":61291}
-{"ts":...,"seq":148,"ev":"gap","sec":23.4,...}   ← ts 差∈(10s,60s] 才产；时钟跳变自动忽略
-{"ts":...,"seq":1,"ev":"stage","tag":"S3-hooked:2",...}
+ "stream":0,"tid":17,"ret":"ok","cls":"__NSURLSessionLocal","pid":65903}
+{"ts":...,"seq":43,"ev":"req-delegate",...}          ← 委托版创建（无 completionHandler）
+{"ts":...,"seq":44,"ev":"data","src":"didd1","tid":17,
+ "requrl":"https://img3.doubanio.com/view/treasury_image/raw/public/xxx.jpg",
+ "bytes":32768,"preview":"..."}                     ← 响应分片（自带 URL）
+{"ts":...,"seq":45,"ev":"fin","tid":17,"state":"ok","status":200,
+ "errCode":-1,"mime":"application/json"}            ← 生命周期（状态码/mime/失败分类）
+{"ts":...,"seq":46,"ev":"gap","sec":23.4,...}        ← ts 差∈(10s,60s] 才产；时钟跳变自动忽略
 ```
 
 - **`seq` = 行序唯一锚点**：进程内自增序号，零系统调用。【环境事实】LC guest 里
@@ -99,7 +110,13 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 - `ts` 仅作绝对时间参考（会被虚拟化，出现跳变/多域），**不用作行序**
 - `dup` = 同 URL 第几次出现（≥2 才写）；批量埋点一眼可辨
 - `ret:"NIL"` = 原实现返回 nil（App 拿到空 task，立即值得排查）
-- `ev`：`stage` / `req`（completionHandler 版创建）/ `req-delegate`（委托版创建）/ `gap`（消毒后的静默边界）
+- `ev` 行类型：
+  - `stage` — 阶段标记（S1-ctor / S2-sels / S3-hooked / S4-data-hooked / S5-meta-hooked）
+  - `req` / `req-delegate` — 请求创建（completionHandler 版 / 委托版）
+  - `data` — 响应分片（`src`=didd1/didd2 通道，`requrl`=分片自带 URL，`bytes`+`preview`）
+  - `fin` — 任务结束（`state` ok/err、`status` HTTP 码、`errCode` 失败分类、`mime`）
+  - `gap` — 静默边界（用户操作推断，已消毒）
+- **分片双记**：同一分片会触发 didd1 + didd2 两个回调，data 行出现两次（`src` 字段可辨）
 
 ## 版本史（豆瓣真机二分实证）
 
