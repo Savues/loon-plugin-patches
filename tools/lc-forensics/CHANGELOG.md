@@ -8,6 +8,93 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [8.4] - 2026-10-26 · unlocked-io
+
+### 动机：小红书白屏——持锁区同步磁盘 IO 阻塞网络回调
+
+小红书容器（com.xingin.discover）首次取证暴露两个真问题：
+
+1. **`O_APPEND` 打开新建文件失败**：预置 0B `forensics.jsonl` 后立即写入成功
+   （8 行 stage），证实 LC guest 沙盒对「新建 + O_APPEND」受限、对已存在文件放行
+   （与 2026-10-26 凌晨豆瓣 `lcf-resp.jsonl` 实验同结论）
+2. **★ 白屏根因**：文件能打开后，所有 `lc_write_*` 的 `write()` 都在持锁区内。
+   小红书沙盒在挂载层、磁盘 IO 比豆瓣慢得多，同步 write 阻塞网络回调线程
+   → 请求串行卡死 → App 白屏（进程活着不闪退）。之前文件打不开时 `open` 直接失败、
+   根本没走到 `write`，问题被掩盖。
+
+### 改动（持锁区去 IO，全模块）
+
+- 新增 `lc_write_nolock()`：只做 open + 单次 write（O_APPEND 单次写原子，
+  行 < 2048B < PIPE_BUF，无需锁保护）
+- 新增 `lc_build_seq_locked()`：锁内只做纯内存组装（回填 seq 占位 + 追加尾段），
+  返回 strdup 堆缓冲；调用方解锁后 `lc_write_free()` 落盘并释放
+- 9 处写入点全部改造：req×2 / data×2（didd1/didd2）/ fin / gap / resp×2 / stage
+- 静态校验：锁内 write 调用 **0 处**（脚本逐行扫描 lock/unlock 深度）
+
+### 实证
+
+86912B，md5 `bd68c1fc`。待真机：小红书白屏消失 + forensics.jsonl 有内容。
+
+---
+
+## [8.3] - 2026-10-26 · data-url
+
+### 动机：v8.2 双记确认 + 券图"有数据无请求"
+
+### 改动
+- data 行 +`requrl`（读 `task.currentRequest` 浅层链）——分片自带 URL，不依赖创建 hook
+
+### 实证
+- requrl 194/194 全覆盖
+- **悬浮窗 URL 实锤**：`https://img3.doubanio.com/view/treasury_image/raw/public/57caf2bbb1aa0f7.jpg`
+  - 分片合计 129317B 精确命中 + 重组文件与 SD 缓存字节一致（MD5 f81e14c1）
+  - SDImageCache 键 `592306d1...` = **MD5(去 scheme 的 URL)**（修正 SDWebImage 键规则认知）
+- 直接转化为 Douban-Dedup v2.6.1 的 treasury_image 拦截规则
+
+---
+
+## [8.2] - 2026-10-26 · data-src
+
+### 动机：v8.1 双记 + 券图缺席
+- tid=8 分片每片双记（36 行 = 18 片 × 2）：CFNetwork 对同一分片先后调 didd1/didd2
+
+### 改动
+- data 行 +`src` 字段（didd1/didd2 可辨）
+- 重组只在 didd1 追加（didd2 双追加会重复）
+
+### 实证
+- didd1:didd2 = 165:165 完美 1:1；**重组命中券图 129317B PNG 771×732** ✅
+
+---
+
+## [8.1] - 2026-10-26 · imgchannel
+
+### 动机：v8.0 清缓存实验实证图片库走独立通道
+### 改动
+- 新增 hook `_task_onqueue_didReceiveDispatchData:completionHandler:`（双冒号版）
+- S4 标记位图化：`S4-data-hooked:3` = 单冒号 + 双冒号都装
+
+### 实证
+- S4:3 双通道装上；但分片双记 + 券图仍缺席（req URL 的 MD5 无一匹配 SD 键）
+
+---
+
+## [8.0] - 2026-10-26 · multi-app
+
+### 动机：v7.5 残留——req/req-delegate 回填代码从未写入
+v7.3 脚本锚点匹配后，后续 v7.4/v7.5 脚本用旧快照覆盖，导致 278 行 seq=0 落盘。
+
+### 改动
+- req/req-delegate 两 hook 补齐持锁 strstr 回填（与 fin 同款）
+- 全量核对：取号 6 处全锁内（stage/helper/gap/req/reqd/fin 回填），回填 4 处，seq:0 占位 4 组装
+
+### 实证
+- **677 行 seq 严格连续 1→677**，零重复零空耗零遗漏 ✅
+
+---
+
 ## [7.5] - 2026-10-26 · seq-final
 
 ### 动机：v7.4 判读——volatile 无效，真根因是改造残留
