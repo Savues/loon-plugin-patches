@@ -10,6 +10,87 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [8.7] - 2026-10-26 · open-close
+
+### 动机：v8.6 部分有效，剩余卡死点收敛到「长期持有 fd」
+
+v8.6 小红书日志从 1 行 → 4 行（`S1-ctor` / `probe-thread-start` / `S2-sels` /
+`probe-wait-passed`），ctor 卡在 S2-sels 后的 hook 安装、探针卡在 wait-passed 后的
+introspection —— **两者都卡在写盘动作**。
+
+决定性对照：
+
+| 写入方式 | 小红书结果 |
+|---|---|
+| `lcf-req`/`lcf-resp`：每次 `open(O_TRUNC)`→`write`→`close` | **1531 个文件全成功** ✅ |
+| `forensics.jsonl`：长期持有 `g_fd` 反复 `write` | 随机挂住 ❌ |
+
+→ **长期持有的 fd 在 sandbox extension 文件上会失效/挂起，每次 open+close 才可靠**
+
+### 改动
+
+- 弃用 `g_fd` 缓存；`lc_write_nolock()` 改为每次：
+  `open(O_WRONLY|O_CREAT)` → `lseek(SEEK_END)` → `write` → `close`
+- 与 `lcf-req` 完全同款（后者已在小红书验证 1531 次）
+- 只在 flush 线程调用，开销可接受
+
+### 实证（待真机）
+
+87200B，md5 `53d04479`。
+
+---
+
+## [8.6] - 2026-10-26 · no-append
+
+### 动机：v8.5 只写 1 行就卡死
+
+v8.5 小红书日志仅 1 行 `S1-ctor`（ctor 第一句，直写成功），下一句
+`lc_start_flusher()` 之后再无输出 → **ctor 卡住不返回 → App 停在启动画面（白屏）**。
+
+关键对照：`lcf-req`/`lcf-resp` 用 **O_TRUNC** 打开，小红书 50+1531 个文件全部正常；
+`forensics.jsonl` 用 **O_APPEND** 打开则卡死 → O_APPEND 是慢/挂起路径（当时假设）。
+
+### 改动
+
+1. **弃用 O_APPEND**：改用 `O_WRONLY|O_CREAT` + 写前 `lseek(SEEK_END)`
+2. **`lc_start_flusher()` 移到 ctor 最末尾**（避开早期 `pthread_create` 风险）
+
+### 实证
+
+小红书：日志 1 行 → **4 行**（部分有效），但仍在 hook 安装段卡住。
+87168B，md5 `a7fef673`。→ 引出 v8.7。
+
+---
+
+## [8.5] - 2026-10-26 · async-io
+
+### 动机：v8.4 反而更糟，白屏与锁无关
+
+| 轮次 | forensics 存在 | 日志 | 请求 | 结果 |
+|---|---|---|---|---|
+| v8.3 早期 | ❌ 打不开 | 无 | lcf-req 50 / resp 1531 | 正常 |
+| v8.3 预置文件后 | ✅ | 8 行 stage | **零新增** | 白屏 |
+| v8.4 | ✅ | 8 行 stage | **零新增** | 白屏 |
+
+→ 白屏与锁无关（v8.3 锁内写 / v8.4 锁外写都一样卡）
+→ 真正变量是「写盘是否真的发生」：文件打不开时 `write` 从不执行 → App 正常
+
+### 改动（彻底异步）
+
+- 环形缓冲 `RING_CAP=1024` + 后台 flush 线程（每 200ms 批量落盘）
+- hook 线程只 `lc_enqueue`（纯内存入队，持锁极短，**零 IO**）
+- IO 只在专用 flush 线程；队列满则丢行（宁可丢行不阻塞 App）
+- `lc_stage` 在 flush 启动后同样入队；ctor 早期 8 行直接写兜底
+
+### 实证
+
+小红书：**仍白屏，且只写 1 行**（比 v8.4 的 8 行更少）→ ctor 卡在
+`lc_start_flusher()`。87136B，md5 `7bc4e778`。→ 引出 v8.6。
+
+---
+
 ## [8.4] - 2026-10-26 · unlocked-io
 
 ### 动机：小红书白屏——持锁区同步磁盘 IO 阻塞网络回调

@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.4-unlocked-io"
+#define LCF_VERSION "8.7-open-close"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -111,23 +111,25 @@ static int lc_openlog(void){
     if (g_fd >= 0 && strcmp(want, g_path) == 0) return g_fd;
     if (g_fd >= 0) close(g_fd);
     snprintf(g_path, sizeof(g_path), "%s", want);
-    g_fd = open(g_path, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+    g_fd = open(g_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
     return g_fd;
 }
 
+static void lc_enqueue(const char* line);          /* v8.5 前向声明 */
+static void lc_write_nolock(const char* line);     /* v8.5 前向声明 */
+extern volatile int g_flush_started_x;
+#define g_flush_started g_flush_started_x
+
+/* v8.5: stage 行同样入队 (ctor 早期 flush 线程可能未启动 → 直接写一次兜底) */
 static void lc_stage(const char* tag){
+    char line[192];
     lc_lock();
-    int fd = lc_openlog();
-    if (fd >= 0){
-        char line[192];
-        int n = snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"stage\",\"tag\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
-            lc_now(), ++g_seq, tag, (int)getpid());
-        if (write(fd, line, (size_t)n) < 0){
-            close(g_fd); g_fd = -1;
-        }
-    }
+    snprintf(line, sizeof(line),
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"stage\",\"tag\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
+        lc_now(), ++g_seq, tag, (int)getpid());
     lc_unlock();
+    if (g_flush_started) lc_enqueue(line);
+    else lc_write_nolock(line);   /* ctor 早期兜底 (仅 8 行, 可接受) */
 }
 
 /* v8.4: 已持锁 — 只做纯内存组装 (回填 seq + 追加尾段), 返回堆缓冲;
@@ -154,21 +156,84 @@ static char* lc_build_seq_locked(const char* prefix, const char* suffix){
     return out;
 }
 
-static void lc_write_nolock(const char* line);   /* v8.4 前向声明 */
+/* ==================================================================
+ * v8.5: 异步落盘 — 小红书实证: guest 进程经 sandbox extension 写盘阻塞且极慢,
+ * 在 hook 线程同步 write 必卡死 (白屏)。改为: hook 线程只入队 (纯内存),
+ * 后台 flush 线程每 200ms 批量落盘 (IO 只在专用线程)。
+ * ================================================================== */
+#define RING_CAP 1024
+static char* g_ring[RING_CAP];
+static int   g_ring_head = 0, g_ring_tail = 0;
+volatile int g_flush_started_x = 0;
+
+/* v8.4: 锁外写 */
+
+/* 入队 (任何线程可调, 持锁极短, 零 IO) */
+static void lc_enqueue(const char* line){
+    if (!line || !line[0]) return;
+    char* cp = strdup(line);
+    if (!cp) return;
+    lc_lock();
+    int next = (g_ring_head + 1) % RING_CAP;
+    if (next != g_ring_tail){          /* 未满 */
+        g_ring[g_ring_head] = cp;
+        g_ring_head = next;
+        cp = 0;
+    }
+    lc_unlock();
+    if (cp) free(cp);                  /* 满了丢弃 (宁可丢行不阻塞) */
+}
+
+/* 后台线程: 每 200ms 把环形缓冲一次性写出 */
+static void* lc_flush_thread(void* arg){
+    (void)arg;
+    for (;;){
+        usleep(200 * 1000);
+        char* batch[64];
+        int n = 0;
+        lc_lock();
+        while (g_ring_tail != g_ring_head && n < 64){
+            batch[n++] = g_ring[g_ring_tail];
+            g_ring[g_ring_tail] = 0;
+            g_ring_tail = (g_ring_tail + 1) % RING_CAP;
+        }
+        lc_unlock();
+        for (int i = 0; i < n; i++){
+            lc_write_nolock(batch[i]);
+            free(batch[i]);
+        }
+    }
+    return 0;
+}
+
+static void lc_start_flusher(void){
+    if (g_flush_started) return;
+    g_flush_started = 1;
+    pthread_t t;
+    if (pthread_create(&t, 0, lc_flush_thread, 0) == 0) pthread_detach(t);
+}
 
 /* v8.4: 锁外落盘 + 释放 (buf 来自 lc_build_seq_locked) */
 static void lc_write_free(char* buf){
     if (!buf) return;
-    lc_write_nolock(buf);
+    lc_enqueue(buf);   /* v8.5: 入队, IO 交给 flush 线程 */
     free(buf);
 }
 
 /* v8.4: 锁外写 (O_APPEND 单次 write 原子, 行<2048B < PIPE_BUF; 沙盒慢盘不再阻塞网络回调) */
+/* v8.7: 每次 open→lseek(END)→write→close — 小红书实证: 长期持有 fd 在 sandbox
+ * extension 文件上会挂起 (v8.6 卡在 hook 安装段), 而 lcf-req/lcf-resp 的
+ * "每次 open+close" 写了 1531 个文件全部成功。本函数只在 flush 线程调用, 开销可接受。 */
 static void lc_write_nolock(const char* line){
-    int fd = lc_openlog();
-    if (fd >= 0 && write(fd, line, strlen(line)) < 0){
-        close(g_fd); g_fd = -1;
-    }
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/" LOG_RELATIVE, home);
+    int fd = open(path, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
+    if (fd < 0) return;
+    lseek(fd, 0, SEEK_END);
+    write(fd, line, strlen(line));
+    close(fd);
 }
 
 static void lc_write_locked(const char* line){
@@ -316,7 +381,7 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
         g_last_ts = ts;
     }
     lc_unlock();
-    if (has_gap) lc_write_nolock(gapline);   /* v8.4: 锁外写 */
+    if (has_gap) lc_enqueue(gapline);   /* v8.5: 入队 */
 
     char* p = line; size_t rem = cap;
     int n = snprintf(p, rem,
@@ -729,7 +794,7 @@ static void didresp_hook(id self, SEL _cmd, id response, void* completion){
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
         if (line[0]){
-            lc_write_nolock(line);   /* v8.4: 锁外写 */
+            lc_enqueue(line);   /* v8.4: 锁外写 */
         }
         if (g_diag_resp_enter == 3){
             g_diag_resp_enter = 4;
@@ -749,7 +814,7 @@ static void didresp2_hook(id self, SEL _cmd, id response, id redirectReq, void* 
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
         if (line[0]){
-            lc_write_nolock(line);   /* v8.4: 锁外写 */
+            lc_enqueue(line);   /* v8.4: 锁外写 */
         }
         if (g_diag_resp_enter == 3){
             g_diag_resp_enter = 4;
@@ -1042,4 +1107,7 @@ static void lcf_ctor(void){
     snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d", m2);
     lc_stage(tag2);
     lc_stage(g_resp_fallback ? DATA_FALLBACK_MARK : "resp-file-ok");
+
+    /* v8.6: flush 线程放到 ctor 最末尾 — 避开早期 pthread_create 风险 */
+    lc_start_flusher();
 }
