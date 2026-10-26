@@ -16,6 +16,53 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [9.4] - 2026-10-26 · no-append
+
+### 动机：★ 决定性实验锁定「O_APPEND 导致新建失败」
+
+此前多轮怀疑（沙盒挂起、外部创建、线程、volatile）全部被实验否定。
+最终用「删掉日志文件 → 让模块自己重建」的方式得到干净对照：
+
+| App | `forensics.jsonl`（模块自建） | `lcf-req/<tid>-POST.bin`（模块自建） | App |
+|---|---|---|---|
+| 豆瓣 | **❌ 创建不出来** | **✅ 221 个** | 正常 |
+| JavDB | **❌ 创建不出来** | **✅ 29 个** | 正常 |
+
+**同进程、同 HOME、同一套代码**，唯一差异是 open 标志：
+
+- `lcf-req`：`O_WRONLY|O_CREAT|O_TRUNC` → 能创建
+- `forensics.jsonl`：`O_WRONLY|O_CREAT|O_APPEND` → **创建失败**
+
+### 改动
+
+- `lc_openlog()` / `lc_open_resp()`：**去掉 `O_APPEND`**，改 `O_WRONLY|O_CREAT`
+- 新增 `lc_seek_end()`：每次写前 `lseek(SEEK_END)` 追加（单线程写，无并发风险）
+- 两处写入点（`lc_write_locked` / `lc_resp_write`）全部加 seek
+
+### 回溯：这是从第一版就存在的假设
+
+查 git 历史 6 个版本（edc661a / b5446a9 / 63f0d18 / 28c031e / 1e456ea / b8be55f），
+`O_APPEND` 一直在。它在豆瓣/JavDB 上一直「恰好能用」（因为文件早就存在），
+**从未被「从零创建」的测试覆盖过**——这是测试设计的漏洞，不是某次改动引入的。
+
+### 附带结论：模块通用性的诚实定位
+
+本模块**不是通用网络取证工具**，而是「**NSURLSession 栈 + 特定 iOS 版本私有 selector**
+的取证工具，在豆瓣/JavDB 上验证充分」：
+
+- 只 hook `__NSCFLocalSessionTask`（iOS 26 唯一实体类）
+- 私有 selector 名随 iOS 版本浮动（靠探针实测）
+- **完全不覆盖** Flutter(dio) / WKWebView / 自研网络栈
+- Steam / 小红书实测异常（App 卡住），不做承诺
+
+### 实证（待真机）
+
+86944B，md5 `f99219f4`。
+
+---
+
 ## [8.9] - 2026-10-26 · selfdir
 
 ### 动机：★ 三轮对照实验锁定根因——外部创建的日志文件会让 open() 挂起

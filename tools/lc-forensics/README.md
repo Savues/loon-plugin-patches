@@ -45,13 +45,13 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v8.9）
+lc-forensics-final.c    # 源码（当前版本 v9.4）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v8.9.dylib # 构建产物（可直接 Import）
+lc-forensics-v9.4.dylib # 构建产物（可直接 Import）
 
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
@@ -130,7 +130,8 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v8.6** | 弃用 O_APPEND（改 lseek(SEEK_END)）+ flusher 移到 ctor 末尾 | 小红书 1 行 → 4 行（部分有效），仍卡在 hook 安装段 |
 | **v8.7** | 每次 open→lseek→write→close（弃用长期 fd，与 lcf-req 同款）| 小红书 6 行（逐步推进）→ 根因收敛为 open() 概率性挂起 |
 | **v8.8** | ctor 期绝不 open（lc_stage 只入队）+ flush 线程延迟 2s 首次落盘 | 小红书仍白屏但 0 行 → 排除 ctor 期 IO；三轮对照锁定「外部创建的文件」 |
-| **v8.9** | 日志移入自建目录 Documents/lcf/（与 lcf-req/resp 同模式）+ mkdir | 当前版本 |
+| **v8.9** | 日志移入自建目录 Documents/lcf/（与 lcf-req/resp 同模式）+ mkdir | 仍创建失败 → 排除路径因素 |
+| **v9.4** | **弃用 O_APPEND**（改 O_CREAT + 写前 lseek）——实证：O_APPEND 下新建文件失败 | 当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
