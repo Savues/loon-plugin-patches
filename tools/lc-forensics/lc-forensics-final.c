@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.7-open-close"
+#define LCF_VERSION "8.8-defer-io"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -121,6 +121,8 @@ extern volatile int g_flush_started_x;
 #define g_flush_started g_flush_started_x
 
 /* v8.5: stage 行同样入队 (ctor 早期 flush 线程可能未启动 → 直接写一次兜底) */
+/* v8.8: ctor 期绝不 open — 一律入队, 由 flush 线程延迟落盘
+ * (小红书实证: open() 在 sandbox extension 上概率性挂起, 挂在 ctor = App 白屏) */
 static void lc_stage(const char* tag){
     char line[192];
     lc_lock();
@@ -128,8 +130,7 @@ static void lc_stage(const char* tag){
         "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"stage\",\"tag\":\"%s\",\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
         lc_now(), ++g_seq, tag, (int)getpid());
     lc_unlock();
-    if (g_flush_started) lc_enqueue(line);
-    else lc_write_nolock(line);   /* ctor 早期兜底 (仅 8 行, 可接受) */
+    lc_enqueue(line);   /* 永不直接写盘 */
 }
 
 /* v8.4: 已持锁 — 只做纯内存组装 (回填 seq + 追加尾段), 返回堆缓冲;
@@ -187,6 +188,9 @@ static void lc_enqueue(const char* line){
 /* 后台线程: 每 200ms 把环形缓冲一次性写出 */
 static void* lc_flush_thread(void* arg){
     (void)arg;
+    /* v8.8: 延迟 2s 才第一次 open — 等 ctor 返回、App 启动流程走完,
+     * 即使 open 挂起也只挂在后台线程, 不阻塞 App 启动 */
+    usleep(2000 * 1000);
     for (;;){
         usleep(200 * 1000);
         char* batch[64];

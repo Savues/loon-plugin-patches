@@ -12,6 +12,46 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [8.8] - 2026-10-26 · defer-io
+
+### 动机：v8.7 卡在 S4 之后——根因收敛为「open() 本身概率性挂起」
+
+v8.7 小红书日志 6 行（`S1-ctor` → `probe-thread-start` → `S2-sels` →
+`probe-wait-passed` → `S3-hooked:2` → `S4-data-hooked:3`），**缺少 S5/resp-file-ok**。
+而 S4→S5 之间只有纯计算 + snprintf——不可能卡，除非 `lc_stage` 里的
+`lc_write_nolock()` 的 `open()` 挂住了。
+
+**跨版本证据（决定性）**：
+
+| 版本 | 写入方式 | 小红书日志行数 | 卡住位置 |
+|---|---|---|---|
+| v8.5 | 环形缓冲 + 持有 fd | 1 行 | `lc_start_flusher()` |
+| v8.6 | O_TRUNC + lseek | 4 行 | S2-sels 后 |
+| v8.7 | 每次 open→lseek→write→close | **6 行** | S4 后 |
+
+每次改进都「多推进一点」但仍在某个 `open()` 挂住 → **`open()` 在小红书
+sandbox extension 上是概率性挂起，不是固定位置问题**。
+只要在 ctor 线程同步 open 就可能白屏。
+
+### 改动
+
+1. **`lc_stage` 永不直接写盘**：一律 `lc_enqueue`（纯内存入队）
+2. **flush 线程延迟 2 秒**才第一次 open —— 等 ctor 返回、App 启动流程走完；
+   即使 open 挂起也只挂在后台线程，不阻塞 App 启动
+
+### 判读
+
+小红书：白屏消失（ctor 完全不碰 IO）。若仍白屏，说明 flush 线程的 open 挂起
+会连带阻塞（需再退一步：完全放弃小红书这类容器的落盘）。
+
+### 实证（待真机）
+
+87168B，md5 `c6543b3a`。
+
+---
+
 ## [8.7] - 2026-10-26 · open-close
 
 ### 动机：v8.6 部分有效，剩余卡死点收敛到「长期持有 fd」
