@@ -1,4 +1,4 @@
-#!name=B站四合一(去广告+界面+空降+开屏) v8.0.1
+#!name=B站四合一(去广告+界面+空降+开屏) v8.0.2
 #!desc=Bilibili-Allinone: 四插件合体 — ①去广告+会员伪装+漫画净化(Bilibili-Dedup) ②首页标签页/底栏(Bilibili-UI) ③空降助手 SponsorBlock(Bilibili-Airborne) ④开屏节日定制(Splash-Festival)。参数 67 个按 tag 分组; ViewProgress 由 bundle 单管线处理(清洗+chronos 重签), 消除跨插件规则互抢。
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告,Bilibili,Allinone
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/icon.png?v=2
-#!date=2026-10-26 01:30:00
+#!date=2026-10-26 05:20:00
 
 [Argument]
 # ======== 去广告 / 会员伪装 (原 Bilibili-Dedup v7.45) ========
@@ -91,7 +91,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.1")
+request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.2")
 
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 # 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
@@ -116,7 +116,7 @@ response if ${url} ~= /^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/account\/(myinfo|mine(\/ipad)?)\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/vip.js?v=744, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual},{MineInterHideIds},{MineHideIds}], tag=会员伪装, enable={localVIP}
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/space(\/archive\/cursor|\/article)?\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/vip.js?v=744, argument=[{vipTheme},{vipBg},{vipFg},{vipImg},{vipText},{vipAvatarBadge},{vipBadgeIcon},{vipLabelAnnual},{myMid},{vipAllUsers},{vipTargetMid},{vipVerify},{vipVerifyTitle}], enable={localVIPSpace}, tag=空间页会员伪装
 http-request ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.viewunite\.v1\.View\/View|main\.community\.reply\.v1\.Reply\/MainList)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/protobuf.request.js?v=722, argument=[{purifyComment}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, enable={optimizeRequest}, tag=评论请求优化
-http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/protobuf.response.js?v=724, argument=[{displayUpList}, {purifyComment}, {chronos}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
+http-response ^https:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed|AIRelateAsync)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayURL\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/DmView|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$ script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/protobuf.response.js?v=725, argument=[{displayUpList}, {purifyComment}, {chronos}, {logLevel}], requires-body=true, binary-body-mode=true, timeout=10, tag=Protobuf处理
 http-response ^https?:\/\/(api\.bili(bili\.com|api\.net)\/pgc\/page\/(bangumi|cinema\/tab\?)|api\.bilibili\.com\/x\/web-interface\/wbi\/index\/top\/feed\/rcmd\?|api\.live\.bilibili\.com\/xlive\/app-room\/v1\/index\/getInfoByRoom) script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/adblock.bundle.js?v=722, requires-body=1, argument=[{LogLevel}], tag=BiliUniverse去广告
 http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/search\/square script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/upstream/adblock-hotsearch.js?v=722, requires-body=1, timeout=10, tag=去除搜索推荐
 # -- 界面增强 (原 UI; LogLevel 共用) --
