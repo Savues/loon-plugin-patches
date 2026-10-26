@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "10.1-fix-url-ext-status"
+#define LCF_VERSION "10.2-json-heic-taskkey"
 #define LOG_DIR_RELATIVE "Documents/lcf-log"                       /* v9.7: 每次启动独立日志目录 */
 #define LOG_NAME_FMT     "forensics-%04d%02d%02dT%02d%02d%02dZ-%d.jsonl"  /* UTC + pid */
 #define LOG_RELATIVE     "Documents/lcf-log/latest.txt"            /* 旧引用兜底 (不再作主日志) */
@@ -512,8 +512,8 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, c
     }
     char* p = line; size_t rem = cap;
     int w = snprintf(p, rem,
-        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"src\":\"%s\",\"tid\":%llu,\"requrl\":",
-        lc_now(), 0, src, tid);
+        "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"data\",\"v\":\"" LCF_VERSION "\",\"src\":\"%s\",\"tid\":%llu,\"taskkey\":\"%08x\",\"requrl\":",
+        lc_now(), 0, src, tid, (unsigned int)((unsigned long long)(uintptr_t)self & 0xFFFFFFFFu));   /* v10.2: taskkey */
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, requrl);
     w = snprintf(p, rem, ",\"bytes\":%llu,\"preview\":", size);
@@ -688,17 +688,24 @@ static reasm_t* lcf_reasm_take_slot(unsigned long long tid, unsigned long long t
 /* v6.9: 锁外落盘 (open/mkdir/write — 全部 IO 不在持锁区) */
 /* v10.0: 用 magic bytes 判类型 (mime 链路已断 — v6.8 卸载 resp hook 后 s->mime 恒空) */
 static const char* lcf_sniff_type(const char* b, size_t n){
-    if (!b || n < 4) return "bin";
+    /* v10.2: 去掉 n<4 早退 — 反馈实证 6 个 reject_dict 占位 "{}" (2B) 被判 bin */
+    if (!b || n < 1) return "bin";
     const unsigned char* u = (const unsigned char*)b;
     /* 跳过可能的空白前缀 */
     size_t i = 0;
     while (i < n && i < 8 && (u[i]==' '||u[i]=='\t'||u[i]=='\r'||u[i]=='\n')) i++;
-    if (i < n && (u[i]=='{' || u[i]=='[')) return "json";
+    if (i < n && (u[i]=='{' || u[i]=='[')) return "json";   /* v10.2: 2 字节 "{}" 也算 */
     if (i + 1 < n && u[i]=='P' && u[i+1]=='K') return "zip";
     if (n >= 4 && u[0]==0x89 && u[1]=='P' && u[2]=='N' && u[3]=='G') return "png";
     if (n >= 3 && u[0]==0xFF && u[1]==0xD8 && u[2]==0xFF) return "jpg";
     if (n >= 12 && u[0]=='R'&&u[1]=='I'&&u[2]=='F'&&u[3]=='F' && u[8]=='W'&&u[9]=='E'&&u[10]=='B'&&u[11]=='P') return "webp";
     if (n >= 6 && u[0]=='G'&&u[1]=='I'&&u[2]=='F'&&u[3]=='8') return "gif";
+    /* v10.2: HEIC/HEIF — ftyp 在 offset 4 (反馈: 6 个 HEIC 存成 .bin) */
+    if (n >= 12 && u[4]=='f'&&u[5]=='t'&&u[6]=='y'&&u[7]=='p'){
+        if ((u[8]=='h'&&u[9]=='e'&&u[10]=='i'&&u[11]=='c') ||
+            (u[8]=='h'&&u[9]=='e'&&u[10]=='i'&&u[11]=='x') ||
+            (u[8]=='m'&&u[9]=='i'&&u[10]=='f'&&u[11]=='1')) return "heic";
+    }
     if (i + 5 < n && u[i]=='<' && (u[i+1]=='!'||u[i+1]=='?'||u[i+1]=='h')) return "html";
     /* gzip / br 压缩体 */
     if (n >= 2 && u[0]==0x1F && u[1]==0x8B) return "gz";

@@ -26,6 +26,58 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [10.2] - 2026-10-27 · json-heic-taskkey
+
+### 动机：v10.1 反馈的三个遗留项
+
+RedPaper 开发方对 v10.1 的反馈（750 行真机日志验证）：
+
+| # | 问题 | 反馈原话 |
+|---|---|---|
+| **P1** | 6 个 `{}` 响应被存成 `.bin` | "magic=7b7d ← 实际是 {}" |
+| **P2** | `data` 行缺 `taskkey` | "现在只有 index.jsonl 有，日志行没有" |
+| **P3** | 6 个 HEIC 存成 `.bin` | "magic=...ftypheic"（反馈认为可接受） |
+
+### 根因（P1 是个明显的 bug）
+
+```c
+if (!b || n < 4) return "bin";   // ← 2 字节的 "{}" 直接早退
+...
+if (u[i]=='{' || u[i]=='[') return "json";   // ← 永远走不到
+```
+
+`n < 4` 的早退把 2 字节的 `reject_dict` 占位挡在 JSON 判断之前。
+
+### 改动
+
+1. **magic bytes 早退条件** `n < 4` → `n < 1`（2 字节 `{}` 也能判 JSON）
+2. **HEIC/HEIF 识别**：`ftyp` @ offset 4 + `heic`/`heix`/`mif1` → `.heic`
+3. **`data` 行加 `taskkey`** 字段（与 index.jsonl 对齐，跨文件关联更方便）
+
+### 逻辑验证（14 组边界用例全通过）
+
+| 输入 | 期望 | 实际 |
+|---|---|---|
+| `{}` | json | **json** ✅ |
+| `{"a":1}` / `[]` / `  {"a":1}` | json | json ✅ |
+| `...ftypheic` / `...ftypmif1` | heic | **heic** ✅ |
+| PNG / JPEG / WEBP / ZIP / HTML / gzip | 各自类型 | ✅ |
+| 加密 conf (`1f7798a3`) / 单字节 | bin | bin ✅ |
+
+### 实证（待真机）
+
+87120B，md5 `ec97e647`。
+
+### 采纳反馈的建议
+
+反馈 P3 建议"preview 支持 JSON 结构摘要"——**未采纳**：
+复杂嵌套的结构摘要有性能风险（每次分片都要解析 JSON），
+且 512 字符截断配合 `lcf-resp` 完整文件已够用。
+
+---
+
 ## [10.1] - 2026-10-27 · fix-url-ext-status
 
 ### 动机：v10.0 真机验证发现三个引入的 bug
