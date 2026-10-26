@@ -91,10 +91,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${{url}} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.1")
-
-# 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_dedup/i then reject(200, "7.45")
+request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.1")
 
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 # 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认

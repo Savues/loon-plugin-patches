@@ -7,10 +7,11 @@ ROOT = pathlib.Path(__file__).resolve().parent
 PLUG = ROOT.parent
 def read(p): return (PLUG / p).read_text(encoding='utf-8')
 
-dedup = read('Bilibili-Dedup/Bilibili-Dedup.lpx')
-ui    = read('Bilibili-UI/Bilibili-UI.lpx')
-air   = read('Bilibili-Airborne/Bilibili-Airborne.lpx')
-spl   = read('Splash-Festival/Splash-Festival.lpx')
+# 源清单已归档至 archive/ (2026-10-26)。保留本脚本仅为「重新生成」的参考能力。
+dedup = read('Bilibili-Allinone/archive/Dedup/Bilibili-Dedup.lpx')
+ui    = read('Bilibili-Allinone/archive/UI/Bilibili-UI.lpx')
+air   = read('Bilibili-Allinone/archive/Airborne/Bilibili-Airborne.lpx')
+spl   = read('Bilibili-Allinone/archive/Splash/Splash-Festival.lpx')
 
 def section(txt, name):
     m = re.search(r'^\[' + name + r'\]\n(.*?)(?=^\[|\Z)', txt, re.M | re.S)
@@ -43,6 +44,13 @@ total = len(dedup_args) + len(ui_args) + len(air_args) + len(spl_args)
 assert total == 67, f'参数总数 {total} != 67'
 
 # ---- Script 行 ----
+# Dedup 的 Rewrite 段: 剔除它自己的探针(注释+规则), Allinone 用统一探针
+dedup_rewrite = '\n'.join(
+    ln for ln in section(dedup, 'Rewrite').splitlines()
+    if 'loon-sim.probe' not in ln and 'loon-sim\.probe' not in ln
+    and not (ln.strip().startswith('# 版本探针') and 'v2' in ln)
+) + '\n'
+
 dedup_script = []
 for ln in section(dedup, 'Script').splitlines():
     t = ln.strip()
@@ -86,9 +94,9 @@ out = f'''#!name=B站四合一(去广告+界面+空降+开屏) v8.0.0
 ''' + section(dedup, 'Rule') + '''
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${{url}} ~= /^https?:\\/\\/line3-h5-mobile-api\\.biligame\\.com\\/gw\\/loon-sim\\.probe\\/bilibili_allinone/i then reject(200, "8.0.0")
+request if ${url} ~= /^https?:\\/\\/line3-h5-mobile-api\\.biligame\\.com\\/gw\\/loon-sim\\.probe\\/bilibili_allinone/i then reject(200, "8.0.0")
 
-''' + section(dedup, 'Rewrite') + '''
+''' + dedup_rewrite + '''
 [Script]
 # -- 去广告/会员伪装 (原 Dedup; ViewProgress 的 chronos 重签已并入 protobuf.response.js 的 ii()) --
 ''' + '\n'.join(dedup_script) + '''

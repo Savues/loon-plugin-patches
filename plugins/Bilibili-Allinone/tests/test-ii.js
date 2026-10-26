@@ -48,10 +48,10 @@ function chronosOf(pb) {
 }
 const sOf = (bytes) => Buffer.from(bytes).toString('latin1');
 
-// ── 用真实 HAR 响应做夹具 ──
-const har = JSON.parse(fs.readFileSync('/var/minis/attachments/uploads/shared-F4789376_527_1792932841289.har', 'utf8'));
-const e36 = har.log.entries[36];
-const payload = new Uint8Array(Buffer.from(e36.response.content.text, 'base64').slice(5));
+// ── 夹具: 仓库内置 viewprogress-raw.bin（原为某次真机 HAR 的 entries[36]，已固化为仓库资产，
+//    跨设备可跑；含 grpc 5 字节帧头 + viewunite ViewProgressReply）
+const fixturePath = path.resolve(__dirname, '../../../patches/fixtures/viewprogress-raw.bin');
+const payload = new Uint8Array(fs.readFileSync(fixturePath).slice(5));
 const mkCtx = (pb, ua) => ({ argument: { purifyComment: true, sponsorBlock: true },
   request: { headers: { 'user-agent': ua || 'bili-inter/82300200' } }, response: { bodyBytes: pb } });
 
@@ -63,10 +63,10 @@ const mkCtx = (pb, ua) => ({ argument: { purifyComment: true, sponsorBlock: true
   const inner = chronosOf(ctx.response.bodyBytes.slice(5));
   const text = inner ? sOf(Buffer.concat(inner.filter(f => f.no <= 3).map(f => f.raw))) : '';
   ck('① 端到端: 输出仍为合法 protobuf(裸 payload, 帧由 kn 中间件包)', ctx.response.bodyBytes.length > 10);
-  ck('① chronos#1 已改写为 inter 去伞版', s.includes('c9940a255224fb5ab2829f0c87df71c9'));
-  ck('① 服务端原始 md5 已消失', !s.includes('3a14beddd23328eaddfe9f0eb048d713'));
-  ck('① 旧签名已删', !s.includes('PT+n3WWce'));
-  ck('① zip URL 指向 Allinone', s.includes('/plugins/Bilibili-Allinone/chronos/c9940a255224fb5ab2829f0c87df71c9.zip'));
+  ck('① chronos#1 已改写为去伞版 7d0a357c', s.includes('7d0a357c92ee4a002c0970e88d1b38b6'));
+  ck('① 服务端原始 md5 已消失', !s.includes('325e7073ffc6fb5263682fecdcd1058f'));
+  ck('① 旧签名已删', !s.includes('WdqW4FW96F1BimY8V0yGT3MBdtEUpDnDbULF5yrEbrmhi2vsa97QXFvkq0'));
+  ck('① zip URL 指向 Allinone', s.includes('/plugins/Bilibili-Allinone/chronos/7d0a357c92ee4a002c0970e88d1b38b6.zip'));
 }
 
 // ② 幂等: 重签结果再过一遍输出不变
@@ -99,7 +99,7 @@ const mkCtx = (pb, ua) => ({ argument: { purifyComment: true, sponsorBlock: true
   }
   // 简化: 直接字符串替换载荷里的 md5 为假 md5(等长)
   let txt = Buffer.from(payload).toString('latin1');
-  txt = txt.replace('3a14beddd23328eaddfe9f0eb048d713', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  txt = txt.replace('325e7073ffc6fb5263682fecdcd1058f', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   const fakePayload = new Uint8Array(Buffer.from(txt, 'latin1'));
   const ctx = mkCtx(fakePayload);
   ti(ctx, () => {});
@@ -133,7 +133,7 @@ const mkCtx = (pb, ua) => ({ argument: { purifyComment: true, sponsorBlock: true
   const ctx = mkCtx(payload, 'Mozilla/5.0 bili-android');
   Qn(ctx, () => {});
   const s = sOf(ctx.response.bodyBytes);
-  ck('⑥ view.v1 Qn 也会重签 chronos', s.includes('c9940a255224fb5ab2829f0c87df71c9'));
+  ck('⑥ view.v1 Qn 也会重签 chronos', s.includes('7d0a357c92ee4a002c0970e88d1b38b6'), s.match(/[0-9a-f]{32}/g)?.slice(0,1).join(''));
 }
 
 console.log(fail ? `\nFAILED: ${fail} 项失败` : '\n全部通过');
