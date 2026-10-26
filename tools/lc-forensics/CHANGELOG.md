@@ -22,6 +22,51 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [10.0] - 2026-10-27 · feedback-fix ★ 按用户使用反馈修复七项
+
+### 动机：RedPaper 插件开发全程的使用反馈（USAGE-FEEDBACK.md）
+
+纯使用者视角，3 个 session 实测小红书 9.51.1。逐条核实**全部属实**，
+其中两条是明确的实现疏漏。
+
+### 修复清单
+
+| # | 问题 | 反馈原话 | 修复 |
+|---|---|---|---|
+| **1** | **tid 复用覆盖响应体** | "8MB 实际 300B" | 文件名加 taskkey 短哈希：`<tid>-<taskkey8>-<status>-<type>.bin` |
+| **2** | **preview 太短** | "平均 95 字符，JSON 结构看不全" | `PREVIEW_LEN` 128 → **512** |
+| **3** | **扩展名全 .bin** | "1638 个文件全 bin" | 改用 **magic bytes** 判类型（json/zip/png/jpg/webp/gif/html/gz）|
+| **4** | **fin 行缺 url** | "tid=1 对应 20+ 请求，无法判断" | fin 行加 `url` 字段（`currentRequest.URL`）|
+| **5** | **缺 index.jsonl** | "要定位响应得翻三层" | 新增 `lcf-resp/index.jsonl`：`{tid, taskkey, url, status, bytes, file}` |
+| **6** | **stage 行信息不足** | "hooked:2 但没说是哪 2 个" | `S3-hooked:2:dtwrh,dtwr` 带 selector 名 |
+
+### 两个实现疏漏的说明
+
+**① v7.1 注释与实际不符（反馈方发现）**
+```c
+/* v7.1: taskkey 哈希尾缀防 tid 复用覆盖 */
+int fd = open(path, ...);          // ← 文件名里根本没有 taskkey
+```
+注释写了但没实现。v10.0 补上。
+
+**② mime 链路已断却仍在用**
+`s->mime` 只在 `lcf_resp_line()` 里设置，而该函数只被 `didresp_hook` 调用——
+**v6.8 已把这两个 hook 全部卸载**（会崩）。所以 mime 恒为空 → type 恒为 "bin"。
+v10.0 改用 magic bytes，不再依赖 mime。
+
+### 实证（待真机）
+
+87120B，md5 `fc7f250e`。
+
+### 保留的优点（反馈方认可，未改动）
+
+每次启动独立文件 / seq 严格连续锚序 / req·fin·data 三类行分离 /
+响应体落盘 / 零 App 特定逻辑 / req 行 bodyLen
+
+---
+
 ## [9.7] - 2026-10-26 · per-run-log
 
 ### 动机：每次启动独立日志，便于按会话分析

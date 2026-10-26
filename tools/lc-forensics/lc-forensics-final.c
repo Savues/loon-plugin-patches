@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "9.7-per-run-log"
+#define LCF_VERSION "10.0-feedback-fix"
 #define LOG_DIR_RELATIVE "Documents/lcf-log"                       /* v9.7: 每次启动独立日志目录 */
 #define LOG_NAME_FMT     "forensics-%04d%02d%02dT%02d%02d%02dZ-%d.jsonl"  /* UTC + pid */
 #define LOG_RELATIVE     "Documents/lcf-log/latest.txt"            /* 旧引用兜底 (不再作主日志) */
@@ -32,7 +32,8 @@
 #define GAP_MIN 10.0
 #define GAP_MAX 60.0
 #define PREVIEW_CAP 65536       /* data 行 preview 上限 (64KB) */
-#define DATA_FALLBACK_MARK "lcf-resp-fallback"  /* fallback 模式标记 (stage tag) */
+#define DATA_FALLBACK_MARK "lcf-resp-fallback"
+#define PREVIEW_LEN 512        /* v10.0: data 行 preview 长度 (原 128, 反馈太短) */
 #define REASM_MAX (8*1024*1024) /* 单 task 重组上限 8MB (用户裁决: 不设配额, 仅测试启用) */
 
 #include <stdio.h>
@@ -493,7 +494,7 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, c
      * v5.2: 严格 ASCII 化 — >=0x80 一律 '.' (JSON 必须是合法 UTF-8,
      * 二进制分片里的 0xa4 等字节直写会产生非法序列, 损坏整行) */
     const void* buf = 0; size_t blen = 0, seg = 0;
-    char preview[128] = "";
+    char preview[PREVIEW_LEN] = "";   /* v10.0: 128→512 (反馈: JSON 结构看不全) */
     if (size > 0){
         dispatch_data_t mapped = dispatch_data_create_map(dd, &buf, &blen, &seg);
         if (buf && blen > 0){
@@ -522,12 +523,15 @@ static void lcf_data_line(id self, dispatch_data_t dd, char* line, size_t cap, c
 }
 
 /* v7.1 前向声明 */
-static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd);
+struct reasm_s;                                  /* v10.0: 前置声明 (定义在下方) */
+typedef struct reasm_s reasm_t;
+static reasm_t* lcf_reasm_slot(unsigned long long tid, unsigned long long taskkey, int create);
+static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd, const char* url);
 extern int g_diag_reasm_enter, g_diag_resp_enter, g_diag_fin_enter;
 
 static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd && dd){
-        char line[1600];
+        char line[2048];   /* v10.0: 512 preview + 420 requrl */
         lcf_data_line(self, dd, line, sizeof(line), "didd1");
         /* v6.4 修复: diag 标记必须在拿锁之前写 — lc_stage 内部 lc_lock,
          * 持锁区再调 = 自旋死锁 (v6.3 豆瓣黑屏根因, 与 v4.1 同型) */
@@ -548,7 +552,16 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         }
         /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
+        /* v10.0: 从 data 行提取 requrl 传给重组槽 */
+        {
+            const char* ru = "";
+            char* uq = strstr(line, "\"requrl\":");
+            if (uq){
+                uq += 9;
+                if (*uq == '"') ru = uq + 1;
+            }
+            lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd, ru);
+        }
         lc_unlock();
         if (g_diag_reasm_enter == 3){
             g_diag_reasm_enter = 4;
@@ -566,7 +579,7 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
 
 static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd2 && dd){
-        char line[1600];
+        char line[2048];   /* v10.0 */
         lcf_data_line(self, dd, line, sizeof(line), "didd2");
         /* v7.3: seq 锁内回填 (data 行前缀 seq:0 占位) */
         lc_lock();
@@ -589,7 +602,7 @@ static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
  * v6.0-A: 响应体重组缓冲 (对标 content.text)
  * ================================================================== */
 #define REASM_SLOTS 32
-typedef struct {
+struct reasm_s {
     unsigned long long tid;
     unsigned long long taskkey;   /* v7.1: self 指针哈希 — tid 复用 (连接池) 防串写 */
     unsigned long long total;
@@ -598,8 +611,9 @@ typedef struct {
     size_t len;
     int    status;
     char   mime[64];
+    char   url[420];      /* v10.0: 重组时记录 URL (index.jsonl 用) */
     int    used;
-} reasm_t;
+};
 static reasm_t g_reasm[REASM_SLOTS];
 
 static reasm_t* lcf_reasm_slot(unsigned long long tid, unsigned long long taskkey, int create){
@@ -627,9 +641,10 @@ static reasm_t* lcf_reasm_slot(unsigned long long tid, unsigned long long taskke
 }
 
 /* 分片追加 (锁外调用者持有 slot 指针? 否 — 简化: data hook 内持锁追加) */
-static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd){
+static void lcf_reasm_append_locked(unsigned long long tid, unsigned long long taskkey, dispatch_data_t dd, const char* url){
     reasm_t* s = lcf_reasm_slot(tid, taskkey, 1);
     if (!s) return;
+    if (url && url[0] && !s->url[0]) snprintf(s->url, sizeof(s->url), "%s", url);   /* v10.0 */
     unsigned long long sz = dispatch_data_get_size(dd);
     if (s->len + sz > REASM_MAX) return;      /* 超 8MB: 丢弃后续 (截断标记靠 fin 行 bytes 对比) */
     if (s->len + sz > s->cap){
@@ -663,26 +678,65 @@ static reasm_t* lcf_reasm_take_slot(unsigned long long tid, unsigned long long t
 }
 
 /* v6.9: 锁外落盘 (open/mkdir/write — 全部 IO 不在持锁区) */
-static void lcf_reasm_write_file(unsigned long long tid, int status,
-                                 const char* mime, const char* buf, size_t len){
-    const char* home = getenv("HOME");
-    if (!home || !home[0]) return;
+/* v10.0: 用 magic bytes 判类型 (mime 链路已断 — v6.8 卸载 resp hook 后 s->mime 恒空) */
+static const char* lcf_sniff_type(const char* b, size_t n){
+    if (!b || n < 4) return "bin";
+    const unsigned char* u = (const unsigned char*)b;
+    /* 跳过可能的空白前缀 */
+    size_t i = 0;
+    while (i < n && i < 8 && (u[i]==' '||u[i]=='\t'||u[i]=='\r'||u[i]=='\n')) i++;
+    if (i < n && (u[i]=='{' || u[i]=='[')) return "json";
+    if (i + 1 < n && u[i]=='P' && u[i+1]=='K') return "zip";
+    if (n >= 4 && u[0]==0x89 && u[1]=='P' && u[2]=='N' && u[3]=='G') return "png";
+    if (n >= 3 && u[0]==0xFF && u[1]==0xD8 && u[2]==0xFF) return "jpg";
+    if (n >= 12 && u[0]=='R'&&u[1]=='I'&&u[2]=='F'&&u[3]=='F' && u[8]=='W'&&u[9]=='E'&&u[10]=='B'&&u[11]=='P') return "webp";
+    if (n >= 6 && u[0]=='G'&&u[1]=='I'&&u[2]=='F'&&u[3]=='8') return "gif";
+    if (i + 5 < n && u[i]=='<' && (u[i+1]=='!'||u[i+1]=='?'||u[i+1]=='h')) return "html";
+    /* gzip / br 压缩体 */
+    if (n >= 2 && u[0]==0x1F && u[1]==0x8B) return "gz";
+    return "bin";
+}
+
+/* v10.0: 追加一行到 index.jsonl (定位索引) */
+static void lcf_index_append(const char* home, unsigned long long tid, unsigned int tk8,
+                             const char* url, int status, size_t bytes, const char* fname){
     char dir[512], path[600];
     snprintf(dir, sizeof(dir), "%s/" RESP_DIR_RELATIVE, home);
+    snprintf(path, sizeof(path), "%s/index.jsonl", dir);
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd < 0) return;
+    close(fd);
+    fd = open(path, O_WRONLY | O_CLOEXEC, 0644);
+    if (fd < 0) return;
+    lseek(fd, 0, SEEK_END);
+    char line[1024], *p = line;
+    size_t rem = sizeof(line);
+    int w = snprintf(p, rem, "{\"tid\":%llu,\"taskkey\":\"%08x\",\"url\":", tid, tk8);
+    p += w; rem -= (size_t)w;
+    lc_json_str(&p, &rem, url ? url : "");
+    snprintf(p, rem, ",\"status\":%d,\"bytes\":%zu,\"file\":\"%s\"}\n", status, bytes, fname);
+    write(fd, line, strlen(line));
+    close(fd);
+}
+
+static void lcf_reasm_write_file(unsigned long long tid, unsigned int taskkey,
+                                 int status, const char* mime, const char* buf, size_t len){
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return;
+    char dir[512], path[600], fname[128];
+    snprintf(dir, sizeof(dir), "%s/" RESP_DIR_RELATIVE, home);
     mkdir(dir, 0755);   /* 已存在则 EEXIST, 无害 */
-    const char* type = "bin";
-    if (strstr(mime, "json")) type = "json";
-    else if (strstr(mime, "html")) type = "html";
-    else if (strstr(mime, "javascript")) type = "js";
-    else if (strstr(mime, "xml")) type = "xml";
-    else if (strstr(mime, "image")) type = "img";
-    snprintf(path, sizeof(path), "%s/%llu-%d-%s.bin", dir, tid, status, type);
-    /* v7.1: taskkey 哈希尾缀防 tid 复用覆盖 (同 tid 不同 task 的文件共存) */
+    /* v10.0: 扩展名用 magic bytes (mime 链路已断, 不再依赖) */
+    const char* type = lcf_sniff_type(buf, len);
+    /* v10.0: 文件名带 taskkey 短哈希 — 修复 tid 复用导致的重组文件覆盖 */
+    snprintf(fname, sizeof(fname), "%llu-%08x-%d-%s.bin", tid, taskkey, status, type);
+    snprintf(path, sizeof(path), "%s/%s", dir, fname);
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
     if (fd >= 0){
         write(fd, buf, len);
         close(fd);
     }
+    (void)mime;   /* mime 参数保留兼容, 实际不再使用 */
 }
 
 /* ==================================================================
@@ -815,13 +869,32 @@ static void didfin_hook(id self, SEL _cmd, id error){
                 }
             }
         }
-        char line[384];
+        char line[1024];   /* v10.0: 加 url 字段, 缓冲扩大 */
+        /* v10.0: 反馈 — fin 行缺 url, tid 复用后无法判断是哪个请求 */
+        char finurl[420] = "";
+        {
+            id creq = (id)objc_msgSend(self, s_curReq);
+            if (creq){
+                id u = (id)objc_msgSend(creq, s_URL_req);
+                if (u){
+                    id abs = (id)objc_msgSend(u, s_absStr);
+                    if (abs){
+                        const char* c = (const char*)objc_msgSend(abs, s_utf8);
+                        if (c) snprintf(finurl, sizeof(finurl), "%s", c);
+                    }
+                }
+            }
+        }
         snprintf(line, sizeof(line),
-            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"state\":\"%s\",\"status\":%ld,\"errCode\":%ld,\"mime\":",
-            lc_now(), 0, tid, error ? "err" : "ok", status, errcode);
+            "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"fin\",\"v\":\"" LCF_VERSION "\",\"tid\":%llu,\"url\":",
+            lc_now(), 0, tid);
         {
             char* p2 = line + strlen(line);
             size_t rem2 = sizeof(line) - strlen(line);
+            lc_json_str(&p2, &rem2, finurl);
+            int w3 = snprintf(p2, rem2, ",\"state\":\"%s\",\"status\":%ld,\"errCode\":%ld,\"mime\":",
+                              error ? "err" : "ok", status, errcode);
+            p2 += w3; rem2 -= (size_t)w3;
             lc_json_str(&p2, &rem2, mimetype);
             snprintf(p2, rem2, ",\"pid\":%d}\n", (int)getpid());
         }
@@ -845,8 +918,18 @@ static void didfin_hook(id self, SEL _cmd, id error){
         lc_unlock();
         if (slot){
             if (slot->buf && slot->len > 0){
-                lcf_reasm_write_file(slot->tid, slot->status, slot->mime,
-                                     slot->buf, slot->len);
+                const char* h = getenv("HOME");
+                lcf_reasm_write_file(slot->tid, (unsigned int)(slot->taskkey & 0xFFFFFFFFu),
+                                     slot->status, slot->mime, slot->buf, slot->len);
+                if (h && h[0]){
+                    char fname[128];
+                    const char* type = lcf_sniff_type(slot->buf, slot->len);
+                    snprintf(fname, sizeof(fname), "%llu-%08x-%d-%s.bin",
+                             slot->tid, (unsigned int)(slot->taskkey & 0xFFFFFFFFu),
+                             slot->status, type);
+                    lcf_index_append(h, slot->tid, (unsigned int)(slot->taskkey & 0xFFFFFFFFu),
+                                     slot->url, slot->status, slot->len, fname);
+                }
             }
             if (slot->buf) free(slot->buf);
             free(slot);
@@ -1046,16 +1129,25 @@ static void lcf_ctor(void){
         }
     }
 
-    char tag[64];
+    /* v10.0: 反馈 — stage 行只有数量, 不知具体 hook 了什么 */
+    char tag[256];
     int n = (g_orig_dtwrh ? 1 : 0) + (g_orig_dtwr ? 1 : 0);
-    snprintf(tag, sizeof(tag), "S3-hooked:%d", n);
+    snprintf(tag, sizeof(tag), "S3-hooked:%d:%s%s",
+             n,
+             g_orig_dtwrh ? "dtwrh" : "",
+             g_orig_dtwr  ? (g_orig_dtwrh ? ",dtwr" : "dtwr") : "");
     lc_stage(tag);
-    snprintf(tag, sizeof(tag), "S4-data-hooked:%d",
-             (g_orig_didd?1:0) + (g_orig_didd2?2:0));
+    snprintf(tag, sizeof(tag), "S4-data-hooked:%d:%s%s",
+             (g_orig_didd?1:0) + (g_orig_didd2?2:0),
+             g_orig_didd  ? "didd1" : "",
+             g_orig_didd2 ? (g_orig_didd ? ",didd2" : "didd2") : "");
     lc_stage(tag);
     char tag2[48];
     int m2 = (g_orig_didresp ? 1 : 0) + (g_orig_didresp2 ? 1 : 0) + (g_orig_didfin ? 1 : 0);
-    snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d", m2);
+    snprintf(tag2, sizeof(tag2), "S5-meta-hooked:%d:%s%s",
+             m2,
+             g_orig_didfin ? "fin" : "",
+             g_orig_didresp ? ",resp" : "");
     lc_stage(tag2);
     lc_stage(g_resp_fallback ? DATA_FALLBACK_MARK : "resp-file-ok");
 }
