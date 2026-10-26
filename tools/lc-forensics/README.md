@@ -45,13 +45,13 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v8.3）
+lc-forensics-final.c    # 源码（当前版本 v8.4）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v8.3.dylib # 构建产物（可直接 Import）
+lc-forensics-v8.4.dylib # 构建产物（可直接 Import）
 
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
@@ -124,7 +124,8 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v8.0** | req/req-delegate 回填补齐（全量核对）| seq 零重复零空耗零遗漏 |
 | **v8.1** | +图片通道 hook（双冒号版 didReceiveDispatchData）| S4:3 双通道装上；但分片双记 + 券图仍缺席（URL MD5 无一匹配）|
 | **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加 | **1:1 双记确认**；重组命中券图 129317B PNG ✅ 但创建请求漏抓 |
-| **v8.3** | data 行 +requrl（读 task.currentRequest）——分片自带 URL，不依赖创建 hook | 当前版本 |
+| **v8.3** | data 行 +requrl（读 task.currentRequest）| **悬浮窗 URL 实锤**：treasury_image 图床 → Douban-Dedup v2.6.1 规则 |
+| **v8.4** | 持锁区去 IO： + （锁内只组装，锁外写）| 小红书白屏根因修复（沙盒慢盘同步 write 阻塞网络回调）；锁内 write 0 处 |
 
 ### 铁律（血泪换来的，动代码前必读）
 

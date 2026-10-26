@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.3-data-url"
+#define LCF_VERSION "8.4-unlocked-io"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -130,26 +130,43 @@ static void lc_stage(const char* tag){
     lc_unlock();
 }
 
-/* v7.3: 已持锁 — 回填 seq 占位 ("seq":0 处原位覆盖为实际值), 追加尾段, 写盘 */
-static void lc_write_seq_locked(const char* prefix, const char* suffix){
+/* v8.4: 已持锁 — 只做纯内存组装 (回填 seq + 追加尾段), 返回堆缓冲;
+ * 调用方在【解锁后】调 lc_write_free() 落盘并释放。
+ * 动机: 小红书沙盒慢盘, 持锁区 write() 阻塞网络回调 → 白屏 (v8.3 实测) */
+static char* lc_build_seq_locked(const char* prefix, const char* suffix){
     char buf[2048];
     size_t plen = strlen(prefix);
-    if (plen >= sizeof(buf) - 32) return;
+    if (plen >= sizeof(buf) - 32) return 0;
     memcpy(buf, prefix, plen + 1);
     unsigned long long v = ++g_seq;
     char* seqpos = strstr(buf, "\"seq\":");
     if (seqpos){
-        char* num = seqpos + 6;   /* "seq": 后的 0 */
+        char* num = seqpos + 6;
         char rest[1600];
-        strcpy(rest, num + 1);    /* 跳过占位的 '0', 保留其后的 ,... */
+        strcpy(rest, num + 1);
         snprintf(num, sizeof(buf) - (size_t)(num - buf), "%llu%s", v, rest);
     }
     size_t blen = strlen(buf);
     if (blen + strlen(suffix) < sizeof(buf) - 2){
         memcpy(buf + blen, suffix, strlen(suffix) + 1);
     }
+    char* out = strdup(buf);
+    return out;
+}
+
+static void lc_write_nolock(const char* line);   /* v8.4 前向声明 */
+
+/* v8.4: 锁外落盘 + 释放 (buf 来自 lc_build_seq_locked) */
+static void lc_write_free(char* buf){
+    if (!buf) return;
+    lc_write_nolock(buf);
+    free(buf);
+}
+
+/* v8.4: 锁外写 (O_APPEND 单次 write 原子, 行<2048B < PIPE_BUF; 沙盒慢盘不再阻塞网络回调) */
+static void lc_write_nolock(const char* line){
     int fd = lc_openlog();
-    if (fd >= 0 && write(fd, buf, strlen(buf)) < 0){
+    if (fd >= 0 && write(fd, line, strlen(line)) < 0){
         close(g_fd); g_fd = -1;
     }
 }
@@ -281,6 +298,8 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
 
     double ts = lc_now();
     char dupinfo[24] = "";
+    char gapline[160];
+    int has_gap = 0;
     lc_lock();
     if (url[0]){
         dupn = lc_dup_count_locked(url);
@@ -288,16 +307,16 @@ static void lc_req_line(char* line, size_t cap, const char* ev, id req, id task,
         if (g_last_ts > 0){
             double d = ts - g_last_ts;
             if (d > GAP_MIN && d <= GAP_MAX){
-                char gapline[160];
-                int gn = snprintf(gapline, sizeof(gapline),
+                snprintf(gapline, sizeof(gapline),
                     "{\"ts\":%.3f,\"seq\":%llu,\"ev\":\"gap\",\"sec\":%.1f,\"v\":\"" LCF_VERSION "\",\"pid\":%d}\n",
                     ts, ++g_seq, d, (int)getpid());
-                lc_write_locked(gapline);
+                has_gap = 1;
             }
         }
         g_last_ts = ts;
     }
     lc_unlock();
+    if (has_gap) lc_write_nolock(gapline);   /* v8.4: 锁外写 */
 
     char* p = line; size_t rem = cap;
     int n = snprintf(p, rem,
@@ -340,7 +359,8 @@ static id dtwrh_hook(id self, SEL _cmd, id req, id handler){
     lc_req_line(line, sizeof(line), "req", req, task, &p, &rem);
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
-    /* v8.0: seq 锁内回填 (v7.5 遗漏 req 两处 — seq=0 落盘根因) */
+    /* v8.4: seq 锁内回填 → 锁外写 */
+    char* out = 0;
     lc_lock();
     {
         char* seqpos = strstr(line, "\"seq\":");
@@ -350,9 +370,10 @@ static id dtwrh_hook(id self, SEL _cmd, id req, id handler){
             strcpy(rest, seqpos + 7);
             snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
         }
-        lc_write_locked(line);
+        out = strdup(line);
     }
     lc_unlock();
+    lc_write_free(out);
     /* v7.2: POST body 落盘 (锁外 IO) */
     if (req && task){
         id b = (id)objc_msgSend(req, s_body);
@@ -378,7 +399,8 @@ static id dtwr_hook(id self, SEL _cmd, id req){
     lc_req_line(line, sizeof(line), "req-delegate", req, task, &p, &rem);
     snprintf(p, rem, ",\"ret\":\"%s\",\"cls\":\"%.24s\",\"pid\":%d}\n",
              task ? "ok" : "NIL", object_getClassName(self), (int)getpid());
-    /* v8.0: seq 锁内回填 (v7.5 遗漏 req 两处 — seq=0 落盘根因) */
+    /* v8.4: seq 锁内回填 → 锁外写 */
+    char* out = 0;
     lc_lock();
     {
         char* seqpos = strstr(line, "\"seq\":");
@@ -388,9 +410,10 @@ static id dtwr_hook(id self, SEL _cmd, id req){
             strcpy(rest, seqpos + 7);
             snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
         }
-        lc_write_locked(line);
+        out = strdup(line);
     }
     lc_unlock();
+    lc_write_free(out);
     if (req && task){
         id b = (id)objc_msgSend(req, s_body);
         if (b){
@@ -487,21 +510,24 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
             g_diag_reasm_enter++;
             lc_stage("diag-reasm-enter");
         }
+        /* v8.4: 锁内只组装+重组, write 移到锁外 */
+        char* out = 0;
         lc_lock();
-        /* v7.3: seq 在写盘锁内分配 (data 行前缀 seq:0 占位) */
-        char* cut = strstr(line, ",\"pid\":");
-        if (cut){
-            *cut = 0;
-            char suffix[64];
-            snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
-            lc_write_seq_locked(line, suffix);
-        } else {
-            lc_write_locked(line);
+        {
+            char* cut = strstr(line, ",\"pid\":");
+            if (cut){
+                *cut = 0;
+                char suffix[64];
+                snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
+                out = lc_build_seq_locked(line, suffix);
+            } else {
+                out = strdup(line);
+            }
+            unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
+            lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
         }
-        /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
-        unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd);
         lc_unlock();
+        lc_write_free(out);
         if (g_diag_reasm_enter == 3){
             g_diag_reasm_enter = 4;
             lc_stage("diag-reasm-survived");
@@ -520,19 +546,22 @@ static void didd2_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
     if (g_orig_didd2 && dd){
         char line[1600];
         lcf_data_line(self, dd, line, sizeof(line), "didd2");
-        /* v7.3: seq 锁内回填 (data 行前缀 seq:0 占位) */
+        /* v8.4: 锁内只组装, write 移到锁外 */
+        char* out = 0;
         lc_lock();
-        char* cut = strstr(line, ",\"pid\":");
-        if (cut){
-            *cut = 0;
-            char suffix[64];
-            snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
-            lc_write_seq_locked(line, suffix);
-        } else {
-            lc_write_locked(line);
+        {
+            char* cut = strstr(line, ",\"pid\":");
+            if (cut){
+                *cut = 0;
+                char suffix[64];
+                snprintf(suffix, sizeof(suffix), ",\"pid\":%d}\n", (int)getpid());
+                out = lc_build_seq_locked(line, suffix);
+            } else {
+                out = strdup(line);
+            }
         }
-        /* v8.2: 重组只在 didd1 追加 (didd2 是同一分片的第二回调, 双追加会重复) */
         lc_unlock();
+        lc_write_free(out);
     }
     ((void(*)(id,SEL,dispatch_data_t,void*))g_orig_didd2)(self, _cmd, dd, completion);
 }
@@ -700,7 +729,7 @@ static void didresp_hook(id self, SEL _cmd, id response, void* completion){
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
         if (line[0]){
-            lc_lock(); lc_write_locked(line); lc_unlock();
+            lc_write_nolock(line);   /* v8.4: 锁外写 */
         }
         if (g_diag_resp_enter == 3){
             g_diag_resp_enter = 4;
@@ -720,7 +749,7 @@ static void didresp2_hook(id self, SEL _cmd, id response, id redirectReq, void* 
         char line[512];
         lcf_resp_line(self, response, line, sizeof(line));
         if (line[0]){
-            lc_lock(); lc_write_locked(line); lc_unlock();
+            lc_write_nolock(line);   /* v8.4: 锁外写 */
         }
         if (g_diag_resp_enter == 3){
             g_diag_resp_enter = 4;
@@ -777,6 +806,7 @@ static void didfin_hook(id self, SEL _cmd, id error){
             lc_json_str(&p2, &rem2, mimetype);
             snprintf(p2, rem2, ",\"pid\":%d}\n", (int)getpid());
         }
+        char* fout = 0;
         lc_lock();
         {
             char* seqpos = strstr(line, "\"seq\":");
@@ -786,9 +816,10 @@ static void didfin_hook(id self, SEL _cmd, id error){
                 strcpy(rest, seqpos + 6 + 1);
                 snprintf(seqpos + 6, sizeof(line) - (size_t)(seqpos + 6 - line), "%llu%s", v, rest);
             }
-            lc_write_locked(line);
+            fout = strdup(line);
         }
         lc_unlock();
+        lc_write_free(fout);
 
         /* v6.9: 重组 flush 移锁外 — 持锁区只做"摘槽"(浅层指针交换),
          * open/mkdir/write 全部在锁外执行 (铁律: 持锁区只调 *_locked 变体) */
