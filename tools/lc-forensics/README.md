@@ -125,7 +125,7 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v8.1** | +图片通道 hook（双冒号版 didReceiveDispatchData）| S4:3 双通道装上；但分片双记 + 券图仍缺席（URL MD5 无一匹配）|
 | **v8.2** | data 行加 src 字段（didd1/didd2 可辨）；重组只在 didd1 追加 | **1:1 双记确认**；重组命中券图 129317B PNG ✅ 但创建请求漏抓 |
 | **v8.3** | data 行 +requrl（读 task.currentRequest）| **悬浮窗 URL 实锤**：treasury_image 图床 → Douban-Dedup v2.6.1 规则 |
-| **v8.4** | 持锁区去 IO： + （锁内只组装，锁外写）| 小红书白屏根因修复（沙盒慢盘同步 write 阻塞网络回调）；锁内 write 0 处 |
+| **v8.4** | 持锁区去 IO：lc_write_nolock + lc_build_seq_locked（锁内只组装，锁外写）| 小红书白屏根因修复（沙盒慢盘同步 write 阻塞网络回调）；锁内 write 0 处 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
