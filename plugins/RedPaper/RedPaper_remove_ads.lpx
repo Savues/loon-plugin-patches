@@ -1,6 +1,6 @@
-#!name=小红书去广告 v1.4.2
-#!version=1.4.2
-#!desc=过滤信息流推广（直播/赞助/带货/商品五类特征）、移除图片视频实况照片水印、屏蔽点点 AI 与通知引导弹窗（可开关）、搜索域全净（猜你想搜/占位词/热榜）、品牌广告资源拦截。
+#!name=小红书去广告 v1.5.0
+#!version=1.5.0
+#!desc=过滤信息流推广（直播/赞助/带货/商品五类特征）、移除图片视频实况照片水印、屏蔽点点 AI 与通知引导弹窗（可开关）、搜索域全净（猜你想搜/占位词/热榜）、品牌广告资源拦截、站内推送弹窗与增长行为流清洗。
 #!openUrl=https://apps.apple.com/app/id741292507
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告
@@ -9,7 +9,7 @@
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/RedPaper
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/RedPaper.png
-#!date=2026-10-27 01:15:00
+#!date=2026-10-27 01:35:00
 
 [Argument]
 removeDianDian = switch, true, false, tag=🤖屏蔽点点AI, desc=屏蔽点点AI助手: askdiandian域名+agentspark/inspiration API+diandian前端+入口开关清洗
@@ -19,7 +19,7 @@ AND, ((PROTOCOL, QUIC), (DOMAIN-SUFFIX, xiaohongshu.com)), REJECT
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/ci\.xiaohongshu\.com\/gw\/loon-sim\.probe\.redpaper_remove_ads/i then reject(200, "1.4.2")
+request if ${url} ~= /^https?:\/\/ci\.xiaohongshu\.com\/gw\/loon-sim\.probe\.redpaper_remove_ads/i then reject(200, "1.5.0")
 request if ${url} ~= /^https:\/\/ci\.xiaohongshu\.com\/system_config\/watermark/i then reject_img(200)
 
 # === 点点 AI / agentspark 全屏蔽 (开关 removeDianDian; v2 条件式 Rewrite) ===
@@ -39,6 +39,10 @@ response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/hint/i then response.json.delete("data.hint_words")
 response if ${url} ~= /^https:\/\/search\.xiaohongshu\.com\/api\/search\/fls\/placeholder/i then response.json.delete("data.placeholder")
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\?/i then response.json.delete("data")
+# 站内推送弹窗权限 (in_app_push.permit_num 控制每日可弹次数)
+response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/message\/config/i then response.json.delete("data.in_app_push")
+# 增长行为流 (behaviorFlowList = "完成X得奖励" 类引导)
+response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/usergrowth\/behavior\/getflowlist/i then response.json.delete("data.behaviorFlowList")
 
 [Script]
 response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v3\/system_service\/flag_exp/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPaper/src/RedPaper_flag_exp.js", {${removeDianDian}}) with requires_body=true, tag="点点入口旗标清洗"

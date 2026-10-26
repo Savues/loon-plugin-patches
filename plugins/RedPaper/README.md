@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.4.2** · 订阅以 lpx 内版本为准
+> **版本 v1.5.0** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -154,8 +154,17 @@ App 拿到非 zip 内容 → 解压失败 → 走到 `[DslJsRuntime] downloadJs 
 zip 请求用图片占位 = 必然解析失败 = 用户可见报错。
 **不确定内容类型时，宁可不拦。**
 
+### ✅ v1.5.0：新增两项推广清洗
+
+| 接口 | 字段 | 说明 |
+|---|---|---|
+| `sns/v2/message/config` | `data.in_app_push` | 站内推送弹窗权限（`permit_num:1` = 每天可弹 1 次）。删除后不再弹站内推送引导 |
+| `usergrowth/behavior/getflowlist` | `data.behaviorFlowList` | 增长行为流（"完成X得奖励"类引导）。删除后不再触发这类引导 |
+
+两者都用 `delete`（已验证写法），保留 `bifrost_config` 等其他字段不影响功能。
+
 ### 验证
-- `check`: 0 错误 0 警告（[Rewrite] 15 · [Mitm] 9）
+- `check`: 0 错误 0 警告（[Rewrite] 17 · [Mitm] 9）
 - `run` 逐条命中：ads/resource `reject_dict` ✅ / 模板 zip `reject_img` ✅ / placeholder `json.replace` ✅
 - placeholder 改写实测：179B → 80B，`placeholder=[]`，`word_request_id` 保留
 - `ci.sh` 全绿 / `audit.py` 全过
