@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "10.2-json-heic-taskkey"
+#define LCF_VERSION "10.3-ftyp-pid"
 #define LOG_DIR_RELATIVE "Documents/lcf-log"                       /* v9.7: 每次启动独立日志目录 */
 #define LOG_NAME_FMT     "forensics-%04d%02d%02dT%02d%02d%02dZ-%d.jsonl"  /* UTC + pid */
 #define LOG_RELATIVE     "Documents/lcf-log/latest.txt"            /* 旧引用兜底 (不再作主日志) */
@@ -700,12 +700,9 @@ static const char* lcf_sniff_type(const char* b, size_t n){
     if (n >= 3 && u[0]==0xFF && u[1]==0xD8 && u[2]==0xFF) return "jpg";
     if (n >= 12 && u[0]=='R'&&u[1]=='I'&&u[2]=='F'&&u[3]=='F' && u[8]=='W'&&u[9]=='E'&&u[10]=='B'&&u[11]=='P') return "webp";
     if (n >= 6 && u[0]=='G'&&u[1]=='I'&&u[2]=='F'&&u[3]=='8') return "gif";
-    /* v10.2: HEIC/HEIF — ftyp 在 offset 4 (反馈: 6 个 HEIC 存成 .bin) */
-    if (n >= 12 && u[4]=='f'&&u[5]=='t'&&u[6]=='y'&&u[7]=='p'){
-        if ((u[8]=='h'&&u[9]=='e'&&u[10]=='i'&&u[11]=='c') ||
-            (u[8]=='h'&&u[9]=='e'&&u[10]=='i'&&u[11]=='x') ||
-            (u[8]=='m'&&u[9]=='i'&&u[10]=='f'&&u[11]=='1')) return "heic";
-    }
+    /* v10.3: ftyp 容器通用判断 — 不枚举 brand
+     * (反馈实证: 枚举 heic/heix/mif1 漏了 rvic 变体; HEIF 家族品牌众多枚举不完) */
+    if (n >= 12 && u[4]=='f'&&u[5]=='t'&&u[6]=='y'&&u[7]=='p') return "heic";
     if (i + 5 < n && u[i]=='<' && (u[i+1]=='!'||u[i+1]=='?'||u[i+1]=='h')) return "html";
     /* gzip / br 压缩体 */
     if (n >= 2 && u[0]==0x1F && u[1]==0x8B) return "gz";
@@ -726,7 +723,7 @@ static void lcf_index_append(const char* home, unsigned long long tid, unsigned 
     lseek(fd, 0, SEEK_END);
     char line[1024], *p = line;
     size_t rem = sizeof(line);
-    int w = snprintf(p, rem, "{\"tid\":%llu,\"taskkey\":\"%08x\",\"url\":", tid, tk8);
+    int w = snprintf(p, rem, "{\"tid\":%llu,\"taskkey\":\"%08x\",\"pid\":%d,\"url\":", tid, tk8, (int)getpid());   /* v10.3: +pid 区分批次 */
     p += w; rem -= (size_t)w;
     lc_json_str(&p, &rem, url ? url : "");
     snprintf(p, rem, ",\"status\":%d,\"bytes\":%zu,\"file\":\"%s\"}\n", status, bytes, fname);

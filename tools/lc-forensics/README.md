@@ -46,13 +46,13 @@
 ## 目录内容
 
 ```
-lc-forensics-final.c    # 源码（当前版本 v10.2）
+lc-forensics-final.c    # 源码（当前版本 v10.3）
 lc-forensics-v40-43-iter.c  # v4.0-4.3 迭代史（含被实证排除的枚举/定时器路径）
 lc-forensics-minimal.c  # v4.4 二分诊断版（破案功臣，保留作方法学样本）
 build.sh                # 一键构建
 shim/compat.h           # Alpine musl → darwin 编译垫片
 lcf_macho.py            # Mach-O 结构解析器（iSH 无 macho 工具时用）
-lc-forensics-v10.2.dylib # 构建产物（可直接 Import）
+lc-forensics-v10.3.dylib # 构建产物（可直接 Import）
 
 CHANGELOG.md            # 详细更新记录（每版：动机/改动/实证/教训）
 ```
@@ -156,6 +156,7 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v10.0** | 按用户反馈修七项：taskkey 进文件名 / preview 512 / magic bytes / fin 加 url / index.jsonl / stage 带 selector | 真机发现三个引入的 bug（url 污染 / status 恒 0 / 扩展名仍 .bin）|
 | **v10.1** | 修 v10.0 三个 bug：url 截断 / 真扩展名 / status 从 fin 回填 | **真机验证**：`1-09abdc00-200.json`，json 119 / jpg 7 / html 2，index url 干净 ✅ |
 | **v10.2** | magic bytes 早退 `n<4`→`n<1`（2B `{}` 判 json）+ HEIC 识别 + data 行加 taskkey | 14 组边界用例全通过（待真机）当前版本 |
+| **v10.3** | `ftyp` 容器通用判断（不枚举 brand，覆盖 rvic/avif）+ index.jsonl 加 pid | 采纳 v10.2 反馈两项建议（待真机）当前版本 |
 
 ### 铁律（血泪换来的，动代码前必读）
 
