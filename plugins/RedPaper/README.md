@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.3.0** · 订阅以 lpx 内版本为准
+> **版本 v1.3.1** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -30,7 +30,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPap
 | 水印移除 | `media_save_config.disable_watermark=true` + 实况照片/视频保存链专门处理 |
 | **实况照片保存**（🔴 本仓库修复） | 见下方专节 |
 | 开屏 | `splash_config` / `system_service.config` 清洗 |
-| 搜索域 | banner/hot_list/hint/trending（声明式 `response.json.replace`） |
+| 搜索域 | banner/hot_list/hint（声明式 `response.json.replace`）；**「猜你想搜」trending 整段删除**（v1.3.1 修） |
 | **点点 AI 屏蔽**（v1.1+，开关 `removeDianDian`） | agentspark 38 接口 + inspiration（AI 创作）+ askdiandian 域名 + diandian 前端，条件式 Rewrite 可开关 |
 | **通知引导弹窗**（v1.2+，自研） | `switch_config → ios_scene_trigger_config → push_guide_actions`：15 个"打开推送通知"场景弹窗清空 |
 | 点点入口旗标（v1.3+） | `flag_exp` 的 diandian/spark/ai_assistants 实验旗标全关 |
@@ -76,3 +76,31 @@ imagefeed 响应带正确视频 URL（存入 persistentStore）
 | 2026-10-24 | 点点屏蔽 | ✅ agentspark 真机被替换为 `{}`（Loon 分目录抓包 replace_body 实证） |
 | 2026-10-24 | 通知弹窗 | ✅ 15 个引导清空（真实 312KB body 端到端） |
 | 2026-10-24 | 条件式 Rewrite 开关 | ✅ 真机生效（`&& ${参数} == true` 首次实证） |
+| 2026-10-26 | 「猜你想搜」trending | ✅ 真实 5007B body 端到端（5007B → 25B，`data` 整段删除）|
+
+---
+
+## 🔴 v1.3.1：「猜你想搜」修复（路径错层 + 批量写法坑）
+
+**现象**：打开搜索框出现「猜你想搜」组件，下方 12 条推荐词（含 1 条广告词 `华为百变路由非秀不可` / `type=ads` / `ads_id=6899411856`）。
+
+**数据源**（进程内取证 `lc-forensics v9.7` 实证）：
+```
+https://edith.xiaohongshu.com/api/sns/v4/search/trending?card_entry=...&word_request_situation=FIRST_ENTER
+→ data.template_info = {"type":"DSL","name":"search_recommend_trending"}
+→ data.data.title    = "猜你想搜"
+→ data.data.queries  = 12 条（其中 1 条 type=ads）
+```
+
+**两个叠加 bug**（旧规则 `response.json.replace(["data.queries","data.hint_word"], ["[]","{}"])`）：
+
+| # | bug | 后果 |
+|---|-----|------|
+| 1 | 路径少一层 `data` —— 真实是 `data.data.queries` | 写入 `data.queries`（不存在的键），真实词表原封不动 |
+| 2 | 批量值 `"[]"` / `"{}"` 是**字符串**，不是数组/对象 | 即使路径对，也会写成 `queries: "[]"` 字符串，DSL 的 `len2()` 拿到非数组 |
+
+**修复**：整段删除 `data`
+```
+response if ${url} ~= /^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\?/i then response.json.delete("data")
+```
+输出 `{"success":true,"code":0}`（5007B → 25B）。DSL 拿不到 `template_info` → 不加载模板 → 组件不渲染。
