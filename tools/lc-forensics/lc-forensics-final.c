@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "9.4-no-append"
+#define LCF_VERSION "9.6-trunc-create"
 #define LOG_RELATIVE "Documents/forensics.jsonl"
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
@@ -103,18 +103,26 @@ static double lc_now(void){
     return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 }
 
+/* v9.6: LC guest 沙盒实证 —— open(O_WRONLY|O_CREAT) 不带 O_TRUNC 会失败,
+ * 只有带 O_TRUNC 才能创建新文件 (v9.5 对照矩阵: M1/M2 带 TRUNC 成功, M3 无 TRUNC 失败)。
+ * 策略: 首次打开用 O_TRUNC 创建空文件 (会清空, 但只在本进程首次),
+ *       随后用不带 O_CREAT 的纯 O_WRONLY 打开做追加 (lseek 到末尾)。 */
 static int lc_openlog(void){
     const char* home = getenv("HOME");
     if (!home || !home[0]) return -1;
     char want[512];
     snprintf(want, sizeof(want), "%s/" LOG_RELATIVE, home);
     if (g_fd >= 0 && strcmp(want, g_path) == 0) return g_fd;
-    if (g_fd >= 0) close(g_fd);
+    if (g_fd >= 0){ close(g_fd); g_fd = -1; }
     snprintf(g_path, sizeof(g_path), "%s", want);
-    /* v9.4: 弃用 O_APPEND — 实证: 该标志下【新建】文件失败 (豆瓣/JavDB 删文件后
-     * forensics.jsonl 再也创建不出来, 而同进程 lcf-req 用 O_TRUNC 能建 221 个)。
-     * 改为 O_CREAT (无 APPEND), 写前 lseek(SEEK_END) 追加。 */
-    g_fd = open(g_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
+    /* 第一步: 用 O_TRUNC 创建/清空 (沙盒唯一能新建文件的标志组合) */
+    int cfd = open(g_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (cfd < 0){ g_path[0] = 0; return -1; }
+    close(cfd);
+    /* 第二步: 纯 O_WRONLY 追加 (不带 O_CREAT, 文件已存在) */
+    g_fd = open(g_path, O_WRONLY | O_CLOEXEC, 0644);
+    if (g_fd < 0){ g_path[0] = 0; return -1; }
+    lseek(g_fd, 0, SEEK_END);
     return g_fd;
 }
 
@@ -157,11 +165,6 @@ static void lc_write_seq_locked(const char* prefix, const char* suffix){
     }
 }
 
-/* v9.4: 追加写 (open 已无 O_APPEND, 每次写前 seek 到末尾) */
-static void lc_seek_end(int fd){
-    if (fd >= 0) lseek(fd, 0, SEEK_END);
-}
-
 static void lc_write_locked(const char* line){
     /* v5.3: 行分隔兜底 — snprintf 截断可能吞掉结尾 \n (v5.2 实测 34 行两行粘连),
      * 写前检查末字符, 非 \n 一律补上 */
@@ -174,7 +177,6 @@ static void lc_write_locked(const char* line){
         line = buf2;
     }
     int fd = lc_openlog();
-    lc_seek_end(fd);
     if (fd >= 0 && write(fd, line, strlen(line)) < 0){
         close(g_fd); g_fd = -1;
     }
@@ -212,7 +214,17 @@ static int lc_open_resp(void){
     if (g_resp_fd >= 0 && strcmp(want, g_resp_path) == 0) return g_resp_fd;
     if (g_resp_fd >= 0) close(g_resp_fd);
     snprintf(g_resp_path, sizeof(g_resp_path), "%s", want);
-    g_resp_fd = open(want, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);   /* v9.4: 同 lc_openlog */
+    /* v9.6: 同 lc_openlog — 先 O_TRUNC 创建, 再纯 O_WRONLY 追加 */
+    {
+        int cfd = open(want, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+        if (cfd >= 0){
+            close(cfd);
+            g_resp_fd = open(want, O_WRONLY | O_CLOEXEC, 0644);
+            if (g_resp_fd >= 0) lseek(g_resp_fd, 0, SEEK_END);
+        } else {
+            g_resp_fd = -1;
+        }
+    }
     if (g_resp_fd < 0){
         g_resp_fallback = 1;                     /* 新建失败 → 永久切 base 通道 */
         lc_stage(DATA_FALLBACK_MARK);
@@ -224,7 +236,6 @@ static int lc_open_resp(void){
 static void lc_resp_write(const char* line){
     lc_lock();
     int fd = lc_open_resp();
-    lc_seek_end(fd);   /* v9.4 */
     if (fd >= 0 && write(fd, line, strlen(line)) < 0){
         if (g_resp_fallback){ close(g_fd); g_fd = -1; }
         else { close(g_resp_fd); g_resp_fd = -1; }
