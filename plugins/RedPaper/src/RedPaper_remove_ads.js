@@ -123,18 +123,17 @@ if (url.includes("/v1/interaction/comment/video/download")) {
     }
   }
 } else if (url.includes("/v2/system_service/splash_config")) {
-  // 开屏广告
+  // 开屏广告: 直接清空 ads 数组 (实测 97KB → 3.3KB, 缩减 96.6%)
+  // 原方案只改时间戳, 数据仍全量下发 (48 条品牌广告: FENDI/BVLGARI/DIOR/华为/大众...)
   if (obj?.data?.ads_groups?.length > 0) {
+    let changed = false;
     for (let i of obj.data.ads_groups) {
+      if (i?.ads?.length > 0) { i.ads = []; changed = true; }
+      // 保留时间戳改写作为双保险
       i.start_time = 3818332800; // Unix 时间戳 2090-12-31 00:00:00
       i.end_time = 3818419199; // Unix 时间戳 2090-12-31 23:59:59
-      if (i?.ads?.length > 0) {
-        for (let ii of i.ads) {
-          ii.start_time = 3818332800; // Unix 时间戳 2090-12-31 00:00:00
-          ii.end_time = 3818419199; // Unix 时间戳 2090-12-31 23:59:59
-        }
-      }
     }
+    if (changed) { $done({ body: JSON.stringify(obj) }); return; }
   }
 } else if (url.includes("/v2/user/followings/followfeed")) {
   // 关注页信息流 可能感兴趣的人

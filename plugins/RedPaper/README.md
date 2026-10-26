@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.5.0** · 订阅以 lpx 内版本为准
+> **版本 v1.5.1** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -162,6 +162,21 @@ zip 请求用图片占位 = 必然解析失败 = 用户可见报错。
 | `usergrowth/behavior/getflowlist` | `data.behaviorFlowList` | 增长行为流（"完成X得奖励"类引导）。删除后不再触发这类引导 |
 
 两者都用 `delete`（已验证写法），保留 `bifrost_config` 等其他字段不影响功能。
+
+### 🔴 v1.5.1：开屏广告改为直接清空（真机 HAR 实证）
+
+**真机 HAR 抓包发现**（实机非 LC，416 请求 / 20 秒）：
+`splash_config` 响应 **97KB**，内含 **48 条品牌开屏广告**：
+FENDI / BVLGARI宝格丽 / DIOR BEAUTY LOVERS / 华为终端 / 大众安徽 / Moccona / 好好玩情报局 …
+
+**旧方案的问题**：只把 `start_time`/`end_time` 改成 2090 年（3818332800），
+数据仍**全量下发**，且真机实测下载了 **6 个广告视频（8.9MB）+ 4 张广告图（1.2MB）= 约 10MB 素材**。
+
+**修复**：直接清空 `ads` 数组，保留 `ads_groups` 结构（8 组）+ 时间戳改写作双保险。
+真机响应实测：**97061B → 2996B（缩减 96.9%）**，48 处广告素材 URL 全部消失。
+
+**HAR 素材归因**：全 HAR 搜索 `ads-video-al`/`ads-img-al` 来源 →
+48 处来自 `splash_config`，1 处来自 `switch_config`。
 
 ### 验证
 - `check`: 0 错误 0 警告（[Rewrite] 17 · [Mitm] 9）
