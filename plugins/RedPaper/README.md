@@ -1,6 +1,6 @@
 # 小红书去广告 · RedPaper
 
-> **版本 v1.3.1** · 订阅以 lpx 内版本为准
+> **版本 v1.4.0** · 订阅以 lpx 内版本为准
 
 过滤信息流推广、移除图片/视频/实况照片水印、屏蔽点点 AI 与通知引导弹窗。
 上游版本本地化（脚本原作 RuCu6），Savues 修正版：实况照片保存修复 + 点点 AI 屏蔽（可开关）+ 通知弹窗清洗。
@@ -30,8 +30,9 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/RedPap
 | 水印移除 | `media_save_config.disable_watermark=true` + 实况照片/视频保存链专门处理 |
 | **实况照片保存**（🔴 本仓库修复） | 见下方专节 |
 | 开屏 | `splash_config` / `system_service.config` 清洗 |
-| 搜索域 | banner/hot_list/hint（声明式 `response.json.replace`）；**「猜你想搜」trending 整段删除**（v1.3.1 修） |
+| 搜索域 | banner/hot_list/hint + **「猜你想搜」trending 整段删除**（v1.3.1）+ **搜索框占位词清空**（v1.4.0）+ 模板 zip 下载拦截 |
 | **点点 AI 屏蔽**（v1.1+，开关 `removeDianDian`） | agentspark 38 接口 + inspiration（AI 创作）+ askdiandian 域名 + diandian 前端，条件式 Rewrite 可开关 |
+| **品牌广告资源**（v1.4.0） | `ads/resource` 域名修 `(?:www\|edith)` —— 原写死 `www.` 导致 48.8KB 品牌专区资源（56 条 h5 + 98 个魔方素材）全放行 |
 | **通知引导弹窗**（v1.2+，自研） | `switch_config → ios_scene_trigger_config → push_guide_actions`：15 个"打开推送通知"场景弹窗清空 |
 | 点点入口旗标（v1.3+） | `flag_exp` 的 diandian/spark/ai_assistants 实验旗标全关 |
 | QUIC 对策 | `[Rule]` 拒绝 QUIC 强制回落 TCP，保证 MITM 可见 |
@@ -77,6 +78,49 @@ imagefeed 响应带正确视频 URL（存入 persistentStore）
 | 2026-10-24 | 通知弹窗 | ✅ 15 个引导清空（真实 312KB body 端到端） |
 | 2026-10-24 | 条件式 Rewrite 开关 | ✅ 真机生效（`&& ${参数} == true` 首次实证） |
 | 2026-10-26 | 「猜你想搜」trending | ✅ 真实 5007B body 端到端（5007B → 25B，`data` 整段删除）|
+| 2026-10-26 | v1.4.0 四项 | ✅ 模拟器全命中（ads/resource · 模板拦截 · placeholder · MitM 扩容）|
+
+---
+
+## 🔴 v1.4.0：搜索域全净 + 品牌广告资源（4 项）
+
+### P0 · `ads/resource` 域名写死 `www.`，48.8KB 广告全放行
+```
+旧：^https://www\.xiaohongshu\.com/api/sns/(?:v1/ads/resource|...)
+实测：4 次请求全部走 edith.xiaohongshu.com → 命中 0 次
+```
+该接口返回 **56 条品牌专区资源**：34 个 h5（品牌活动页 `pages.xiaohongshu.com/newad/brand/…`）+ 98 个 `brandzone_magic_cube_predy_source`（魔方素材，走 `ads-i2/i3/i4.xhscdn.com/hera/…`）。
+**修复**：域名 `www` → `(?:www|edith)`。
+
+### P1 · MitM 扩容（6 → 10 域名）
+新增 `search` / `fe` / `as` / `fe-static.xhscdn.com`，`askdiandian.com` → `*.askdiandian.com`。
+未加的理由（避免无收益解密拖慢）：
+- `gslb` / `apm-fe` / `apm-native` / `crash` / `lng` / `t2` / `spider-tracker` —— 纯埋点/诊断/域名解析，无广告内容
+- `sns-*` / `picasso-static` / `fe-platform` 等 CDN —— 纯图片，解密无收益且严重影响性能
+
+### P2 · 「暂无搜索词」空态文案（**有技术上限，已尽量处理**）
+现象：v1.3.1 清空 `queries` 后，组件不消失，改为显示 DSL 的空态文案「暂无搜索词」。
+
+根因（两条并存，实测确认）：
+1. `search_recommend_trending` **硬编码在 App 二进制**（`strings discover` 可见），删 `template_info` 后 App 回落到硬编码模板名
+2. 模板已**缓存在本地** `Library/dsl_template_Directory/search_recommend_trending/`（652 个模板之一），无需重新下载
+
+已做：加 `fe-static.xhscdn.com/xhs-dsl/search_recommend_trending/` 的 `reject_img(200)` 拦截，防止缓存失效后重新下载。
+**用户侧一步**：删掉本地缓存目录后重启 App，组件（含空态文案）将不再出现：
+```
+App 沙盒/Library/dsl_template_Directory/search_recommend_trending/
+```
+> 未做全局清缓存脚本 —— 那是 App 私有数据，插件侧无权操作。
+
+### P3 · 搜索框占位词清空
+`search.xiaohongshu.com/api/search/fls/placeholder` → `data.placeholder[]`（搜索框轮播占位词），
+规则 `response.json.replace("data.placeholder", [])`，保留 `word_request_id` 不影响功能。
+
+### 验证
+- `check`: 0 错误 0 警告（[Rewrite] 16 · [Mitm] 10）
+- `run` 逐条命中：ads/resource `reject_dict` ✅ / 模板 zip `reject_img` ✅ / placeholder `json.replace` ✅
+- placeholder 改写实测：179B → 80B，`placeholder=[]`，`word_request_id` 保留
+- `ci.sh` 全绿 / `audit.py` 全过
 
 ---
 
