@@ -132,6 +132,7 @@ sh build.sh            # 产出 lc-forensics-vX.Y.dylib + ad-hoc 签名
 | **v8.8** | ctor 期绝不 open（lc_stage 只入队）+ flush 线程延迟 2s 首次落盘 | 小红书仍白屏但 0 行 → 排除 ctor 期 IO；三轮对照锁定「外部创建的文件」 |
 | **v8.9** | 日志移入自建目录 Documents/lcf/（与 lcf-req/resp 同模式）+ mkdir | 仍创建失败 → 排除路径因素 |
 | **v9.4** | 弃用 O_APPEND（改 O_CREAT + lseek）| 仍创建失败 → 排除 O_APPEND |
+| **v9.0-v9.3** | 唯一文件名 / errno 诊断 / volatile / 6 组 IO 探针 | 逐项排除（文件名、线程、volatile 均非根因）|
 | **v9.5** | 8 组 IO 对照矩阵（在已验证可写的函数里跑）| **锁定：无 O_TRUNC 的 open 无法新建文件** |
 | **v9.6** | 两步打开：O_TRUNC 创建 + 纯 O_WRONLY 追加 | **豆瓣 847 行 / JavDB 51 行，模块自建成功 ✅** 当前版本 |
 
