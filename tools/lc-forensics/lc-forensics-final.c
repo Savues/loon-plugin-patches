@@ -22,9 +22,9 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "8.8-defer-io"
-#define LOG_RELATIVE "Documents/forensics.jsonl"
-#define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
+#define LCF_VERSION "8.9-selfdir"
+#define LOG_RELATIVE "Documents/lcf/forensics.jsonl"   /* v8.9: 移入自建子目录 */
+#define RESP_LOG_RELATIVE "Documents/lcf/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
 #define DEDUP_CAP 512
 #define GAP_MIN 10.0
@@ -231,7 +231,9 @@ static void lc_write_free(char* buf){
 static void lc_write_nolock(const char* line){
     const char* home = getenv("HOME");
     if (!home || !home[0]) return;
-    char path[512];
+    char dir[512], path[560];
+    snprintf(dir, sizeof(dir), "%s/Documents/lcf", home);
+    mkdir(dir, 0755);   /* v8.9: 与 lcf-req/lcf-resp 同模式 (模块自建目录, 小红书 1000+ 次验证) */
     snprintf(path, sizeof(path), "%s/" LOG_RELATIVE, home);
     int fd = open(path, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
     if (fd < 0) return;

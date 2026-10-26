@@ -14,6 +14,45 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [8.9] - 2026-10-26 · selfdir
+
+### 动机：★ 三轮对照实验锁定根因——外部创建的日志文件会让 open() 挂起
+
+小红书容器三组对照（v8.8，ctor 期完全不写盘）：
+
+| `Documents/forensics.jsonl` | 模块 hook 产出 | App 状态 |
+|---|---|---|
+| **存在**（iSH 侧 touch 创建，0B） | lcf-req/resp 0 个 | **白屏** ❌ |
+| **不存在** | lcf-req 17 / lcf-resp 45 | **正常启动** ✅ |
+| **不存在**（再启动一次） | lcf-req 29 / lcf-resp 49 | **正常启动** ✅ |
+| **存在**（再 touch 一次） | — | **白屏** ❌ |
+
+→ **根因：`open()` 打开由外部进程（iSH）创建的 `forensics.jsonl` 会挂起**；
+文件不存在时 `open` 立即失败返回，App 正常。
+
+关键对照：`lcf-req`/`lcf-resp` 在小红书写了 **49 + 29 个文件全部正常**——
+它们的共同点是**模块自己 mkdir 子目录、在子目录里创建文件**。
+
+### 改动
+
+- 日志路径从 `Documents/forensics.jsonl` → **`Documents/lcf/forensics.jsonl`**
+- `lcf-resp.jsonl` 同样移入 `Documents/lcf/`
+- `lc_write_nolock()` 写前 `mkdir(Documents/lcf)` —— 与 `lcf-req`/`lcf-resp`
+  完全同模式（后者已在小红书验证 1000+ 次可靠）
+
+### 迁移说明
+
+旧路径 `Documents/forensics.jsonl`（豆瓣/JavDB 在用）不再写入。
+如需保留历史日志，读取时同时看两个位置；新数据只在 `Documents/lcf/`。
+
+### 实证（待真机）
+
+87168B，md5 `19d27861`。
+
+---
+
 ## [8.8] - 2026-10-26 · defer-io
 
 ### 动机：v8.7 卡在 S4 之后——根因收敛为「open() 本身概率性挂起」
