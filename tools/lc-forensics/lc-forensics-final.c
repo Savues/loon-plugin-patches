@@ -22,7 +22,7 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "10.0-feedback-fix"
+#define LCF_VERSION "10.1-fix-url-ext-status"
 #define LOG_DIR_RELATIVE "Documents/lcf-log"                       /* v9.7: 每次启动独立日志目录 */
 #define LOG_NAME_FMT     "forensics-%04d%02d%02dT%02d%02d%02dZ-%d.jsonl"  /* UTC + pid */
 #define LOG_RELATIVE     "Documents/lcf-log/latest.txt"            /* 旧引用兜底 (不再作主日志) */
@@ -552,13 +552,21 @@ static void didd_hook(id self, SEL _cmd, dispatch_data_t dd, void* completion){
         }
         /* v6.0: 分片进重组缓冲 (append 不拿锁, 持锁区安全) */
         unsigned long long tid = (unsigned long long)(uintptr_t)objc_msgSend(self, s_tid);
-        /* v10.0: 从 data 行提取 requrl 传给重组槽 */
+        /* v10.1: 从 data 行提取 requrl (必须截断到结束引号 — v10.0 曾把整行剩余内容吃进去) */
         {
-            const char* ru = "";
+            char ru[420] = "";
             char* uq = strstr(line, "\"requrl\":");
             if (uq){
                 uq += 9;
-                if (*uq == '"') ru = uq + 1;
+                if (*uq == '"'){
+                    uq++;
+                    size_t k = 0;
+                    while (uq[k] && uq[k] != '"' && k < sizeof(ru) - 1){
+                        if (uq[k] == '\\' && uq[k+1]){ ru[k] = uq[k+1]; k++; uq++; }
+                        else { ru[k] = uq[k]; k++; }
+                    }
+                    ru[k] = 0;
+                }
             }
             lcf_reasm_append_locked(tid, (unsigned long long)(uintptr_t)self, dd, ru);
         }
@@ -729,7 +737,7 @@ static void lcf_reasm_write_file(unsigned long long tid, unsigned int taskkey,
     /* v10.0: 扩展名用 magic bytes (mime 链路已断, 不再依赖) */
     const char* type = lcf_sniff_type(buf, len);
     /* v10.0: 文件名带 taskkey 短哈希 — 修复 tid 复用导致的重组文件覆盖 */
-    snprintf(fname, sizeof(fname), "%llu-%08x-%d-%s.bin", tid, taskkey, status, type);
+    snprintf(fname, sizeof(fname), "%llu-%08x-%d.%s", tid, taskkey, status, type);   /* v10.1: 真扩展名 */
     snprintf(path, sizeof(path), "%s/%s", dir, fname);
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
     if (fd >= 0){
@@ -914,6 +922,14 @@ static void didfin_hook(id self, SEL _cmd, id error){
         /* v6.9: 重组 flush 移锁外 — 持锁区只做"摘槽"(浅层指针交换),
          * open/mkdir/write 全部在锁外执行 (铁律: 持锁区只调 *_locked 变体) */
         lc_lock();
+        {
+            /* v10.1: status 回填 — v6.8 卸载 resp hook 后 s->status 恒 0 */
+            reasm_t* rs = lcf_reasm_slot(tid, (unsigned long long)(uintptr_t)self, 0);
+            if (rs && status > 0){
+                rs->status = (int)status;
+                snprintf(rs->mime, sizeof(rs->mime), "%.60s", mimetype);
+            }
+        }
         reasm_t* slot = lcf_reasm_take_slot(tid, (unsigned long long)(uintptr_t)self);
         lc_unlock();
         if (slot){
@@ -924,9 +940,9 @@ static void didfin_hook(id self, SEL _cmd, id error){
                 if (h && h[0]){
                     char fname[128];
                     const char* type = lcf_sniff_type(slot->buf, slot->len);
-                    snprintf(fname, sizeof(fname), "%llu-%08x-%d-%s.bin",
+                    snprintf(fname, sizeof(fname), "%llu-%08x-%d.%s",
                              slot->tid, (unsigned int)(slot->taskkey & 0xFFFFFFFFu),
-                             slot->status, type);
+                             slot->status, type);   /* v10.1 */
                     lcf_index_append(h, slot->tid, (unsigned int)(slot->taskkey & 0xFFFFFFFFu),
                                      slot->url, slot->status, slot->len, fname);
                 }
