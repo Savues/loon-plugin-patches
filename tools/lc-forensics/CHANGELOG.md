@@ -20,6 +20,54 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+---
+
+## [9.7] - 2026-10-26 · per-run-log
+
+### 动机：每次启动独立日志，便于按会话分析
+
+单一 `forensics.jsonl` 累积多次启动的记录，分析时需要用 `pid` 过滤。
+改为**每次启动一个文件**，文件名自带 UTC 时间戳 + pid。
+
+### 命名与位置
+
+```
+Documents/lcf-log/
+├── forensics-20261026T101530Z-65821.jsonl   ← 本次启动
+├── forensics-20261026T093012Z-65704.jsonl   ← 上次启动
+└── latest.txt                                ← 最新文件名（无路径）
+```
+
+- 格式：`forensics-YYYYMMDDTHHMMSSZ-<pid>.jsonl`
+- **`T` 分隔 + `Z` 后缀 = UTC**，避免与本地时间混淆
+- 时间戳用 `gmtime_r()`（不依赖 TZ / locale）
+- `pid` 兜底：同秒内重启也不冲突
+
+### 改动
+
+1. 新增 `lc_init_logpath()`：ctor 第一句调用，**只计算路径 + mkdir，不 open**
+2. `lc_openlog()`：改用 `g_log_path`（路径已固定，去掉每次 `strcmp`）
+3. 首次打开成功后写 `latest.txt`（只写文件名，方便 `cat` 后拼路径）
+4. 探针线程的沙盒就绪检查改用 `g_log_path`
+5. **v9.6 的两步打开逻辑原样保留**（`O_TRUNC` 创建 + 纯 `O_WRONLY` 追加）
+   —— 文件名唯一，`O_TRUNC` 天然不会清到历史日志
+
+### 排序说明
+
+文件名时间戳受 LC guest 时钟污染影响（v4.6 实证 `CLOCK_MONOTONIC` 都被虚拟化），
+**因此文件名仅作标识，不用于排序**。同一会话内的行序以 `seq` 字段为准（严格递增）。
+
+### 兼容
+
+- 旧 `Documents/forensics.jsonl` 不再写入，历史保留
+- 读取最新日志：`cat Documents/lcf-log/latest.txt` 或 `ls -t Documents/lcf-log/*.jsonl | head -1`
+
+### 实证（待真机）
+
+87088B，md5 `8125cee0`。
+
+---
+
 ## [9.6] - 2026-10-26 · trunc-create ★ 修复「日志文件无法自建」
 
 ### 动机：v9.5 对照矩阵给出决定性答案

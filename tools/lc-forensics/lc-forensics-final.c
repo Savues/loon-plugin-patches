@@ -22,8 +22,10 @@
  * 无全局枚举 / 无定时器 / 无 resume / 无 release, seq 锚点, 同步落盘
  */
 
-#define LCF_VERSION "9.6-trunc-create"
-#define LOG_RELATIVE "Documents/forensics.jsonl"
+#define LCF_VERSION "9.7-per-run-log"
+#define LOG_DIR_RELATIVE "Documents/lcf-log"                       /* v9.7: 每次启动独立日志目录 */
+#define LOG_NAME_FMT     "forensics-%04d%02d%02dT%02d%02d%02dZ-%d.jsonl"  /* UTC + pid */
+#define LOG_RELATIVE     "Documents/lcf-log/latest.txt"            /* 旧引用兜底 (不再作主日志) */
 #define RESP_LOG_RELATIVE "Documents/lcf-resp.jsonl"
 #define RESP_DIR_RELATIVE "Documents/lcf-resp"
 #define DEDUP_CAP 512
@@ -83,6 +85,7 @@ static Class g_clsLocalTask;      /* __NSCFLocalSessionTask */
 
 static int   g_fd = -1;
 static char  g_path[512] = "";
+static char  g_log_path[512] = "";   /* v9.7: 本进程唯一日志路径 (ctor 时确定) */
 static int   g_resp_fd = -1;
 static char  g_resp_path[512] = "";
 static int   g_resp_fallback = 0;    /* 1 = resp 写入走 base 文件 */
@@ -103,26 +106,50 @@ static double lc_now(void){
     return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 }
 
-/* v9.6: LC guest 沙盒实证 —— open(O_WRONLY|O_CREAT) 不带 O_TRUNC 会失败,
- * 只有带 O_TRUNC 才能创建新文件 (v9.5 对照矩阵: M1/M2 带 TRUNC 成功, M3 无 TRUNC 失败)。
- * 策略: 首次打开用 O_TRUNC 创建空文件 (会清空, 但只在本进程首次),
- *       随后用不带 O_CREAT 的纯 O_WRONLY 打开做追加 (lseek 到末尾)。 */
-static int lc_openlog(void){
+/* v9.7: 每次启动独立日志 — ctor 时按 UTC 时间戳 + pid 生成唯一文件名。
+ * 只计算路径并 mkdir, 不 open (open 延迟到首次写盘)。 */
+static void lc_init_logpath(void){
     const char* home = getenv("HOME");
-    if (!home || !home[0]) return -1;
-    char want[512];
-    snprintf(want, sizeof(want), "%s/" LOG_RELATIVE, home);
-    if (g_fd >= 0 && strcmp(want, g_path) == 0) return g_fd;
-    if (g_fd >= 0){ close(g_fd); g_fd = -1; }
-    snprintf(g_path, sizeof(g_path), "%s", want);
-    /* 第一步: 用 O_TRUNC 创建/清空 (沙盒唯一能新建文件的标志组合) */
-    int cfd = open(g_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
-    if (cfd < 0){ g_path[0] = 0; return -1; }
+    if (!home || !home[0]) return;
+    struct timeval tv; gettimeofday(&tv, 0);
+    time_t t = tv.tv_sec;
+    struct tm tmv;
+    if (!gmtime_r(&t, &tmv)) return;          /* UTC, 不依赖 TZ/locale */
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s/" LOG_DIR_RELATIVE, home);
+    mkdir(dir, 0755);                          /* EEXIST 无害 */
+    snprintf(g_log_path, sizeof(g_log_path), "%s/" LOG_NAME_FMT, dir,
+             tmv.tm_year + 1900, tmv.tm_mon + 1, tmv.tm_mday,
+             tmv.tm_hour, tmv.tm_min, tmv.tm_sec, (int)getpid());
+}
+
+/* v9.6 实证: open(O_WRONLY|O_CREAT) 不带 O_TRUNC 无法新建文件;
+ * 两步打开 = O_TRUNC 创建 + 纯 O_WRONLY 追加。v9.7 沿用 (文件名唯一, 不会清旧日志) */
+static int lc_openlog(void){
+    if (!g_log_path[0]) return -1;
+    if (g_fd >= 0) return g_fd;
+    int cfd = open(g_log_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (cfd < 0) return -1;
     close(cfd);
-    /* 第二步: 纯 O_WRONLY 追加 (不带 O_CREAT, 文件已存在) */
-    g_fd = open(g_path, O_WRONLY | O_CLOEXEC, 0644);
-    if (g_fd < 0){ g_path[0] = 0; return -1; }
+    g_fd = open(g_log_path, O_WRONLY | O_CLOEXEC, 0644);
+    if (g_fd < 0) return -1;
     lseek(g_fd, 0, SEEK_END);
+    /* latest.txt: 记录本次日志文件名 (无路径), 方便脚本 cat */
+    {
+        const char* home = getenv("HOME");
+        if (home && home[0]){
+            char idx[560];
+            snprintf(idx, sizeof(idx), "%s/" LOG_RELATIVE, home);
+            int xfd = open(idx, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+            if (xfd >= 0){
+                const char* base = strrchr(g_log_path, '/');
+                base = base ? base + 1 : g_log_path;
+                write(xfd, base, strlen(base));
+                write(xfd, "\n", 1);
+                close(xfd);
+            }
+        }
+    }
     return g_fd;
 }
 
@@ -899,10 +926,8 @@ static void* lcf_resp_probe_thread(void* arg){
     for (int i = 0; i < 240; i++){
         const char* home = getenv("HOME");
         if (home && home[0]){
-            char p[512];
-            snprintf(p, sizeof(p), "%s/" LOG_RELATIVE, home);
             struct stat st;
-            if (stat(p, &st) == 0 && st.st_size > 0) break;
+            if (g_log_path[0] && stat(g_log_path, &st) == 0 && st.st_size > 0) break;
         }
         usleep(500 * 1000);
         waited++;
@@ -930,6 +955,7 @@ static void* lcf_resp_probe_thread(void* arg){
 
 __attribute__((constructor))
 static void lcf_ctor(void){
+    lc_init_logpath();   /* v9.7: 生成唯一日志路径 (只算路径+mkdir, 不 open) */
     lc_stage("S1-ctor");
 
     /* v5.1: 探针线程 */
