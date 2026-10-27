@@ -155,6 +155,26 @@ function cacheFresh(rec) {
   return true;
 }
 
+// v2.27：CPS 链接改写（与 feed.response.js 同一套逻辑，默认开启）
+// 拼多多自购比价规则要求第一次点击就落在 CPS 链路上，否则事后转链也不计佣金。
+const CPS_RW = (function () {
+  const v = A.cps_rewrite;
+  if (v === undefined || v === null || v === '') return true;   // 默认开启
+  return v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
+})();
+
+function rewriteLink(g, ent) {
+  if (!CPS_RW || !ent || !ent.link) return false;
+  // 两种命名都要支持：snake_case（接口）与 camelCase（HTML rawData）
+  const key = typeof g.link_url === 'string' ? 'link_url'
+            : (typeof g.linkUrl === 'string' ? 'linkUrl' : null);
+  if (!key) return false;
+  const cur = g[key];
+  if (cur.indexOf('duo_coupon_landing.html') === 0) return false;   // 幂等
+  g[key] = ent.link;
+  return true;
+}
+
 function cpsFetch(ids, cb) {
   if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
   let content = '';
@@ -181,7 +201,11 @@ function cpsFetch(ids, cb) {
       const link = list[i].item_link;
       if (typeof link !== 'string') continue;
       const m = link.match(/[?&]goods_id=(\d+)/);
-      if (m && !map[m[1]]) map[m[1]] = rate;
+      if (m && !map[m[1]]) {
+        // v2.27：同时返回 item_link（相对路径），供 link_url 改写用
+        const rel = link.replace(/^https?:\/\/[^/]+\//, '');
+        map[m[1]] = { rate: rate, link: rel.indexOf('duo_coupon_landing.html') === 0 ? rel : '' };
+      }
     }
     cb(map);
   });
@@ -212,7 +236,8 @@ function buildPriceRateMap(lists, map) {
     for (const g of lst) {
       if (!g || typeof g !== 'object') continue;
       const gid = g.goodsId != null ? String(g.goodsId) : '';
-      const rate = gid ? map[gid] : 0;
+      const ent = gid ? map[gid] : null;
+        const rate = ent ? ent.rate : 0;
       if (!(rate > 0)) continue;
       const ip = String(g.activityPrice || '').split('.')[0];
       if (ip && !out[ip]) out[ip] = rate;
@@ -337,7 +362,7 @@ try {
           const map = {};
           const need = [];
           for (const gid of order) {
-            if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+            if (cacheFresh(cache[gid])) map[gid] = { rate: cache[gid].r, link: cache[gid].l || '' };
             else need.push(gid);
           }
           const done = (fetched) => {
@@ -347,8 +372,10 @@ try {
               for (const g of lst) {
                 if (!g || typeof g !== 'object') continue;
                 const gid = g.goodsId != null ? String(g.goodsId) : '';
-                const rate = gid ? map[gid] : 0;
+                const ent = gid ? map[gid] : null;
+                const rate = ent ? ent.rate : 0;
                 if (!(rate > 0)) continue;
+                if (rewriteLink(g, ent)) n++;                 // v2.27 链接改写
                 const text = '佣金' + fmtRate(rate) + '%';
                 if (g.activityPriceWord === text) continue;   // 幂等
                 g.activityPriceWord = text;
@@ -376,7 +403,7 @@ try {
           cpsFetch(need, function (fetched) {
             if (fetched) {
               const now = Math.floor(Date.now() / 1000);
-              for (const gid in fetched) cache[gid] = { r: fetched[gid], t: now };
+              for (const gid in fetched) cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
               cacheSave(cache);
             }
             done(fetched);

@@ -96,6 +96,23 @@ function cacheFresh(rec) {
 }
 
 // 大淘客批量解析：cb(map{gid -> rate})
+// v2.27：CPS 链接改写（与 feed.response.js 同一套逻辑，默认开启）
+// 拼多多自购比价规则要求第一次点击就落在 CPS 链路上，否则事后转链也不计佣金。
+const CPS_RW = (function () {
+  const v = A.cps_rewrite;
+  if (v === undefined || v === null || v === '') return true;   // 默认开启
+  return v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
+})();
+
+function rewriteLink(g, ent) {
+  if (!CPS_RW || !ent || !ent.link) return false;
+  const cur = g.link_url;
+  if (typeof cur !== 'string') return false;
+  if (cur.indexOf('duo_coupon_landing.html') === 0) return false;   // 幂等
+  g.link_url = ent.link;
+  return true;
+}
+
 function cpsFetch(ids, cb) {
   if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
   let content = '';
@@ -122,7 +139,11 @@ function cpsFetch(ids, cb) {
       const link = list[i].item_link;
       if (typeof link !== 'string') continue;
       const m = link.match(/[?&]goods_id=(\d+)/);
-      if (m && !map[m[1]]) map[m[1]] = rate;
+      if (m && !map[m[1]]) {
+        // v2.27：同时返回 item_link（相对路径），供 link_url 改写用
+        const rel = link.replace(/^https?:\/\/[^/]+\//, '');
+        map[m[1]] = { rate: rate, link: rel.indexOf('duo_coupon_landing.html') === 0 ? rel : '' };
+      }
     }
     cb(map);
   });
@@ -160,7 +181,7 @@ try {
   const need = [];
   for (let i = 0; i < order.length; i++) {
     const gid = order[i];
-    if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+    if (cacheFresh(cache[gid])) map[gid] = { rate: cache[gid].r, link: cache[gid].l || '' };
     else need.push(gid);
   }
 
@@ -170,8 +191,10 @@ try {
     for (let i = 0; i < targets.length; i++) {
       const g = targets[i];
       const gid = String(g.goods_id);
-      const rate = map[gid];
+      const ent = map[gid];
+      const rate = ent ? ent.rate : 0;
       if (!(rate > 0)) continue;
+      if (rewriteLink(g, ent)) n++;              // v2.27 链接改写
       const text = '佣金' + fmtRate(rate) + '%';
       const bt = g.activity_price_word_before_tag;
       if (bt && typeof bt === 'object') {
@@ -193,7 +216,7 @@ try {
   cpsFetch(need, function (fetched) {
     if (fetched) {
       const now = Math.floor(Date.now() / 1000);
-      for (const gid in fetched) cache[gid] = { r: fetched[gid], t: now };
+      for (const gid in fetched) cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
       cacheSave(cache);
     }
     apply(fetched);

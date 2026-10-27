@@ -87,6 +87,23 @@ function cacheFresh(rec) {
   return true;
 }
 
+// v2.27：CPS 链接改写（与 feed.response.js 同一套逻辑，默认开启）
+// 拼多多自购比价规则要求第一次点击就落在 CPS 链路上，否则事后转链也不计佣金。
+const CPS_RW = (function () {
+  const v = A.cps_rewrite;
+  if (v === undefined || v === null || v === '') return true;   // 默认开启
+  return v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
+})();
+
+function rewriteLink(g, ent) {
+  if (!CPS_RW || !ent || !ent.link) return false;
+  const cur = g.link_url;
+  if (typeof cur !== 'string') return false;
+  if (cur.indexOf('duo_coupon_landing.html') === 0) return false;   // 幂等
+  g.link_url = ent.link;
+  return true;
+}
+
 function cpsFetch(ids, cb) {
   if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
   let content = '';
@@ -113,7 +130,11 @@ function cpsFetch(ids, cb) {
       const link = list[i].item_link;
       if (typeof link !== 'string') continue;
       const m = link.match(/[?&]goods_id=(\d+)/);
-      if (m && !map[m[1]]) map[m[1]] = rate;
+      if (m && !map[m[1]]) {
+        // v2.27：同时返回 item_link（相对路径），供 link_url 改写用
+        const rel = link.replace(/^https?:\/\/[^/]+\//, '');
+        map[m[1]] = { rate: rate, link: rel.indexOf('duo_coupon_landing.html') === 0 ? rel : '' };
+      }
     }
     cb(map);
   });
@@ -155,7 +176,7 @@ try {
   const map = {};
   const need = [];
   for (const gid of order) {
-    if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+    if (cacheFresh(cache[gid])) map[gid] = { rate: cache[gid].r, link: cache[gid].l || '' };
     else need.push(gid);
   }
 
@@ -164,14 +185,16 @@ try {
       const now = Math.floor(Date.now() / 1000);
       for (const gid in fetched) {
         map[gid] = fetched[gid];
-        cache[gid] = { r: fetched[gid], t: now };
+        cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
       }
       cacheSave(cache);
     }
     let n = 0;
     for (const t of targets) {
-      const rate = map[t.gid];
+      const ent = map[t.gid];
+      const rate = ent ? ent.rate : 0;
       if (!(rate > 0)) continue;
+      if (rewriteLink(t.g, ent)) n++;            // v2.27 链接改写
       const text = '佣金' + fmtRate(rate) + '%';
       const g = t.g;
       const bt = g.activity_price_word_before_tag;
