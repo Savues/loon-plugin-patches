@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.06
+#!name=拼多多去广告(修复版) v2.07
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；信息流广告商品打标【广告】。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -19,7 +19,8 @@ order_stub = switch,true,false,tag=[高危] 屏蔽订单列表,desc=关掉后订
 search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
 feed_ad = switch,true,tag=[信息流] 给广告商品打「广告」标,desc=只标记不删除;靠服务端自己的 data.ad 字段识别,正常推荐零误伤
 cps_rewrite = switch,false,tag=[高危] 商品链接改写成进宝领券页,desc=把信息流 link_url 换成带 goods_sign 的 duo_coupon_landing 链接;拼多多自购比价规则要求第一次点击就是 CPS 链才计佣金;需配合 cps_token
-cps_label = switch,true,tag=[信息流] 销量行显示佣金率,desc=把「佣金9.6%·」接进销量行：有广告标的排在「广告·」之后（广告·佣金9.6%·已拼340万件），没有广告标的排在销量前面（佣金9.6%·已抢4万斤）；只标确实有佣金的商品。与 cps_rewrite 共用同一次批量查询。
+cps_label = switch,true,tag=[信息流] 销量行显示佣金率,desc=把「已拼/已售x件」那行改成「佣金9.6%·已拼x件」；去掉冗余的广告前缀腾位置，超宽时只留佣金。标签行会被折券横幅遮挡，故不用它
+cps_budget = input,"23",tag=[信息流] 销量行宽度预算,desc=显示宽度上限（汉字算2、数字算1）。实测原始最长条目=22，超过24会被客户端整段丢弃；调试可调小（如16）强制只看佣金
 cps_token = input,"",tag=[高危] 大淘客 app_token,desc=用于批量换取 goods_sign;取自大淘客 App 的 get-user-info 接口 jaw_uid 字段(171 字符);留空则不改写
 cps_pid = input,"41096949_318859099",tag=[高危] 推广位 PID,desc=改写进链接的 pid，需与你的多多进宝推广位一致
 cps_probe = switch,false,tag=[诊断] 打印参数形态,desc=把实际收到的 $argument 写进首个商品的 sales_tip（形如 ARG={"feed_ad":true,...}）；抓 HAR 后搜 ARG= 即可看到真机传的参数形态。不影响正常使用。
@@ -91,7 +92,7 @@ http-response ^https:\/\/m\.pinduoduo\.net\/(hub_monthly_card|hub_renew_manage)\
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/special-sale-coupon\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy_api.response.js, requires-body=true, argument=[{feed_ad}], timeout=5, tag=百补列表分页广告角标
 
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/detail.response.js?v=2, requires-body=true, argument=[{feed_ad},{cps_label},{cps_token},{cps_pid}], timeout=5, tag=详情页广告打标
-http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=7, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_token},{cps_pid},{cps_probe}], timeout=10, tag=信息流广告打标+CPS链接改写
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=8, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_token},{cps_pid},{cps_probe}], timeout=10, tag=信息流广告打标+CPS链接改写
 
 [MitM]
 hostname=api.pinduoduo.com, m.pinduoduo.net

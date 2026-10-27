@@ -85,6 +85,12 @@ const CPS_BATCH = 20;
 const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
 const CPS_GID_RE = /[?&]goods_id=(\d+)/;
 const CPS_MAX_DEPTH = 10;
+// 销量行的显示宽度预算（CJK=2, ASCII=1）。实测原始最长「广告·本店已拼38.5万+件」= 23，
+// 24 以上会被客户端整段丢弃，所以默认 23；可用 cps_budget 参数微调。
+const CPS_BUDGET = (function () {
+  const v = parseInt(A.cps_budget, 10);
+  return v > 6 ? v : 23;
+})();
 
 // 收集本屏 goods_id（顺序去重，截到 CPS_BATCH）
 function cpsCollect(node, depth, order, seen) {
@@ -181,17 +187,35 @@ function cpsLabel(j, map) {
     if (!gid || !map[gid]) continue;
     const rate = map[gid].rate;
     if (!(rate > 0)) continue;
-    // v2.06：销量行放不下（实测 17~21 字整段被客户端丢弃，10~13 字正常），
-    // 改为插 tag_list 红字标签，与「广告」标同一个渲染容器，不受宽度限制。
-    const text = '佣金' + fmtRate(rate) + '%';
-    if (!Array.isArray(d.tag_list)) d.tag_list = [];
-    if (d.tag_list.some((x) => x && typeof x === 'object' && typeof x.text === 'string' && x.text.indexOf('佣金') === 0)) continue;
-    const tag = { text: text, text_color: AD_COLOR, tag_track_info: '' };
-    const adIdx = d.tag_list.findIndex((x) => x && typeof x === 'object' && x.text === AD_TEXT);
-    d.tag_list.splice(adIdx >= 0 ? adIdx + 1 : 0, 0, tag);
-    n++;
+
+    // v2.07：标签行会被「折券倒计时横幅」遮挡，不可靠；销量行才是稳定位置。
+    // 做法：去掉冗余的「广告·」前缀（tag_list 里 32/32 都有「广告」标），
+    //      换上前缀「佣金9.6%·」；超出宽度预算时删掉销量文案，只留佣金。
+    const seg = '佣金' + fmtRate(rate) + '%';
+    let hit = 0;
+    for (const key of ['sales_tip', 'fallback_sales_tip']) {
+      const v = d[key];
+      if (typeof v !== 'string' || !v) continue;
+      if (v.indexOf('佣金') >= 0) { hit++; continue; }   // 幂等
+      let body = v.indexOf('广告·') === 0 ? v.slice(3) : v;
+      body = body.replace('本店已拼', '已拼').replace('全店总售', '总售').replace('热销', '已拼');
+      let out = seg + '·' + body;
+      if (width(out) > CPS_BUDGET) out = seg;            // 放不下就砍掉销量部分
+      d[key] = out;
+      hit++;
+    }
+    if (hit) n++;
   }
   return n;
+}
+
+// 估算显示宽度：CJK/全角算 2，ASCII 算 1
+function width(s) {
+  let w = 0;
+  for (let i = 0; i < s.length; i++) {
+    w += s.charCodeAt(i) > 0x2e80 ? 2 : 1;
+  }
+  return w;
 }
 
 // 9.6 -> "9.6" / 5 -> "5" / 12.50 -> "12.5"
