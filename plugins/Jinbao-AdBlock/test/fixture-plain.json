@@ -1,0 +1,14 @@
+{
+  "success": 1,
+  "errorCode": 1000000,
+  "result": {
+    "list": [],
+    "bannerList": [],
+    "labelList": [
+      {
+        "imgUrl": "https://funimg.pddpic.com/a.png",
+        "title": "精选"
+      }
+    ]
+  }
+}

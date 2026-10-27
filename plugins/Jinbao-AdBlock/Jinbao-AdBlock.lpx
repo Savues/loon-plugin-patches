@@ -1,0 +1,26 @@
+#!name=多多进宝开屏防护
+#!desc=预防性拦截多多进宝（拼多多 CPS）开屏/启动广告：递归剪除业务 JSON 中的开屏字段，并对开屏类路径兜底拦截。当前版本未观测到实际开屏流量，属预防性守卫。
+#!openUrl=https://apps.apple.com/cn/app/id1324671936
+#!author=@Savues <https://github.com/Savues>
+#!tag=去广告
+#!system=
+#!system_version=
+#!loon_version=3.5.1(998)
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Jinbao-AdBlock
+#!date=2026-10-27 14:30:00
+#!version=0.1.0
+
+[Argument]
+enabled = switch, true, false, tag=插件总开关, desc=关闭后所有规则不再处理任何响应
+stripSplashKeys = switch, true, false, tag=剪除开屏字段, desc=递归删除响应 JSON 中 splash/launch_ad/open_screen 等开屏字段（未命中时原样返回）
+
+[Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/jinbao\.pinduoduo\.com\/gw\/loon-sim\.probe\.jinbao_adblock/i then reject(200, "0.1.0")
+request if ${url} ~= /^https:\/\/jinbao\.pinduoduo\.com\/network_h5\/[^?]*\/?splash/i then reject(200, "{\"success\":true,\"errorCode\":1000000,\"errorMsg\":null,\"result\":null}")
+
+[Script]
+response if ${url} ~= /^https:\/\/jinbao\.pinduoduo\.com\/network_h5\//i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_splash_guard.response.js?v=1", {${enabled}, ${stripSplashKeys}}) with tag="多多进宝开屏防护", requires_body=true
+
+[MitM]
+hostname=jinbao.pinduoduo.com, jinbaoh5.pinduoduo.com

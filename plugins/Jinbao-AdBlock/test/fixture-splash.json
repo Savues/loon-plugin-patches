@@ -1,0 +1,23 @@
+{
+  "success": 1,
+  "errorCode": 1000000,
+  "errorMsg": null,
+  "result": {
+    "homePageConfig": [
+      {
+        "imgUrl": "",
+        "isValid": 1,
+        "key": "HOT_SALE_LIST",
+        "subTitle": null,
+        "title": "实时榜"
+      }
+    ],
+    "splashInfo": {
+      "imgUrl": "https://funimg.pddpic.com/ddjb/ad.png",
+      "jumpUrl": "https://jinbao.pinduoduo.com/x",
+      "subTitle": "开屏广告",
+      "isValid": 1
+    },
+    "serverTime": 1793081611688
+  }
+}
