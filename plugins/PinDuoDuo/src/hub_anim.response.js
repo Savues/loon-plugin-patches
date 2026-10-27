@@ -97,6 +97,26 @@ try {
   killTrue(j.card_goods && j.card_goods.renew_tip && j.card_goods.renew_tip.renewal_activity,
            ['show_popup', 'has_popup_toady', 'show_popup_v2']);
 
+  // ③ 续费页弹窗（v2.33 修正）：真实路径是 card_goods.renewal_activity.renew_page_popup
+  //    v2.32 只处理了 card_goods.renew_tip.renewal_activity，漏了这一层，
+  //    导致 renew_page_popup.show_popup=true 一直生效（popup_id=157）。
+  const ra = j.card_goods && j.card_goods.renewal_activity;
+  if (ra && typeof ra === 'object') {
+    killTrue(ra, ['show_popup', 'has_popup_toady', 'show_popup_v2']);
+    const rpp = ra.renew_page_popup;
+    if (rpp && typeof rpp === 'object' && rpp.show_popup === true) {
+      rpp.show_popup = false;
+      changed = true;
+    }
+  }
+  // ④ 顶层同名兜底
+  killTrue(j.renewal_activity, ['show_popup', 'has_popup_toady', 'show_popup_v2']);
+  if (j.renewal_activity && j.renewal_activity.renew_page_popup
+      && j.renewal_activity.renew_page_popup.show_popup === true) {
+    j.renewal_activity.renew_page_popup.show_popup = false;
+    changed = true;
+  }
+
   if (!changed) { $done({}); return; }
   $done({ body: JSON.stringify(j) });
 } catch (e) {

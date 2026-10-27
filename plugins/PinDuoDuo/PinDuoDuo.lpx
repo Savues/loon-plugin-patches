@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.32
+#!name=拼多多去广告(修复版) v2.33
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -98,7 +98,7 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? sc
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=12, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=信息流广告打标+CPS链接改写
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/hermes\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/bybt_goods.response.js?v=5, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=百亿补贴列表佣金率
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/naga\/selected\/goods\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_selected.response.js?v=1, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_budget},{cps_ttl},{cps_token}], timeout=10, tag=省钱月卡精选列表佣金率
-http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/homepage\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_anim.response.js?v=1, requires-body=true, argument=[{hub_anim}], timeout=10, tag=省钱月卡屏蔽强化续费提醒动效
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/homepage\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_anim.response.js?v=2, requires-body=true, argument=[{hub_anim}], timeout=10, tag=省钱月卡屏蔽强化续费提醒动效
 
 [MitM]
 hostname=api.pinduoduo.com, m.pinduoduo.net
