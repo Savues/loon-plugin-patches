@@ -225,8 +225,13 @@ try {
     for (const it of list) {
       const gid = it && it.goods_id != null ? String(it.goods_id) : '';
       if (!gid) continue;
-      if (cacheFresh(cache[gid])) map[gid] = { rate: cache[gid].r, link: cache[gid].l || '' };
-      else if (need.indexOf(gid) === -1 && need.length < CPS_BATCH) need.push(gid);
+      // 旧缓存只有 r 没有 l：转链开启时视为未命中，重新请求拿 item_link
+            const cRec = cache[gid];
+            if (cacheFresh(cRec) && (!CPS_RW || cRec.l)) {
+              map[gid] = { rate: cRec.r, link: cRec.l || '' };
+            } else {
+              need.push(gid);
+            }
     }
     if (!need.length) { finish(null); return; }
     cpsFetch(need, finish);

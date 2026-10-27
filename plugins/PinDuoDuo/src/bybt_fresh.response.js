@@ -176,8 +176,13 @@ try {
   const map = {};
   const need = [];
   for (const gid of order) {
-    if (cacheFresh(cache[gid])) map[gid] = { rate: cache[gid].r, link: cache[gid].l || '' };
-    else need.push(gid);
+    // 旧缓存只有 r 没有 l：转链开启时视为未命中，重新请求拿 item_link
+            const cRec = cache[gid];
+            if (cacheFresh(cRec) && (!CPS_RW || cRec.l)) {
+              map[gid] = { rate: cRec.r, link: cRec.l || '' };
+            } else {
+              need.push(gid);
+            }
   }
 
   const apply = (fetched) => {
