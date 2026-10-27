@@ -360,9 +360,22 @@ try {
               //   f && activityPrice.length <= 6 && <div class=activityPriceWord>{f}</div>
               //   <div class=unit>¥</div><div class=price>{activityPrice}</div>
               const text = '佣金' + fmtRate(rate) + '%';
-              if (g.activityPriceWord === text) continue;   // 幂等
-              g.activityPriceWord = text;
-              n++;
+              // v2.15：改 activityPriceWordBeforeTag.text，不是 activityPriceWord。
+              // 前端 PriceWord 组件（react_brand_activity_subsidy @410862）：
+              //   var x = e.activityPriceWordBeforeTag, ...
+              //       F = M.text, W = F || n;      ← BeforeTag.text 优先于 priceWord
+              // 实测每个商品都有 BeforeTag（「只剩2天」「仅一次」「只剩3小时」），
+              // 所以只改 activityPriceWord 会被完全盖住。
+              const bt = g.activityPriceWordBeforeTag;
+              if (bt && typeof bt === 'object') {
+                if (bt.text === text) continue;   // 幂等
+                bt.text = text;
+                n++;
+              } else {
+                if (g.activityPriceWord === text) continue;
+                g.activityPriceWord = text;
+                n++;
+              }
             }
           }
           if (n) {
