@@ -89,7 +89,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
 | `cps_rewrite` | **关** | 把信息流 `link_url` 改写成**带 `goods_sign` 的** `duo_coupon_landing.html?...&pid=…&cpsSign=…`，让每一次点击都落在 CPS 链路上（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
-| `cps_label` | **开** | 列表里给**有佣金**的商品加「佣金9.6%」标（插在「广告」标之后；未进进宝的不加）。与 `cps_rewrite` 共用同一次批量查询，无额外请求 | 不想看佣金时 |
+| `cps_label` | **开** | 销量行拼佣金率：`广告·佣金9.6%·本店已拼340万件` / `佣金9.6%·已抢4万斤`。只标**有佣金**的商品，`tag_list` 不插佣金标（避免重复显示） | 不想看佣金时 |
 | `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `goods_sign` + `cpsSign`；**留空则不改写** | — |
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
 | `cps_probe` | **关** | 探针：只把**第一个**商品改成不存在的页型 `zzz_probe_test.html`。点开报错=客户端确实读 `link_url`（已由 2026-10-27 真机 HAR 证实成立） | 日常保持关闭 |

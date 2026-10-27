@@ -181,14 +181,19 @@ function cpsLabel(j, map) {
     if (!gid || !map[gid]) continue;
     const rate = map[gid].rate;
     if (!(rate > 0)) continue;
-    const text = '佣金' + fmtRate(rate) + '%';
-    if (!Array.isArray(d.tag_list)) d.tag_list = [];
-    // 幂等：已有同款佣金标就跳过（多次命中同一响应时不重复插）
-    if (d.tag_list.some((x) => x && typeof x === 'object' && typeof x.text === 'string' && x.text.indexOf('佣金') === 0)) continue;
-    const tag = { text: text, text_color: AD_COLOR, tag_track_info: '' };
-    const adIdx = d.tag_list.findIndex((x) => x && typeof x === 'object' && x.text === AD_TEXT);
-    d.tag_list.splice(adIdx >= 0 ? adIdx + 1 : 0, 0, tag);
-    n++;
+    const seg = '佣金' + fmtRate(rate) + '%·';
+    let hit = 0;
+    for (const key of ['sales_tip', 'fallback_sales_tip']) {
+      const v = d[key];
+      if (typeof v !== 'string') continue;
+      if (v.indexOf('佣金') >= 0) continue;             // 幂等
+      // 「广告·」永远保持在最前面，佣金紧贴其后
+      d[key] = v.indexOf(AD_TEXT + '·') === 0
+        ? AD_TEXT + '·' + seg + v.slice(AD_TEXT.length + 1)
+        : seg + v;
+      hit = 1;
+    }
+    n += hit;
   }
   return n;
 }
