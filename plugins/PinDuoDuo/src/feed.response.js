@@ -75,7 +75,9 @@ function recordIds(ids) {
 //   10 个耗时 1.14s，返回全部带 goods_sign）。
 //
 // Loon 同 URL 只跑首个命中的 [Script]，故内联本文件而非另起规则。
-const CPS_ON = on(A.cps_rewrite);
+const CPS_RW = on(A.cps_rewrite);
+const CPS_LB = on(A.cps_label);
+const CPS_ON = CPS_RW || CPS_LB;
 const CPS_PROBE = on(A.cps_probe);
 const CPS_PID = (typeof A.cps_pid === 'string' && A.cps_pid) ? A.cps_pid : '41096949_318859099';
 const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
@@ -106,8 +108,9 @@ function cpsCollect(node, depth, order, seen) {
   }
 }
 
-// 按 map{gid -> 相对路径+query} 替换 link_url，返回替换条数
+// 按 map{gid -> {rel, rate}} 替换 link_url，返回替换条数
 function cpsApply(node, depth, map, st) {
+  if (!CPS_RW) return;
   if (!node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
   if (Array.isArray(node)) {
     for (let i = 0; i < node.length; i++) cpsApply(node[i], depth + 1, map, st);
@@ -118,7 +121,7 @@ function cpsApply(node, depth, map, st) {
     const v = node[keys[i]];
     if (keys[i] === 'link_url' && typeof v === 'string') {
       const m = v.match(CPS_GID_RE);
-      if (m && map[m[1]]) { node[keys[i]] = map[m[1]]; st.n++; }
+      if (m && map[m[1]]) { node[keys[i]] = map[m[1]].rel; st.n++; }
     } else if (v && typeof v === 'object') {
       cpsApply(v, depth + 1, map, st);
     }
@@ -160,10 +163,40 @@ function cpsFetch(ids, cb) {
       const rel = link.replace(/^https?:\/\/[^/]+\//, '');
       if (rel.indexOf('duo_coupon_landing.html') !== 0) continue;
       const m = rel.match(CPS_GID_RE);
-      if (m && !map[m[1]]) map[m[1]] = rel;   // 原样保留 goods_sign / cpsSign / authDuoId
+      if (m && !map[m[1]]) map[m[1]] = { rel: rel, rate: rate };   // 原样保留 goods_sign / cpsSign / authDuoId
     }
     cb(map);
   });
+}
+
+// 佣金率标签：只给「确实有佣金」的商品加，插在「广告」标之后、其余标签之前
+function cpsLabel(j, map) {
+  const list = j && j.data && Array.isArray(j.data.goods_list) ? j.data.goods_list : null;
+  if (!list) return 0;
+  let n = 0;
+  for (const cell of list) {
+    const d = cell && typeof cell === 'object' ? cell.data : null;
+    if (!d || typeof d !== 'object') continue;
+    const gid = d.goods_id != null ? String(d.goods_id) : '';
+    if (!gid || !map[gid]) continue;
+    const rate = map[gid].rate;
+    if (!(rate > 0)) continue;
+    const text = '佣金' + fmtRate(rate) + '%';
+    if (!Array.isArray(d.tag_list)) d.tag_list = [];
+    // 幂等：已有同款佣金标就跳过（多次命中同一响应时不重复插）
+    if (d.tag_list.some((x) => x && typeof x === 'object' && typeof x.text === 'string' && x.text.indexOf('佣金') === 0)) continue;
+    const tag = { text: text, text_color: AD_COLOR, tag_track_info: '' };
+    const adIdx = d.tag_list.findIndex((x) => x && typeof x === 'object' && x.text === AD_TEXT);
+    d.tag_list.splice(adIdx >= 0 ? adIdx + 1 : 0, 0, tag);
+    n++;
+  }
+  return n;
+}
+
+// 9.6 -> "9.6" / 5 -> "5" / 12.50 -> "12.5"
+function fmtRate(v) {
+  const s = String(Math.round(v * 10) / 10);
+  return s.indexOf('.') >= 0 ? s : s;
 }
 
 // 广告打标（原逻辑，抽成函数以便与异步 CPS 改写共存）
@@ -264,8 +297,11 @@ try {
     if (map) {
       const st = { n: 0 };
       try { cpsApply(j, 0, map, st); n = st.n; } catch (e) { n = 0; }
+      if (CPS_LB) {
+        try { n += cpsLabel(j, map); } catch (e) { /* 标签失败不影响改写 */ }
+      }
     }
-    finish(j, marked, n);
+    finish(j, marked + probed, n);
   });
 } catch (e) {
   $done({});
