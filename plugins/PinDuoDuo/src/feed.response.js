@@ -26,12 +26,24 @@
 
 // $argument 三种形态都要兼容：对象 / 数组 / JSON 字符串
 // （仓库历史事故 v3.37.3：只处理对象形态，真机传数组时全部开关失效）
+// $argument 三种形态都要兼容：对象 / 数组(每项是 {key:value}) / JSON 字符串
+// ⚠️ 数组形态曾经只取 v[0] → 真机上 item 顺序不保证，导致部分开关读不到
+//    （v2.02 事故：cps_rewrite 生效但 feed_ad 丢失，广告标全没了）
 const A = (function (raw) {
   let v = raw;
   if (typeof v === 'string') {
     try { v = JSON.parse(v); } catch (e) { v = {}; }
   }
-  if (Array.isArray(v)) v = v[0] || {};
+  if (Array.isArray(v)) {
+    const merged = {};
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (it && typeof it === 'object' && !Array.isArray(it)) {
+        for (const k in it) merged[k] = it[k];
+      }
+    }
+    v = merged;
+  }
   return (v && typeof v === 'object') ? v : {};
 })($argument);
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
@@ -113,24 +125,7 @@ function cpsApply(node, depth, map, st) {
   }
 }
 
-// 探针：只把第一个 link_url 换成不存在的页型
-function cpsProbeFirst(node, depth, st) {
-  if (st.n || !node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
-  if (Array.isArray(node)) {
-    for (let i = 0; i < node.length; i++) cpsProbeFirst(node[i], depth + 1, st);
-    return;
-  }
-  const keys = Object.keys(node);
-  for (let i = 0; i < keys.length; i++) {
-    const v = node[keys[i]];
-    if (keys[i] === 'link_url' && typeof v === 'string') {
-      const m = v.match(CPS_GID_RE);
-      if (m) { node[keys[i]] = 'zzz_probe_test.html?goods_id=' + m[1]; st.n = 1; return; }
-    } else if (v && typeof v === 'object') {
-      cpsProbeFirst(v, depth + 1, st);
-    }
-  }
-}
+// 探针已废弃（v2.03 起 link_url 改写由真机实证成立，不再需要篡改探测）
 
 // 大淘客批量解析：cb(map) 成功 / cb(null) 失败
 function cpsFetch(ids, cb) {
@@ -239,18 +234,30 @@ try {
 
   const marked = on(A.feed_ad) ? markAds(j) : 0;
 
-  if (!CPS_ON) { finish(j, marked, 0); return; }
+  // 诊断：把实际收到的 $argument 形态写进首个商品的 sales_tip，随 HAR 一起回传
+  let probed = 0;
+  if (CPS_PROBE) {
+    try {
+      let first = null;
+      (function find(n, d) {
+        if (first || !n || typeof n !== 'object' || d > 6) return;
+        if (Array.isArray(n)) { for (let i = 0; i < n.length && !first; i++) find(n[i], d + 1); return; }
+        if (n.sales_tip || n.goods_id) { first = n; return; }
+        for (const k in n) { find(n[k], d + 1); if (first) return; }
+      })(j, 0);
+      if (first) {
+        const raw = typeof $argument === 'string' ? $argument : JSON.stringify($argument);
+        first.sales_tip = 'ARG=' + String(raw).slice(0, 88);
+        probed = 1;
+      }
+    } catch (e) { /* 诊断失败不影响主流程 */ }
+  }
+
+  if (!CPS_ON) { finish(j, marked + probed, 0); return; }
 
   const order = [];
   try { cpsCollect(j, 0, order, {}); } catch (e) { /* 结构异常则不改写 */ }
-  if (!order.length) { finish(j, marked, 0); return; }
-
-  if (CPS_PROBE) {
-    const st = { n: 0 };
-    try { cpsProbeFirst(j, 0, st); } catch (e) { st.n = 0; }
-    finish(j, marked, st.n);
-    return;
-  }
+  if (!order.length) { finish(j, marked + probed, 0); return; }
 
   cpsFetch(order, function (map) {
     let n = 0;
