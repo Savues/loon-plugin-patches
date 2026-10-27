@@ -116,16 +116,41 @@ const INJECT = `<script>(${function () {
   if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', scan); else scan();
 } .toString()})();</script>`;
 
+// v2.36：动画压制 CSS —— 月卡页有大量 CSS 动画（抽奖/福袋/翻牌等），
+// 服务端没有任何开关能关掉它们（实测 gather/common/page 的 guide_style 置 0、
+// gather/homepage 的 hit_enhance_renew_remind 置 0、renew_page_popup 置 false，
+// 三台设备三版都没效果）。改从渲染层压制：把时长压到 0.01s，
+// 动画瞬间跑完、animationend 照常触发、fill-mode 终态保留。
+// 不用 animation:none —— 很多元素靠 fill-mode:forwards 停在终态，
+// none 会让它们停在初始态（常见 opacity:0，直接看不见）。
+const NOANIM_CSS = `<style id="pdd-no-anim">*,*::before,*::after{animation-duration:.01s !important;animation-delay:0s !important;transition-duration:.01s !important;transition-delay:0s !important}</style>`;
+
 try {
-  if (!on(A.auto_skip)) { $done({}); } else {
+  if (!on(A.auto_skip) && !on(A.no_anim)) { $done({}); } else {
     const orig = $response.body;
-    if (typeof orig !== 'string' || !orig || orig.indexOf(MARK) !== -1) {
+    if (typeof orig !== 'string' || !orig) {
       $done({});
     } else {
-      let body = orig.indexOf('</body>') !== -1
-        ? orig.replace('</body>', INJECT + '</body>')
-        : orig + INJECT;
-      $done(body === orig ? {} : { body });
+      let body = orig;
+      let changed = false;
+
+      // ① 动画压制（独立于 auto_skip）
+      if (on(A.no_anim) && body.indexOf('id="pdd-no-anim"') === -1) {
+        if (body.indexOf('</head>') !== -1) {
+          body = body.replace('</head>', NOANIM_CSS + '</head>');
+          changed = true;
+        }
+      }
+
+      // ② 自动点「跳过」（原逻辑，保留）
+      if (on(A.auto_skip) && body.indexOf(MARK) === -1) {
+        body = body.indexOf('</body>') !== -1
+          ? body.replace('</body>', INJECT + '</body>')
+          : body + INJECT;
+        changed = true;
+      }
+
+      $done(changed ? { body } : {});
     }
   }
 } catch (e) {

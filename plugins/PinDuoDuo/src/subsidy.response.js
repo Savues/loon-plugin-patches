@@ -303,6 +303,20 @@ function collectAdGoods(raw) {
   return out;
 }
 
+// v2.36：动画压制 CSS（消费券页的福袋/抽奖弹窗有 153 个 @keyframes、730 处 animation，
+// 服务端无开关可关，只能从渲染层压时长）。见 hub_skip.response.js 同一段说明。
+const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-duration:.01s !important;animation-delay:0s !important;transition-duration:.01s !important;transition-delay:0s !important}</style>';
+const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
+  ? true : on(A.no_anim);
+
+function injectNoAnim(body) {
+  if (!NO_ANIM) return body;
+  if (body.indexOf('id="pdd-no-anim"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</head>');
+  if (i < 0) return body;
+  return body.slice(0, i) + NOANIM_CSS + body.slice(i);
+}
+
 try {
   let body = $response.body;
   if (!body) { $done({}); return; }
@@ -431,7 +445,8 @@ try {
               const next = body.slice(0, p3.start) + JSON.stringify(p3.obj) + body.slice(p3.end);
               if (next !== body) body = next;
             }
-            $done(body === $response.body ? {} : { body });
+            body = injectNoAnim(body);
+  $done(body === $response.body ? {} : { body });
           };
           if (!need.length) { done(null); return; }
           cpsFetch(need, function (fetched) {
@@ -448,6 +463,7 @@ try {
     }
   }
 
+  body = injectNoAnim(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百亿补贴页打不开
