@@ -49,12 +49,35 @@
             changed = true;
         }
     } else if (/pop_window_info|exclusive_info/i.test(url)) {
+        // ① 已知字段显式处理
         if (result.popupWindow !== false) { result.popupWindow = false; changed = true; }
         if (Array.isArray(result.popupsContentVOList) && result.popupsContentVOList.length > 0) {
             result.popupsContentVOList = [];
             changed = true;
         }
         if (result.popupsGoods) { result.popupsGoods = null; changed = true; }
+
+        // ② 兜底：服务端改字段名时也能清干净
+        //    该接口 result 的唯一用途就是「弹窗载荷」，所以除开关类白名单外，
+        //    任何非空数组 / 非空对象 / 图片链接字符串一律清空。
+        //    开关类字段一律压成「无弹窗」语义（布尔→false，类型→null）。
+        const BOOL_KEYS = ['popupWindow', 'hasPopup', 'showPopup', 'needPopup'];
+        const TYPE_KEYS = ['type', 'popupType', 'dialogType'];
+        for (const k of BOOL_KEYS) {
+            if (result[k] !== undefined && result[k] !== false) { result[k] = false; changed = true; }
+        }
+        for (const k of TYPE_KEYS) {
+            if (result[k] !== undefined && result[k] !== null) { result[k] = null; changed = true; }
+        }
+        const KEEP = {};
+        for (const k of BOOL_KEYS.concat(TYPE_KEYS)) KEEP[k] = 1;
+        for (const k of Object.keys(result)) {
+            if (KEEP[k]) continue;
+            const v = result[k];
+            if (Array.isArray(v) && v.length > 0) { result[k] = []; changed = true; }
+            else if (v && typeof v === 'object' && Object.keys(v).length > 0) { result[k] = null; changed = true; }
+            else if (typeof v === 'string' && /^https?:\/\//i.test(v)) { result[k] = ''; changed = true; }
+        }
     }
 
     if (!changed) return $done({});

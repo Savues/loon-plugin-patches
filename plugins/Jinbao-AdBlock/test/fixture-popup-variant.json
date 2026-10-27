@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "errorCode": 1000000,
+  "errorMsg": null,
+  "result": {
+    "hasPopup": true,
+    "popupType": 7,
+    "newDialogList": [
+      {
+        "id": 1,
+        "img": "https://x/a.png"
+      }
+    ],
+    "marketingModal": {
+      "title": "新人礼包",
+      "imgUrl": "https://x/b.png"
+    },
+    "bgImage": "https://x/bg.png",
+    "title": "双十一"
+  },
+  "extra": {
+    "a": 1
+  }
+}
