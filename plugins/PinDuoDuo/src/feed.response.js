@@ -138,6 +138,56 @@ function cpsApply(node, depth, map, st) {
 
 // 探针已废弃（v2.03 起 link_url 改写由真机实证成立，不再需要篡改探测）
 
+// ── 本地缓存（列表用；详情页强制绕过，见 detail.response.js）────────
+// 缓存结构：{ "<goods_id>": { r: rate, l: item_link(相对路径), t: 写入时间(秒) } }
+// 为什么可以缓存：goods_sign 对同一商品稳定（实测多次调用完全一致），
+// 佣金率变化也慢（商家改佣金是低频操作）。cpsSign 内嵌当日日期，所以
+// 过期时间取 min(cps_ttl, 跨天)，默认 6 小时且不跨自然日。
+const CPS_CACHE_KEY = 'pddCpsCache';
+const CPS_CACHE_TTL = (function () {
+  const v = parseInt(A.cps_ttl, 10);
+  return v > 0 ? v : 21600;          // 默认 6 小时
+})();
+const CPS_CACHE_CAP = 300;
+
+function cacheLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return {};
+    const raw = $persistentStore.read(CPS_CACHE_KEY);
+    const o = raw ? JSON.parse(String(raw)) : {};
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+
+function cacheSave(o) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    const keys = Object.keys(o);
+    // 超量时按写入时间淘汰最旧的
+    if (keys.length > CPS_CACHE_CAP) {
+      keys.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < keys.length - CPS_CACHE_CAP; i++) delete o[keys[i]];
+    }
+    $persistentStore.write(JSON.stringify(o), CPS_CACHE_KEY);
+  } catch (e) { /* 存储不可用不影响主流程 */ }
+}
+
+// 当天 0 点的时间戳（秒），用于「不跨自然日」判断
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+function cacheFresh(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const t = rec.t || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (now - t > CPS_CACHE_TTL) return false;
+  if (t < todayStart()) return false;        // 跨天作废（cpsSign 含日期）
+  return true;
+}
+
 // 大淘客批量解析：cb(map) 成功 / cb(null) 失败
 function cpsFetch(ids, cb) {
   if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
@@ -339,9 +389,21 @@ try {
   try { cpsCollect(j, 0, order, {}); } catch (e) { /* 结构异常则不改写 */ }
   if (!order.length) { applyAds(); finish(j, marked + probed, 0); return; }
 
-  cpsFetch(order, function (map) {
+  // 先查本地缓存：命中的直接进 map，只把未命中的拿去请求
+  const cache = cacheLoad();
+  const map = {};
+  const need = [];
+  for (let i = 0; i < order.length; i++) {
+    const gid = order[i];
+    const rec = cache[gid];
+    if (cacheFresh(rec)) map[gid] = { rel: rec.l, rate: rec.r };
+    else need.push(gid);
+  }
+
+  const applyAll = (fetched) => {
     let n = 0;
-    if (map) {
+    if (fetched) for (const k in fetched) map[k] = fetched[k];
+    if (Object.keys(map).length) {
       const st = { n: 0 };
       try { cpsApply(j, 0, map, st); n = st.n; } catch (e) { n = 0; }
       if (CPS_LB) {
@@ -350,6 +412,19 @@ try {
     }
     applyAds();                      // 广告打标放最后
     finish(j, marked + probed, n);
+  };
+
+  if (!need.length) { applyAll(null); return; }   // 全部命中缓存，零请求
+
+  cpsFetch(need, function (fetched) {
+    if (fetched) {
+      const now = Math.floor(Date.now() / 1000);
+      for (const gid in fetched) {
+        cache[gid] = { r: fetched[gid].rate, l: fetched[gid].rel, t: now };
+      }
+      cacheSave(cache);
+    }
+    applyAll(fetched);
   });
 } catch (e) {
   $done({});

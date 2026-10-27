@@ -91,6 +91,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `cps_rewrite` | **关** | 把信息流 `link_url` 改写成**带 `goods_sign` 的** `duo_coupon_landing.html?...&pid=…&cpsSign=…`，让每一次点击都落在 CPS 链路上（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
 | `cps_label` | 开 | 销量行显示佣金率：`佣金9.6%·已拼5.8万件`（去掉冗余广告前缀腾位置，超宽只留佣金） | 不想看佣金时 |
 | `cps_budget` | 23 | 销量行显示宽度上限（汉字=2、数字=1）；实测原始最长 22，超 24 会被整段丢弃 | 调试时调小强制只看佣金 |
+| `cps_ttl` | 21600 | 首页列表的佣金率缓存时长（6 小时，且不跨自然日）。**详情页不走缓存**，每次拉实时值 | 想更实时可调小 |
 | `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `goods_sign` + `cpsSign`；**留空则不改写** | — |
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
 | `cps_probe` | **关** | 探针：只把**第一个**商品改成不存在的页型 `zzz_probe_test.html`。点开报错=客户端确实读 `link_url`（已由 2026-10-27 真机 HAR 证实成立） | 日常保持关闭 |
