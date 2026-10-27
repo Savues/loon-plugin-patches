@@ -85,11 +85,13 @@ const CPS_BATCH = 20;
 const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
 const CPS_GID_RE = /[?&]goods_id=(\d+)/;
 const CPS_MAX_DEPTH = 10;
-// 销量行的显示宽度预算（CJK=2, ASCII=1）。实测原始最长「广告·本店已拼38.5万+件」= 23，
-// 24 以上会被客户端整段丢弃，所以默认 23；可用 cps_budget 参数微调。
+// 销量行显示宽度预算（CJK/全角=2，ASCII=1）。真机实测：
+//   · 非广告商品可用约 22~23（原始「本店已拼38.5万+件」=22 正常显示）
+//   · 广告商品的「广告」徽标额外吃掉约 6 单位，留给文本只剩约 16
+// 所以分两档，cps_budget 只调非广告那一档。
 const CPS_BUDGET = (function () {
   const v = parseInt(A.cps_budget, 10);
-  return v > 6 ? v : 23;
+  return v > 6 ? v : 22;
 })();
 
 // 收集本屏 goods_id（顺序去重，截到 CPS_BATCH）
@@ -188,19 +190,33 @@ function cpsLabel(j, map) {
     const rate = map[gid].rate;
     if (!(rate > 0)) continue;
 
-    // v2.07：标签行会被「折券倒计时横幅」遮挡，不可靠；销量行才是稳定位置。
-    // 做法：去掉冗余的「广告·」前缀（tag_list 里 32/32 都有「广告」标），
-    //      换上前缀「佣金9.6%·」；超出宽度预算时删掉销量文案，只留佣金。
+    // v2.08 优先级（真机实测得出）：广告提示 > 佣金率 > 已拼/已售文案
+    //   · 广告商品的「广告·」前缀会被客户端渲染成徽标并吃掉约 6 个宽度单位，
+    //     留给后面文本的只剩约 16；我们上一版把前缀删了反而整段不渲染（w=19/20 全消失）。
+    //   · 所以：广告商品保留前缀 + 佣金，直接放弃销量文案；非广告商品可带销量。
+    const isAd = !!(d.ad || d.need_ad_logo);
     const seg = '佣金' + fmtRate(rate) + '%';
     let hit = 0;
+
     for (const key of ['sales_tip', 'fallback_sales_tip']) {
       const v = d[key];
       if (typeof v !== 'string' || !v) continue;
-      if (v.indexOf('佣金') >= 0) { hit++; continue; }   // 幂等
-      let body = v.indexOf('广告·') === 0 ? v.slice(3) : v;
-      body = body.replace('本店已拼', '已拼').replace('全店总售', '总售').replace('热销', '已拼');
-      let out = seg + '·' + body;
-      if (width(out) > CPS_BUDGET) out = seg;            // 放不下就砍掉销量部分
+      if (v.indexOf('佣金') >= 0) { hit++; continue; }          // 幂等（已标过）
+      const raw = v.indexOf('广告·') === 0 ? v.slice(3) : v;
+      const sales = raw.replace('本店已拼', '已拼').replace('全店总售', '总售').replace('热销', '已拼');
+
+      let out;
+      if (isAd) {
+        // 广告：前缀 + 佣金（14 宽），销量文案一律舍弃
+        out = '广告·' + seg;
+      } else {
+        // 非广告：优先带销量，放不下就只留佣金
+        const full = seg + '·' + sales;
+        const short = seg + '·' + sales.replace(/^(已拼|已抢|已抢购|总售|热销|疯抢|全店|本店)+/, '');
+        if (width(full) <= CPS_BUDGET) out = full;
+        else if (width(short) <= CPS_BUDGET) out = short;
+        else out = seg;
+      }
       d[key] = out;
       hit++;
     }
@@ -246,9 +262,12 @@ function markAds(j) {
     // 3) 卡片销量行（含备用文案 fallback_sales_tip：实测客户端在这类商品上
     //    渲染的是它而不是 sales_tip——2026-10-21 另一台设备首页抓包证实）
     for (const key of ['sales_tip', 'fallback_sales_tip']) {
-      if (typeof d[key] === 'string' && d[key] && !d[key].startsWith(AD_TEXT + '·')) {
-        d[key] = AD_TEXT + '·' + d[key];
-      }
+      const v = d[key];
+      if (typeof v !== 'string' || !v) continue;
+      if (v.startsWith(AD_TEXT + '·')) continue;
+      // 已被 cpsLabel 接管的文本（含佣金）不再加前缀：那会把它撑爆宽度预算
+      if (v.indexOf('佣金') >= 0) continue;
+      d[key] = AD_TEXT + '·' + v;
     }
 
     marked++;
@@ -290,7 +309,10 @@ try {
   let j;
   try { j = JSON.parse(body); } catch (e) { $done({}); return; }
 
-  const marked = on(A.feed_ad) ? markAds(j) : 0;
+  // 注意：广告打标会往 sales_tip 前加「广告·」，必须放在佣金处理之后，
+  // 否则先加前缀会把原本能显示的短文本撑爆预算。
+  let marked = 0;
+  const applyAds = () => { if (on(A.feed_ad)) marked = markAds(j); };
 
   // 诊断：把实际收到的 $argument 形态写进首个商品的 sales_tip，随 HAR 一起回传
   let probed = 0;
@@ -311,11 +333,11 @@ try {
     } catch (e) { /* 诊断失败不影响主流程 */ }
   }
 
-  if (!CPS_ON) { finish(j, marked + probed, 0); return; }
+  if (!CPS_ON) { applyAds(); finish(j, marked + probed, 0); return; }
 
   const order = [];
   try { cpsCollect(j, 0, order, {}); } catch (e) { /* 结构异常则不改写 */ }
-  if (!order.length) { finish(j, marked + probed, 0); return; }
+  if (!order.length) { applyAds(); finish(j, marked + probed, 0); return; }
 
   cpsFetch(order, function (map) {
     let n = 0;
@@ -326,6 +348,7 @@ try {
         try { n += cpsLabel(j, map); } catch (e) { /* 标签失败不影响改写 */ }
       }
     }
+    applyAds();                      // 广告打标放最后
     finish(j, marked + probed, n);
   });
 } catch (e) {
