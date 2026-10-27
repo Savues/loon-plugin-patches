@@ -1,0 +1,412 @@
+{
+ "success": true,
+ "errorCode": 1000000,
+ "errorMsg": null,
+ "result": {
+  "similarGoodsList": [
+   {
+    "goodsId": 561056035270,
+    "goodsName": "拼音数字描红本幼小衔接点阵控笔训练字帖初学者入门偏旁部首练习",
+    "goodsSign": "E9_2IMvFT1JgvQGxzdDBXvsOFhEfbvNi_JQhlF7LbtH",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2024-07-13/21f19432825bd3d5862cd100d9b5059f.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-material-img/2023-11-28/48de74b0-1f83-4861-a1e8-d9ee0df9073f.jpeg",
+    "afterCouponPrice": 880,
+    "marketFee": 56,
+    "marketFeeV2": 56,
+    "unifiedTag": {
+     "goodsId": 561056035270,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量6.5万+",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 100,
+    "salesTip": "6.5万+",
+    "goodsRate": 64,
+    "promotionRateV2": 64.0,
+    "goodsFactPrice": 980
+   },
+   {
+    "goodsId": 723565598271,
+    "goodsName": "学而思 摩比专注力大挑战 3-6岁儿童专注力思维训练书提升孩子xh8",
+    "goodsSign": "E9L2Ch2QKKtgvQGxzdDBXr6hUBuIrwb2_JD6ZGKB8K",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2025-03-27/3ee795e3435cb61c72e3fafa4fcfae3b.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-material-img/2025-03-10/d2945eb7-5193-4146-86a9-9229c4634e06.jpeg.a.jpeg",
+    "afterCouponPrice": 2000,
+    "marketFee": 164,
+    "marketFeeV2": 165,
+    "unifiedTag": {
+     "goodsId": 723565598271,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量471",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 2000,
+    "salesTip": "471",
+    "goodsRate": 82,
+    "promotionRateV2": 82.55,
+    "goodsFactPrice": 4000
+   },
+   {
+    "goodsId": 610474173457,
+    "goodsName": "洪恩幼小衔接1200题 一日一练入学领跑5-7岁大班一年级小学启蒙",
+    "goodsSign": "E9_2LElWWoVgvQGxzdDBXh-693xeRQom_JHttBBM6c",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2025-09-29/3f343baf809dc6bc5647c62b5ceffa2d.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-material-img/2024-08-22/ce62c1ce-0e56-4015-a058-0a98e906ccd3.jpeg",
+    "afterCouponPrice": 3699,
+    "marketFee": 236,
+    "marketFeeV2": 236,
+    "unifiedTag": {
+     "goodsId": 610474173457,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量5426",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 200,
+    "salesTip": "5426",
+    "goodsRate": 64,
+    "promotionRateV2": 64.0,
+    "goodsFactPrice": 3899
+   },
+   {
+    "goodsId": 997505796884,
+    "goodsName": "学而思网校跟着四大名著学语文小学必读经典阅读能力提升樊登推xh",
+    "goodsSign": "E9_2SlW0dYBgvQGxzdDBXjCYtBWP5t7Y_JQgXc38KzK",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2026-09-01/2774b7db94869631323f6baaf5e82d59.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-goods-image/2026-04-17/3183786a-da37-4c42-ad96-5dd1041c6d04.png.a.jpeg",
+    "afterCouponPrice": 5180,
+    "marketFee": 994,
+    "marketFeeV2": 994,
+    "unifiedTag": {
+     "goodsId": 997505796884,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量261",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 1800,
+    "salesTip": "261",
+    "goodsRate": 192,
+    "promotionRateV2": 192.0,
+    "goodsFactPrice": 6980
+   },
+   {
+    "goodsId": 991556259841,
+    "goodsName": "正宗东北大米 5kg*1袋10斤家用 真空锁鲜软糯米香四溢 蒸饭煮饭",
+    "goodsSign": "E9z2RLcVLpVgvQGxzdDBXtOsIH3OzjZd_JQzJYMo8hD",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2026-09-10/fa4cca43bb75173f1876abbcb8ec771b.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-goods-image/2026-09-10/a5239cd5-66e6-430c-8a24-7be5bf852132.jpeg.a.jpeg",
+    "afterCouponPrice": 2490,
+    "marketFee": 478,
+    "marketFeeV2": 478,
+    "unifiedTag": {
+     "goodsId": 991556259841,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量4946",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 1200,
+    "salesTip": "4946",
+    "goodsRate": 192,
+    "promotionRateV2": 192.0,
+    "goodsFactPrice": 3690
+   },
+   {
+    "goodsId": 522394883727,
+    "goodsName": "健美生进口钙维生素D3复合片老人成人补钙120片",
+    "goodsSign": "E93228tnqBtgvQGxzdDBXqggXoJ7N4C1_JQVe0KK1Nv",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2026-04-03/7399f339eddba989d8f0ea858c5dd107.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-goods-image/2026-04-03/5acb1376-ed96-4d73-a864-87a0da6a5880.jpeg.a.jpeg",
+    "afterCouponPrice": 4600,
+    "marketFee": 588,
+    "marketFeeV2": 588,
+    "unifiedTag": {
+     "goodsId": 522394883727,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量7951",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 2000,
+    "salesTip": "7951",
+    "goodsRate": 128,
+    "promotionRateV2": 128.0,
+    "goodsFactPrice": 6600
+   },
+   {
+    "goodsId": 549098025813,
+    "goodsName": "学而思 大侦探福尔摩比3-7岁儿童绘本数学逻辑思维七大能力培养",
+    "goodsSign": "E9n23bKEDcFgvQGxzdDBXsjPjojVD4hl_JQzXFysoQa",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2024-05-11/2bcfba2ba2de01ec29d2cb7aaca1aeb0.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-material-img/2024-05-11/bab34ef8-8bc1-4843-9dff-b45b3bbe6e43.jpeg",
+    "afterCouponPrice": 1970,
+    "marketFee": 226,
+    "marketFeeV2": 226,
+    "unifiedTag": {
+     "goodsId": 549098025813,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量1.2万+",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 300,
+    "salesTip": "1.2万+",
+    "goodsRate": 115,
+    "promotionRateV2": 115.2,
+    "goodsFactPrice": 2270
+   },
+   {
+    "goodsId": 761864375595,
+    "goodsName": "洪恩全科学练机T20语文数学英语拼音写字幼小衔接早教学习机新款",
+    "goodsSign": "E9X2EwjpM79gvQGxzdDBXrIfWIkVtMpu_JMCCu9wMH",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2026-09-14/485906a95e95b37a0195b911cebdc13d.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-goods-image/2026-09-14/e899c654-3863-4d0d-b253-7c4029f37bb1.png.a.jpeg",
+    "afterCouponPrice": 19800,
+    "marketFee": 693,
+    "marketFeeV2": 696,
+    "unifiedTag": {
+     "goodsId": 761864375595,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量2891",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 100,
+    "salesTip": "2891",
+    "goodsRate": 35,
+    "promotionRateV2": 35.2,
+    "goodsFactPrice": 19900
+   },
+   {
+    "goodsId": 1007484781762,
+    "goodsName": "FUNNYELVES方里柔焦粉饼清透自然磨皮遮瑕控油隐匿毛孔防水汗8g",
+    "goodsSign": "E9f2SPiLOlZgvQGxzdDBXmR4b_fQhUES_JQSlFkFvVH",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2026-09-20/eb33bb43dd3badf1a2885ef0b533f171.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-goods-image/2026-09-01/cd1e3121-23e6-4ec0-b6be-4d3e0da42e6e.jpeg.a.jpeg",
+    "afterCouponPrice": 4990,
+    "marketFee": 349,
+    "marketFeeV2": 351,
+    "unifiedTag": {
+     "goodsId": 1007484781762,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量1763",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 1000,
+    "salesTip": "1763",
+    "goodsRate": 70,
+    "promotionRateV2": 70.4,
+    "goodsFactPrice": 5990
+   },
+   {
+    "goodsId": 773132773230,
+    "goodsName": "25学而思小学数学画图法 3分钟秒解应用题 小学通用 数学思维xh",
+    "goodsSign": "E9n2FmgDGfpgvQGxzdDBXs6I57XMJjLZ_Jtzs4yhMi",
+    "goodsPic": "https://img.pddpic.com/gaudit-image/2025-07-04/0c2852d99946e6b446cd12851e4b4786.jpeg",
+    "imgUrl": "https://img.pddpic.com/mms-material-img/2025-06-13/5d1ca13f-55b2-4972-807a-1152a798bd79.png.a.jpeg",
+    "afterCouponPrice": 990,
+    "marketFee": 95,
+    "marketFeeV2": 95,
+    "unifiedTag": {
+     "goodsId": 773132773230,
+     "tagDTOs": [],
+     "iconDTOs": [],
+     "highLightDTOs": [
+      {
+       "groupCode": null,
+       "tagSeries": 2,
+       "tagId": 999910002,
+       "text": "全站销量626",
+       "color": null,
+       "bgColor": null,
+       "style": null,
+       "url": null,
+       "prefixImageUrl": "https://funimg.pddpic.com/ddjb/2020-12-27/7a2d981e-5cbc-45ff-8d9d-1013a6a9031b.png.slim.png",
+       "link": null,
+       "width": 36,
+       "height": 30
+      }
+     ],
+     "rankDTOs": [],
+     "sellPointDTOs": []
+    },
+    "shareSectionId": 16,
+    "collected": false,
+    "couponPrice": 2300,
+    "salesTip": "626",
+    "goodsRate": 96,
+    "promotionRateV2": 96.0,
+    "goodsFactPrice": 3290
+   }
+  ],
+  "total": 2000,
+  "listId": "WflausJXlQ-18f9de0e-a149-430a-8974-92094a5a4aff",
+  "hasMore": true
+ }
+}

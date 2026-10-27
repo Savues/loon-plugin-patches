@@ -1,5 +1,5 @@
-#!name=多多进宝净化 v0.3.3
-#!desc=多多进宝（拼多多 CPS）净化：屏蔽搜索框热门搜索、弹窗（普通/专属/互斥）、首页营销 banner；预防性拦截开屏/启动广告。
+#!name=多多进宝净化 v0.4.0
+#!desc=多多进宝（拼多多 CPS）净化：屏蔽搜索框热门搜索、弹窗（普通/专属/互斥）、首页营销 banner；预防性拦截开屏；商品列表显示佣金比例（含 V0 权益提升）与「无佣金」标记。
 #!openUrl=https://apps.apple.com/cn/app/id1324671936
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告
@@ -7,8 +7,8 @@
 #!system_version=
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Jinbao-AdBlock
-#!date=2026-10-27 16:40:00
-#!version=0.3.3
+#!date=2026-10-27 17:20:00
+#!version=0.4.0
 
 [Argument]
 enabled = switch, true, false, tag=插件总开关, desc=关闭后所有规则不再处理任何响应
@@ -17,16 +17,21 @@ killPopups = switch, true, false, tag=屏蔽弹窗, desc=普通弹窗/专属弹�
 hideBannerAds = switch, true, false, tag=隐藏首页营销banner, desc=清空 label_info 的 bannerList（保留精选频道/活动日历等功能入口）
 closeMissionCard = switch, false, true, tag=关闭任务卡片, desc=强制 missionClosed=true 使首页任务卡不弹（任务系统本身不动，默认关）
 stripSplashKeys = switch, true, false, tag=剪除开屏字段, desc=递归删除响应 JSON 中 splash/launch_ad/open_screen 等开屏字段（未命中时原样返回）
+showCommission = switch, true, false, tag=显示佣金比例, desc=在商品列表卡片加「佣金X%」文字标签；标签位不足时替换品牌图片标，绝不挤掉「好价再降」这类利益标签
+commissionPrefix = input, "佣金", tag=佣金标签前缀, desc=留空则只显示「8.1%」；可改成「佣」等更短的写法
+commissionUplift = input, "1.42", tag=权益提升系数, desc=V0=1.42（二进制原文：V0等级可享受42%的佣金收益提升）；填 1 则只显示基础 goodsRate
+commissionMaxTags = input, "3", tag=每卡最多标签数, desc=实测上限 3；若发现标签被截断可调小到 2
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/jinbao\.pinduoduo\.com\/gw\/loon-sim\.probe\.jinbao_adblock/i then reject(200, "0.3.3")
+request if ${url} ~= /^https?:\/\/jinbao\.pinduoduo\.com\/gw\/loon-sim\.probe\.jinbao_adblock/i then reject(200, "0.4.0")
 request if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/[^?]*\/?splash/i then reject(200, "{\"success\":true,\"errorCode\":1000000,\"errorMsg\":null,\"result\":null}")
 
 [Script]
 response if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/auth\/goods\/query_top_keywords/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_search.response.js?v=3", {${enabled}, ${hideHotSearch}}) with tag="热门搜索屏蔽", requires_body=true
 response if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/auth\/popups\/query\//i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_popup.response.js?v=3", {${enabled}, ${killPopups}}) with tag="弹窗屏蔽", requires_body=true
 response if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/(weak_auth\/common\/label_info|auth\/mission_system\/card)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_home.response.js?v=2", {${enabled}, ${hideBannerAds}, ${closeMissionCard}}) with tag="首页营销位清理", requires_body=true
+response if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/(weak_auth|auth)\/goods\/(query_goodslist|query_channel_goodslist|query_similar_goods|collect\/query_pdd_collects)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_commission.response.js?v=2", {${enabled}, ${showCommission}, ${commissionPrefix}, ${commissionUplift}, ${commissionMaxTags}}) with tag="列表佣金比例标签", requires_body=true
 response if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\//i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Jinbao-AdBlock/src/jinbao_splash_guard.response.js?v=3", {${enabled}, ${stripSplashKeys}}) with tag="多多进宝开屏防护", requires_body=true
 
 [MitM]
