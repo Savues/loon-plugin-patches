@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.18
+#!name=拼多多去广告(修复版) v2.19
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；信息流广告商品打标【广告】。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -94,6 +94,7 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/special-sale-coup
 
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/detail.response.js?v=2, requires-body=true, argument=[{feed_ad},{cps_label},{cps_token},{cps_pid}], timeout=5, tag=详情页广告打标
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=11, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid},{cps_probe}], timeout=10, tag=信息流广告打标+CPS链接改写
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/hermes\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/bybt_goods.response.js?v=1, requires-body=true, argument=[{cps_label},{cps_ttl},{cps_token}], timeout=10, tag=百亿补贴列表佣金率
 
 [MitM]
 hostname=api.pinduoduo.com, m.pinduoduo.net
