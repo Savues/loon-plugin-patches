@@ -304,9 +304,21 @@ try {
   }
 
   // ── 职责 3：百补列表佣金率（cps_label）────────────────────
+  // 诊断：cps_probe 开时把实际收到的参数写进首个商品名，抓 HAR 搜 ARG= 即可见
+  if (on(A.cps_probe)) {
+    const p0 = parseRawData(body);
+    if (p0) {
+      const ls0 = pickSubsidyLists(p0.obj);
+      if (ls0.length && ls0[0].length && ls0[0][0]) {
+        const raw = typeof $argument === 'string' ? $argument : JSON.stringify($argument);
+        ls0[0][0].goodsName = 'ARG=' + String(raw).slice(0, 100);
+        body = body.slice(0, p0.start) + JSON.stringify(p0.obj) + body.slice(p0.end);
+      }
+    }
+  }
+
   // 异步查询，查询完再统一 $done
-  if (CPS_LB && CPS_TOKEN && typeof $httpClient !== 'undefined') {
-    const parsed = parseRawData(body);
+  if (CPS_LB && CPS_TOKEN && typeof $httpClient !== 'undefined') {    const parsed = parseRawData(body);
     const lists = parsed ? pickSubsidyLists(parsed.obj) : [];
     if (lists.length) {
       // 收集所有列表里的 goodsId（顺序去重，截到批次上限）
