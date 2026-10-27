@@ -31,7 +31,7 @@
 | 12 | **TAC 搜索推荐** | Script | `mtop.alimama.moon.provider.tac.service.call`/`.smart.call` | `removeTAC` |
 | 13 | **AI 搜索 (copilot)** | Rewrite `reject_dict(200)` | `mtop.alimama.union.copilot.api.*` | `removeSmallCards` |
 | 14 | **搜索分流** | Rewrite `reject_dict(200)` | `mtop.alimama.union.exp.shunt*` | `removeSmallCards` |
-| 15 | **广告位默认配置** | Rewrite `reject_dict(200)` | `mtop.alimama.moon.adzone.default.get` | `removePopWindow` |
+| 15 | ~~**广告位默认配置**~~ **已撤销** | ~~Rewrite `reject_dict(200)`~~ | ~~`mtop.alimama.moon.adzone.default.get`~~ | ~~`removePopWindow`~~ |
 | 16 | **阿里妈妈 CPS/顶展追踪** | Rewrite reject | `mtop.alimama.adsdk.customize.cps.track`、`cps.trace.adsdk.send`、`cps.initiativeaction.save`、`union.trace`/`trace2`、`topshow.*` | `blockTracking` |
 | 17 | **跑马灯热词** | Script | `mtop.taobao.union.marquee.query` | `removeSmallCards` |
 
@@ -126,3 +126,41 @@ key 不匹配时**静默失效、零报错**（v3.37.4/3.37.5 两起事故均因
 |------|--------|------|
 | v3.37.4 | 私域横幅清理 | ✅ HAR 实证 `bannerList=0` `hotwords=0` 无 TANX |
 | v3.37.4 | 联盟全量广告扫描 | ✅ 零广告标记 |
+| v3.50.2 | 双11会场「去分享」按钮无反应 | ✅ 根因 `adzone.default.get` 被拦, 规则已撤销 |
+
+### 4.5 🔴 事故复盘: adzone.default.get 误拦 (v3.36.0 → v3.50.2)
+
+**现象**：淘宝联盟 App 双11活动页点「去分享」按钮完全无反应（无报错、无弹窗、无跳转）。
+
+**取证**（2026-10-27 HAR，29 条请求）：
+- `adzone.default.get` 请求 **16 次，全部返回 2 字节 `{}`**（`reject_dict(200)` 生效）
+- 分享链路下游 3 个接口 `xt.biz.default.api.entry` / `tbkurl.shortUrl.generate` / `taobao.union.task.action`
+  **一次都没发出** → 链条在第一步就断了
+
+**代码级根因**（`cell-cellx-unionapp-2311-tasklist@0.0.21/seajs/index/m2.js` 反查）：
+```js
+if (e.material.openShare && e.material.pageId)
+  return void ke("mtop.alimama.moon.adzone.default.get", {tag: 29})   // ① 取 pid
+    .then(function (t) {
+      ke("mtop.alimama.union.xt.biz.default.api.entry",
+         {floorId: 35936, refpid: t && t.pid, ...})                    // ② 换推广页 URL
+        .then(function (t) {
+          ke("mtop.alimama.tbkurl.shortUrl.generate", {url: he(t, "resultList[0].url"), ...})  // ③ 转短链
+            .then(function (t) {
+              ... location.href = MM_UTIL.getMoonShareUrl({url: n, img: ..., text: ...})       // ④ 唤起分享
+            }).catch(function (t) { console.log("gen shortUrl err:", t) })
+        }).catch(function (t) { console.log("get pageUrl err:", t) })
+    }).catch(function (t) { console.log("get pid err:", t) });          // ← 吞掉一切错误
+```
+`reject_dict(200)` 返回 `{}` → `t.pid === undefined` → ② 的 `refpid` 传 `undefined`
+→ 服务端拒绝 → 一路 `.catch()` **只打 console.log，UI 无任何反馈** → 用户看到「点了没反应」。
+
+**误判来源**：v3.36.0 按接口名把 `adzone`（广告位）当广告拦截。
+实际它是**推广位 PID 查询**（返回 `{pid: "mm_xxx_xxx_xxx"}`），是分享/转链的必备前置。
+
+**教训**：
+1. 接口名含 `ad`/`adzone`/`promo` **不等于广告** —— 必须看调用方代码或响应结构再定
+2. 分享/转链是联盟 App 的**核心功能**（用户靠它赚钱），拦错等于废掉 App 主路径
+3. `.catch(function(){})` 静默吞错的前端链路，**「无反应」= 某一步 reject 了**，优先查被拦接口
+4. 判据：HAR 里某接口高频重复（16 次）+ 返回 2 字节 `{}` = 插件拦截，不是网络问题
+

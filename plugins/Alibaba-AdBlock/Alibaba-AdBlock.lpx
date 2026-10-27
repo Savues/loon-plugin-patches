@@ -1,8 +1,8 @@
-#!name=Alibaba-AdBlock v3.50.1
+#!name=Alibaba-AdBlock v3.50.2
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/icon.png
 #!desc=阿里系去广告 · 支持支付宝/Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.50.1
+#!version=3.50.2
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -166,7 +166,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.1")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.2")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -250,7 +250,15 @@ request if ${url} ~= /mtop\.tmall\.ad\.engine\.cps\.link\.convert/i then reject
 request if ${url} ~= /mtop\.taobao\.union\.marquee\.query/i then reject_dict(200)
 request if ${url} ~= /mtop\.alimama\.union\.copilot\.api\./i then reject_dict(200)
 request if ${url} ~= /mtop\.alimama\.union\.exp\.shunt/i then reject_dict(200)
-request if ${url} ~= /mtop\.alimama\.moon\.adzone\.default\.get/i then reject_dict(200)
+# ⚠️ 不拦 adzone.default.get —— 它是「分享」功能的前置依赖, 不是广告
+#    2026-10-27 双11会场「去分享」按钮无反应事故根因:
+#    cell-cellx-unionapp-2311-tasklist 组件的分享链路是
+#      adzone.default.get {tag:29} → 取 t.pid
+#      → xt.biz.default.api.entry {refpid: t.pid, ...} → 取 resultList[0].url
+#      → tbkurl.shortUrl.generate → getMoonShareUrl() 唤起分享面板
+#    reject_dict(200) 返回 {} → t.pid = undefined → refpid 传空 → 整条链 .catch 静默中断
+#    HAR 实证: 16 次 adzone 请求全部被拦成 2 字节 {}, 分享链路 3 个下游接口一次都没发出
+#    (v3.36.0 按接口名「adzone=广告位」误判加入, 实际是推广位 PID 查询)
 # === 第三方广告监测/投放平台 (云袭 yunxish + igrowth: CPC服务广场/广告上报/埋点追踪) ===
 request if ${url} ~= /^https?:\/\/(?:[a-z0-9-]+\.)?(?:yunxish\.com|iggrowth\.cn)\//i then reject
 # === 直播开屏 banner + 视频广告 + 第三方广告上报 ===

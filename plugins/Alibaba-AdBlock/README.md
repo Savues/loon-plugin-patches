@@ -1,6 +1,6 @@
 # Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> **版本 v3.49.0** · 2026-10-24
+> **版本 v3.50.2** · 2026-10-27
 > 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
 > 运行环境：Loon (iOS / iPadOS)
 
@@ -181,6 +181,7 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 | 版本 | 内容 | 验证 |
 |------|------|------|
+| **v3.50.2** | 🔴 **撤销 adzone.default.get 拦截** —— 它是分享链路前置（取 pid），拦成 `{}` 导致双11会场「去分享」按钮完全无反应（下游 3 接口一次未发出）| HAR 实证 ✅ |
 | **v3.50.0** | **支付宝并入**：广告网关域名(adgw/adiu/datagw-edge) + 推广素材(bz=Promotion/promocreative) + UCDP 弹窗模板(支付完成页视频广告)；RPC 长连接层为已知边界 | HAR 实证 ✅ |
 | **v3.49.0** | 删 2 个死开关（blockTracking/removeUcpPopup，规则下沉 [Rule]/无条件后失效）| 模拟器 0 警告 ✅ |
 | **v3.48.x** | 天猫摇钱树悬浮窗三链路（yqs.ssp+tacdata入口+spine素材）+ 直播膨胀红包规则引擎 + iliad 任务族 | 真机验证 ✅（tacdata 全清实证）|
