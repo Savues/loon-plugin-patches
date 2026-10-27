@@ -158,13 +158,31 @@ function cacheFresh(rec) {
   return true;
 }
 
-// 百补商品列表：raw.store.plusSubsidyStore.goodsList
-function pickSubsidyList(raw) {
+// 百补商品列表：两个位置都要覆盖（不同版本的页面结构不同）
+//   ① raw.store.plusSubsidyStore.goodsList        —— 旧版/部分场景
+//   ② raw.store.tabStore.tabList[*].subTabGoodsLists[*].list
+//      —— 当前版本的百补主列表（实测 32 个 tab，[0] 精选有 23 个商品）
+function pickSubsidyLists(raw) {
+  const out = [];
   const st = raw && raw.store;
-  if (!st || typeof st !== 'object') return null;
+  if (!st || typeof st !== 'object') return out;
+
   const ps = st.plusSubsidyStore;
-  if (!ps || !Array.isArray(ps.goodsList)) return null;
-  return ps.goodsList;
+  if (ps && Array.isArray(ps.goodsList) && ps.goodsList.length) out.push(ps.goodsList);
+
+  const ts = st.tabStore;
+  const tabs = ts && Array.isArray(ts.tabList) ? ts.tabList : null;
+  if (tabs) {
+    for (let i = 0; i < tabs.length; i++) {
+      const subs = tabs[i] && tabs[i].subTabGoodsLists;
+      if (!Array.isArray(subs)) continue;
+      for (let k = 0; k < subs.length; k++) {
+        const lst = subs[k] && subs[k].list;
+        if (Array.isArray(lst) && lst.length) out.push(lst);
+      }
+    }
+  }
+  return out;
 }
 
 // 大淘客批量解析：cb(map{gid -> rate})
@@ -289,12 +307,20 @@ try {
   // 异步查询，查询完再统一 $done
   if (CPS_LB && CPS_TOKEN && typeof $httpClient !== 'undefined') {
     const parsed = parseRawData(body);
-    const list = parsed ? pickSubsidyList(parsed.obj) : null;
-    if (list && list.length) {
+    const lists = parsed ? pickSubsidyLists(parsed.obj) : [];
+    if (lists.length) {
+      // 收集所有列表里的 goodsId（顺序去重，截到批次上限）
       const order = [];
-      for (let k = 0; k < list.length && order.length < CPS_BATCH; k++) {
-        const gid = list[k] && list[k].goodsId != null ? String(list[k].goodsId) : '';
-        if (gid) order.push(gid);
+      const seen = {};
+      for (let a = 0; a < lists.length; a++) {
+        const lst = lists[a];
+        for (let k = 0; k < lst.length; k++) {
+          const g = lst[k];
+          const gid = g && g.goodsId != null ? String(g.goodsId) : '';
+          if (!gid || seen[gid]) continue;
+          seen[gid] = 1;
+          if (order.length < CPS_BATCH) order.push(gid);
+        }
       }
       if (order.length) {
         const cache = cacheLoad();
@@ -308,23 +334,24 @@ try {
         const finish = (fetched) => {
           if (fetched) for (const k in fetched) map[k] = fetched[k];
           let n = 0;
-          for (let k = 0; k < list.length; k++) {
-            const g = list[k];
-            if (!g || typeof g !== 'object') continue;
-            const gid = g.goodsId != null ? String(g.goodsId) : '';
-            const rate = gid ? map[gid] : 0;
-            if (!(rate > 0)) continue;
-            // v2.11：主列表读的是 activityPriceWord，不是 activityPriceWording。
-            // 前端条件（三处组件一致）：
-            //   f = activityPriceWord
-            //   f && activityPrice.length <= 6 && <div class=activityPriceWord>{f}</div>
-            //   <div class=unit>¥</div><div class=price>{activityPrice}</div>
-            // 实测 20/21 有 activityPriceWord（"券后"），且 activityPrice 长度均 ≤6，
-            // 所以填这里一定会渲染在 ¥ 之前。
-            const text = '佣金' + fmtRate(rate) + '%';
-            if (g.activityPriceWord === text) continue;   // 幂等
-            g.activityPriceWord = text;
-            n++;
+          for (let a = 0; a < lists.length; a++) {
+            const lst = lists[a];
+            for (let k = 0; k < lst.length; k++) {
+              const g = lst[k];
+              if (!g || typeof g !== 'object') continue;
+              const gid = g.goodsId != null ? String(g.goodsId) : '';
+              const rate = gid ? map[gid] : 0;
+              if (!(rate > 0)) continue;
+              // v2.11：主列表读的是 activityPriceWord，不是 activityPriceWording。
+              // 前端条件（三处组件一致）：
+              //   f = activityPriceWord
+              //   f && activityPrice.length <= 6 && <div class=activityPriceWord>{f}</div>
+              //   <div class=unit>¥</div><div class=price>{activityPrice}</div>
+              const text = '佣金' + fmtRate(rate) + '%';
+              if (g.activityPriceWord === text) continue;   // 幂等
+              g.activityPriceWord = text;
+              n++;
+            }
           }
           if (n) {
             const next = body.slice(0, parsed.start) + JSON.stringify(parsed.obj) + body.slice(parsed.end);
