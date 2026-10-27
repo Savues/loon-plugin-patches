@@ -116,8 +116,6 @@ function eachSalesText(j, fn) {
   if (rb && Array.isArray(rb.title)) for (const el of rb.title) setTxt(el, 'txt');
 }
 
-function inRange(v) { return v === true || v === 1 || v === 'true' || v === '1'; }
-
 // ── $persistentStore 名单读取（read(key)）────────────────────
 function loadAdIds() {
   try {
