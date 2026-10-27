@@ -187,6 +187,40 @@ function cpsFetch(ids, cb) {
   });
 }
 
+// 消费券栏目（tandy_vase.html）：价格前的「券后」是服务端预渲染在 HTML 里的
+// 静态文本，不是 JSON 字段：
+//   <span class="zlvRmSss">券后</span><span class="mgeHsFie">¥</span>
+//   <span class="xZzDH4Sk"><span class="_2TFw6wKu">26</span>...
+// 实测只预渲染前 5 个商品，价格整数与 JSON activityPrice 完全同序。
+// 用「价格整数」做锚点替换，比按顺序稳。
+function rewriteCouponTags(html, rateByPrice) {
+  const RE = /(<span class="zlvRmSss">)券后(<\/span><span class="mgeHsFie">¥<\/span><span class="xZzDH4Sk"><span class="_2TFw6wKu">(\d+)<)/g;
+  let n = 0;
+  const out = html.replace(RE, function (m, head, tail, intPart) {
+    const rate = rateByPrice[intPart];
+    if (!(rate > 0)) return m;
+    n++;
+    return head + ('佣金' + fmtRate(rate) + '%') + tail;
+  });
+  return { html: out, n: n };
+}
+
+// 从商品列表建「价格整数 -> 佣金率」映射
+function buildPriceRateMap(lists, map) {
+  const out = {};
+  for (const lst of lists) {
+    for (const g of lst) {
+      if (!g || typeof g !== 'object') continue;
+      const gid = g.goodsId != null ? String(g.goodsId) : '';
+      const rate = gid ? map[gid] : 0;
+      if (!(rate > 0)) continue;
+      const ip = String(g.activityPrice || '').split('.')[0];
+      if (ip && !out[ip]) out[ip] = rate;
+    }
+  }
+  return out;
+}
+
 // 遍历所有 tab 的商品列表（兼容 store / stores / stores.store 三种形态）
 function eachGoodsList(raw, fn) {
   const stores = [];
@@ -321,6 +355,17 @@ try {
                 n++;
               }
             }
+            // 先改服务端预渲染的静态「券后」（前 5 个商品在 HTML 里，位于 rawData 之前）
+            // ⚠️ 必须在 JSON 改写之前做：JSON 改写会改变 body 长度，p3.start 就失效了
+            try {
+              const prMap = buildPriceRateMap(lists, map);
+              if (Object.keys(prMap).length) {
+                const seg = body.slice(0, p3.start);
+                const r2 = rewriteCouponTags(seg, prMap);
+                if (r2.n) body = r2.html + body.slice(p3.start);
+              }
+            } catch (e) { /* 静态改写失败不影响主流程 */ }
+
             if (n) {
               const next = body.slice(0, p3.start) + JSON.stringify(p3.obj) + body.slice(p3.end);
               if (next !== body) body = next;
