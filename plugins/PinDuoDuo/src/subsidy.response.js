@@ -247,6 +247,8 @@ function buildPriceRateMap(lists, map) {
 }
 
 // 遍历所有 tab 的商品列表（兼容 store / stores / stores.store 三种形态）
+// v2.29：同时收集 tabStore.*GoodsInfoStore.goodsInfoMap（百补首页真正的渲染数据）
+//   key 形如 "BYBT_MAIN_693607160697"（前缀 + goodsId），值是商品对象
 function eachGoodsList(raw, fn) {
   const stores = [];
   const pushStore = (st) => { if (st && typeof st === 'object' && st.tabStore) stores.push(st); };
@@ -267,6 +269,23 @@ function eachGoodsList(raw, fn) {
         const list = s && Array.isArray(s.list) ? s.list : [];
         if (list.length) fn(list);
       }
+    }
+    // goodsInfoMap：值对象里没有 goodsId 字段，用 key 后缀反推
+    for (const sk in st.tabStore) {
+      const node = st.tabStore[sk];
+      const gm = node && node.goodsInfoMap;
+      if (!gm || typeof gm !== 'object') continue;
+      const arr = [];
+      for (const key in gm) {
+        const g = gm[key];
+        if (!g || typeof g !== 'object') continue;
+        if (g.goodsId == null) {
+          const m = String(key).match(/_(\d+)$/);
+          if (m) g.goodsId = m[1];
+        }
+        if (g.goodsId != null) arr.push(g);
+      }
+      if (arr.length) fn(arr);
     }
   }
 }
@@ -366,6 +385,8 @@ try {
             const cRec = cache[gid];
             if (cacheFresh(cRec) && (!CPS_RW || cRec.l)) {
               map[gid] = { rate: cRec.r, link: cRec.l || '' };
+            } else {
+              need.push(gid);
             }
           }
           const done = (fetched) => {
@@ -380,9 +401,19 @@ try {
                 if (!(rate > 0)) continue;
                 if (rewriteLink(g, ent)) n++;                 // v2.27 链接改写
                 const text = '佣金' + fmtRate(rate) + '%';
-                if (g.activityPriceWord === text) continue;   // 幂等
-                g.activityPriceWord = text;
-                n++;
+                // v2.29：优先改 activityPriceWordBeforeTag.text —— 百补首页与
+                // 精选页的前端都是 `W = BeforeTag.text || priceWord`，只改
+                // activityPriceWord 会被「只剩2天」这类标签完全盖住。
+                const bt = g.activityPriceWordBeforeTag;
+                if (bt && typeof bt === 'object') {
+                  if (bt.text === text) continue;             // 幂等
+                  bt.text = text;                             // 保留 type / tagExt
+                  n++;
+                } else {
+                  if (g.activityPriceWord === text) continue;
+                  g.activityPriceWord = text;
+                  n++;
+                }
               }
             }
             // 先改服务端预渲染的静态「券后」（前 5 个商品在 HTML 里，位于 rawData 之前）
