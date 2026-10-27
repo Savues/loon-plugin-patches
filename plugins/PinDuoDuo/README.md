@@ -88,9 +88,10 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
-| `cps_rewrite` | **关** | 把信息流 `link_url` 改写成 `duo_coupon_landing.html?goods_id=…&pid=…`，让**每一次点击都落在 CPS 链路上**（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
+| `cps_rewrite` | **关** | 把信息流 `link_url` 改写成**带 `goods_sign` 的** `duo_coupon_landing.html?...&pid=…&cpsSign=…`，让每一次点击都落在 CPS 链路上（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
+| `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `goods_sign` + `cpsSign`；**留空则不改写** | — |
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
-| `cps_probe` | **关** | 探针：只把**第一个**商品改成不存在的页型 `zzz_probe_test.html`。点开报错=客户端确实读 `link_url`（方案成立）；正常打开=不读（方案作废） | 日常保持关闭 |
+| `cps_probe` | **关** | 探针：只把**第一个**商品改成不存在的页型 `zzz_probe_test.html`。点开报错=客户端确实读 `link_url`（已由 2026-10-27 真机 HAR 证实成立） | 日常保持关闭 |
 | `auto_skip` | 开 | 省钱月卡 / 续费管理 H5 的**全屏补贴动效**：自动点掉右上角「跳过」 | 想自己看完动效时 |
 
 > **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。

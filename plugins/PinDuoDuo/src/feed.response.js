@@ -50,72 +50,126 @@ function recordIds(ids) {
   } catch (e) { /* 存储不可用不阻断打标 */ }
 }
 
-// ── CPS 链接改写（见 src/cps_link.response.js 的设计说明）────────────
-// 拼多多自购比价规则要求**第一次点击**就落在 CPS 链接上，所以必须在列表
-// 响应里就把 link_url 换掉。因为 Loon 同 URL 只跑首个命中的 [Script]，
-// 这段必须内联在本文件，不能另起一条规则。
-const CPS_PID = (typeof A.cps_pid === 'string' && A.cps_pid) ? A.cps_pid : '41096949_318859099';
+// ── CPS 链接改写 ──────────────────────────────────────────────
+// 拼多多自购比价规则：首次进入若是自然流量，之后转链再买也不计佣金。
+// 所以必须在列表响应里就把 link_url 换成 CPS 链。
+//
+// 2026-10-27 真机实证（shared-339D936B_550，cps_rewrite 开启）：
+//   客户端**确实读取 link_url**，真实发出：
+//     https://m.pinduoduo.net/duo_coupon_landing.html?duoduo_type=2&pid=…
+//       &campaign=ddjb&page_from=26&_pdd_fs=1&thumb_url=…&goods_id=946972224769
+//   但只带 goods_id、缺 goods_sign → 领券页回落成「商品已售罄」。
+//   故必须补 goods_sign；来源 = 大淘客解析接口（实测一次可批量 20 个，
+//   10 个耗时 1.14s，返回全部带 goods_sign）。
+//
+// Loon 同 URL 只跑首个命中的 [Script]，故内联本文件而非另起规则。
 const CPS_ON = on(A.cps_rewrite);
 const CPS_PROBE = on(A.cps_probe);
-const CPS_PROBE_PATH = 'zzz_probe_test.html';
-const RE_GID = /[?&]goods_id=(\d+)/;
-const CPS_MAX_DEPTH = 9;
+const CPS_PID = (typeof A.cps_pid === 'string' && A.cps_pid) ? A.cps_pid : '41096949_318859099';
+const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
+const CPS_BATCH = 20;
+const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
+const CPS_GID_RE = /[?&]goods_id=(\d+)/;
+const CPS_MAX_DEPTH = 10;
 
-function cpsLink(gid) {
-  return 'duo_coupon_landing.html?goods_id=' + gid +
-    '&pid=' + encodeURIComponent(CPS_PID) +
-    '&campaign=ddjb&duoduo_type=2';
-}
-
-function cpsWalk(node, depth, st) {
+// 收集本屏 goods_id（顺序去重，截到 CPS_BATCH）
+function cpsCollect(node, depth, order, seen) {
   if (!node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
   if (Array.isArray(node)) {
-    for (let i = 0; i < node.length; i++) cpsWalk(node[i], depth + 1, st);
+    for (let i = 0; i < node.length; i++) cpsCollect(node[i], depth + 1, order, seen);
     return;
   }
   const keys = Object.keys(node);
   for (let i = 0; i < keys.length; i++) {
-    const k = keys[i];
-    const v = node[k];
-    if (k === 'link_url' && typeof v === 'string') {
-      const m = v.match(RE_GID);
-      if (!m) continue;
-      if (CPS_PROBE) {
-        if (!st.hit) { node[k] = CPS_PROBE_PATH + '?goods_id=' + m[1]; st.hit = 1; st.n++; }
-        continue;                       // 探针模式只动第一个，其余原样
+    const v = node[keys[i]];
+    if (keys[i] === 'link_url' && typeof v === 'string') {
+      const m = v.match(CPS_GID_RE);
+      if (m && !seen[m[1]]) {
+        seen[m[1]] = 1;
+        if (order.length < CPS_BATCH) order.push(m[1]);
       }
-      node[k] = cpsLink(m[1]);
-      st.n++;
     } else if (v && typeof v === 'object') {
-      cpsWalk(v, depth + 1, st);
+      cpsCollect(v, depth + 1, order, seen);
     }
   }
 }
 
-try {
-  if (!on(A.feed_ad) && !CPS_ON) { $done({}); return; }
-
-  const body = $response && $response.body;
-  if (!body) { $done({}); return; }
-
-  let j;
-  try { j = JSON.parse(body); } catch (e) { $done({}); return; }
-
-  // ① 先做链接改写（与 ad 打标互不影响）
-  let rewritten = 0;
-  if (CPS_ON) {
-    const st = { n: 0, hit: 0 };
-    try { cpsWalk(j, 0, st); rewritten = st.n; } catch (e) { rewritten = 0; }
-  }
-
-  const list = j && j.data && Array.isArray(j.data.goods_list) ? j.data.goods_list : null;
-
-  let marked = 0;
-  if (!on(A.feed_ad) || !list) {
-    if (!rewritten) { $done({}); return; }
-    $done({ body: JSON.stringify(j) });
+// 按 map{gid -> 相对路径+query} 替换 link_url，返回替换条数
+function cpsApply(node, depth, map, st) {
+  if (!node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) cpsApply(node[i], depth + 1, map, st);
     return;
   }
+  const keys = Object.keys(node);
+  for (let i = 0; i < keys.length; i++) {
+    const v = node[keys[i]];
+    if (keys[i] === 'link_url' && typeof v === 'string') {
+      const m = v.match(CPS_GID_RE);
+      if (m && map[m[1]]) { node[keys[i]] = map[m[1]]; st.n++; }
+    } else if (v && typeof v === 'object') {
+      cpsApply(v, depth + 1, map, st);
+    }
+  }
+}
+
+// 探针：只把第一个 link_url 换成不存在的页型
+function cpsProbeFirst(node, depth, st) {
+  if (st.n || !node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) cpsProbeFirst(node[i], depth + 1, st);
+    return;
+  }
+  const keys = Object.keys(node);
+  for (let i = 0; i < keys.length; i++) {
+    const v = node[keys[i]];
+    if (keys[i] === 'link_url' && typeof v === 'string') {
+      const m = v.match(CPS_GID_RE);
+      if (m) { node[keys[i]] = 'zzz_probe_test.html?goods_id=' + m[1]; st.n = 1; return; }
+    } else if (v && typeof v === 'object') {
+      cpsProbeFirst(v, depth + 1, st);
+    }
+  }
+}
+
+// 大淘客批量解析：cb(map) 成功 / cb(null) 失败
+function cpsFetch(ids, cb) {
+  if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
+  let content = '';
+  for (let i = 0; i < ids.length; i++) {
+    if (i) content += '\n';
+    content += 'https://mobile.yangkeduo.com/goods.html?goods_id=' + ids[i];
+  }
+  const tok = encodeURIComponent(CPS_TOKEN);
+  $httpClient.post({
+    url: CPS_API + '?jaw_uid=' + tok,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'content=' + encodeURIComponent(content) + '&is_app=1&supered=2&jaw_uid=' + tok
+  }, function (err, resp, data) {
+    if (err || !data) { cb(null); return; }
+    let j2;
+    try { j2 = JSON.parse(data); } catch (e) { cb(null); return; }
+    const list = j2 && j2.data && j2.data.pdd && j2.data.pdd.data;
+    if (!Array.isArray(list)) { cb(null); return; }
+    const map = {};
+    for (let i = 0; i < list.length; i++) {
+      const link = list[i] && list[i].item_link;
+      if (typeof link !== 'string') continue;
+      const rel = link.replace(/^https?:\/\/[^/]+\//, '');
+      if (rel.indexOf('duo_coupon_landing.html') !== 0) continue;
+      const m = rel.match(CPS_GID_RE);
+      if (m && !map[m[1]]) map[m[1]] = rel;   // 原样保留 goods_sign / cpsSign / authDuoId
+    }
+    cb(map);
+  });
+}
+
+// 广告打标（原逻辑，抽成函数以便与异步 CPS 改写共存）
+function markAds(j) {
+  const list = j && j.data && Array.isArray(j.data.goods_list) ? j.data.goods_list : null;
+  if (!list) return 0;
+
+  let marked = 0;
   for (const cell of list) {
     const d = cell && typeof cell === 'object' ? cell.data : null;
     if (!d || typeof d !== 'object' || !d.ad) continue;   // 只有服务端打了广告标的才处理
@@ -129,9 +183,8 @@ try {
       d.tag_list.unshift({ type: 1, text: AD_TEXT, text_color: AD_COLOR });
     }
 
-    // ② 卡片销量行（含备用文案 fallback_sales_tip：实测客户端在这类商品上
-    //    渲染的是它而不是 sales_tip——2026-10-21 另一台设备首页抓包证实，
-    //    「黄金厚切炸猪排」卡片显示的「已抢170件」就是它）
+    // 3) 卡片销量行（含备用文案 fallback_sales_tip：实测客户端在这类商品上
+    //    渲染的是它而不是 sales_tip——2026-10-21 另一台设备首页抓包证实）
     for (const key of ['sales_tip', 'fallback_sales_tip']) {
       if (typeof d[key] === 'string' && d[key] && !d[key].startsWith(AD_TEXT + '·')) {
         d[key] = AD_TEXT + '·' + d[key];
@@ -160,8 +213,46 @@ try {
     recordIds(now);
   }
 
-  if (!marked && !rewritten) { $done({}); return; }   // 这一屏无改动，原样放行，省一次序列化
+  return marked;
+}
+
+function finish(j, marked, rewritten) {
+  if (!marked && !rewritten) { $done({}); return; }   // 无改动则原样放行，省一次序列化
   $done({ body: JSON.stringify(j) });
+}
+
+try {
+  if (!on(A.feed_ad) && !CPS_ON) { $done({}); return; }
+
+  const body = $response && $response.body;
+  if (!body) { $done({}); return; }
+
+  let j;
+  try { j = JSON.parse(body); } catch (e) { $done({}); return; }
+
+  const marked = on(A.feed_ad) ? markAds(j) : 0;
+
+  if (!CPS_ON) { finish(j, marked, 0); return; }
+
+  const order = [];
+  try { cpsCollect(j, 0, order, {}); } catch (e) { /* 结构异常则不改写 */ }
+  if (!order.length) { finish(j, marked, 0); return; }
+
+  if (CPS_PROBE) {
+    const st = { n: 0 };
+    try { cpsProbeFirst(j, 0, st); } catch (e) { st.n = 0; }
+    finish(j, marked, st.n);
+    return;
+  }
+
+  cpsFetch(order, function (map) {
+    let n = 0;
+    if (map) {
+      const st = { n: 0 };
+      try { cpsApply(j, 0, map, st); n = st.n; } catch (e) { n = 0; }
+    }
+    finish(j, marked, n);
+  });
 } catch (e) {
   $done({});
 }
