@@ -33,8 +33,8 @@
     const master = pick('enabled', 0, true);
     const killKeys = pick('stripSplashKeys', 1, true);
     if (!master || !$response || !$response.body) return $done({});
-    // 热门搜索由 jinbao_search.response.js 专职处理，这里跳过避免重复改写
-    if ($request && /query_top_keywords/i.test($request.url)) return $done({});
+    // 以下接口由专职脚本处理，这里跳过避免重复改写
+    if ($request && /query_top_keywords|popups\/query\/|label_info|mission_system\/card/i.test($request.url)) return $done({});
 
     // 开屏/启动广告字段名（整键匹配，小写比较）
     const SPLASH_KEY = /^(splash|splashinfo|splash_info|splashad|splash_ad|splashscreen|splash_screen|splashconfig|splash_config|splashmodel|splash_model|splashimage|splash_image|splashimg|splash_img|splashurl|splash_url|splashid|splash_id|hassplash|hassplashinfo|needsplash|showsplash|launchad|launch_ad|launchadinfo|launch_ad_info|launchscreenad|openscreen|open_screen|openscreenad|open_screen_ad|startupad|startup_ad|bootad|boot_ad|welcomead|welcome_ad)$/i;

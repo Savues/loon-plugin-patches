@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "errorCode": 1000000,
+  "errorMsg": null,
+  "result": {
+    "popupWindow": true,
+    "popupsContentVOList": [
+      {
+        "id": 1,
+        "imgUrl": "https://x/ad.png",
+        "jumpUrl": "https://x/go"
+      }
+    ],
+    "type": 7,
+    "popupsGoods": {
+      "goodsId": 123
+    }
+  }
+}
