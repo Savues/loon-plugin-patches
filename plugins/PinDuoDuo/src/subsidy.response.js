@@ -39,7 +39,19 @@
  * 开关：search_stub 管职责 1；feed_ad 管职责 2（与信息流/详情页打标同开关）。
  */
 
-const A = (typeof $argument === 'string' ? {} : $argument) || {};
+const A = (function (raw) {
+  let v = raw;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = {}; } }
+  if (Array.isArray(v)) {
+    const merged = {};
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (it && typeof it === 'object' && !Array.isArray(it)) for (const k in it) merged[k] = it[k];
+    }
+    v = merged;
+  }
+  return (v && typeof v === 'object') ? v : {};
+})($argument);
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 
 const AD_KEY = 'pddAdGoodsIds';
@@ -86,6 +98,106 @@ function parseRawData(body) {
     else if (ch === '}') { depth--; if (depth === 0) { try { return { obj: JSON.parse(body.slice(j, k + 1)), start: j, end: k + 1 }; } catch (e) { return null; } } }
   }
   return null;
+}
+
+// ── 职责 3（v2.10）：百补列表显示佣金率 ──────────────────────
+// 前端价格组件（react_brand_activity_subsidy_*.js）逻辑：
+//   k = data.activityPriceWording
+//   P = (enableFour.type === 'half_price_discount_tag') ? activityPriceWord : k
+//   <span class="activityPriceWording">{P}</span><span>¥</span><span>{activityPrice}</span>
+// 实测 21 个商品的 enableFour.type 全是 night_pk_coupon_tag，所以渲染的是
+// activityPriceWording，而该字段当前全为空 → 前端什么都不显示。
+// 填上即渲染在 ¥ 之前：  佣金3.2% ¥19.26
+// 不碰 activityPrice：纯数字，前端要 .replace('.','') 拆整数/小数。
+const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
+const CPS_LB = on(A.cps_label);
+const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
+const CPS_BATCH = 20;
+const CACHE_KEY = 'pddCpsCache';
+const CACHE_CAP = 300;
+const CACHE_TTL = (function () {
+  const v = parseInt(A.cps_ttl, 10);
+  return v > 0 ? v : 21600;
+})();
+
+function fmtRate(v) { return String(Math.round(v * 10) / 10); }
+
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+function cacheLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return {};
+    const raw = $persistentStore.read(CACHE_KEY);
+    const o = raw ? JSON.parse(String(raw)) : {};
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+
+function cacheSave(o) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    const keys = Object.keys(o);
+    if (keys.length > CACHE_CAP) {
+      keys.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < keys.length - CACHE_CAP; i++) delete o[keys[i]];
+    }
+    $persistentStore.write(JSON.stringify(o), CACHE_KEY);
+  } catch (e) { /* 忽略 */ }
+}
+
+function cacheFresh(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const t = rec.t || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (now - t > CACHE_TTL) return false;
+  if (t < todayStart()) return false;
+  return true;
+}
+
+// 百补商品列表：raw.store.plusSubsidyStore.goodsList
+function pickSubsidyList(raw) {
+  const st = raw && raw.store;
+  if (!st || typeof st !== 'object') return null;
+  const ps = st.plusSubsidyStore;
+  if (!ps || !Array.isArray(ps.goodsList)) return null;
+  return ps.goodsList;
+}
+
+// 大淘客批量解析：cb(map{gid -> rate})
+function cpsFetch(ids, cb) {
+  if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
+  let content = '';
+  for (let i = 0; i < ids.length; i++) {
+    if (i) content += '\n';
+    content += 'https://mobile.yangkeduo.com/goods.html?goods_id=' + ids[i];
+  }
+  const tok = encodeURIComponent(CPS_TOKEN);
+  $httpClient.post({
+    url: CPS_API + '?jaw_uid=' + tok,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'content=' + encodeURIComponent(content) + '&is_app=1&supered=2&jaw_uid=' + tok
+  }, function (err, resp, data) {
+    if (err || !data) { cb(null); return; }
+    let j2;
+    try { j2 = JSON.parse(data); } catch (e) { cb(null); return; }
+    const list = j2 && j2.data && j2.data.pdd && j2.data.pdd.data;
+    if (!Array.isArray(list)) { cb(null); return; }
+    const map = {};
+    for (let i = 0; i < list.length; i++) {
+      const g = (list[i] || {}).goods || {};
+      const rate = parseFloat(g.rate);
+      if (!(rate > 0)) continue;
+      const link = list[i].item_link;
+      if (typeof link !== 'string') continue;
+      const m = link.match(/[?&]goods_id=(\d+)/);
+      if (m && !map[m[1]]) map[m[1]] = rate;
+    }
+    cb(map);
+  });
 }
 
 // 从 rawData 里收集带 ad 字段的商品
@@ -170,6 +282,60 @@ try {
           }
         }
       } catch (e) { /* 职责 2 失败不影响职责 1 */ }
+    }
+  }
+
+  // ── 职责 3：百补列表佣金率（cps_label）────────────────────
+  // 异步查询，查询完再统一 $done
+  if (CPS_LB && CPS_TOKEN && typeof $httpClient !== 'undefined') {
+    const parsed = parseRawData(body);
+    const list = parsed ? pickSubsidyList(parsed.obj) : null;
+    if (list && list.length) {
+      const order = [];
+      for (let k = 0; k < list.length && order.length < CPS_BATCH; k++) {
+        const gid = list[k] && list[k].goodsId != null ? String(list[k].goodsId) : '';
+        if (gid) order.push(gid);
+      }
+      if (order.length) {
+        const cache = cacheLoad();
+        const map = {};
+        const need = [];
+        for (let k = 0; k < order.length; k++) {
+          const gid = order[k];
+          if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+          else need.push(gid);
+        }
+        const finish = (fetched) => {
+          if (fetched) for (const k in fetched) map[k] = fetched[k];
+          let n = 0;
+          for (let k = 0; k < list.length; k++) {
+            const g = list[k];
+            if (!g || typeof g !== 'object') continue;
+            const gid = g.goodsId != null ? String(g.goodsId) : '';
+            const rate = gid ? map[gid] : 0;
+            if (!(rate > 0)) continue;
+            const text = '佣金' + fmtRate(rate) + '%';
+            if (g.activityPriceWording === text) continue;   // 幂等
+            g.activityPriceWording = text;
+            n++;
+          }
+          if (n) {
+            const next = body.slice(0, parsed.start) + JSON.stringify(parsed.obj) + body.slice(parsed.end);
+            if (next !== body) body = next;
+          }
+          $done(body === $response.body ? {} : { body });
+        };
+        if (!need.length) { finish(null); return; }
+        cpsFetch(need, function (fetched) {
+          if (fetched) {
+            const now = Math.floor(Date.now() / 1000);
+            for (const gid in fetched) cache[gid] = { r: fetched[gid], t: now };
+            cacheSave(cache);
+          }
+          finish(fetched);
+        });
+        return;
+      }
     }
   }
 
