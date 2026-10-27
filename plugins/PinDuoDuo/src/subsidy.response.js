@@ -218,6 +218,55 @@ function cpsFetch(ids, cb) {
   });
 }
 
+// ── 静态 HTML 标签改写（v2.16）─────────────────────────────
+// 百补页是服务端预渲染：首屏商品的「只剩2天」等标签直接写在 HTML 里，
+// 位置在 window.rawData 之前，改 JSON 影响不到它们。实测 rawData 前有 5 处。
+//
+// HTML 结构：
+//   <div class="B5kOahpK" style="color:#813700">
+//     <img src=".../3fa6a2e2-...png"/>
+//     <span class="Rk__HyCf W4mh7vzm"><span class="ymNbz_1h">只剩2天</span></span>
+//   </div>
+//   <span class="HTRC5u_U"></span>
+//   <div style="color:#813700" class="ZMZVEtlL">
+//     <span class="VdWvomgZ KpyzNzbg">¥</span><span ...>26</span><span ...>.</span><span ...>58</span>
+//
+// 匹配方式：用「标签块 + 紧随其后的价格整数部分」配对，再拿价格去 rawData 里
+// 找对应商品（价格是唯一的），从而得到该商品的佣金率。
+// 实测顺序与 rawData 完全一致（26↔26.58 / 268↔268 / 47↔47.8 / 39↔39.9），
+// 但用价格做锚点比按顺序更稳。
+function rewriteStaticTags(html, rateByPrice) {
+  const RE = /(class=\\"B5kOahpK\\"[\s\S]{0,600}?\\u003E)([^\\]{1,20}?)(\\u003C[\s\S]{0,1200}?¥\\u003C\\u002Fspan\\u003E[\s\S]{0,400}?\\u003E(\d+)\\u003C)/g;
+  let n = 0;
+  const out = html.replace(RE, function (m, head, label, tail, intPart) {
+    const rate = rateByPrice[intPart];
+    if (!(rate > 0)) return m;
+    if (label.indexOf('佣金') === 0) return m;
+    n++;
+    return head + ('佣金' + fmtRate(rate) + '%') + tail;
+  });
+  return { html: out, n: n };
+}
+
+// 从 rawData 的商品列表建「价格整数部分 -> 佣金率」映射
+function buildPriceRateMap(lists, map) {
+  const out = {};
+  for (let a = 0; a < lists.length; a++) {
+    const lst = lists[a];
+    for (let k = 0; k < lst.length; k++) {
+      const g = lst[k];
+      if (!g || typeof g !== 'object') continue;
+      const gid = g.goodsId != null ? String(g.goodsId) : '';
+      const rate = gid ? map[gid] : 0;
+      if (!(rate > 0)) continue;
+      const ap = String(g.activityPrice || '');
+      const ip = ap.split('.')[0];
+      if (ip && !out[ip]) out[ip] = rate;
+    }
+  }
+  return out;
+}
+
 // 从 rawData 里收集带 ad 字段的商品
 // 已知三种形态（均为实测）：
 //   raw.store.tabStore…                    brand_activity_subsidy.html 旧模板
@@ -382,6 +431,15 @@ try {
             const next = body.slice(0, parsed.start) + JSON.stringify(parsed.obj) + body.slice(parsed.end);
             if (next !== body) body = next;
           }
+          // v2.16：同时改首屏静态 HTML 里的标签（rawData 之前那段）
+          try {
+            const prMap = buildPriceRateMap(lists, map);
+            if (Object.keys(prMap).length) {
+              const seg = body.slice(0, parsed.start);
+              const r2 = rewriteStaticTags(seg, prMap);
+              if (r2.n) body = r2.html + body.slice(parsed.start);
+            }
+          } catch (e) { /* 静态改写失败不影响主流程 */ }
           $done(body === $response.body ? {} : { body });
         };
         if (!need.length) { finish(null); return; }
