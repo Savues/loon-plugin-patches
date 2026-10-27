@@ -7,8 +7,8 @@
 #!system_version=
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Jinbao-AdBlock
-#!date=2026-10-27 15:35:00
-#!version=0.3.0
+#!date=2026-10-27 15:50:00
+#!version=0.3.1
 
 [Argument]
 enabled = switch, true, false, tag=插件总开关, desc=关闭后所有规则不再处理任何响应
@@ -20,7 +20,7 @@ stripSplashKeys = switch, true, false, tag=剪除开屏字段, desc=递归删除
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/jinbao\.pinduoduo\.com\/gw\/loon-sim\.probe\.jinbao_adblock/i then reject(200, "0.3.0")
+request if ${url} ~= /^https?:\/\/jinbao\.pinduoduo\.com\/gw\/loon-sim\.probe\.jinbao_adblock/i then reject(200, "0.3.1")
 request if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/[^?]*\/?splash/i then reject(200, "{\"success\":true,\"errorCode\":1000000,\"errorMsg\":null,\"result\":null}")
 
 [Script]
