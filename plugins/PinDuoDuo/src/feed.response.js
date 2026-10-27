@@ -86,12 +86,12 @@ const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 const CPS_GID_RE = /[?&]goods_id=(\d+)/;
 const CPS_MAX_DEPTH = 10;
 // 销量行显示宽度预算（CJK/全角=2，ASCII=1）。真机实测：
-//   · 非广告商品可用约 22~23（原始「本店已拼38.5万+件」=22 正常显示）
-//   · 广告商品的「广告」徽标额外吃掉约 6 单位，留给文本只剩约 16
-// 所以分两档，cps_budget 只调非广告那一档。
+//   · 广告商品：「广告」徽标额外吃掉约 6 单位 → 直接只显示「广告·佣金x.x%」（13）
+//   · 非广告商品：2026-10-27 实测「佣金3.5%·已拼8719件」（19）在部分卡片上整段不显示，
+//     而同列表的「佣金0.1%」（8）正常 → 实际可用宽度约 10~14，取 14 保守值
 const CPS_BUDGET = (function () {
   const v = parseInt(A.cps_budget, 10);
-  return v > 6 ? v : 22;
+  return v > 6 ? v : 14;
 })();
 
 // 收集本屏 goods_id（顺序去重，截到 CPS_BATCH）
@@ -251,9 +251,11 @@ function cpsLabel(j, map) {
     for (const key of ['sales_tip', 'fallback_sales_tip']) {
       const v = d[key];
       if (typeof v !== 'string' || !v) continue;
-      if (v.indexOf('佣金') >= 0) { hit++; continue; }          // 幂等（已标过）
-      const raw = v.indexOf('广告·') === 0 ? v.slice(3) : v;
-      const sales = raw.replace('本店已拼', '已拼').replace('全店总售', '总售').replace('热销', '已拼');
+      // 幂等：已标过且没超预算才跳过；超预算的（旧版遗留）重新算一遍
+      if (v.indexOf('佣金') >= 0 && width(v) <= CPS_BUDGET) { hit++; continue; }
+      // 超预算的旧文本：先剥掉已有佣金段，再重新按预算拼
+      let base = v.replace(/^广告·/, '').replace(/^佣金[0-9.]+%·?/, '');
+      const sales = base.replace('本店已拼', '已拼').replace('全店总售', '总售').replace('热销', '已拼');
 
       let out;
       if (isAd) {
