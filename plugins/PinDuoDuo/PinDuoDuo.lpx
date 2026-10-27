@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.29
+#!name=拼多多去广告(修复版) v2.30
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -22,7 +22,7 @@ cps_rewrite = switch,true,tag=[高危] 商品链接改写成进宝领券页,desc
 cps_label = switch,true,tag=[信息流] 销量行显示佣金率,desc=把「已拼/已售x件」那行改成「佣金9.6%·已拼x件」；去掉冗余的广告前缀腾位置，超宽时只留佣金。标签行会被折券横幅遮挡，故不用它
 cps_budget = input,"22",tag=[信息流] 销量行宽度预算,desc=显示宽度上限（汉字算2、数字算1）。实测原始最长条目=22，超过24会被客户端整段丢弃；调试可调小（如16）强制只看佣金
 cps_ttl = input,"21600",tag=[信息流] 列表缓存秒数,desc=首页列表的佣金率缓存时长（默认 6 小时，且不跨自然日，因为 cpsSign 内嵌日期）。商品详情页不走缓存，每次都拉实时佣金率
-cps_token = input,"",tag=[高危] 大淘客 app_token,desc=用于批量换取 goods_sign;取自大淘客 App 的 get-user-info 接口 jaw_uid 字段(171 字符);留空则不改写
+cps_token = input,"0ygkhUM7anL-DCQqMDW43Z9F9MW0M2zK8-aC5E7Y1_ZPA-9AblWXTaz1fuK7Q0RrVClBO3OcYvnA4s0gDErdR8d2nnwaaiuNgdMftWmjYevhYsqfHzlOR_dzZhMZ--lxqwgRsX36H1ZoJQj-fPhXyJfs9USo1Y2ZhAJpXHVP8F0",tag=[高危] 大淘客 app_token,desc=用于批量换取 goods_sign;取自大淘客 App 的 get-user-info 接口 jaw_uid 字段(171 字符);留空则不改写
 cps_pid = input,"41096949_318859099",tag=[高危] 推广位 PID,desc=改写进链接的 pid，需与你的多多进宝推广位一致
 auto_skip = switch,true,tag=[月卡] 自动点掉全屏动效的「跳过」,desc=省钱月卡/续费页的补贴动效（右上角跳过）自动点掉;点跳过与动效跑完等效，不影响发券
 # ===== 底栏自定义 =====
