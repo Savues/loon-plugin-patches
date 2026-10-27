@@ -105,8 +105,90 @@ function parseRawData(body) {
 //   raw.store.tabStore…                    brand_activity_subsidy.html 旧模板
 //   raw.stores.store.tabStore…             tandy_vase.html 新模板（stores 是 dict）
 //   raw.stores[i].store.tabStore…          数组形态（容错预留）
-function collectAdGoods(raw) {
-  const out = [];
+// ── 佣金查询（消费券栏目用，与首页/百补共用 pddCpsCache）────────
+const CPS_LB = on(A.cps_label);
+const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
+const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
+const CPS_BATCH = 20;
+const CPS_CACHE_KEY = 'pddCpsCache';
+const CPS_CACHE_CAP = 300;
+const CPS_CACHE_TTL = (function () {
+  const v = parseInt(A.cps_ttl, 10);
+  return v > 0 ? v : 21600;
+})();
+
+function fmtRate(v) { return String(Math.round(v * 10) / 10); }
+
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+function cacheLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return {};
+    const raw = $persistentStore.read(CPS_CACHE_KEY);
+    const o = raw ? JSON.parse(String(raw)) : {};
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+
+function cacheSave(o) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    const keys = Object.keys(o);
+    if (keys.length > CPS_CACHE_CAP) {
+      keys.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < keys.length - CPS_CACHE_CAP; i++) delete o[keys[i]];
+    }
+    $persistentStore.write(JSON.stringify(o), CPS_CACHE_KEY);
+  } catch (e) { /* 忽略 */ }
+}
+
+function cacheFresh(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const t = rec.t || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (now - t > CPS_CACHE_TTL) return false;
+  if (t < todayStart()) return false;
+  return true;
+}
+
+function cpsFetch(ids, cb) {
+  if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
+  let content = '';
+  for (let i = 0; i < ids.length; i++) {
+    if (i) content += '\n';
+    content += 'https://mobile.yangkeduo.com/goods.html?goods_id=' + ids[i];
+  }
+  const tok = encodeURIComponent(CPS_TOKEN);
+  $httpClient.post({
+    url: CPS_API + '?jaw_uid=' + tok,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'content=' + encodeURIComponent(content) + '&is_app=1&supered=2&jaw_uid=' + tok
+  }, function (err, resp, data) {
+    if (err || !data) { cb(null); return; }
+    let j;
+    try { j = JSON.parse(data); } catch (e) { cb(null); return; }
+    const list = j && j.data && j.data.pdd && j.data.pdd.data;
+    if (!Array.isArray(list)) { cb(null); return; }
+    const map = {};
+    for (let i = 0; i < list.length; i++) {
+      const g = (list[i] || {}).goods || {};
+      const rate = parseFloat(g.rate);
+      if (!(rate > 0)) continue;
+      const link = list[i].item_link;
+      if (typeof link !== 'string') continue;
+      const m = link.match(/[?&]goods_id=(\d+)/);
+      if (m && !map[m[1]]) map[m[1]] = rate;
+    }
+    cb(map);
+  });
+}
+
+// 遍历所有 tab 的商品列表（兼容 store / stores / stores.store 三种形态）
+function eachGoodsList(raw, fn) {
   const stores = [];
   const pushStore = (st) => { if (st && typeof st === 'object' && st.tabStore) stores.push(st); };
   if (raw && raw.store) pushStore(raw.store);
@@ -124,14 +206,22 @@ function collectAdGoods(raw) {
       const sls = t && Array.isArray(t.subTabGoodsLists) ? t.subTabGoodsLists : [];
       for (const s of sls) {
         const list = s && Array.isArray(s.list) ? s.list : [];
-        for (const g of list) {
-          if (g && typeof g === 'object' && typeof g.ad === 'string' && g.goodsId !== undefined) {
-            out.push(g);
-          }
-        }
+        if (list.length) fn(list);
       }
     }
   }
+}
+
+// 收集带 ad 字段的商品（职责 2 用）
+function collectAdGoods(raw) {
+  const out = [];
+  eachGoodsList(raw, (list) => {
+    for (const g of list) {
+      if (g && typeof g === 'object' && typeof g.ad === 'string' && g.goodsId !== undefined) {
+        out.push(g);
+      }
+    }
+  });
   return out;
 }
 
@@ -186,6 +276,71 @@ try {
     }
   }
 
+
+  // ── 职责 3：消费券栏目显示佣金率（cps_label）────────────────
+  // 页面 tandy_vase.html（百补「消费券」栏目），双列布局，数据结构是
+  // rawData.stores.store（不是 store）。
+  // 该页面【没有 activityPriceWordBeforeTag】，所以 activityPriceWord 是
+  // 真正渲染的那个词（实测 20/20 都是「券后」），不会被覆盖。
+  if (CPS_LB && CPS_TOKEN && typeof $httpClient !== 'undefined') {
+    const p3 = parseRawData(body);
+    if (p3) {
+      const lists = [];
+      eachGoodsList(p3.obj, (l) => { lists.push(l); });
+      if (lists.length) {
+        const order = [];
+        const seen = {};
+        for (const lst of lists) {
+          for (const g of lst) {
+            const gid = g && g.goodsId != null ? String(g.goodsId) : '';
+            if (!gid || seen[gid]) continue;
+            seen[gid] = 1;
+            if (order.length < CPS_BATCH) order.push(gid);
+          }
+        }
+        if (order.length) {
+          const cache = cacheLoad();
+          const map = {};
+          const need = [];
+          for (const gid of order) {
+            if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+            else need.push(gid);
+          }
+          const done = (fetched) => {
+            if (fetched) for (const k in fetched) map[k] = fetched[k];
+            let n = 0;
+            for (const lst of lists) {
+              for (const g of lst) {
+                if (!g || typeof g !== 'object') continue;
+                const gid = g.goodsId != null ? String(g.goodsId) : '';
+                const rate = gid ? map[gid] : 0;
+                if (!(rate > 0)) continue;
+                const text = '佣金' + fmtRate(rate) + '%';
+                if (g.activityPriceWord === text) continue;   // 幂等
+                g.activityPriceWord = text;
+                n++;
+              }
+            }
+            if (n) {
+              const next = body.slice(0, p3.start) + JSON.stringify(p3.obj) + body.slice(p3.end);
+              if (next !== body) body = next;
+            }
+            $done(body === $response.body ? {} : { body });
+          };
+          if (!need.length) { done(null); return; }
+          cpsFetch(need, function (fetched) {
+            if (fetched) {
+              const now = Math.floor(Date.now() / 1000);
+              for (const gid in fetched) cache[gid] = { r: fetched[gid], t: now };
+              cacheSave(cache);
+            }
+            done(fetched);
+          });
+          return;
+        }
+      }
+    }
+  }
 
   $done(body === $response.body ? {} : { body });
 } catch (e) {
