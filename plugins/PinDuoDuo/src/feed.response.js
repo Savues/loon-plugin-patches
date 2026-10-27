@@ -181,19 +181,15 @@ function cpsLabel(j, map) {
     if (!gid || !map[gid]) continue;
     const rate = map[gid].rate;
     if (!(rate > 0)) continue;
-    const seg = '佣金' + fmtRate(rate) + '%·';
-    let hit = 0;
-    for (const key of ['sales_tip', 'fallback_sales_tip']) {
-      const v = d[key];
-      if (typeof v !== 'string') continue;
-      if (v.indexOf('佣金') >= 0) continue;             // 幂等
-      // 「广告·」永远保持在最前面，佣金紧贴其后
-      d[key] = v.indexOf(AD_TEXT + '·') === 0
-        ? AD_TEXT + '·' + seg + v.slice(AD_TEXT.length + 1)
-        : seg + v;
-      hit = 1;
-    }
-    n += hit;
+    // v2.06：销量行放不下（实测 17~21 字整段被客户端丢弃，10~13 字正常），
+    // 改为插 tag_list 红字标签，与「广告」标同一个渲染容器，不受宽度限制。
+    const text = '佣金' + fmtRate(rate) + '%';
+    if (!Array.isArray(d.tag_list)) d.tag_list = [];
+    if (d.tag_list.some((x) => x && typeof x === 'object' && typeof x.text === 'string' && x.text.indexOf('佣金') === 0)) continue;
+    const tag = { text: text, text_color: AD_COLOR, tag_track_info: '' };
+    const adIdx = d.tag_list.findIndex((x) => x && typeof x === 'object' && x.text === AD_TEXT);
+    d.tag_list.splice(adIdx >= 0 ? adIdx + 1 : 0, 0, tag);
+    n++;
   }
   return n;
 }

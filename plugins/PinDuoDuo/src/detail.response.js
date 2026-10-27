@@ -31,7 +31,19 @@
  * 任何异常一律放行原响应。
  */
 
-const A = (typeof $argument === 'string' ? {} : $argument) || {};
+const A = (function (raw) {
+  let v = raw;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = {}; } }
+  if (Array.isArray(v)) {
+    const merged = {};
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (it && typeof it === 'object' && !Array.isArray(it)) for (const k in it) merged[k] = it[k];
+    }
+    v = merged;
+  }
+  return (v && typeof v === 'object') ? v : {};
+})($argument);
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 
 const AD_PREFIX = '广告·';
@@ -42,6 +54,69 @@ const AD_CAP = 200;
 // 销量/紧迫感文案。v1.77 只认「已拼|已抢|已售|总售」，漏了「快要抢光」
 // （面包诱惑实测：SKU 侧栏、底部按钮副标题、desc_labels 第二帧都是它）。
 const SALES = /(已拼|已抢|已售|总售|抢光|仅剩)/;
+
+// ── 佣金率（v2.06）：详情页只查当前这一个商品，1 次请求即可 ──────────
+const CPS_LB = on(A.cps_label);
+const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
+const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
+
+// 「广告·佣金9.6%·」——佣金段永远紧跟「广告·」之后
+function withComm(text, seg) {
+  if (typeof text !== 'string' || !text) return text;
+  if (text.indexOf('佣金') >= 0) return text;                 // 幂等
+  if (!SALES.test(text)) return text;
+  return text.indexOf(AD_PREFIX) === 0
+    ? AD_PREFIX + seg + text.slice(AD_PREFIX.length)
+    : seg + text;
+}
+
+// 详情页所有「销量文案」字符串位置统一遍历（与广告标同一批字段）
+function eachSalesText(j, fn) {
+  const np = j.ui && j.ui.new_price_section;
+  const setTxt = (o, k) => { if (o && typeof o[k] === 'string') o[k] = fn(o[k]); };
+
+  if (j.goods && typeof j.goods === 'object') setTxt(j.goods, 'side_sales_tip');
+
+  if (Array.isArray(j.sku)) {
+    for (const s of j.sku) {
+      if (!s || !Array.isArray(s.side_car_labels)) continue;
+      for (const lb of s.side_car_labels) setTxt(lb, 'text');
+    }
+  }
+
+  if (np && Array.isArray(np.desc_labels)) {
+    for (let i = 0; i < np.desc_labels.length; i++) {
+      if (typeof np.desc_labels[i] === 'string') np.desc_labels[i] = fn(np.desc_labels[i]);
+    }
+  }
+  if (np) setTxt(np, 'first_desc_label');
+  if (np && Array.isArray(np.desc_labels_for_carousel)) {
+    for (const el of np.desc_labels_for_carousel) setTxt(el, 'txt');
+  }
+  if (np && Array.isArray(np.desc_labels_rich)) {
+    for (const row of np.desc_labels_rich) {
+      if (!Array.isArray(row)) continue;
+      for (const el of row) setTxt(el, 'txt');
+    }
+  }
+  const pd = j.ui && j.ui.pull_down_title_section;
+  if (pd && Array.isArray(pd.second_line_rich_list)) {
+    for (const el of pd.second_line_rich_list) setTxt(el, 'txt');
+  }
+  const skuSec = j.ui && j.ui.sku_section;
+  const walkSuffix = (node) => {
+    if (!node || !Array.isArray(node.show_content)) return;
+    for (const sc of node.show_content) setTxt(sc, 'text');
+  };
+  if (skuSec) {
+    walkSuffix(skuSec.sku_suffix_display);
+    if (Array.isArray(skuSec.sku_suffix_display_list)) for (const n of skuSec.sku_suffix_display_list) walkSuffix(n);
+  }
+  const rb = j.ui && j.ui.new_bottom_section && j.ui.new_bottom_section.right_button;
+  if (rb && Array.isArray(rb.title)) for (const el of rb.title) setTxt(el, 'txt');
+}
+
+function inRange(v) { return v === true || v === 1 || v === 'true' || v === '1'; }
 
 // ── $persistentStore 名单读取（read(key)）────────────────────
 function loadAdIds() {
@@ -190,6 +265,48 @@ try {
         changed = true;   // 打标本身就是改动
       }
     }
+  }
+
+  const gidNow = j.goods && j.goods.goods_id !== undefined ? String(j.goods.goods_id) : '';
+
+  // ── 3) 佣金率（cps_label 开 && 有 token）────────────────────
+  // 详情页只查当前这一个商品，1 次请求；查不到就不动，绝不影响页面。
+  const finish = () => {
+    if (!changed) { $done({}); return; }
+    $done({ body: JSON.stringify(j) });
+  };
+
+  if (CPS_LB && CPS_TOKEN && gidNow && typeof $httpClient !== 'undefined') {
+    const url = CPS_API + '?jaw_uid=' + encodeURIComponent(CPS_TOKEN);
+    const content = 'https://mobile.yangkeduo.com/goods.html?goods_id=' + gidNow;
+    const bodyStr = 'content=' + encodeURIComponent(content) + '&bybtqdyh=0&is_tjb=0&supered=2'
+      + '&jaw_uid=' + encodeURIComponent(CPS_TOKEN);
+    let settled = false;
+    const settle = (rate) => {
+      if (settled) return;
+      settled = true;
+      if (rate > 0) {
+        const seg = '佣金' + (Math.round(rate * 10) / 10) + '%·';
+        try { eachSalesText(j, (t) => withComm(t, seg)); changed = true; } catch (e) { /* 忽略 */ }
+      }
+      finish();
+    };
+    try {
+      $httpClient.post({
+        url: url,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: bodyStr
+      }, function (err, resp, data) {
+        if (err) { settle(0); return; }
+        try {
+          const o = JSON.parse(data);
+          const list = o && o.data && o.data.pdd && o.data.pdd.data;
+          const g = Array.isArray(list) ? (list[0] || {}).goods : null;
+          settle(g ? parseFloat(g.rate) : 0);
+        } catch (e) { settle(0); }
+      });
+    } catch (e) { settle(0); }
+    return;
   }
 
   if (!changed) { $done({}); return; }
