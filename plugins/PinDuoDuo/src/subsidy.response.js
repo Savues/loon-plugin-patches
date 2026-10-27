@@ -314,9 +314,16 @@ try {
             const gid = g.goodsId != null ? String(g.goodsId) : '';
             const rate = gid ? map[gid] : 0;
             if (!(rate > 0)) continue;
+            // v2.11：主列表读的是 activityPriceWord，不是 activityPriceWording。
+            // 前端条件（三处组件一致）：
+            //   f = activityPriceWord
+            //   f && activityPrice.length <= 6 && <div class=activityPriceWord>{f}</div>
+            //   <div class=unit>¥</div><div class=price>{activityPrice}</div>
+            // 实测 20/21 有 activityPriceWord（"券后"），且 activityPrice 长度均 ≤6，
+            // 所以填这里一定会渲染在 ¥ 之前。
             const text = '佣金' + fmtRate(rate) + '%';
-            if (g.activityPriceWording === text) continue;   // 幂等
-            g.activityPriceWording = text;
+            if (g.activityPriceWord === text) continue;   // 幂等
+            g.activityPriceWord = text;
             n++;
           }
           if (n) {
