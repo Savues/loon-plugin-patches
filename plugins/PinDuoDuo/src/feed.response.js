@@ -153,7 +153,14 @@ function cpsFetch(ids, cb) {
     if (!Array.isArray(list)) { cb(null); return; }
     const map = {};
     for (let i = 0; i < list.length; i++) {
-      const link = list[i] && list[i].item_link;
+      const it = list[i] || {};
+      const g = it.goods || {};
+      // 只改写「确实在多多进宝里、有佣金」的商品。
+      // 未进进宝的商品 rate=0：改写不产生任何佣金，只会多跳一次领券页
+      // （反而更容易撞上「商品已售罄」），因此原样保留。
+      const rate = parseFloat(g.rate);
+      if (!(rate > 0)) continue;
+      const link = it.item_link;
       if (typeof link !== 'string') continue;
       const rel = link.replace(/^https?:\/\/[^/]+\//, '');
       if (rel.indexOf('duo_coupon_landing.html') !== 0) continue;
