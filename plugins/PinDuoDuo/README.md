@@ -1,11 +1,14 @@
 # PinDuoDuo · 拼多多去广告（修复版）
 
-> **版本 v1.98** · 订阅以 lpx 内版本为准
+> **版本 v2.29** · 订阅以 lpx 内版本为准
 
-> 修复聊天消息刷不出来、修复 jq 空值崩溃、移除三条无效或有害的 REJECT。
-> Fixes broken chat refresh, a jq null crash, and three ineffective or harmful REJECT rules.
+> 去广告 + **列表显示佣金率** + **CPS 链接改写**（自购返利）。
+> Ad blocking, plus commission-rate display and CPS link rewriting on every list.
 
-**v1.98** · 15 项配置 / 16 条生效规则 / 2 域名 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-22T19:20`
+**v2.29** · 21 项配置 / 11 条脚本规则 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-27T23:20`
+
+> 📋 完整的「佣金率 + 转链」实现过程（数据源考证、10 个版本的弯路、踩坑清单）
+> 见 **[CHANGELOG.md](./CHANGELOG.md)**。
 
 | | 中文 | English |
 |---|---|---|
@@ -88,13 +91,12 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
-| `cps_rewrite` | **关** | 把信息流 `link_url` 改写成**带 `goods_sign` 的** `duo_coupon_landing.html?...&pid=…&cpsSign=…`，让每一次点击都落在 CPS 链路上（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
-| `cps_label` | 开 | 销量行显示佣金率：`佣金9.6%·已拼5.8万件`（去掉冗余广告前缀腾位置，超宽只留佣金） | 不想看佣金时 |
-| `cps_budget` | 23 | 销量行显示宽度上限（汉字=2、数字=1）；实测原始最长 22，超 24 会被整段丢弃 | 调试时调小强制只看佣金 |
-| `cps_ttl` | 21600 | 首页列表的佣金率缓存时长（6 小时，且不跨自然日）。**详情页不走缓存**，每次拉实时值 | 想更实时可调小 |
-| `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `goods_sign` + `cpsSign`；**留空则不改写** | — |
+| `cps_rewrite` | **开** | 把**所有列表**的 `link_url` / `linkUrl` 改写成带 `goods_sign` 的 `duo_coupon_landing.html?...&pid=…&cpsSign=…`（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
+| `cps_label` | 开 | 各处列表显示佣金率（位置见下方「佣金率显示位置」） | 不想看佣金时 |
+| `cps_budget` | 14 | **首页**销量行显示宽度上限（汉字=2、数字=1）；实测 19 会整段不显示，8 正常 | 调试时调小强制只看佣金 |
+| `cps_ttl` | 21600 | 列表佣金率缓存时长（6 小时，且不跨自然日）。**详情页不走缓存**，每次拉实时值 | 想更实时可调小 |
+| `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `rate` + `goods_sign` + `cpsSign`；**留空则全部跳过** | — |
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
-| `cps_probe` | **关** | 探针：只把**第一个**商品改成不存在的页型 `zzz_probe_test.html`。点开报错=客户端确实读 `link_url`（已由 2026-10-27 真机 HAR 证实成立） | 日常保持关闭 |
 | `auto_skip` | 开 | 省钱月卡 / 续费管理 H5 的**全屏补贴动效**：自动点掉右上角「跳过」 | 想自己看完动效时 |
 
 > **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。
@@ -202,6 +204,59 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 
 > 上游的 28 条 `[Rewrite]` **一条 `enable` 都没有**，`[Argument]` 段整个不存在。
 > 换句话说，用户连「关掉某一项」的入口都没有。本版补齐了。
+
+---
+
+## 佣金率显示 · Commission rate
+
+**佣金率不在拼多多自己的接口里**（50 商品 × 53 字段扫 `fee|rate|commis` 零命中），
+必须走第三方。当前用**大淘客**（免费、单次批量 20 个、约 1.3 秒）：
+
+```
+POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
+     content=<url>\n<url>\n...        ← 换行分隔，单次上限 20 个
+     is_app=1&supered=2&jaw_uid=<cps_token>
+
+→ data.pdd.data[] = {
+    goods:     { rate, goods_sign, goods_name, ... },
+    item_link: "https://mobile.yangkeduo.com/duo_coupon_landing.html?...&cpsSign=..."
+  }
+```
+
+**一次请求同时拿到佣金率和完整推广链接**（`item_link` 已含 `goods_sign` + `cpsSign` + `authDuoId`）。
+
+### 各页面的落点
+
+| 页面 | 数据源 | 显示位置 |
+|---|---|---|
+| 首页信息流 | `api/alexa/cells/hub/v3` | 销量行：`广告·佣金3.2%` / `佣金3.2%·已拼5.8万件` |
+| 商品详情页 | `api/oak/integration/render` | 销量文案 5 处：`广告·佣金3.2%·已拼1.3万件` |
+| 百补「精选」 | `api/hermes/goods_list`（`place_id=BYBT_MAIN`） | 价格前：`佣金3.2% ¥26.58` |
+| 百补首页首屏 | `brand_activity_subsidy.html` → `tabStore.commonGoodsInfoStore.goodsInfoMap` | 同上 |
+| 消费券栏目首屏 | `tandy_vase.html` 静态 HTML | 同上（替换 `<span class="zlvRmSss">券后</span>`） |
+| 消费券栏目滚动 | `special-sale-coupon/goods_list` | 同上（`activity_price_word`） |
+| 消费券专区 | `cma/goods_list` | 同上 |
+| 从详情页返回 | `bybt/goods_fresh` | 同上（map 结构 `[place][gid]`） |
+
+### 为什么有些商品不显示佣金
+
+**没进多多进宝的商品 `rate=0`，不显示是正确的**，不是 bug。
+实测 30 个真实商品只有 13 个（43%）有佣金率；
+百补列表首屏 20 个里约 10 个有，其余是「只剩2天」「今日疯抢」「本周热卖」这类无佣金商品。
+
+> ⚠️ **验证这类功能必须滚动到列表底部再下结论** —— 首屏 10 个里可能只有 2 个有佣金。
+
+### 缓存策略
+
+| 项 | 值 |
+|---|---|
+| 存储 | `$persistentStore` 键 `pddCpsCache` |
+| TTL | 6 小时（`cps_ttl`），且**不跨自然日**（`cpsSign` 内嵌日期） |
+| 容量 | 300 条，超量按写入时间淘汰 |
+| 详情页 | **不走缓存**，每次拉实时值（购买前看到的必须准确） |
+
+缓存记录格式 `{ r: 佣金率, l: item_link相对路径, t: 时间戳 }`。
+转链开启时，缺 `l` 的记录视为未命中，会重新请求。
 
 ---
 
@@ -336,6 +391,10 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | 未解疑点 | `/api/alexa/homepage/hub` 挂了**两条** `[Rewrite]`（json-del + json-jq），Loon 官方手册未说明同一 URL 多条规则的执行顺序 |
 | 上游 JS 未审 | `PinDuoDuo_remove_ads.js` 保持原样引用，未做改动也未做审计 |
 | 底栏顺序 | 跟随服务端下发顺序，插件不重排 |
+| **佣金覆盖率约 43%** | 只有进了多多进宝的商品有佣金率；未进进宝的 `rate=0`，不显示是正确的 |
+| **大淘客单次上限 20 个** | 一屏超过 20 个商品时，第 21 个之后本轮不处理，下屏再补 |
+| **消费券页面加载两次** | PDD 自身双阶段渲染（静态 HTML → hydration 后接口覆盖），插件两处都改，视觉上会看到内容闪一下 |
+| **依赖第三方接口** | 佣金率来自大淘客，其接口或 `app_token` 变动会导致功能失效（不影响去广告） |
 
 ---
 
@@ -351,9 +410,14 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `manifest.json` | 脚本 sha256 登记（上游 2 + 自研 2） | Script hashes |
 | `src/homepage.response.js` | 首页去广告 + 底栏自定义（**自研**） | Purpose-built script |
 | `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
-| `src/subsidy.response.js` | 百亿补贴页搜索框去推广词（**自研**） | Subsidy page search-box scrubber |
+| `src/feed.response.js` | 首页信息流：广告标 + 佣金率 + CPS 链接改写（**自研**） | Feed: ad tag + commission + link rewrite |
+| `src/detail.response.js` | 商品详情页：广告标 + 佣金率（**自研**） | Goods detail: ad tag + commission |
+| `src/subsidy.response.js` | 百补首页 + 消费券首屏：搜索词清理 + 广告标 + 佣金率 + 链接改写（**自研**） | Subsidy pages: scrub + ad + commission |
+| `src/bybt_goods.response.js` | 百补「精选」`hermes/goods_list`：佣金率 + 链接改写（**自研**） | Subsidy 精选 commission |
+| `src/subsidy_api.response.js` | 消费券滚动接口（2 个）：广告角标 + 佣金率 + 链接改写（**自研**） | Coupon list ad + commission |
+| `src/bybt_fresh.response.js` | `bybt/goods_fresh`：返回页面时重刷的佣金率 + 链接改写（**自研**） | goods_fresh commission |
 | `src/hub_skip.response.js` | 月卡 H5 自动点「跳过」动效（**自研**） | Month-card H5 auto-skip injector |
-| `src/subsidy_api.response.js` | 百补列表**分页接口**广告角标（**自研**） | Subsidy pagination ad tagging |
+| `CHANGELOG.md` | v1.99 → v2.29 完整改动记录（含数据源考证与踩坑） | Full changelog |
 | `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
 | `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
 | `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
