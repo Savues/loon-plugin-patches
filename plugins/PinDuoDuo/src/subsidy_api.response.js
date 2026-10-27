@@ -62,29 +62,152 @@ function isAd(item) {
   return false;
 }
 
+// ── 佣金率（v2.24）：改 activity_price_word ──────────────────
+// 消费券栏目首屏是服务端渲染 HTML（subsidy.response.js 改静态「券后」），
+// 但前端 hydration 后会调本接口拉真实数据并**覆盖**回去 —— 真机实测
+// 「短暂显示佣金3.2%，然后自动刷回券后」。所以必须在这个接口里也改。
+const CPS_LB = on(A.cps_label);
+const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
+const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one';
+const CPS_BATCH = 20;
+const CACHE_KEY = 'pddCpsCache';
+const CACHE_CAP = 300;
+const CACHE_TTL = (function () {
+  const v = parseInt(A.cps_ttl, 10);
+  return v > 0 ? v : 21600;
+})();
+
+function fmtRate(v) { return String(Math.round(v * 10) / 10); }
+
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+function cacheLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return {};
+    const raw = $persistentStore.read(CACHE_KEY);
+    const o = raw ? JSON.parse(String(raw)) : {};
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+
+function cacheSave(o) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    const keys = Object.keys(o);
+    if (keys.length > CACHE_CAP) {
+      keys.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < keys.length - CACHE_CAP; i++) delete o[keys[i]];
+    }
+    $persistentStore.write(JSON.stringify(o), CACHE_KEY);
+  } catch (e) { /* 忽略 */ }
+}
+
+function cacheFresh(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const t = rec.t || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (now - t > CACHE_TTL) return false;
+  if (t < todayStart()) return false;
+  return true;
+}
+
+function cpsFetch(ids, cb) {
+  if (!CPS_TOKEN || typeof $httpClient === 'undefined') { cb(null); return; }
+  let content = '';
+  for (let i = 0; i < ids.length; i++) {
+    if (i) content += '\n';
+    content += 'https://mobile.yangkeduo.com/goods.html?goods_id=' + ids[i];
+  }
+  const tok = encodeURIComponent(CPS_TOKEN);
+  $httpClient.post({
+    url: CPS_API + '?jaw_uid=' + tok,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'content=' + encodeURIComponent(content) + '&is_app=1&supered=2&jaw_uid=' + tok
+  }, function (err, resp, data) {
+    if (err || !data) { cb(null); return; }
+    let j;
+    try { j = JSON.parse(data); } catch (e) { cb(null); return; }
+    const list = j && j.data && j.data.pdd && j.data.pdd.data;
+    if (!Array.isArray(list)) { cb(null); return; }
+    const map = {};
+    for (let i = 0; i < list.length; i++) {
+      const g = (list[i] || {}).goods || {};
+      const rate = parseFloat(g.rate);
+      if (!(rate > 0)) continue;
+      const link = list[i].item_link;
+      if (typeof link !== 'string') continue;
+      const m = link.match(/[?&]goods_id=(\d+)/);
+      if (m && !map[m[1]]) map[m[1]] = rate;
+    }
+    cb(map);
+  });
+}
+
 try {
-  if (!on(A.feed_ad)) {
+  if (!on(A.feed_ad) && !CPS_LB) {
     $done({});
   } else {
     const raw = $response.body;
-    let changed = false;
-    let out = raw;
+    let j = null;
     if (typeof raw === 'string' && raw.length) {
-      let j = null;
       try { j = JSON.parse(raw); } catch (e) { j = null; }
-      const list = j && j.result && Array.isArray(j.result.goods_list) ? j.result.goods_list : null;
-      if (list) {
-        const ids = [];
-        for (const it of list) {
-          if (!isAd(it)) continue;
-          if (it.lt_icon !== AD_BADGE_URL) { it.lt_icon = AD_BADGE_URL; changed = true; }
-          if (it.goods_id != null) ids.push(String(it.goods_id));
-        }
-        if (ids.length) mergeIds(ids);
-        if (changed) out = JSON.stringify(j);
-      }
     }
-    $done(changed ? { body: out } : {});
+    const list = j && j.result && Array.isArray(j.result.goods_list) ? j.result.goods_list : null;
+    if (!list) { $done({}); return; }
+
+    // ① 广告角标（同步）
+    let changed = false;
+    if (on(A.feed_ad)) {
+      const ids = [];
+      for (const it of list) {
+        if (!isAd(it)) continue;
+        if (it.lt_icon !== AD_BADGE_URL) { it.lt_icon = AD_BADGE_URL; changed = true; }
+        if (it.goods_id != null) ids.push(String(it.goods_id));
+      }
+      if (ids.length) mergeIds(ids);
+    }
+
+    // ② 佣金率（异步）：改 activity_price_word
+    const cache = cacheLoad();
+    const map = {};
+    const finish = (fetched) => {
+      if (fetched) {
+        const now = Math.floor(Date.now() / 1000);
+        for (const gid in fetched) {
+          map[gid] = fetched[gid];          // ← 关键：写进 map 才能取到
+          cache[gid] = { r: fetched[gid], t: now };
+        }
+        cacheSave(cache);
+      }
+      for (const it of list) {
+        if (!it || typeof it !== 'object') continue;
+        const gid = it.goods_id != null ? String(it.goods_id) : '';
+        const rate = gid ? map[gid] : 0;
+        if (!(rate > 0)) continue;
+        const text = '佣金' + fmtRate(rate) + '%';
+        if (it.activity_price_word === text) continue;   // 幂等
+        it.activity_price_word = text;
+        changed = true;
+      }
+      $done(changed ? { body: JSON.stringify(j) } : {});
+    };
+
+    if (!CPS_LB || !CPS_TOKEN) { finish(null); return; }
+
+    const need = [];
+    for (const it of list) {
+      const gid = it && it.goods_id != null ? String(it.goods_id) : '';
+      if (!gid) continue;
+      if (cacheFresh(cache[gid])) map[gid] = cache[gid].r;
+      else if (need.indexOf(gid) === -1 && need.length < CPS_BATCH) need.push(gid);
+    }
+    if (!need.length) { finish(null); return; }
+    cpsFetch(need, finish);
+    return;
   }
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百补列表刷不出商品
