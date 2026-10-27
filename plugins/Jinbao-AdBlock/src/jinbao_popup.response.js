@@ -29,7 +29,8 @@
         if (typeof v === 'boolean') return v;
         return String(v).toLowerCase() === 'true' || String(v) === '1';
     };
-    if (!pick('killPopups', 0, true)) return $done({});
+    if (!pick('enabled', 0, true)) return $done({});          // 总开关
+    if (!pick('killPopups', 1, true)) return $done({});
     if (!$response || !$response.body) return $done({});
 
     const url = ($request && $request.url) || '';

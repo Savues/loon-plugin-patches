@@ -27,8 +27,9 @@
         if (typeof v === 'boolean') return v;
         return String(v).toLowerCase() === 'true' || String(v) === '1';
     };
-    const hideBanner = pick('hideBannerAds', 0, true);
-    const closeMission = pick('closeMissionCard', 1, false);
+    if (!pick('enabled', 0, true)) return $done({});          // 总开关
+    const hideBanner = pick('hideBannerAds', 1, true);
+    const closeMission = pick('closeMissionCard', 2, false);
     if (!hideBanner && !closeMission) return $done({});
     if (!$response || !$response.body) return $done({});
 
