@@ -78,7 +78,6 @@ function recordIds(ids) {
 const CPS_RW = on(A.cps_rewrite);
 const CPS_LB = on(A.cps_label);
 const CPS_ON = CPS_RW || CPS_LB;
-const CPS_PROBE = on(A.cps_probe);
 const CPS_PID = (typeof A.cps_pid === 'string' && A.cps_pid) ? A.cps_pid : '41096949_318859099';
 const CPS_TOKEN = (typeof A.cps_token === 'string') ? A.cps_token.trim() : '';
 const CPS_BATCH = 20;
@@ -366,30 +365,12 @@ try {
   let marked = 0;
   const applyAds = () => { if (on(A.feed_ad)) marked = markAds(j); };
 
-  // 诊断：把实际收到的 $argument 形态写进首个商品的 sales_tip，随 HAR 一起回传
-  let probed = 0;
-  if (CPS_PROBE) {
-    try {
-      let first = null;
-      (function find(n, d) {
-        if (first || !n || typeof n !== 'object' || d > 6) return;
-        if (Array.isArray(n)) { for (let i = 0; i < n.length && !first; i++) find(n[i], d + 1); return; }
-        if (n.sales_tip || n.goods_id) { first = n; return; }
-        for (const k in n) { find(n[k], d + 1); if (first) return; }
-      })(j, 0);
-      if (first) {
-        const raw = typeof $argument === 'string' ? $argument : JSON.stringify($argument);
-        first.sales_tip = 'ARG=' + String(raw).slice(0, 88);
-        probed = 1;
-      }
-    } catch (e) { /* 诊断失败不影响主流程 */ }
-  }
 
-  if (!CPS_ON) { applyAds(); finish(j, marked + probed, 0); return; }
+  if (!CPS_ON) { applyAds(); finish(j, marked, 0); return; }
 
   const order = [];
   try { cpsCollect(j, 0, order, {}); } catch (e) { /* 结构异常则不改写 */ }
-  if (!order.length) { applyAds(); finish(j, marked + probed, 0); return; }
+  if (!order.length) { applyAds(); finish(j, marked, 0); return; }
 
   // 先查本地缓存：命中的直接进 map，只把未命中的拿去请求
   const cache = cacheLoad();
@@ -413,7 +394,7 @@ try {
       }
     }
     applyAds();                      // 广告打标放最后
-    finish(j, marked + probed, n);
+    finish(j, marked, n);
   };
 
   if (!need.length) { applyAll(null); return; }   // 全部命中缓存，零请求

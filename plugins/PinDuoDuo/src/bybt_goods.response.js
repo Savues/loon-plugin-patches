@@ -172,7 +172,7 @@ try {
       const gid = String(g.goods_id);
       const rate = map[gid];
       if (!(rate > 0)) continue;
-      const text = on(A.cps_probe) ? 'API探针' : ('佣金' + fmtRate(rate) + '%');
+      const text = '佣金' + fmtRate(rate) + '%';
       const bt = g.activity_price_word_before_tag;
       if (bt && typeof bt === 'object') {
         if (bt.text === text) continue;          // 幂等
