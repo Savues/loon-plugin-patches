@@ -147,6 +147,34 @@ try {
     if (out !== body) body = out;
   }
 
+  // ── 诊断探针：往 HTML rawData 塞可见文字，验证前端是否读它 ──────
+  if (on(A.cps_probe)) {
+    const p0 = parseRawData(body);
+    if (p0) {
+      let done = false;
+      try {
+        const st = p0.obj.store || {};
+        const tabs = (st.tabStore || {}).tabList || [];
+        for (const t2 of tabs) {
+          for (const s2 of (t2.subTabGoodsLists || [])) {
+            const lst = s2.list || [];
+            for (const g of lst) {
+              if (!g || !g.goodsId) continue;
+              const bt = g.activityPriceWordBeforeTag;
+              if (bt && typeof bt === 'object') bt.text = 'HTML探针';
+              else g.activityPriceWord = 'HTML探针';
+              done = true;
+              break;
+            }
+            if (done) break;
+          }
+          if (done) break;
+        }
+        if (done) body = body.slice(0, p0.start) + JSON.stringify(p0.obj) + body.slice(p0.end);
+      } catch (e) { /* 探针失败不影响主流程 */ }
+    }
+  }
+
   // ── 职责 2：百补列表页广告（feed_ad）────────────────────
   if (on(A.feed_ad) && typeof $persistentStore !== 'undefined') {
     const parsed = parseRawData(body);
