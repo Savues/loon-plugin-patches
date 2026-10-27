@@ -24,7 +24,16 @@
  * 任何异常一律放行原响应，绝不因脚本出错让信息流加载失败。
  */
 
-const A = (typeof $argument === 'string' ? {} : $argument) || {};
+// $argument 三种形态都要兼容：对象 / 数组 / JSON 字符串
+// （仓库历史事故 v3.37.3：只处理对象形态，真机传数组时全部开关失效）
+const A = (function (raw) {
+  let v = raw;
+  if (typeof v === 'string') {
+    try { v = JSON.parse(v); } catch (e) { v = {}; }
+  }
+  if (Array.isArray(v)) v = v[0] || {};
+  return (v && typeof v === 'object') ? v : {};
+})($argument);
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 
 const AD_TEXT = '广告';
@@ -41,8 +50,50 @@ function recordIds(ids) {
   } catch (e) { /* 存储不可用不阻断打标 */ }
 }
 
+// ── CPS 链接改写（见 src/cps_link.response.js 的设计说明）────────────
+// 拼多多自购比价规则要求**第一次点击**就落在 CPS 链接上，所以必须在列表
+// 响应里就把 link_url 换掉。因为 Loon 同 URL 只跑首个命中的 [Script]，
+// 这段必须内联在本文件，不能另起一条规则。
+const CPS_PID = (typeof A.cps_pid === 'string' && A.cps_pid) ? A.cps_pid : '41096949_318859099';
+const CPS_ON = on(A.cps_rewrite);
+const CPS_PROBE = on(A.cps_probe);
+const CPS_PROBE_PATH = 'zzz_probe_test.html';
+const RE_GID = /[?&]goods_id=(\d+)/;
+const CPS_MAX_DEPTH = 9;
+
+function cpsLink(gid) {
+  return 'duo_coupon_landing.html?goods_id=' + gid +
+    '&pid=' + encodeURIComponent(CPS_PID) +
+    '&campaign=ddjb&duoduo_type=2';
+}
+
+function cpsWalk(node, depth, st) {
+  if (!node || typeof node !== 'object' || depth > CPS_MAX_DEPTH) return;
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) cpsWalk(node[i], depth + 1, st);
+    return;
+  }
+  const keys = Object.keys(node);
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const v = node[k];
+    if (k === 'link_url' && typeof v === 'string') {
+      const m = v.match(RE_GID);
+      if (!m) continue;
+      if (CPS_PROBE) {
+        if (!st.hit) { node[k] = CPS_PROBE_PATH + '?goods_id=' + m[1]; st.hit = 1; st.n++; }
+        continue;                       // 探针模式只动第一个，其余原样
+      }
+      node[k] = cpsLink(m[1]);
+      st.n++;
+    } else if (v && typeof v === 'object') {
+      cpsWalk(v, depth + 1, st);
+    }
+  }
+}
+
 try {
-  if (!on(A.feed_ad)) { $done({}); return; }
+  if (!on(A.feed_ad) && !CPS_ON) { $done({}); return; }
 
   const body = $response && $response.body;
   if (!body) { $done({}); return; }
@@ -50,10 +101,21 @@ try {
   let j;
   try { j = JSON.parse(body); } catch (e) { $done({}); return; }
 
+  // ① 先做链接改写（与 ad 打标互不影响）
+  let rewritten = 0;
+  if (CPS_ON) {
+    const st = { n: 0, hit: 0 };
+    try { cpsWalk(j, 0, st); rewritten = st.n; } catch (e) { rewritten = 0; }
+  }
+
   const list = j && j.data && Array.isArray(j.data.goods_list) ? j.data.goods_list : null;
-  if (!list) { $done({}); return; }
 
   let marked = 0;
+  if (!on(A.feed_ad) || !list) {
+    if (!rewritten) { $done({}); return; }
+    $done({ body: JSON.stringify(j) });
+    return;
+  }
   for (const cell of list) {
     const d = cell && typeof cell === 'object' ? cell.data : null;
     if (!d || typeof d !== 'object' || !d.ad) continue;   // 只有服务端打了广告标的才处理
@@ -98,7 +160,7 @@ try {
     recordIds(now);
   }
 
-  if (!marked) { $done({}); return; }   // 这一屏没有广告，原样放行，省一次序列化
+  if (!marked && !rewritten) { $done({}); return; }   // 这一屏无改动，原样放行，省一次序列化
   $done({ body: JSON.stringify(j) });
 } catch (e) {
   $done({});
