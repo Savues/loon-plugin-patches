@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.31
+#!name=拼多多去广告(修复版) v2.32
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -24,6 +24,7 @@ cps_budget = input,"22",tag=[信息流] 销量行宽度预算,desc=显示宽度�
 cps_ttl = input,"21600",tag=[信息流] 列表缓存秒数,desc=首页列表的佣金率缓存时长（默认 6 小时，且不跨自然日，因为 cpsSign 内嵌日期）。商品详情页不走缓存，每次都拉实时佣金率
 cps_token = input,"0ygkhUM7anL-DCQqMDW43Z9F9MW0M2zK8-aC5E7Y1_ZPA-9AblWXTaz1fuK7Q0RrVClBO3OcYvnA4s0gDErdR8d2nnwaaiuNgdMftWmjYevhYsqfHzlOR_dzZhMZ--lxqwgRsX36H1ZoJQj-fPhXyJfs9USo1Y2ZhAJpXHVP8F0",tag=[高危] 大淘客 app_token,desc=用于批量换取 goods_sign;取自大淘客 App 的 get-user-info 接口 jaw_uid 字段(171 字符);留空则不改写
 cps_pid = input,"41096949_318859099",tag=[高危] 推广位 PID,desc=改写进链接的 pid，需与你的多多进宝推广位一致
+hub_anim = switch,true,tag=[月卡] 屏蔽强化续费提醒动效,desc=把 gather/homepage 的 gift_cash.hit_enhance_renew_remind 置 0；那个全屏 Lottie 动效按一下才继续，纯前端无网络请求，抓包证实无需点击也不影响发券
 auto_skip = switch,true,tag=[月卡] 自动点掉全屏动效的「跳过」,desc=省钱月卡/续费页的补贴动效（右上角跳过）自动点掉;点跳过与动效跑完等效，不影响发券
 # ===== 底栏自定义 =====
 bottom_custom = switch,true,tag=[底栏] 启用自定义底栏
@@ -97,6 +98,7 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? sc
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=12, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=信息流广告打标+CPS链接改写
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/hermes\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/bybt_goods.response.js?v=5, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=百亿补贴列表佣金率
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/naga\/selected\/goods\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_selected.response.js?v=1, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_budget},{cps_ttl},{cps_token}], timeout=10, tag=省钱月卡精选列表佣金率
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/homepage\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_anim.response.js?v=1, requires-body=true, argument=[{hub_anim}], timeout=10, tag=省钱月卡屏蔽强化续费提醒动效
 
 [MitM]
 hostname=api.pinduoduo.com, m.pinduoduo.net
