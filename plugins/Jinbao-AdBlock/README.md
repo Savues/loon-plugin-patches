@@ -1,33 +1,43 @@
-# 多多进宝开屏防护（Jinbao-AdBlock）
+# 多多进宝净化（Jinbao-AdBlock）
 
-> **状态：预防性守卫（v0.1.0）** —— 截至 2026-10-27 的进程内取证，**没有观测到该 App 存在开屏广告流量**。
-> 本插件按「开屏字段即广告字段」的保守假设做预防性拦截，未命中时**原样放行**，不影响任何功能接口。
+> **v0.2.0** — 真机 HAR 取证后修正：业务域名是 `jinbaoh5.pinduoduo.com`（不是 `jinbao.`），
+> 并新增「热门搜索」屏蔽。开屏部分仍为**预防性**（真机 200 条请求里同样零开屏流量）。
 
-## 一、为什么是「预防性」
-
-2026-10-27 用 `lc-forensics v10.3` + 自研业务层探针（`ddjb-splash-probe`）在 LiveContainer 里两次冷启动全量取证：
+## 一、真机取证结论（2026-10-27，200 条 HAR）
 
 | 观测项 | 结果 |
 |---|---|
-| NSURLSession 层流量 | 仅 9 个域名：`meta.pinduoduo.com`、`apm-a.pinduoduo.com`、`duotk.pinduoduo.com` —— **业务 API 全部不在其中** |
-| 业务层探针（`DDJBHTTPServiceManager`） | 18 请求 / 18 响应全量捕获，接口全部是 `network_h5/*` |
-| 开屏专属接口 | **0 个**（二进制里也没有任何 splash 相关 API 路径字符串） |
-| `-[AppDelegate preloadSplashInfo]` | **0 次调用** |
-| `DDJBSplashViewController`（viewDidLoad / tapAction / nextStep） | **0 次调用** |
-| `DDJBSplashModel` 构造 | **0 次** |
+| 业务 API 域名 | **`jinbaoh5.pinduoduo.com/network_h5/*`**（59 条） |
+| 原生 API 域名 | `jinbao.pinduoduo.com/network/api/*`（25 条） |
+| 含 `splash` 的请求 / 响应 | **0 条**（URL 与 body 全文检索均为 0） |
+| 搜索框热门词 | `GET network_h5/auth/goods/query_top_keywords` → `result` 字符串数组 |
 
-结论：**当前版本 + 当前账号（未登录）+ 当前 AB 实验下，App 根本没有走开屏逻辑。**
-二进制里确实存在完整的开屏实现（`DDJBSplashModel` / `DDJBSplashViewController` / `hasSplash` / `jbapp_splash`），
-说明该能力存在但被服务端开关关闭 —— 这与用户反馈「很少见，几乎没见过」一致。
+> ⚠️ v0.1.0 的 `[Script]` 只写了 `jinbao.pinduoduo.com/network_h5/`，而真实业务流量全在
+> `jinbaoh5.pinduoduo.com` —— **v0.1.0 实际上一条都没命中**。v0.2.0 已改为
+> `^https://jinbao(h5)?\.pinduoduo\.com/network(_h5)?/`，同时覆盖两个域名。
 
-## 二、插件做什么
+## 二、屏蔽热门搜索（v0.2.0 新增，默认开）
+
+真机实测响应：
+
+```json
+GET https://jinbaoh5.pinduoduo.com/network_h5/auth/goods/query_top_keywords
+{"success":true,"errorCode":1000000,"errorMsg":null,
+ "result":["裤子","飞天茅台","猫砂","富士xm5","华为mate80","蓝牙耳机","外套","一加ace6t","牛奶","卫生纸"]}
+```
+
+处理：`result` 置空数组，**保留 `success`/`errorCode` 原值**（避免 App 弹错误提示）：
+
+```json
+{"success":true,"errorCode":1000000,"errorMsg":null,"result":[]}
+```
+
+- 132B → 64B，`result[]: 10 → 0`
+- 开关 `hideHotSearch`，关掉后原样返回
+
+## 三、开屏防护（预防性）
 
 ### 1. `[Script]` 递归剪除开屏字段（默认开）
-挂在 App 全部业务 JSON 上：
-
-```
-^https://jinbao\.pinduoduo\.com/network_h5/
-```
 
 递归（最大 24 层）删除键名匹配以下模式的字段（整键匹配，大小写不敏感）：
 
@@ -39,58 +49,74 @@ launchAd / launch_ad / launchAdInfo / openScreen / open_screen / openScreenAd
 startupAd / startup_ad / bootAd / boot_ad / welcomeAd / welcome_ad
 ```
 
-- **未命中任何字段时原样返回**（不重写 body，零开销、零误伤）
-- 非 JSON 响应直接跳过
-- 兼容 `$argument` 三种形态：对象 / `[对象]` / `[v0,v1]`（仓库历史事故 v3.37.3）
+- **未命中任何字段时原样返回**（不重写 body）
+- 非 JSON 直接跳过；`query_top_keywords` 跳过（由热词脚本专职处理）
 
-### 2. `[Rewrite]` 开屏类路径兜底（不可关）
-若未来出现开屏专属接口（路径含 `splash`），直接返回成功空结果而不是 404/白屏：
+### 2. `[Rewrite]` 开屏类路径兜底
 
 ```
-request if ${url} ~= /^https:\/\/jinbao\.pinduoduo\.com\/network_h5\/[^?]*\/?splash/i
+request if ${url} ~= /^https:\/\/jinbao(h5)?\.pinduoduo\.com\/network(_h5)?\/[^?]*\/?splash/i
   then reject(200, '{"success":true,"errorCode":1000000,"errorMsg":null,"result":null}')
 ```
 
-> 注：这条是**预防**，当前流量里零命中（已确认二进制里没有此类路径）。
+当前流量零命中（真机 + LC 双环境均确认无此路径）。
 
-## 三、开关
+## 四、为什么开屏只能做「预防」
+
+两次 LC 冷启动 + 业务层探针（`DDJBHTTPServiceManager` 全量 hook）+ 真机 HAR，三条证据一致：
+
+| 证据源 | 开屏痕迹 |
+|---|---|
+| LC 进程内（18 请求/18 响应） | `preloadSplashInfo` / `DDJBSplashViewController` / `DDJBSplashModel` **0 次调用** |
+| 真机 HAR（200 条） | 含 `splash` 的请求/响应 **0 条** |
+| 二进制静态 | 开屏实现完整存在（`hasSplash` / `jbapp_splash` / `AppSplashIdentifier`），但**无 splash API 路径字符串** |
+
+→ 能力存在、服务端开关关闭。规则保留为预防，未命中原样放行。
+
+## 五、开关
 
 | 开关 | 默认 | 说明 |
 |---|---|---|
-| `enabled` 插件总开关 | 开 | 关闭后脚本直接返回，不做任何处理 |
-| `stripSplashKeys` 剪除开屏字段 | 开 | 关掉后只保留路径兜底 |
+| `enabled` 插件总开关 | 开 | 关闭后所有脚本直接返回 |
+| `hideHotSearch` 屏蔽热门搜索 | 开 | 清空 `query_top_keywords` 的 `result` |
+| `stripSplashKeys` 剪除开屏字段 | 开 | 递归删 splash 类字段 |
 
-## 四、验证记录
+## 六、验证记录（v0.2.0）
 
 ```bash
 cd tools/loon-sim
 node cli.js check ../../plugins/Jinbao-AdBlock/Jinbao-AdBlock.lpx
-# → 0 错误 0 警告
+# → 0 错误 0 警告 · [Script] 2 · [Rewrite] 2 · [Mitm] 2 · [Argument] 3
 
-# ① 命中：注入 splashInfo 的响应
-node cli.js run ../../plugins/Jinbao-AdBlock/Jinbao-AdBlock.lpx \
-  --url "https://jinbao.pinduoduo.com/network_h5/weak_auth/goods/query_channel_config" \
-  --phase response --response-file ../../plugins/Jinbao-AdBlock/test/fixture-splash.json
-# → 生效规则命中 · 465B → 184B · result{}: 3 → 2 · console: [jinbao] 已剪除开屏字段
+# ① 热门搜索（真机真实响应）
+node cli.js run ... --url "https://jinbaoh5.pinduoduo.com/network_h5/auth/goods/query_top_keywords" \
+  --phase response --response-file test/fixture-hotsearch.json
+# → [jinbao] 热门搜索已清空（10 条）· 132B → 64B · result[]: 10 → 0
 
-# ② 未命中：真实结构响应
-node cli.js run ... --response-file test/fixture-plain.json
+# ② 常规接口不误伤（真机 label_info）
+node cli.js run ... --url "https://jinbaoh5.pinduoduo.com/network_h5/weak_auth/common/label_info" ...
 # → 原样返回（未修改）
+
+# ③ 注入 splashInfo（jinbaoh5 域名）
+node cli.js run ... --response-file test/fixture-splash.json
+# → 已剪除开屏字段 · 465B → 184B
+
+# ④ 真机 HAR 全量回放
+node cli.js har ../../plugins/Jinbao-AdBlock/Jinbao-AdBlock.lpx <har>
+# → 扫描 200 条：命中 Script 75 · 实际改动 1 · 被 Rewrite 终止 0
 ```
 
-夹具来自 2026-10-27 真机取证的真实响应结构（`query_channel_config` 的 `homePageConfig`），
-仅额外注入 `splashInfo` 字段用于验证剪除逻辑。
+`test/fixture-hotsearch.json` / `fixture-channel-config.json` / `fixture-label-info.json`
+均为真机 HAR 原样导出（未加工）。
 
-## 五、已知边界
+## 七、已知边界
 
-1. **未验证真实开屏**：没有样本可对照，规则的有效性只能在开屏真的出现时确认。
-2. 若开屏改走 **Titan 长连接推送**（`DDJBTitanService`）而非 HTTP，本插件**拦不到** —— 需要 Loon 侧不可达，
-   届时只能用进程内方案（探针已覆盖 `titan:didReceiveTitanPushResponse:`）。
-3. 若开屏是**本地内置图**（LaunchScreen / 预置资源），HTTP 层同样不可达。
-4. 开屏字段名是**推测**的命名族；若真实字段叫别的名字（如 `adMaterial`），需按实际响应补进 `SPLASH_KEY`。
+1. **开屏未验证真实样本**：规则按字段名族推测，真出现时需按实际字段名补 `SPLASH_KEY`。
+2. 若开屏走 **Titan 长连接推送**（`DDJBTitanService`）或本地内置资源，HTTP 层不可达。
+3. 热门搜索若改由 H5 页面内联下发（`jinbao.pinduoduo.com/mobile/*.html` 内嵌 JSON），当前规则不覆盖 —— 本次 HAR 中该词表确实来自独立接口，暂不需要。
+4. 其他推广位（`pop_window_info` 弹窗 / `activity_list` / `super_red_packet`）**未处理**，按需再加。
 
-## 六、取证工具位置
+## 八、取证工具位置
 
-- 探针源码：`/var/minis/workspace/ddjb/probe/ddjb-probe.c`（独立模块，不依赖也不修改 lc-forensics）
-- 探针构建：`clang --target=arm64-apple-ios15.0.0 … && ld64.lld -dylib … && ldid -S`
+- 进程内探针源码：`/var/minis/workspace/ddjb/probe/ddjb-probe.c`（独立模块，不修改 lc-forensics）
 - 日志：`Documents/lcf-ddjb/probe-<UTC>-<pid>.jsonl` + `bodies/`
