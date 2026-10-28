@@ -26,7 +26,26 @@
  * 开关：feed_ad（与信息流/详情页/百补 HTML 同一开关）。
  */
 
-const A = (typeof $argument === 'string' ? {} : $argument) || {};
+const A = (function (raw) {
+  // v2.43：兼容 $argument 的三种形态（对象 / JSON 字符串 / 数组 [{...}]）。
+  // 真机实测 Loon 传的是数组；旧写法 `(typeof $argument === 'string' ? {} : $argument)`
+  // 直接拿数组当对象用，A.api_stub 恒为 undefined → 整个 api_stub 功能静默失效。
+  let v = raw;
+  if (typeof v === 'string') {
+    try { v = JSON.parse(v); } catch (e) { v = {}; }
+  }
+  if (Array.isArray(v)) {
+    const merged = {};
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (it && typeof it === 'object' && !Array.isArray(it)) {
+        for (const k in it) merged[k] = it[k];
+      }
+    }
+    v = merged;
+  }
+  return (v && typeof v === 'object') ? v : {};
+})($argument);
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 
 const AD_KEY = 'pddAdGoodsIds';

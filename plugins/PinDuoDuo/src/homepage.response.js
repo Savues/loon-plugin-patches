@@ -10,7 +10,26 @@
  * 任何异常都放行原响应，绝不因脚本出错让 App 拿不到首页配置。
  */
 
-const A = (typeof $argument === 'string' ? {} : $argument) || {};
+const A = (function (raw) {
+  // v2.43：兼容 $argument 的三种形态（对象 / JSON 字符串 / 数组 [{...}]）。
+  // 真机实测 Loon 传的是数组；旧写法 `(typeof $argument === 'string' ? {} : $argument)`
+  // 直接拿数组当对象用，A.api_stub 恒为 undefined → 整个 api_stub 功能静默失效。
+  let v = raw;
+  if (typeof v === 'string') {
+    try { v = JSON.parse(v); } catch (e) { v = {}; }
+  }
+  if (Array.isArray(v)) {
+    const merged = {};
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (it && typeof it === 'object' && !Array.isArray(it)) {
+        for (const k in it) merged[k] = it[k];
+      }
+    }
+    v = merged;
+  }
+  return (v && typeof v === 'object') ? v : {};
+})($argument);
 
 // Loon 的 switch 可能给 true / "true" / 1 / "on"
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
