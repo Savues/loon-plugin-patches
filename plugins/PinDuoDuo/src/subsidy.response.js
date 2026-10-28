@@ -369,6 +369,55 @@ function injectLightupAuto(body) {
   return body.slice(0, i) + LIGHTUP_JS + body.slice(i);
 }
 
+// v2.45：福袋领券弹窗自动点关闭
+// ---------------------------------------------------------------------------
+// 背景（LuckyBagTakeCouPopNewTwo_*.js 反查）：
+//   消费券页福袋领券弹窗，动画（Lottie）播完才显示关闭按钮，要手动点。
+//   服务端在动画开始瞬间就已发券（take_coupon 立即返回 code:0），动画纯拖延。
+//
+// 关闭按钮：
+//   l.createElement(f.ZP, {
+//     className: m()(x().BX_Class521, x().BX_Ani521),   // → "_1-lALGJL _1CIjIqvj"
+//     src: D.IMG_SRC_13,                                 // → 固定 URL
+//     onClick: a                                         // a = closePop
+//   })
+//
+// 为什么用图片 URL 而不是 class：
+//   class 是 CSS Modules 编译产物（_1-lALGJL），每次构建都会变；
+//   图片 URL（promotion.pddpic.com/mobile-dc/2026-05-07/f57ce24c-...png）是写死的。
+//   实测两个弹窗变体（BX_Class521 / BX_Class240）都用同一张关闭图。
+//
+// 做法：每 500ms 扫一遍 img，src 命中就 click（每个元素只点一次）。
+const LUCKY_CLOSE_JS = `<script id="pdd-lucky-close">(function(){
+  if (window.__pddLuckyClose) return;
+  window.__pddLuckyClose = 1;
+  var KEY = 'f57ce24c-be68-49a3-ab54-dd45824a4a1d';
+  setInterval(function () {
+    try {
+      var imgs = document.querySelectorAll('img');
+      for (var i = 0; i < imgs.length; i++) {
+        var im = imgs[i];
+        if (im.__pddLbClicked) continue;
+        if (!im.src || im.src.indexOf(KEY) === -1) continue;
+        var r = im.getBoundingClientRect();
+        if (r.width < 5 || r.height < 5) continue;   // 跳过未渲染的
+        im.__pddLbClicked = 1;
+        try { im.click(); } catch (e) {}
+      }
+    } catch (e) {}
+  }, 500);
+})();</script>`;
+const LUCKY_CLOSE = (A.lucky_close === undefined || A.lucky_close === null || A.lucky_close === '')
+  ? true : on(A.lucky_close);
+
+function injectLuckyClose(body) {
+  if (!LUCKY_CLOSE) return body;
+  if (body.indexOf('id="pdd-lucky-close"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</body>');
+  if (i < 0) return body;
+  return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
+}
+
 function injectNoAnim(body) {
   if (!NO_ANIM) return body;
   if (body.indexOf('id="pdd-no-anim"') !== -1) return body;   // 幂等
@@ -507,6 +556,7 @@ try {
             }
             body = injectNoAnim(body);
   body = injectLightupAuto(body);
+  body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
           };
           if (!need.length) { done(null); return; }
@@ -526,6 +576,7 @@ try {
 
   body = injectNoAnim(body);
   body = injectLightupAuto(body);
+  body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百亿补贴页打不开
