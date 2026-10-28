@@ -29,7 +29,9 @@ const RULES = [
   ['chat_stub', 'stub', '/api/buffon/nasus/recommend'],
 
   ['phantom_stub', 'stub', '/api/phantom/gbdbpdv/extra'],
-  ['order_stub', 'stub', '/api/caterham/v3/query/my_order_group'],
+  // v2.38：my_order_group 也移出 stub —— 它返回【商品流】(data.goods_list[].data)，
+  // 交给 feed.response.js 做广告标 + 佣金率 + 转链。原 order_stub 语义（屏蔽订单列表）
+  // 与「在商品流上显示佣金」互斥，Loon 同 URL 只能跑一个 Script，取后者。
 
   ['search_stub', 'stub', '/search_hotquery'],
   ['search_stub', 'del', '/search', ['expansion']],

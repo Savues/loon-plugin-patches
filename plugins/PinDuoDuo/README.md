@@ -88,7 +88,6 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
 | `chat_stub` | **关** | 4 条聊天/推荐端点 | 平时不用管；开着可能导致**聊天刷不出来**（已实测：关掉即恢复） |
 | `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
-| `order_stub` | 开 | `/api/caterham/v3/query/my_order_group` | 想让订单页显示真实订单时 |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
 | `cps_rewrite` | **开** | 把**所有列表**的 `link_url` / `linkUrl` 改写成带 `goods_sign` 的 `duo_coupon_landing.html?...&pid=…&cpsSign=…`（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
@@ -232,6 +231,7 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 | 首页信息流 | `api/alexa/cells/hub/v3` | 销量行：`广告·佣金3.2%` / `佣金3.2%·已拼5.8万件` |
 | 个人中心商品流 | `api/caterham/v3/query/personal` | 同上（结构与首页完全同构） |
 | 聊天列表商品流 | `api/caterham/v3/query/new_chat_group` | 同上 |
+| 订单页底部商品流 | `api/caterham/v3/query/my_order_group` | 同上 |
 | 商品详情页 | `api/oak/integration/render` | 销量文案 5 处：`广告·佣金3.2%·已拼1.3万件` |
 | 百补「精选」 | `api/hermes/goods_list`（`place_id=BYBT_MAIN`） | 价格前：`佣金3.2% ¥26.58` |
 | 百补首页首屏 | `brand_activity_subsidy.html` → `tabStore.commonGoodsInfoStore.goodsInfoMap` | 同上 |
