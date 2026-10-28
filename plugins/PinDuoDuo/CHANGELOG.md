@@ -322,7 +322,38 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.47（2026-10-28）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.48（2026-10-28）
+
+### 三选一福袋自动选中间
+
+**结构**（`LuckyBagTakeCouPopNewTwo.js` 的 `Y` 组件）：
+
+| 位置 | class 键 | 实际 class |
+|---|---|---|
+| 左 `n[0]` | `BX_Class540` | `_1OzN-NpJ` |
+| 中 `n[1]` | `BX_Class536` | `_22KgmSjU` |
+| 右 主福袋 | `BX_Class527` | `_1HumS6AN` |
+
+**关键**：`W`（每个福袋）是**纯展示组件，没有 `onClick`** ——
+点击靠 React 事件委托（监听挂在 root 容器，靠冒泡 + target 判断）。
+
+所以不能只靠 `el.click()`，改成**按坐标 dispatch 真实 MouseEvent**
+（`mousedown` / `mouseup` / `click`），让 React 合成事件拿到正确 `clientX/Y`。
+
+**防误伤**：
+
+| # | 措施 |
+|---|---|
+| ① | 必须三个福袋同时存在 |
+| ② | 只点一次，弹窗消失后重置 |
+| ③ | 元素尺寸 > 20px |
+| ④ | 按 x 坐标排序取中间 |
+
+新开关 `lucky_3of1`（默认开）。`Argument`: 22 → 23。
+
+---
+
+## v2.47（2026-10-28）
 
 ### 福袋自动关闭覆盖两个弹窗变体
 
