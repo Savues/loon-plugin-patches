@@ -22,8 +22,10 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 // [开关, 动作, 路径, 动作参数]
 const RULES = [
   ['chat_stub', 'stub', '/api/zaire_biz/chat/resource/get_list_data'],
-  ['chat_stub', 'stub', '/api/caterham/v3/query/new_chat_group'],
-  ['chat_stub', 'stub', '/api/caterham/v3/query/personal'],
+  // v2.37：这两个端点已从 stub 移除 —— 它们现在返回【商品流】
+  // (data.goods_list[].data)，交给 feed.response.js 做广告标 + 佣金率 + 转链。
+  // Loon 同一 URL 只跑首个命中的 [Script]，留着这里会把 feed 规则挡掉。
+  // chat_stub 仍覆盖 zaire_biz / buffon 两个纯聊天端点。
   ['chat_stub', 'stub', '/api/buffon/nasus/recommend'],
 
   ['phantom_stub', 'stub', '/api/phantom/gbdbpdv/extra'],

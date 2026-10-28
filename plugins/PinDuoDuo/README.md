@@ -230,6 +230,8 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 | 页面 | 数据源 | 显示位置 |
 |---|---|---|
 | 首页信息流 | `api/alexa/cells/hub/v3` | 销量行：`广告·佣金3.2%` / `佣金3.2%·已拼5.8万件` |
+| 个人中心商品流 | `api/caterham/v3/query/personal` | 同上（结构与首页完全同构） |
+| 聊天列表商品流 | `api/caterham/v3/query/new_chat_group` | 同上 |
 | 商品详情页 | `api/oak/integration/render` | 销量文案 5 处：`广告·佣金3.2%·已拼1.3万件` |
 | 百补「精选」 | `api/hermes/goods_list`（`place_id=BYBT_MAIN`） | 价格前：`佣金3.2% ¥26.58` |
 | 百补首页首屏 | `brand_activity_subsidy.html` → `tabStore.commonGoodsInfoStore.goodsInfoMap` | 同上 |
