@@ -56,7 +56,8 @@ t('占位词推广文案消失', !g.body.includes('百事可乐限时秒杀'))
 console.log('\n【6】异常输入不崩')
 t('空 body → 放行', PASSTHRU(run({ search_stub: 'true' }, '')))
 t('无 body 字段 → 放行', PASSTHRU(run({ search_stub: 'true' }, undefined)))
-t('完全不含 queryWords → 放行', PASSTHRU(run({ search_stub: 'true' }, '<html><body>hi</body></html>')))
+// v2.43：默认会注入 pdd-lightup-auto，这里关掉以专注测「搜索词清理」职责
+t('完全不含 queryWords → 放行', PASSTHRU(run({ search_stub: 'true', lightup_auto: 'false' }, '<html><body>hi</body></html>')));
 t('非字符串 body → 放行', PASSTHRU(run({ search_stub: 'true' }, 12345)))
 
 console.log('\n【7】只替换第一处，缩小影响面（真实抓包中该键全文仅出现 1 次）')
@@ -65,5 +66,13 @@ const r2 = run({ search_stub: 'true' }, two)
 t('只清空第一处', (r2.body.match(/"queryWords":\[\]/g) || []).length === 1)
 t('第二处原样保留', (r2.body.match(/"queryWords":\[/g) || []).length === 2)
 t('长文本不超时', run({ search_stub: 'true' }, real.repeat(500)).body.length > 0)
+
+console.log('\n【8】v2.43 点亮任务自动倒计时注入');
+const inj = run({ lightup_auto: 'true' }, '<html><body>x</body></html>');
+t('默认注入 pdd-lightup-auto', inj.body.includes('id="pdd-lightup-auto"'));
+t('注入在 </body> 前', inj.body.indexOf('pdd-lightup-auto') < inj.body.indexOf('</body>'));
+const again = run({ lightup_auto: 'true' }, inj.body);
+t('幂等（重复处理返回空，不叠加）', !again.body || (again.body.match(/pdd-lightup-auto/g) || []).length === 1);
+t('lightup_auto=false 不注入', PASSTHRU(run({ lightup_auto: 'false' }, '<html><body>x</body></html>')));
 
 done()
