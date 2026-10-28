@@ -433,13 +433,14 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.50：三选一福袋 —— DOM 探测版
+// v2.51：三选一福袋 —— 只探测不点击（紧急止损）
 // ---------------------------------------------------------------------------
-// 截图实证：三选一弹窗是【平铺三个卡片 + 「选我」图片按钮】。
-// 但 JS 里搜不到「选我」文本 → 按钮是图片；v2.48/49 的 class 也不匹配。
+// v2.50 误伤：探测「同一行三个尺寸相近的 img」在商品列表里也满足，
+// 点了之后跳到 promotion_op.html（用户反馈「自动进入不相干的页面」）。
 //
-// 本版先不点，只【探测】：找出页面上「三个横向排列、尺寸相近的图片/容器」，
-// 把它们的 class 和尺寸写到左下角标签，用户截图后即可精确匹配。
+// 本版【完全不点击】，只在左下角标签输出候选元素的特征：
+//   w=宽度  src=图片URL前40字符  cls=class  par=父元素class
+// 用户触发三选一后截图，我据此写精确匹配规则。
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
@@ -449,33 +450,42 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
     try {
       if (!dbg) {
         dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;left:4px;bottom:150px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.85);color:#0f0;font:10px/1.35 monospace;' +
-          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:96vw';
+        dbg.style.cssText = 'position:fixed;left:4px;bottom:120px;z-index:2147483647;' +
+          'background:rgba(0,0,0,.88);color:#0f0;font:10px/1.3 monospace;' +
+          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:96vw;overflow:hidden';
         (document.body || document.documentElement).appendChild(dbg);
       }
       dbg.textContent = txt;
     } catch (e) {}
   }
 
-  // 找「同一行、尺寸相近」的 3 个元素（图片或含图片的容器）
+  function cls(el) {
+    if (!el) return '-';
+    var c = (el.className || '') + '';
+    return c ? c.slice(0, 24) : el.tagName;
+  }
+  function shortSrc(u) {
+    u = u || '';
+    var i = u.lastIndexOf('/');
+    return i >= 0 ? u.slice(i + 1).slice(0, 34) : u.slice(0, 34);
+  }
+
+  // 找「同一行、尺寸相近」的 3 个 img —— 只输出，不点
   function probe() {
     var imgs = document.querySelectorAll('img');
     var cands = [];
     for (var i = 0; i < imgs.length; i++) {
       var im = imgs[i];
       var r = im.getBoundingClientRect();
-      if (r.width < 60 || r.height < 60) continue;             // 太小
-      if (r.top < 0 || r.top > window.innerHeight) continue;   // 离屏
+      if (r.width < 60 || r.height < 60) continue;
+      if (r.top < 0 || r.top > window.innerHeight) continue;
       cands.push({ el: im, r: r });
     }
     if (cands.length < 3) return null;
-    // 按 y 分组（同一行 y 差 < 30）
     for (var a = 0; a < cands.length; a++) {
       var row = cands.filter(function (c) { return Math.abs(c.r.top - cands[a].r.top) < 30; });
       if (row.length === 3) {
         row.sort(function (x, y) { return x.r.left - y.r.left; });
-        // 宽度相近校验
         var ws = row.map(function (c) { return c.r.width; });
         if (Math.max.apply(null, ws) / Math.min.apply(null, ws) < 1.6) return row;
       }
@@ -483,37 +493,20 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
     return null;
   }
 
-  function cls(el) {
-    var c = (el.className || '') + '';
-    if (c.length > 40) c = c.slice(0, 40) + '..';
-    return c || '(' + el.tagName + ')';
-  }
-
   setInterval(function () {
     try {
       var row = probe();
-      if (!row) { window.__pdd3of1Clicked = 0; show('3of1: no 3-in-row'); return; }
-      var lines = ['3of1 FOUND 3:'];
+      if (!row) { show('3of1: no 3-in-row'); return; }
+      var lines = ['3of1 ROW3 (readonly):'];
       for (var i = 0; i < row.length; i++) {
         var el = row[i].el;
-        var par = el.parentElement;
         lines.push(i + ' w=' + Math.round(row[i].r.width) +
-                   ' img=' + cls(el) +
-                   ' par=' + cls(par) +
-                   ' gp=' + cls(par && par.parentElement));
+                   ' ' + shortSrc(el.currentSrc || el.src) +
+                   '\\n   cls=' + cls(el) + ' par=' + cls(el.parentElement));
       }
       show(lines.join('\\n'));
-      // 探测到就尝试点击中间那个（点 img 的父元素，通常是整张卡片）
-      if (!window.__pdd3of1Clicked) {
-        window.__pdd3of1Clicked = 1;
-        var mid = row[1].el;
-        var tgt = mid.parentElement || mid;
-        try { tgt.click(); } catch (e) {}
-        try { mid.click(); } catch (e) {}
-        show(lines.join('\\n') + '\\nCLICKED');
-      }
     } catch (e) {}
-  }, 800);
+  }, 900);
 })();</script>`;
 const LUCKY_3OF1 = (A.lucky_3of1 === undefined || A.lucky_3of1 === null || A.lucky_3of1 === '')
   ? true : on(A.lucky_3of1);
