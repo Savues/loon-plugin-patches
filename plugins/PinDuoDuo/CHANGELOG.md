@@ -322,4 +322,45 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.43（2026-10-28）
+
+### 点亮任务改用注入 JS 自动倒计时（放弃改 bundle）
+
+**为什么放弃 v2.41 的 JS 替换**
+
+抓包实证：`xbrand_special_sale_*.js` 被 WebKit 缓存后**不再请求**，
+Loon 的 `[Rewrite]` 没有机会执行 → 替换从未生效。
+106 条请求里没有一条是那个 JS。
+
+**新方案：注入 JS 打 scrollTop 补丁**
+
+在 `tandy_vase.html` / `brand_activity_subsidy.html` 的 `</body>` 前注入：
+
+```js
+Object.defineProperty(documentElement/body, 'scrollTop', {
+  get: 真实值 + 0/1 交替,
+  set: 透传
+});
+```
+
+页面代码 `a === scrollTop()` 永远为 false → `m.current` 保持 false
+→ 倒计时每秒自动扣 1，无需手动滑动。
+
+**HTML 每次重新请求，不受 JS 缓存影响。**
+
+**改动**
+
+| 项 | 变化 |
+|---|---|
+| `[Rewrite]` xbrand_special_sale 替换 | **移除** |
+| `[MitM]` static.pddpic.com | **移除**（不再需要） |
+| `lightup_auto` | **新增**（默认开） |
+| `lightup_secs` 默认值 | 1 → **10** |
+| `subsidy.response.js` | 加 `injectLightupAuto()` |
+
+**副作用**：页面其他读 `scrollTop` 的逻辑会得到 ±1 扰动值
+（吸顶/懒加载的判定阈值通常远大于 1px，影响可忽略）。
+
+---
+
+
