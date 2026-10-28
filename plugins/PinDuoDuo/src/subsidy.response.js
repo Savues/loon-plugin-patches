@@ -433,6 +433,79 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
+// v2.48：三选一福袋自动选中间
+// ---------------------------------------------------------------------------
+// 结构（LuckyBagTakeCouPopNewTwo.js 的 Y 组件）：
+//   n[0] 左   className: BX_Class540 → "_1OzN-NpJ"
+//   n[1] 中   className: BX_Class536 → "_22KgmSjU"
+//   主福袋 右 className: BX_Class527 → "_1HumS6AN"
+//
+// W（每个福袋）是纯展示组件，没有 onClick —— 点击靠 React 事件委托
+// （React 17+ 把监听挂在 root 容器上，靠冒泡+target 判断）。
+// 所以不能简单 el.click()（虽然会冒泡，但某些情况 React 不认），
+// 改用「按坐标 dispatch 真实 MouseEvent」，让 React 拿到正确的 clientX/Y。
+//
+// 用户确认：默认选中间那个没问题。
+//
+// 防误伤：
+//   ① 必须三个福袋同时存在（横向排列，y 接近）
+//   ② 只点一次，弹窗消失后重置
+//   ③ 元素尺寸 > 20px
+const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
+  if (window.__pddLucky3of1) return;
+  window.__pddLucky3of1 = 1;
+
+  var SEL = '._1OzN-NpJ,._22KgmSjU,._1HumS6AN';
+  var done = false;
+
+  function center(el) {
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r };
+  }
+
+  setInterval(function () {
+    try {
+      var cards = document.querySelectorAll(SEL);
+      if (cards.length < 2) { done = false; return; }   // 弹窗不在，重置
+      if (done) return;
+
+      // 按 x 排序，取中间
+      var arr = Array.prototype.slice.call(cards).filter(function (el) {
+        return el.getBoundingClientRect().width > 20;
+      });
+      if (arr.length < 2) return;
+      arr.sort(function (a, b) {
+        return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+      });
+      var mid = arr[Math.floor(arr.length / 2)];
+      var c = center(mid);
+      if (c.x <= 0 || c.y <= 0) return;
+
+      var target = document.elementFromPoint(c.x, c.y) || mid;
+      done = true;
+
+      // 按坐标派发，让 React 的合成事件拿到正确位置
+      try {
+        target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
+        target.dispatchEvent(new MouseEvent('mouseup',   { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
+        target.dispatchEvent(new MouseEvent('click',     { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
+      } catch (e) {}
+      // 兜底：直接点元素
+      try { mid.click(); } catch (e) {}
+    } catch (e) {}
+  }, 700);
+})();</script>`;
+const LUCKY_3OF1 = (A.lucky_3of1 === undefined || A.lucky_3of1 === null || A.lucky_3of1 === '')
+  ? true : on(A.lucky_3of1);
+
+function injectLucky3of1(body) {
+  if (!LUCKY_3OF1) return body;
+  if (body.indexOf('id="pdd-lucky-3of1"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</body>');
+  if (i < 0) return body;
+  return body.slice(0, i) + LUCKY_3OF1_JS + body.slice(i);
+}
+
 function injectNoAnim(body) {
   if (!NO_ANIM) return body;
   if (body.indexOf('id="pdd-no-anim"') !== -1) return body;   // 幂等
@@ -572,6 +645,7 @@ try {
             body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLuckyClose(body);
+  body = injectLucky3of1(body);
   $done(body === $response.body ? {} : { body });
           };
           if (!need.length) { done(null); return; }
@@ -592,6 +666,7 @@ try {
   body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLuckyClose(body);
+  body = injectLucky3of1(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百亿补贴页打不开
