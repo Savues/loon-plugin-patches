@@ -322,7 +322,45 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.43（2026-10-28）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.44（2026-10-28）
+
+### 点亮自动倒计时修正：必须主动触发 scroll 事件
+
+**v2.43 为什么没生效**
+
+抓包 `shared-0D3729E4_490`：注入成功了（`lightup=True`）、`task_duration=10` 也对，
+但**没有 `end_task`** —— 倒计时根本没走。
+
+根因：v2.43 只给 `scrollTop` 打了「读取扰动」补丁，**没有触发 scroll 事件**。
+
+页面真实逻辑：
+
+```js
+const t = debounce(() => { m.current = false; ... }, 1000);
+document.addEventListener('touchstart', () => {
+  document.addEventListener('scroll', t);   // 首次触摸才挂监听
+});
+setInterval(() => { if (!m.current) d(e => e - 1) }, 1000);
+```
+
+`m.current` 初始为 `true`，**只有 debounce 执行才会变 `false`**，
+而 debounce 只由 `scroll` 事件驱动 → 不滚动就永远不扣时间。
+
+**v2.44 修正**
+
+每 300ms 执行三件事，缺一不可：
+
+| 步骤 | 作用 |
+|---|---|
+| ① `dispatch touchstart` | 挂上 scroll 监听 |
+| ② 真实抖动 `scrollTop` 1px | 让 debounce 里的「位置是否变化」判断失败 |
+| ③ `dispatch scroll` | 驱动 debounce 执行 |
+
+抖动幅度 1px，用户基本察觉不到。
+
+---
+
+## v2.43（2026-10-28）
 
 ### 点亮任务改用注入 JS 自动倒计时（放弃改 bundle）
 
