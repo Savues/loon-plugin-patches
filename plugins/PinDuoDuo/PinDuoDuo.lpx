@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.42
+#!name=拼多多去广告(修复版) v2.39
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -12,10 +12,10 @@
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
-api_stub = switch,true,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
-chat_stub = switch,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
-phantom_stub = switch,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
-search_stub = switch,true,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
+api_stub = switch,true,false,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
+chat_stub = switch,false,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
+phantom_stub = switch,false,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
+search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
 feed_ad = switch,true,tag=[信息流] 给广告商品打「广告」标,desc=只标记不删除;靠服务端自己的 data.ad 字段识别,正常推荐零误伤
 cps_rewrite = switch,true,tag=[高危] 商品链接改写成进宝领券页,desc=把信息流 link_url 换成带 goods_sign 的 duo_coupon_landing 链接;拼多多自购比价规则要求第一次点击就是 CPS 链才计佣金;需配合 cps_token
 cps_label = switch,true,tag=[信息流] 销量行显示佣金率,desc=把「已拼/已售x件」那行改成「佣金9.6%·已拼x件」；去掉冗余的广告前缀腾位置，超宽时只留佣金。标签行会被折券横幅遮挡，故不用它
@@ -39,21 +39,11 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 
 [Rule]
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
-# [v2.42 移除] DOMAIN, titan.pinduoduo.com, REJECT
-#   2026-10-28 真机实证：拦这条会让【官方客服对话页】的底栏按钮
-#   （发订单给客服 / 平台热门活动）不渲染，关掉插件即恢复。
-#   二分过程：禁用全部 Script 无效 → 再禁 MITM 无效 → 再禁这条 Rule 才恢复。
-#   该域名承载 titan-gslb 会话票据 / HTTPDNS 解析（/v3/d），
-#   被拒后部分域名解析不到，页面资源加载不全。
+DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
-# [v2.41 临时注释] 这 3 条来自上游，从未验证过具体拦了什么。
-# 用户反馈：客服对话页的底栏按钮（发订单给客服 / 平台热门活动）在开插件时不显示，
-# 关插件后出现。该页 28 个 API 全部正常返回、HTML 无注入、脚本 0 命中，
-# 唯一还能真正阻断网络的就是这 3 条域名级 REJECT（被拒的请求不会出现在抓包里，
-# 所以从 HAR 上看不出来）。先注释掉验证。
-# DOMAIN, cdl-1.pddpic.com, REJECT
-# DOMAIN, cdl-p2.pddpic.com, REJECT
-# DOMAIN, cd-1.pddpic.com, REJECT
+DOMAIN, cdl-1.pddpic.com, REJECT
+DOMAIN, cdl-p2.pddpic.com, REJECT
+DOMAIN, cd-1.pddpic.com, REJECT
 # [已移除-死开关] v1.75：以下 8 条原挂 enable={telemetry_stub}，真机实测该开关无效。
 #   2026-09-30 18:31 用户截图确认 telemetry_stub 在参数页是「关」，
 #   同一时段的 Loon 抓包里 meta/apm 仍被这 8 条规则 REJECT（meta 5 次、apm+apm-a 24 次）。
