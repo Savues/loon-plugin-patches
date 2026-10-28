@@ -433,65 +433,73 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.48：三选一福袋自动选中间
+// v2.49：三选一福袋自动选中间（修复 3D 变换导致的误过滤）
 // ---------------------------------------------------------------------------
-// 结构（LuckyBagTakeCouPopNewTwo.js 的 Y 组件）：
-//   n[0] 左   className: BX_Class540 → "_1OzN-NpJ"
-//   n[1] 中   className: BX_Class536 → "_22KgmSjU"
-//   主福袋 右 className: BX_Class527 → "_1HumS6AN"
+// v2.48 为什么没生效：
+//   三个福袋都有 3D 旋转：
+//     _1OzN-NpJ  rotateY(101deg)
+//     _22KgmSjU  rotateY(78deg)
+//     _1HumS6AN  rotateY(90deg)   ← 侧对屏幕，视觉宽度接近 0
+//   getBoundingClientRect() 返回的是【变换后】的包围盒，width 接近 0
+//   → 被 `if (r.width < 5) return` 全部过滤掉，根本没走到点击。
 //
-// W（每个福袋）是纯展示组件，没有 onClick —— 点击靠 React 事件委托
-// （React 17+ 把监听挂在 root 容器上，靠冒泡+target 判断）。
-// 所以不能简单 el.click()（虽然会冒泡，但某些情况 React 不认），
-// 改用「按坐标 dispatch 真实 MouseEvent」，让 React 拿到正确的 clientX/Y。
+// 修复：
+//   ① 用 offsetWidth（不受 transform 影响）判断元素是否渲染
+//   ② 不用 elementFromPoint（3D 元素可能拾取不到），直接对元素派发事件
+//   ③ 同时派发 click 和 el.click() 双保险
 //
-// 用户确认：默认选中间那个没问题。
-//
-// 防误伤：
-//   ① 必须三个福袋同时存在（横向排列，y 接近）
-//   ② 只点一次，弹窗消失后重置
-//   ③ 元素尺寸 > 20px
+// 注：W（每个福袋）是纯展示组件没有 onClick，点击靠 React 事件委托，
+//     所以事件必须冒泡到 root —— bubbles:true 即可。
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
   var SEL = '._1OzN-NpJ,._22KgmSjU,._1HumS6AN';
-  var done = false;
+  var done = false, dbg = null;
 
-  function center(el) {
-    var r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r };
+  function show(txt) {
+    try {
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;left:6px;bottom:180px;z-index:2147483647;' +
+          'background:rgba(0,0,0,.8);color:#0f0;font:11px/1.4 monospace;' +
+          'padding:3px 6px;border-radius:4px;pointer-events:none;white-space:pre';
+        (document.body || document.documentElement).appendChild(dbg);
+      }
+      dbg.textContent = txt;
+    } catch (e) {}
   }
 
   setInterval(function () {
     try {
       var cards = document.querySelectorAll(SEL);
-      if (cards.length < 2) { done = false; return; }   // 弹窗不在，重置
+      if (cards.length === 0) { done = false; show('3of1 cards=0'); return; }
+
+      var arr = Array.prototype.slice.call(cards);
+      // offsetWidth 不受 transform 影响，用它判断是否真的渲染了
+      var ws = arr.map(function (el) { return el.offsetWidth; });
+      show('3of1 cards=' + arr.length + ' ow=' + ws.join(',') + ' click=' + (done ? 'Y' : 'N'));
+
       if (done) return;
-
-      // 按 x 排序，取中间
-      var arr = Array.prototype.slice.call(cards).filter(function (el) {
-        return el.getBoundingClientRect().width > 20;
-      });
       if (arr.length < 2) return;
-      arr.sort(function (a, b) {
-        return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
-      });
-      var mid = arr[Math.floor(arr.length / 2)];
-      var c = center(mid);
-      if (c.x <= 0 || c.y <= 0) return;
 
-      var target = document.elementFromPoint(c.x, c.y) || mid;
+      // 按 offsetLeft 排序（同样不受 transform 影响）
+      arr.sort(function (a, b) { return a.offsetLeft - b.offsetLeft; });
+      var mid = arr[Math.floor(arr.length / 2)];
+      if (!mid || mid.offsetWidth < 10) return;
+
       done = true;
 
-      // 按坐标派发，让 React 的合成事件拿到正确位置
-      try {
-        target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
-        target.dispatchEvent(new MouseEvent('mouseup',   { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
-        target.dispatchEvent(new MouseEvent('click',     { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));
-      } catch (e) {}
-      // 兜底：直接点元素
+      // 直接对元素派发，冒泡到 React root
+      ['mousedown', 'mouseup', 'click'].forEach(function (type) {
+        try {
+          mid.dispatchEvent(new MouseEvent(type, {
+            bubbles: true, cancelable: true, button: 0
+          }));
+        } catch (e) {}
+      });
       try { mid.click(); } catch (e) {}
+      try { if (mid.parentElement) mid.parentElement.click(); } catch (e) {}
     } catch (e) {}
   }, 700);
 })();</script>`;
