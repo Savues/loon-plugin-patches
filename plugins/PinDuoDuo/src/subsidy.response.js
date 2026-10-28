@@ -315,6 +315,73 @@ const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
+// v2.43：点亮任务自动倒计时（无需滑动）
+// ---------------------------------------------------------------------------
+// 背景（抓包 + JS 反查）：
+//   消费券页「浏览 N 秒点亮」的倒计时 hook：
+//     en = function({time, wait, callback, isActive}) {
+//       let m = useRef(true);                     // 初始「已停止滚动」
+//       useEffect(() => {
+//         const t = debounce(() => {
+//           m.current = false;                    // 正在滚动
+//           const a = scrollTop();
+//           setTimeout(() => {
+//             if (a === scrollTop()) m.current = true;   // 停 500ms → 视为已停
+//           }, 500);
+//         }, 1000);
+//         document.addEventListener('touchstart', () => {
+//           document.addEventListener('scroll', t);      // 首次触摸才挂监听
+//         });
+//         const i = setInterval(() => {
+//           if (!m.current) d(e => e - 1);        // 只有滚动中才扣时间
+//         }, 1000);
+//       }, []);
+//     }
+//   → 必须持续滑动才扣时间。服务端只校验真实间隔 ≥ N 秒，不关心 UI。
+//
+// 做法：给 documentElement / body 的 scrollTop 打补丁，让每次读取返回
+//   「真实值 + 0/1 交替」。页面里 `a === scrollTop()` 永远为 false →
+//   m.current 保持 false → 倒计时每秒自动扣 1，不需要滑动。
+//
+// 为什么不用改 JS bundle（v2.41 的做法）：
+//   xbrand_special_sale_*.js 被 WebKit 缓存后不再请求，[Rewrite] 没机会执行。
+//   HTML 每次都重新请求，注入的脚本一定生效。
+//
+// 副作用：页面其他读 scrollTop 的逻辑会得到 ±1 的扰动值。
+//   实测影响可忽略（吸顶/懒加载的判定阈值通常远大于 1px）。
+const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
+  if (window.__pddLightupAuto) return;
+  window.__pddLightupAuto = 1;
+  var desc = null;
+  try { desc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop'); } catch (e) {}
+  if (!desc || !desc.get) return;
+  function patch(el) {
+    if (!el) return;
+    var toggle = 0;
+    try {
+      Object.defineProperty(el, 'scrollTop', {
+        configurable: true,
+        get: function () { toggle = 1 - toggle; return desc.get.call(this) + toggle; },
+        set: function (v) { desc.set.call(this, v); }
+      });
+    } catch (e) {}
+  }
+  function run() { patch(document.documentElement); patch(document.body); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else { run(); }
+})();</script>`;
+const LIGHTUP_AUTO = (A.lightup_auto === undefined || A.lightup_auto === null || A.lightup_auto === '')
+  ? true : on(A.lightup_auto);
+
+function injectLightupAuto(body) {
+  if (!LIGHTUP_AUTO) return body;
+  if (body.indexOf('id="pdd-lightup-auto"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</body>');
+  if (i < 0) return body;
+  return body.slice(0, i) + LIGHTUP_JS + body.slice(i);
+}
+
 function injectNoAnim(body) {
   if (!NO_ANIM) return body;
   if (body.indexOf('id="pdd-no-anim"') !== -1) return body;   // 幂等
@@ -452,6 +519,7 @@ try {
               if (next !== body) body = next;
             }
             body = injectNoAnim(body);
+  body = injectLightupAuto(body);
   $done(body === $response.body ? {} : { body });
           };
           if (!need.length) { done(null); return; }
@@ -470,6 +538,7 @@ try {
   }
 
   body = injectNoAnim(body);
+  body = injectLightupAuto(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百亿补贴页打不开
