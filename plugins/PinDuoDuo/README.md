@@ -85,9 +85,6 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 | 开关 | 默认 | 覆盖 | 什么时候关 |
 |---|---|---|---|
-| `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
-| `chat_stub` | **关** | 4 条聊天/推荐端点 | 平时不用管；开着可能导致**聊天刷不出来**（已实测：关掉即恢复） |
-| `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
 | `feed_ad` | 开 | 信息流 + 详情页**广告打标**；百补页四通道打标 + 进名单 | 不想分辨广告时 |
 | `cps_rewrite` | **开** | 把**所有列表**的 `link_url` / `linkUrl` 改写成带 `goods_sign` 的 `duo_coupon_landing.html?...&pid=…&cpsSign=…`（拼多多自购比价规则：首次进入若是自然流量，事后转链也不计佣金） | 不需要自购返利时 |
@@ -98,10 +95,9 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
 | `auto_skip` | 开 | 省钱月卡 / 续费管理 H5 的**全屏补贴动效**：自动点掉右上角「跳过」 | 想自己看完动效时 |
 
-> **v1.7 变更**：`chat_stub` / `phantom_stub` 两项默认改为**关闭**。
-> 这两项都会拦掉拼多多自己的后台请求，先用观察得到的行为决定要不要开，比默认全开更稳。
-> ⚠️ Loon 会**记住**你改过的开关值 —— 已经装过 v1.6 的人升级后，这两项仍是你上次的状态，
-> 要改得自己去参数页拨一下。
+> **v2.40 变更**：`api_stub` / `chat_stub` / `phantom_stub` **三个开关已整段移除**。
+> 原因：`api_stub` 从插件发布起就是关闭状态，另两个也从未开启 —— 保留开关等于保留假选项。
+> 移除后行为不变（这三条链路本来就是放行）。
 
 > 🔴 **v1.75：埋点/遥测拦截（`telemetry_stub` + 8 条 `[Rule]`）已整段删除。**
 > 原因不是它效果不好，而是**那个开关是假的**。这 8 条规则原本写成
@@ -119,13 +115,14 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 > **想自己复验**：把 v1.75 装上后，如果 `meta.pinduoduo.com` 仍被拦，
 > 说明是**别的插件**在拦（你的插件列表里有 36 个插件），可以在 Loon 里逐个排查。
 
-> ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
-> `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
-> 但单独开 `bottom_custom`（见下），底栏仍能裁。
+> ⚠️ **v2.40 起**：`icon_set`（首页金刚区）与 `irregular_banner_dy` 固定**保留**，
+> 不再删除。底栏裁剪仍由 `bottom_custom` 独立控制。
 
-### 为什么把后两条拆出来
+### 历史：为什么曾把后两条拆出来
 
-`phantom_stub` 与 `order_stub` 是从 `api_stub` 里拆出来的独立开关，
+> **v2.40 起这三个开关已全部移除**，以下为历史记录，仅供理解设计取舍。
+
+`phantom_stub` 与 `order_stub` 曾是从 `api_stub` 里拆出来的独立开关，
 因为它们的性质和「去广告」根本不同：
 
 | 端点 | 性质 | 风险 |
@@ -259,6 +256,30 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 
 缓存记录格式 `{ r: 佣金率, l: item_link相对路径, t: 时间戳 }`。
 转链开启时，缺 `l` 的记录视为未命中，会重新请求。
+
+---
+
+## 开屏广告预防性屏蔽 · Splash guard
+
+**沙盒取证**（2026-10-28）：开屏是「**预下载素材 + 本地调度**」，不是纯网络下发。
+
+```
+Documents/splashes/                     6 张 1206×2277 PNG 素材
+Documents/mmkv/PDD_BIZ_SPLASH_MMKV_KEY  PDD_SPLASH_LIST 调度表
+  resource_url / start_time / end_time / show_duration / show_rule
+```
+
+所以只拦网络**无法**清掉已经下载好的素材 —— 那些会按 `end_time` 在本地直接展示。
+
+**二进制确认**（`pinduoduo` 8.28.0，Mach-O 68MB）：开屏配置的唯一下发路径是
+`/api/cappuccino/splash`，其余 splash 相关符号都是客户端属性
+（`splashList` / `splashSwitch` / `splashShowFreqRule` / `splashShowOnceInOneDay`）。
+
+`splash.response.js` 直接返回 `{"splash_list":[],"size":0}`，与「服务端无开屏」
+时的正常响应一致（实测 27B），App 侧无差异分支。
+
+> ⚠️ **效果是渐进的**：新素材下不来，但已缓存的需要等 `end_time` 过期。
+> 大促前提前装上才能彻底拦住。
 
 ---
 
