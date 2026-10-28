@@ -369,35 +369,53 @@ function injectLightupAuto(body) {
   return body.slice(0, i) + LIGHTUP_JS + body.slice(i);
 }
 
-// v2.46：福袋领券弹窗自动点关闭（通用版）
+// v2.47：福袋自动关闭 —— 覆盖两个弹窗变体
 // ---------------------------------------------------------------------------
-// v2.45 为什么没生效：
-//   只查了 `document.querySelectorAll('img')`，但关闭按钮由图片组件 f.ZP 渲染，
-//   可能是 <div style="background-image:url(...)"> 而不是 <img>。
+// 之前几版为什么失败：PDD 有两个不同的福袋弹窗组件，我只覆盖了其中一个。
 //
-// 本版改用【属性选择器】一次性覆盖所有渲染形态：
-//   img[src*=KEY] / [data-src*=KEY] / [srcset*=KEY] / [style*=KEY]
+//   ① LuckyBagTakeCouPopNewTwo（无 popup_goods）
+//      关闭按钮 class: _1-lALGJL / _1CIjIqvj
+//      图片: f57ce24c-be68-49a3-ab54-dd45824a4a1d
 //
-// 防误伤（用户明确要求）：
-//   ① KEY 是关闭按钮专属图片的 UUID（f57ce24c-...），实测全页只加载 1 次
-//   ② 必须 getBoundingClientRect 宽高 > 8px（跳过未渲染/隐藏元素）
-//   ③ 必须在视口内（跳过离屏元素）
-//   ④ 每个元素只点一次（__pddLbClicked）
-//   ⑤ 只点元素本身，不点父元素（避免命中其他交互）
+//   ② LBTakeCouponPopWithGoods（有 popup_goods）← 用户这次遇到的就是这个
+//      关闭按钮 class: _1YyPm9Uh / eOdKZIH1（BX_Class8 / BX_Ani8）
+//      图片: bf929de2-1240-4a44-9627-ec36a2e9276e
+//      另有 closeIcon: _3T2QZOWa
+//
+// 两个组件的 class 在各自 bundle 版本内固定（bundle 名带 hash）。
+//
+// 防误伤：宽高 > 8px、在视口内、每元素只点一次、只点元素本身。
 const LUCKY_CLOSE_JS = `<script id="pdd-lucky-close">(function(){
   if (window.__pddLuckyClose) return;
   window.__pddLuckyClose = 1;
-  var KEY = 'f57ce24c-be68-49a3-ab54-dd45824a4a1d';
-  var SEL = '[src*="' + KEY + '"],[data-src*="' + KEY + '"],[srcset*="' + KEY + '"],[style*="' + KEY + '"]';
+
+  // 两个弹窗变体的关闭按钮特征
+  var CLASSES = [
+    '_1-lALGJL', '_1CIjIqvj',      // ① 普通领券弹窗
+    '_1YyPm9Uh', 'eOdKZIH1',       // ② 带商品弹窗
+    '_3T2QZOWa'                    // ② closeIcon
+  ];
+  var KEYS = [
+    'f57ce24c-be68-49a3-ab54-dd45824a4a1d',   // ①
+    'bf929de2-1240-4a44-9627-ec36a2e9276e'    // ②
+  ];
+
+  var sel = CLASSES.map(function (c) { return '.' + c; });
+  for (var i = 0; i < KEYS.length; i++) {
+    sel.push('[src*="' + KEYS[i] + '"]');
+    sel.push('[style*="' + KEYS[i] + '"]');
+  }
+  var SEL = sel.join(',');
+
   setInterval(function () {
     try {
       var els = document.querySelectorAll(SEL);
-      for (var i = 0; i < els.length; i++) {
-        var el = els[i];
+      for (var j = 0; j < els.length; j++) {
+        var el = els[j];
         if (el.__pddLbClicked) continue;
         var r = el.getBoundingClientRect();
-        if (r.width < 8 || r.height < 8) continue;                    // 跳过未渲染
-        if (r.bottom < 0 || r.top > (window.innerHeight || 9999)) continue;  // 跳过离屏
+        if (r.width < 8 || r.height < 8) continue;
+        if (r.bottom < 0 || r.top > (window.innerHeight || 9999)) continue;
         el.__pddLbClicked = 1;
         try { el.click(); } catch (e) {}
       }
