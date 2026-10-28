@@ -175,6 +175,22 @@ v3.39.0 把它当"埋点域名"下沉到 `[Rule]` 整域 REJECT。模板拉取�
 > `chaojisheng.draw.hongbao` 里，这是第三次同类误判（前两次：`adzone.default.get` 分享链路、
 > `home.metax.query` 首页白屏）。
 
+#### 最终验证（v3.50.5 真机确认 ✅）
+
+修复后抓包（2026-10-29 01:09）：
+
+| 观测 | 结果 |
+|------|------|
+| `chaojisheng.draw.hongbao` | 200 / 1251 B，`placeOrderUrl.exParams.etaoRoutePageCode=v3` |
+| `mtop.trade.order.build/5.0` | 200 / 125167 B，`hierarchy.root=etaoBuyV3`，184 组件 |
+| 提交按钮节点 | `submit` = `dinamicx$buy_v3_submit_order$0$30`，`submitOrder.position=footer` |
+| `mtop.etao.noah.query` | `assetResult: []`（`etao_dx_home_popup` 已清），无 `civet` 模板请求 |
+
+三层问题（按发现顺序）：
+1. `ossgw.alicdn.com` 整域拦截 → 旧结算页模板拉不到（v3.50.3 撤销）
+2. `etao_dx_home_popup` NOAH 弹窗未过滤（v3.50.4 加入名单）
+3. `chaojisheng.draw.hongbao` 结算入口被拦 → 弹「获取返利信息失败」+ 退回旧页（v3.50.5 撤销，**真正的按钮消失原因**）
+
 ---
 
 ## 三、已知限制
