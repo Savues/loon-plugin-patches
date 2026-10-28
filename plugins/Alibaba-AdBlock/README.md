@@ -15,7 +15,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibab
 
 **当前版本直链（无缓存）**
 ```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/43e67a8/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
 ```
 
 ---
@@ -24,7 +24,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/5a845cf/plugins/Ali
 
 | 项 | 数量 |
 |----|------|
-| **[Rule] 域名规则** | **16** |
+| **[Rule] 域名规则** | **18** |
 | Rewrite 规则 | **148** |
 | Response Script 规则 | **62** |
 | MITM 域名 | **17** |
@@ -314,7 +314,7 @@ curl -sk https://<域名>/path | head -c 20
 
 | 类别 | 目标 | 期望 | 实测 |
 |------|------|------|------|
-| [Rule] 埋点 ×14 | mmstat 系 / hudong / ossgw / yixiu-abtest / px.effirst / abtest / adashx / ut.taobao / ems.youku / yunxish / iggrowth | 000 | ✅ 全部 000 |
+| [Rule] 埋点 ×13 | mmstat 系 / hudong / yixiu-abtest / px.effirst / abtest / adashx / ut.taobao / ems.youku / yunxish / iggrowth（⚠️ ossgw 已于 v3.50.3 移出：静态模板 CDN，整域拦会废掉结算页）| 000 | ✅ 全部 000 |
 | [Rewrite] 无条件 | dinamicx 底栏 / poplayer 模板 / search_door 组件 | `{}` | ✅ size=2 |
 | 开屏图 | tps-750-1624 · tps-1242-2208 | `{}` | ✅ size=2 |
 | 首页背景（不应拦）| gw tps-750-1200 · img 1080-2872 | 200 真实图 | ✅ 未误伤 |

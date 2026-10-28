@@ -1,8 +1,8 @@
-#!name=Alibaba-AdBlock v3.50.2
+#!name=Alibaba-AdBlock v3.50.3
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/icon.png
 #!desc=阿里系去广告 · 支持支付宝/Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.50.2
+#!version=3.50.3
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -48,7 +48,14 @@ DOMAIN-SUFFIX, yixiu-abtest.alicdn.com, REJECT
 DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
 DOMAIN-SUFFIX, h-adashx.ut.taobao.com, REJECT
 DOMAIN-SUFFIX, ut.taobao.com, REJECT
-DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT
+# ⚠️ 不拦 ossgw.alicdn.com —— 它是阿里静态模板 CDN(rapid-oss-bucket)，不是埋点域名
+#    2026-10-29 一淘结算页「提交订单」按钮消失事故根因:
+#    mtop.trade.order.build 响应里 154 个 dinamicx 组件有 103 个托管在 ossgw.alicdn.com,
+#    付款按钮节点 submitOrder_1 的 type=dinamicx$475$buysubmit → 模板
+#    https://ossgw.alicdn.com/rapid-oss-bucket/template_online/buy_submit/1600853389896/buy_submit_h5.js
+#    整域 REJECT → 模板拉取失败 → DX 节点渲染为空 → 底部结算栏整条消失
+#    (同类: buy_payment_channel / buy_alipay_selection / buy_address_* 等 102 个功能组件)
+#    上游 BlockAds 也只拦 /creatives-assets/image/ 子路径，说明该域是共享 CDN 不能整域拦
 DOMAIN-SUFFIX, ems.youku.com, REJECT
 DOMAIN-SUFFIX, hudong.alicdn.com, REJECT
 DOMAIN-SUFFIX, hudong.tbcdn.cn, REJECT
@@ -166,7 +173,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.2")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.3")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制

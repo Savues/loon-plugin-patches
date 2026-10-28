@@ -29,7 +29,7 @@
 | 15 | **TAC 搜索推荐** | Script | `mtop.alimama.moon.provider.tac.service.call` / `.smart.call` | `removeTAC` |
 | 16 | **搜索关键词劫持**（1710 条 Atlas 投放词）| Rewrite `reject_dict(200)` | `mtop.taobao.clientpaas.spotlightsearch.get` | `removeSmallCards` |
 | 17 | **阿里橙配营销清洗** | Script 字节级等长替换 | `orange.tbcdn.cn` / `dorangesource.alicdn.com` | `removeSplashAd` |
-| 18 | **埋点/APM/AB 分流** | Rewrite 整域 reject | `gm/log/s-gm/tlog.mmstat.com`、`px.effirst.com`、`abtest.alibaba.com`、`yixiu-abtest.alicdn.com`、`ossgw/hudong.alicdn.com` | `blockTracking` |
+| 18 | **埋点/APM/AB 分流** | [Rule] 整域 reject（无条件）| `gm/log/s-gm/tlog.mmstat.com`、`px.effirst.com`、`abtest.alibaba.com`、`yixiu-abtest.alicdn.com`、`hudong.alicdn.com`（⚠️ `ossgw.alicdn.com` 已移出，见 §2.7）| 无开关 |
 | 19 | **影视/O2O/音乐广告** | Rewrite + Script | `mtop.film.mtopadvertiseapi.queryadvertise`、`mtop.o2o.ad.gateway.get`、`mtop.alimusic.common.mobileservice.startinit` | `removePopWindow` |
 | 20 | **UCP 全局弹窗闸门** | Rewrite `reject_dict(200)` | `mtop.taobao.auge.delivery.private.popup.control` | `removeUcpPopup` |
 | 21 | **生活圈 LBS 横幅/入口** | Rewrite `reject_dict(200)` | `mtop.taobao.newhaven.lbsgroup.banner.*` / `newhaven.life.entrance.show` | `removePopWindow` / `removeSmallCards` |
