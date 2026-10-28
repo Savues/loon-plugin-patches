@@ -1,0 +1,25 @@
+#!name=拼多多最小测试 v1
+#!desc=只保留首页两条脚本规则，用于二分「冷启动失效是否与插件负载有关」
+#!date=2026-10-28 17:10:00
+
+[Argument]
+feed_ad = switch,true,tag=广告标
+cps_label = switch,true,tag=佣金率
+cps_rewrite = switch,true,tag=链接改写
+cps_ttl = input,"21600",tag=缓存秒数
+cps_token = input,"0ygkhUM7anL-DCQqMDW43Z9F9MW0M2zK8-aC5E7Y1_ZPA-9AblWXTaz1fuK7Q0RrVClBO3OcYvnA4s0gDErdR8d2nnwaaiuNgdMftWmjYevhYsqfHzlOR_dzZhMZ--lxqwgRsX36H1ZoJQj-fPhXyJfs9USo1Y2ZhAJpXHVP8F0",tag=大淘客token
+cps_pid = input,"41096949_318859099",tag=推广位
+bottom_custom = switch,true,tag=自定义底栏
+Bot_index = switch,true,tag=首页
+Bot_chat = switch,true,tag=聊天
+Bot_personal = switch,true,tag=个人中心
+
+[Rule]
+DOMAIN, titan.pinduoduo.com, REJECT
+
+[Script]
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/homepage.response.js?v=1, requires-body=true, argument=[{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token},{cps_pid},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal}], timeout=10, tag=首页配置
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/feed.response.js?v=1, requires-body=true, argument=[{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=首页信息流
+
+[MitM]
+hostname = api.pinduoduo.com
