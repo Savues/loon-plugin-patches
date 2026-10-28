@@ -13,7 +13,7 @@
 const A = (function (raw) {
   // v2.43：兼容 $argument 的三种形态（对象 / JSON 字符串 / 数组 [{...}]）。
   // 真机实测 Loon 传的是数组；旧写法 `(typeof $argument === 'string' ? {} : $argument)`
-  // 直接拿数组当对象用，A.api_stub 恒为 undefined → 整个 api_stub 功能静默失效。
+  // 直接拿数组当对象用，A.ad_stub 恒为 undefined → 整个 api_stub 功能静默失效。
   let v = raw;
   if (typeof v === 'string') {
     try { v = JSON.parse(v); } catch (e) { v = {}; }
@@ -75,7 +75,7 @@ try {
 
   // 1) 去广告字段（仅在总开关开着时才删）
   //    r 已在上方确认是非 null 对象，dy_module 是二级路径，需先确认它存在
-  if (on(A.api_stub)) {
+  if (on(A.ad_stub)) {
     delete r.icon_set;
     if (r.dy_module && typeof r.dy_module === 'object') delete r.dy_module.irregular_banner_dy;
   }
@@ -96,7 +96,7 @@ try {
   }
 
   // 3) 顶部候选图字段（沿用上游行为，字段缺失时原样跳过）
-  if (on(A.api_stub) && Array.isArray(r.all_top_opts)) {
+  if (on(A.ad_stub) && Array.isArray(r.all_top_opts)) {
     r.all_top_opts = r.all_top_opts.map((o) => {
       if (!o || typeof o !== 'object') return o;
       const c = Object.assign({}, o);

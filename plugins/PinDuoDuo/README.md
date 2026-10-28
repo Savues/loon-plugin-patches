@@ -85,7 +85,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 | 开关 | 默认 | 覆盖 | 什么时候关 |
 |---|---|---|---|
-| `api_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
+| `ad_stub` | 开 | 13 条会场/推荐类端点 | 想要**完全不改任何响应体**时 |
 | `chat_stub` | **关** | 4 条聊天/推荐端点 | 平时不用管；开着可能导致**聊天刷不出来**（已实测：关掉即恢复） |
 | `phantom_stub` | **关** | `/api/phantom/gbdbpdv/extra` | 平时不用管；怀疑被风控时可**优先开这条** |
 | `search_stub` | 开 | `/search_hotquery` + `/search` 的 `expansion` + 百亿补贴 `queryWords` | 搜索框仍轮播「酷态科cp12」这类词时 |
@@ -119,13 +119,13 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 > **想自己复验**：把 v1.75 装上后，如果 `meta.pinduoduo.com` 仍被拦，
 > 说明是**别的插件**在拦（你的插件列表里有 36 个插件），可以在 Loon 里逐个排查。
 
-> ⚠️ `api_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
-> `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `api_stub`
+> ⚠️ `ad_stub` 关掉时，**首页去广告与底栏裁剪会同时失效** —— 它们都依赖改写
+> `/api/alexa/homepage/hub` 的响应。只想去广告又想放行接口，可以关 `ad_stub`
 > 但单独开 `bottom_custom`（见下），底栏仍能裁。
 
 ### 为什么把后两条拆出来
 
-`phantom_stub` 与 `order_stub` 是从 `api_stub` 里拆出来的独立开关，
+`phantom_stub` 与 `order_stub` 是从 `ad_stub` 里拆出来的独立开关，
 因为它们的性质和「去广告」根本不同：
 
 | 端点 | 性质 | 风险 |
@@ -154,8 +154,8 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 | 结果页扩展 | `/search` 的 `expansion` 字段 | `stub.response.js` |
 | 百亿补贴页 | `m.pinduoduo.net/brand_activity_subsidy.html` 内联 `window.rawData` 的 `store.searchStore.queryWords` | `subsidy.response.js` |
 
-四者同归 `search_stub`。v1.5.1 之前首页那份挂在 `api_stub` 下，
-**关掉 `api_stub` 放行会场接口时，词会从首页侧漏回来** —— 已解耦。
+四者同归 `search_stub`。v1.5.1 之前首页那份挂在 `ad_stub` 下，
+**关掉 `ad_stub` 放行会场接口时，词会从首页侧漏回来** —— 已解耦。
 
 > 百亿补贴页那一行是 v1.6 新增。该页是**服务端渲染的 HTML**，轮播词既不在
 > `homepage/hub` 也不在任何 API 响应里，而是内联在 HTML 的 `window.rawData` 中
@@ -164,7 +164,7 @@ GET https://api.pinduoduo.com/search_hotquery?dark_mode=0&source=index
 > 单独挂一条 `subsidy.response.js`。该脚本只替换目标数组字面量，
 > 不解析也不重新序列化整页（672KB）。
 
-> 只开 `search_stub` 即可去掉搜索词，**不必开 `api_stub`**。
+> 只开 `search_stub` 即可去掉搜索词，**不必开 `ad_stub`**。
 
 > ⚠️ **v1.3 / v1.4 曾经失效**：那两版把 `enable={api_stub}` 挂在 `[Rewrite]` 规则上，
 > 而 **Loon 手册的 `rewrite.md` 根本没有 `enable=` 这个参数**（`script.md` 才有），
@@ -300,6 +300,13 @@ node test/homepage.test.mjs    # 31 用例，脚本逻辑
 > 会继续往下执行并被外层 catch 吞掉，把错误响应原样放行。测试当场报出来了。
 
 ---
+
+
+> ⚠️ **2026-10-28 参数改名说明**：`api_stub` 已更名为 **`ad_stub`**。
+> 原因：v2.40 之前该参数写成 `switch,true,false,tag=...`（多一个裸 `false`），
+> Loon 解析时把第二个位置参数当成了**当前值**，于是一直存着 `false`。
+> v2.40 修正格式后，Loon 继续沿用那个 `false`，导致 `icon_set` 从未被删除、
+> 个人中心出现 16 个活动入口。改名强制 Loon 重新初始化为默认值 `true`。
 
 ## 2026-10-28 事故：titan REJECT 掐断客服页底栏
 
