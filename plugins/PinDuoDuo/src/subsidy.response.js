@@ -433,75 +433,87 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.49：三选一福袋自动选中间（修复 3D 变换导致的误过滤）
+// v2.50：三选一福袋 —— DOM 探测版
 // ---------------------------------------------------------------------------
-// v2.48 为什么没生效：
-//   三个福袋都有 3D 旋转：
-//     _1OzN-NpJ  rotateY(101deg)
-//     _22KgmSjU  rotateY(78deg)
-//     _1HumS6AN  rotateY(90deg)   ← 侧对屏幕，视觉宽度接近 0
-//   getBoundingClientRect() 返回的是【变换后】的包围盒，width 接近 0
-//   → 被 `if (r.width < 5) return` 全部过滤掉，根本没走到点击。
+// 截图实证：三选一弹窗是【平铺三个卡片 + 「选我」图片按钮】。
+// 但 JS 里搜不到「选我」文本 → 按钮是图片；v2.48/49 的 class 也不匹配。
 //
-// 修复：
-//   ① 用 offsetWidth（不受 transform 影响）判断元素是否渲染
-//   ② 不用 elementFromPoint（3D 元素可能拾取不到），直接对元素派发事件
-//   ③ 同时派发 click 和 el.click() 双保险
-//
-// 注：W（每个福袋）是纯展示组件没有 onClick，点击靠 React 事件委托，
-//     所以事件必须冒泡到 root —— bubbles:true 即可。
+// 本版先不点，只【探测】：找出页面上「三个横向排列、尺寸相近的图片/容器」，
+// 把它们的 class 和尺寸写到左下角标签，用户截图后即可精确匹配。
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
-  var SEL = '._1OzN-NpJ,._22KgmSjU,._1HumS6AN';
-  var done = false, dbg = null;
-
+  var dbg = null;
   function show(txt) {
     try {
       if (!dbg) {
         dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;left:6px;bottom:180px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.8);color:#0f0;font:11px/1.4 monospace;' +
-          'padding:3px 6px;border-radius:4px;pointer-events:none;white-space:pre';
+        dbg.style.cssText = 'position:fixed;left:4px;bottom:150px;z-index:2147483647;' +
+          'background:rgba(0,0,0,.85);color:#0f0;font:10px/1.35 monospace;' +
+          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:96vw';
         (document.body || document.documentElement).appendChild(dbg);
       }
       dbg.textContent = txt;
     } catch (e) {}
   }
 
+  // 找「同一行、尺寸相近」的 3 个元素（图片或含图片的容器）
+  function probe() {
+    var imgs = document.querySelectorAll('img');
+    var cands = [];
+    for (var i = 0; i < imgs.length; i++) {
+      var im = imgs[i];
+      var r = im.getBoundingClientRect();
+      if (r.width < 60 || r.height < 60) continue;             // 太小
+      if (r.top < 0 || r.top > window.innerHeight) continue;   // 离屏
+      cands.push({ el: im, r: r });
+    }
+    if (cands.length < 3) return null;
+    // 按 y 分组（同一行 y 差 < 30）
+    for (var a = 0; a < cands.length; a++) {
+      var row = cands.filter(function (c) { return Math.abs(c.r.top - cands[a].r.top) < 30; });
+      if (row.length === 3) {
+        row.sort(function (x, y) { return x.r.left - y.r.left; });
+        // 宽度相近校验
+        var ws = row.map(function (c) { return c.r.width; });
+        if (Math.max.apply(null, ws) / Math.min.apply(null, ws) < 1.6) return row;
+      }
+    }
+    return null;
+  }
+
+  function cls(el) {
+    var c = (el.className || '') + '';
+    if (c.length > 40) c = c.slice(0, 40) + '..';
+    return c || '(' + el.tagName + ')';
+  }
+
   setInterval(function () {
     try {
-      var cards = document.querySelectorAll(SEL);
-      if (cards.length === 0) { done = false; show('3of1 cards=0'); return; }
-
-      var arr = Array.prototype.slice.call(cards);
-      // offsetWidth 不受 transform 影响，用它判断是否真的渲染了
-      var ws = arr.map(function (el) { return el.offsetWidth; });
-      show('3of1 cards=' + arr.length + ' ow=' + ws.join(',') + ' click=' + (done ? 'Y' : 'N'));
-
-      if (done) return;
-      if (arr.length < 2) return;
-
-      // 按 offsetLeft 排序（同样不受 transform 影响）
-      arr.sort(function (a, b) { return a.offsetLeft - b.offsetLeft; });
-      var mid = arr[Math.floor(arr.length / 2)];
-      if (!mid || mid.offsetWidth < 10) return;
-
-      done = true;
-
-      // 直接对元素派发，冒泡到 React root
-      ['mousedown', 'mouseup', 'click'].forEach(function (type) {
-        try {
-          mid.dispatchEvent(new MouseEvent(type, {
-            bubbles: true, cancelable: true, button: 0
-          }));
-        } catch (e) {}
-      });
-      try { mid.click(); } catch (e) {}
-      try { if (mid.parentElement) mid.parentElement.click(); } catch (e) {}
+      var row = probe();
+      if (!row) { window.__pdd3of1Clicked = 0; show('3of1: no 3-in-row'); return; }
+      var lines = ['3of1 FOUND 3:'];
+      for (var i = 0; i < row.length; i++) {
+        var el = row[i].el;
+        var par = el.parentElement;
+        lines.push(i + ' w=' + Math.round(row[i].r.width) +
+                   ' img=' + cls(el) +
+                   ' par=' + cls(par) +
+                   ' gp=' + cls(par && par.parentElement));
+      }
+      show(lines.join('\\n'));
+      // 探测到就尝试点击中间那个（点 img 的父元素，通常是整张卡片）
+      if (!window.__pdd3of1Clicked) {
+        window.__pdd3of1Clicked = 1;
+        var mid = row[1].el;
+        var tgt = mid.parentElement || mid;
+        try { tgt.click(); } catch (e) {}
+        try { mid.click(); } catch (e) {}
+        show(lines.join('\\n') + '\\nCLICKED');
+      }
     } catch (e) {}
-  }, 700);
+  }, 800);
 })();</script>`;
 const LUCKY_3OF1 = (A.lucky_3of1 === undefined || A.lucky_3of1 === null || A.lucky_3of1 === '')
   ? true : on(A.lucky_3of1);
