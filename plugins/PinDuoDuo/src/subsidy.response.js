@@ -369,40 +369,37 @@ function injectLightupAuto(body) {
   return body.slice(0, i) + LIGHTUP_JS + body.slice(i);
 }
 
-// v2.45：福袋领券弹窗自动点关闭
+// v2.46：福袋领券弹窗自动点关闭（通用版）
 // ---------------------------------------------------------------------------
-// 背景（LuckyBagTakeCouPopNewTwo_*.js 反查）：
-//   消费券页福袋领券弹窗，动画（Lottie）播完才显示关闭按钮，要手动点。
-//   服务端在动画开始瞬间就已发券（take_coupon 立即返回 code:0），动画纯拖延。
+// v2.45 为什么没生效：
+//   只查了 `document.querySelectorAll('img')`，但关闭按钮由图片组件 f.ZP 渲染，
+//   可能是 <div style="background-image:url(...)"> 而不是 <img>。
 //
-// 关闭按钮：
-//   l.createElement(f.ZP, {
-//     className: m()(x().BX_Class521, x().BX_Ani521),   // → "_1-lALGJL _1CIjIqvj"
-//     src: D.IMG_SRC_13,                                 // → 固定 URL
-//     onClick: a                                         // a = closePop
-//   })
+// 本版改用【属性选择器】一次性覆盖所有渲染形态：
+//   img[src*=KEY] / [data-src*=KEY] / [srcset*=KEY] / [style*=KEY]
 //
-// 为什么用图片 URL 而不是 class：
-//   class 是 CSS Modules 编译产物（_1-lALGJL），每次构建都会变；
-//   图片 URL（promotion.pddpic.com/mobile-dc/2026-05-07/f57ce24c-...png）是写死的。
-//   实测两个弹窗变体（BX_Class521 / BX_Class240）都用同一张关闭图。
-//
-// 做法：每 500ms 扫一遍 img，src 命中就 click（每个元素只点一次）。
+// 防误伤（用户明确要求）：
+//   ① KEY 是关闭按钮专属图片的 UUID（f57ce24c-...），实测全页只加载 1 次
+//   ② 必须 getBoundingClientRect 宽高 > 8px（跳过未渲染/隐藏元素）
+//   ③ 必须在视口内（跳过离屏元素）
+//   ④ 每个元素只点一次（__pddLbClicked）
+//   ⑤ 只点元素本身，不点父元素（避免命中其他交互）
 const LUCKY_CLOSE_JS = `<script id="pdd-lucky-close">(function(){
   if (window.__pddLuckyClose) return;
   window.__pddLuckyClose = 1;
   var KEY = 'f57ce24c-be68-49a3-ab54-dd45824a4a1d';
+  var SEL = '[src*="' + KEY + '"],[data-src*="' + KEY + '"],[srcset*="' + KEY + '"],[style*="' + KEY + '"]';
   setInterval(function () {
     try {
-      var imgs = document.querySelectorAll('img');
-      for (var i = 0; i < imgs.length; i++) {
-        var im = imgs[i];
-        if (im.__pddLbClicked) continue;
-        if (!im.src || im.src.indexOf(KEY) === -1) continue;
-        var r = im.getBoundingClientRect();
-        if (r.width < 5 || r.height < 5) continue;   // 跳过未渲染的
-        im.__pddLbClicked = 1;
-        try { im.click(); } catch (e) {}
+      var els = document.querySelectorAll(SEL);
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.__pddLbClicked) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) continue;                    // 跳过未渲染
+        if (r.bottom < 0 || r.top > (window.innerHeight || 9999)) continue;  // 跳过离屏
+        el.__pddLbClicked = 1;
+        try { el.click(); } catch (e) {}
       }
     } catch (e) {}
   }, 500);
