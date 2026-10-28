@@ -315,61 +315,48 @@ const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
-// v2.43：点亮任务自动倒计时（无需滑动）
+// v2.44：点亮任务自动倒计时（无需滑动）—— 修正版
 // ---------------------------------------------------------------------------
-// 背景（抓包 + JS 反查）：
-//   消费券页「浏览 N 秒点亮」的倒计时 hook：
-//     en = function({time, wait, callback, isActive}) {
-//       let m = useRef(true);                     // 初始「已停止滚动」
-//       useEffect(() => {
-//         const t = debounce(() => {
-//           m.current = false;                    // 正在滚动
-//           const a = scrollTop();
-//           setTimeout(() => {
-//             if (a === scrollTop()) m.current = true;   // 停 500ms → 视为已停
-//           }, 500);
-//         }, 1000);
-//         document.addEventListener('touchstart', () => {
-//           document.addEventListener('scroll', t);      // 首次触摸才挂监听
-//         });
-//         const i = setInterval(() => {
-//           if (!m.current) d(e => e - 1);        // 只有滚动中才扣时间
-//         }, 1000);
-//       }, []);
-//     }
-//   → 必须持续滑动才扣时间。服务端只校验真实间隔 ≥ N 秒，不关心 UI。
+// v2.43 只给 scrollTop 打了「读取扰动」补丁，但没触发 scroll 事件，
+// 页面的 debounce 监听不执行 → m.current 永远是初始的 true → 倒计时不走。
 //
-// 做法：给 documentElement / body 的 scrollTop 打补丁，让每次读取返回
-//   「真实值 + 0/1 交替」。页面里 `a === scrollTop()` 永远为 false →
-//   m.current 保持 false → 倒计时每秒自动扣 1，不需要滑动。
+// 页面真实逻辑（xbrand_special_sale_*.js）：
+//   const t = debounce(() => {
+//     m.current = false;                       // 只有这里才会变 false
+//     const a = scrollTop();
+//     setTimeout(() => { if (a === scrollTop()) m.current = true }, 500);
+//   }, 1000);
+//   document.addEventListener('touchstart', () => {
+//     document.addEventListener('scroll', t);  // 首次触摸才挂监听
+//   });
+//   setInterval(() => { if (!m.current) d(e => e - 1) }, 1000);
 //
-// 为什么不用改 JS bundle（v2.41 的做法）：
-//   xbrand_special_sale_*.js 被 WebKit 缓存后不再请求，[Rewrite] 没机会执行。
-//   HTML 每次都重新请求，注入的脚本一定生效。
+// 所以必须同时满足：
+//   ① 触发 touchstart  → 挂上 scroll 监听
+//   ② 触发 scroll      → debounce 1 秒后执行，m.current 变 false
+//   ③ 500ms 内 scrollTop 真的变化 → m.current 保持 false
 //
-// 副作用：页面其他读 scrollTop 的逻辑会得到 ±1 的扰动值。
-//   实测影响可忽略（吸顶/懒加载的判定阈值通常远大于 1px）。
+// 做法：每 300ms 真实抖动 1px + 派发 touchstart/scroll 事件。
+//   抖动幅度 1px，用户基本察觉不到；页面其他依赖滚动位置的逻辑
+//   （吸顶/懒加载）判定阈值通常远大于 1px。
 const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   if (window.__pddLightupAuto) return;
   window.__pddLightupAuto = 1;
-  var desc = null;
-  try { desc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop'); } catch (e) {}
-  if (!desc || !desc.get) return;
-  function patch(el) {
-    if (!el) return;
-    var toggle = 0;
+  var up = true;
+  setInterval(function () {
     try {
-      Object.defineProperty(el, 'scrollTop', {
-        configurable: true,
-        get: function () { toggle = 1 - toggle; return desc.get.call(this) + toggle; },
-        set: function (v) { desc.set.call(this, v); }
-      });
+      // ① 触发 touchstart：页面首次收到才会挂 scroll 监听（内部有 f.current 去重）
+      document.dispatchEvent(new Event('touchstart', { bubbles: true }));
+      // ② 真实抖动 1px：让 debounce 里的「位置是否变化」判断失败
+      var el = document.scrollingElement || document.documentElement;
+      var cur = el.scrollTop;
+      el.scrollTop = up ? cur + 1 : Math.max(0, cur - 1);
+      up = !up;
+      // ③ 派发 scroll：驱动页面的 debounce
+      document.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('scroll'));
     } catch (e) {}
-  }
-  function run() { patch(document.documentElement); patch(document.body); }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
-  } else { run(); }
+  }, 300);
 })();</script>`;
 const LIGHTUP_AUTO = (A.lightup_auto === undefined || A.lightup_auto === null || A.lightup_auto === '')
   ? true : on(A.lightup_auto);
