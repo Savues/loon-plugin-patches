@@ -16,26 +16,7 @@
  *   del   —— 删掉响应体里的指定字段（用于 /search 的 expansion）
  */
 
-const A = (function (raw) {
-  // v2.43：兼容 $argument 的三种形态（对象 / JSON 字符串 / 数组 [{...}]）。
-  // 真机实测 Loon 传的是数组；旧写法 `(typeof $argument === 'string' ? {} : $argument)`
-  // 直接拿数组当对象用，A.api_stub 恒为 undefined → 整个 api_stub 功能静默失效。
-  let v = raw;
-  if (typeof v === 'string') {
-    try { v = JSON.parse(v); } catch (e) { v = {}; }
-  }
-  if (Array.isArray(v)) {
-    const merged = {};
-    for (let i = 0; i < v.length; i++) {
-      const it = v[i];
-      if (it && typeof it === 'object' && !Array.isArray(it)) {
-        for (const k in it) merged[k] = it[k];
-      }
-    }
-    v = merged;
-  }
-  return (v && typeof v === 'object') ? v : {};
-})($argument);
+const A = (typeof $argument === 'string' ? {} : $argument) || {};
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 
 // [开关, 动作, 路径, 动作参数]
@@ -55,19 +36,19 @@ const RULES = [
   ['search_stub', 'stub', '/search_hotquery'],
   ['search_stub', 'del', '/search', ['expansion']],
 
-  ['ad_stub', 'stub', '/api/aristotle/unrated_order_for_unreceived_tab'],
-  ['ad_stub', 'stub', '/api/aristotle/query_order_list_tabs_element'],
-  ['ad_stub', 'stub', '/api/aquarius/hungary/global/homepage'],
-  ['ad_stub', 'stub', '/api/caterham/v3/query/order_express_group'],
-  ['ad_stub', 'stub', '/api/alexa/goods/back_up'],
-  ['ad_stub', 'stub', '/api/brand-olay/goods_detail/bybt_guide'],
-  ['ad_stub', 'stub', '/api/engels/reviews/require/append'],
-  ['ad_stub', 'stub', '/api/caterham/v3/query/likes'],
-  ['ad_stub', 'stub', '/api/manufacturer/cross/shortcut/list'],
-  ['ad_stub', 'stub', '/api/dunkirk/liveactivity/push/create/url/report'],
-  ['ad_stub', 'stub', '/api/growth/nagato/app/index/gather'],
-  ['ad_stub', 'stub', '/api/engels/wait/receive/review'],
-  ['ad_stub', 'stub', '/api/caterham/v2/query/goods_detail_with_tags'],
+  ['api_stub', 'stub', '/api/aristotle/unrated_order_for_unreceived_tab'],
+  ['api_stub', 'stub', '/api/aristotle/query_order_list_tabs_element'],
+  ['api_stub', 'stub', '/api/aquarius/hungary/global/homepage'],
+  ['api_stub', 'stub', '/api/caterham/v3/query/order_express_group'],
+  ['api_stub', 'stub', '/api/alexa/goods/back_up'],
+  ['api_stub', 'stub', '/api/brand-olay/goods_detail/bybt_guide'],
+  ['api_stub', 'stub', '/api/engels/reviews/require/append'],
+  ['api_stub', 'stub', '/api/caterham/v3/query/likes'],
+  ['api_stub', 'stub', '/api/manufacturer/cross/shortcut/list'],
+  ['api_stub', 'stub', '/api/dunkirk/liveactivity/push/create/url/report'],
+  ['api_stub', 'stub', '/api/growth/nagato/app/index/gather'],
+  ['api_stub', 'stub', '/api/engels/wait/receive/review'],
+  ['api_stub', 'stub', '/api/caterham/v2/query/goods_detail_with_tags'],
 ];
 
 function pathOf(url) {

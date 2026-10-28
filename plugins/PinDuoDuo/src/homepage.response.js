@@ -10,26 +10,7 @@
  * 任何异常都放行原响应，绝不因脚本出错让 App 拿不到首页配置。
  */
 
-const A = (function (raw) {
-  // v2.43：兼容 $argument 的三种形态（对象 / JSON 字符串 / 数组 [{...}]）。
-  // 真机实测 Loon 传的是数组；旧写法 `(typeof $argument === 'string' ? {} : $argument)`
-  // 直接拿数组当对象用，A.ad_stub 恒为 undefined → 整个 api_stub 功能静默失效。
-  let v = raw;
-  if (typeof v === 'string') {
-    try { v = JSON.parse(v); } catch (e) { v = {}; }
-  }
-  if (Array.isArray(v)) {
-    const merged = {};
-    for (let i = 0; i < v.length; i++) {
-      const it = v[i];
-      if (it && typeof it === 'object' && !Array.isArray(it)) {
-        for (const k in it) merged[k] = it[k];
-      }
-    }
-    v = merged;
-  }
-  return (v && typeof v === 'object') ? v : {};
-})($argument);
+const A = (typeof $argument === 'string' ? {} : $argument) || {};
 
 // Loon 的 switch 可能给 true / "true" / 1 / "on"
 const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
@@ -72,10 +53,9 @@ try {
   const r = j && j.result;
   if (!r || typeof r !== 'object') { $done({ body: JSON.stringify(j) }); return; }
 
-
   // 1) 去广告字段（仅在总开关开着时才删）
   //    r 已在上方确认是非 null 对象，dy_module 是二级路径，需先确认它存在
-  if (on(A.ad_stub)) {
+  if (on(A.api_stub)) {
     delete r.icon_set;
     if (r.dy_module && typeof r.dy_module === 'object') delete r.dy_module.irregular_banner_dy;
   }
@@ -96,7 +76,7 @@ try {
   }
 
   // 3) 顶部候选图字段（沿用上游行为，字段缺失时原样跳过）
-  if (on(A.ad_stub) && Array.isArray(r.all_top_opts)) {
+  if (on(A.api_stub) && Array.isArray(r.all_top_opts)) {
     r.all_top_opts = r.all_top_opts.map((o) => {
       if (!o || typeof o !== 'object') return o;
       const c = Object.assign({}, o);
