@@ -14,6 +14,7 @@ const { isEnabled, safeParse, log } = require('./common.js');
 const DEFAULT_NOAH_CONFIG = {
   // 需要拦截的 resKey (黑名单模式)
   blockResKeys: [
+    "etao_dx_home_popup",
     "moon_search_activation_dx_banner",
     "moon_share_dx_market_material",
     "moon_dx_bulletin_board_discovery",

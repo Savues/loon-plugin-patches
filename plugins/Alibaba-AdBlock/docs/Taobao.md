@@ -117,6 +117,39 @@ updateTabBar / addList / removeList          ← 同时管 tabbar 角标
 
 ---
 
+### 2.7 🔴 结算页「提交订单」按钮消失（v3.50.3 事故，2026-10-29）
+
+**现象**：一淘 10.7.0 从购物车进入结算页，页面能打开，但**底部付款栏整条不见**（无「提交订单」按钮）。
+
+**取证链**（HAR + 模拟器规则匹配）：
+
+| # | 证据 | 结论 |
+|---|------|------|
+| 1 | `mtop.trade.order.build` 响应 `data.hierarchy.root=confirmOrder_1`；按钮节点 `submitOrder_1` = `{"type":"dinamicx$475$buysubmit","fields":{"payBtn":{"enable":true,"title":"提交订单"}}}` | **数据层正常**，按钮数据存在且 enable |
+| 2 | 同响应 `data.container.data` 共 154 个 dinamicx 组件，**103 个**托管 `ossgw.alicdn.com`；`buysubmit` → `https://ossgw.alicdn.com/rapid-oss-bucket/template_online/buy_submit/1600853389896/buy_submit_h5.js`（实测 HTTP 200 / 6166 B 模板）| 按钮由**远端模板**渲染，非内置 |
+| 3 | `loon-sim rules --url <buy_submit_h5.js>` → `[Rule]: DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT` | **整域拦截命中模板 URL** |
+| 4 | 设备侧 `ossgw.alicdn.com` DNS → `127.0.0.1`（Loon [Rule] REJECT 特征）| 模板拉取必然失败 |
+| 5 | `loon-sim rules --url mtop.trade.order.build` → 无 Rule/Rewrite/Script | 响应体未被改写，**排除清洗误伤** |
+
+**根因**：`ossgw.alicdn.com` 是阿里**静态模板 CDN**（`rapid-oss-bucket/template_online/*`，托管全部 buy_* 结算组件），
+v3.39.0 把它当"埋点域名"下沉到 `[Rule]` 整域 REJECT。模板拉取失败 → DX 节点渲染为空 → 底部结算栏消失。
+其余组件因本地模板缓存仍能渲染，所以表现为"只有按钮不见了"。
+
+**修复**：删除 `DOMAIN-SUFFIX, ossgw.alicdn.com, REJECT`（v3.50.3），原位留注释防回归。
+
+#### 补充：一淘结算页有两套实现（2026-10-29 二次取证）
+
+| 版本 | 接口 | 根节点 | 组件 | 提交按钮模板 |
+|------|------|--------|------|-------------|
+| 老页（H5） | `mtop.trade.order.build/4.0` | `confirmOrder_1` | 154（103 on ossgw） | `buy_submit_h5.js`（ossgw） |
+| 新页 V3（原生 DX） | `mtop.trade.order.build/5.0` | `etaoBuyV3` | 187（142 on dinamicx / 26 on ossgw） | `buy_submit_ios.plist`（ossgw）+ `buy_v3_submit_order.zip` |
+
+- 插件开（v3.50.2）：App 走 4.0 老页 → 按钮模板被 ossgw 规则拦 → 付款栏消失
+- 插件关：App 走 5.0 新页 → 20 个 `buy_v3_*` 模板全部 200 → 正常
+- v3.50.3 下两套页面的全部组件 URL（154 + 171 条）跑 `loon-sim rules` 均 **0 命中**
+
+---
+
 ## 三、已知限制
 
 | 限制 | 原因 | 可能解法 |
