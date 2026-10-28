@@ -72,20 +72,6 @@ try {
   const r = j && j.result;
   if (!r || typeof r !== 'object') { $done({ body: JSON.stringify(j) }); return; }
 
-  // v2.44 诊断：把真机实际收到的 $argument 形态写进响应，抓包搜 _argdbg 即可见。
-  // 定位完（确认参数形态）后删除。
-  try {
-    r._argdbg = {
-      t: typeof $argument,
-      isArr: Array.isArray($argument),
-      len: (Array.isArray($argument) ? $argument.length : -1),
-      raw: (function () { try { return JSON.stringify($argument).slice(0, 240); } catch (e) { return 'ERR'; } })(),
-      keys: Object.keys(A),
-      api_stub: String(A.api_stub),
-      bottom_custom: String(A.bottom_custom),
-      search_stub: String(A.search_stub),
-    };
-  } catch (e) { /* 诊断失败不影响主流程 */ }
 
   // 1) 去广告字段（仅在总开关开着时才删）
   //    r 已在上方确认是非 null 对象，dy_module 是二级路径，需先确认它存在
