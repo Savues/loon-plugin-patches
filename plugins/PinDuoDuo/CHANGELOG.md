@@ -322,7 +322,31 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.46（2026-10-28）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.47（2026-10-28）
+
+### 福袋自动关闭覆盖两个弹窗变体
+
+**为什么 v2.45 / v2.46 都失败**
+
+PDD 有**两个不同的福袋弹窗组件**，之前只覆盖了其中一个：
+
+| 组件 | 触发条件 | 关闭按钮 class | 关闭按钮图片 |
+|---|---|---|---|
+| `LuckyBagTakeCouPopNewTwo` | 无 `popup_goods` | `_1-lALGJL` / `_1CIjIqvj` | `f57ce24c-...` |
+| **`LBTakeCouponPopWithGoods`** | **有 `popup_goods`** | `_1YyPm9Uh` / `eOdKZIH1` | `bf929de2-...` |
+| | | 另有 `closeIcon` `_3T2QZOWa` | |
+
+**抓包佐证**：用户那次 `take_coupon` 响应含 `popup_goods`，加载的是
+`LBTakeCouponPopWithGoods_*.js`（13.4 KB），而 `LuckyBagTakeCouPopNewTwo`
+**根本没加载** → 之前的选择器全是空的。
+
+**本版**：`SELS` 同时覆盖两个变体的 class + 图片 URL。
+
+防误伤：宽高 > 8px、在视口内、每元素只点一次、只点元素本身。
+
+---
+
+## v2.46（2026-10-28）
 
 ### 福袋自动关闭改用属性选择器
 
