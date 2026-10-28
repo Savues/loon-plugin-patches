@@ -15,7 +15,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibab
 
 **当前版本直链（无缓存）**
 ```
-https://raw.githubusercontent.com/Savues/loon-plugin-patches/b496eee/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
+https://raw.githubusercontent.com/Savues/loon-plugin-patches/bdd22ac/plugins/Alibaba-AdBlock/Alibaba-AdBlock.lpx
 ```
 
 ---
