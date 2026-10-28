@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.41
+#!name=拼多多去广告(修复版) v2.42
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -39,7 +39,12 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 
 [Rule]
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
-DOMAIN, titan.pinduoduo.com, REJECT
+# [v2.42 移除] DOMAIN, titan.pinduoduo.com, REJECT
+#   2026-10-28 真机实证：拦这条会让【官方客服对话页】的底栏按钮
+#   （发订单给客服 / 平台热门活动）不渲染，关掉插件即恢复。
+#   二分过程：禁用全部 Script 无效 → 再禁 MITM 无效 → 再禁这条 Rule 才恢复。
+#   该域名承载 titan-gslb 会话票据 / HTTPDNS 解析（/v3/d），
+#   被拒后部分域名解析不到，页面资源加载不全。
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
 # [v2.41 临时注释] 这 3 条来自上游，从未验证过具体拦了什么。
 # 用户反馈：客服对话页的底栏按钮（发订单给客服 / 平台热门活动）在开插件时不显示，
