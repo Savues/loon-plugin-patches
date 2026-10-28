@@ -1,3 +1,46 @@
+## v2.41（2026-10-28）
+
+### 点亮任务改为「无需滑动的倒计时」
+
+**问题**：消费券页的「浏览 10 秒点亮」任务，前端要求**持续滑动页面**才扣时间
+（`m.current` 只在滚动中为 false 才走计时器）。用户实测：改成 1 秒后停留 10 秒
+再滑动，服务端**接受** —— 说明服务端只校验真实时间间隔 ≥ 10 秒，不关心 UI 显示。
+
+**方案**：直接改 JS bundle 的一处判断。
+
+```js
+// 原：只有「正在滚动」才每秒扣 1
+setInterval(() => { m.current || d(e => e - 1) }, 1000)
+// 改：无条件每秒扣 1
+setInterval(() => { d(e => e - 1) }, 1000)
+```
+
+**实现**：
+
+```ini
+[URL Rewrite]
+^https://static\.pddpic\.com/assets/js/xbrand_special_sale_[a-f0-9]+\.js\? response-body-replace-regex m\.current\x7c\x7cd\( d(
+
+[MitM]
+hostname=..., static.pddpic.com
+```
+
+用 `\x7c` 代替字面 `|`，避免被 action 管道分隔符切断。
+
+**效果**：进入任务后 10 秒自动完成，不需要手动滑动。服务端仍校验真实间隔 ≥ 10 秒，
+所以不会失败。
+
+**风险**：
+- `static.pddpic.com` 加入 MITM，该域所有静态资源都会解密
+- JS bundle 更新后字符串可能变化，需要重新验证
+
+### 顺带：`lightup_secs` 参数仍然保留
+
+它改的是 `task_duration`（UI 显示），配合本方案可以让倒计时显示更短。
+但单独使用无效（服务端校验真实时长）。
+
+---
+
 ## v2.40（2026-10-28）
 
 ### 移除 3 个从未使用的开关

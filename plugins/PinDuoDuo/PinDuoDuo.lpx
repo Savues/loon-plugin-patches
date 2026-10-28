@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.40
+#!name=拼多多去广告(修复版) v2.41
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -61,6 +61,7 @@ DOMAIN, cd-1.pddpic.com, REJECT
 # [已移除-死开关] DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
 
 [Rewrite]
+^https:\/\/static\.pddpic\.com\/assets\/js\/xbrand_special_sale_[a-f0-9]+\.js\? response-body-replace-regex m\.current\x7c\x7cd\( d(
 
 
 # [已由脚本接管] ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? response-b …
@@ -105,7 +106,7 @@ http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/common\/page\
 http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/light-up\/start_task\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/lightup.response.js?v=1, requires-body=true, argument=[{lightup_secs}], timeout=10, tag=消费券点亮任务缩短倒计时
 
 [MitM]
-hostname=api.pinduoduo.com, m.pinduoduo.net
+hostname=api.pinduoduo.com, m.pinduoduo.net, static.pddpic.com
 
 # ─────────────────────────────────────────────
 # 修复说明（上游脚本仅改 1 行远程依赖 URL；homepage/stub/detail/feed/subsidy
