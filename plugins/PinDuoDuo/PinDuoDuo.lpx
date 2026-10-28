@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.39
+#!name=拼多多去广告(修复版) v2.39a
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -39,7 +39,8 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 
 [Rule]
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
-DOMAIN, titan.pinduoduo.com, REJECT
+# [v2.39a 测试] 仅移除这一条，其余与 v2.39 完全一致
+# DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
 DOMAIN, cdl-1.pddpic.com, REJECT
 DOMAIN, cdl-p2.pddpic.com, REJECT
