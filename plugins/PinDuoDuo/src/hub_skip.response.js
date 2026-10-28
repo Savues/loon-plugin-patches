@@ -123,6 +123,9 @@ const INJECT = `<script>(${function () {
 // 动画瞬间跑完、animationend 照常触发、fill-mode 终态保留。
 // 不用 animation:none —— 很多元素靠 fill-mode:forwards 停在终态，
 // none 会让它们停在初始态（常见 opacity:0，直接看不见）。
+// v2.39：月卡页保留「压 duration」——实测 hub_renew_manage.html 只有 1 个
+// infinite 动画，压到 .01s 不会造成高速循环；而消费券页有 10 个，那边只压 delay
+// （见 subsidy.response.js 同一段说明）。
 const NOANIM_CSS = `<style id="pdd-no-anim">*,*::before,*::after{animation-duration:.01s !important;animation-delay:0s !important;transition-duration:.01s !important;transition-delay:0s !important}</style>`;
 
 try {

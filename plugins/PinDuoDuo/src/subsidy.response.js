@@ -305,7 +305,13 @@ function collectAdGoods(raw) {
 
 // v2.36：动画压制 CSS（消费券页的福袋/抽奖弹窗有 153 个 @keyframes、730 处 animation，
 // 服务端无开关可关，只能从渲染层压时长）。见 hub_skip.response.js 同一段说明。
-const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-duration:.01s !important;animation-delay:0s !important;transition-duration:.01s !important;transition-delay:0s !important}</style>';
+// v2.39：这里【只压 delay，不压 duration】。
+// tandy_vase.html 有 10 处 animation-iteration-count:infinite（实测
+// animation:_2VSYZIBr .9s linear infinite / _1zqXp5Ij 2.5s infinite forwards …）。
+// 一旦把 duration 压到 .01s，这些无限循环会变成 100Hz 高速闪烁，
+// 元素一直在动 → 点不中，表现为「要反复点才能进商品」。
+// 压 delay 只去掉等待（.44s 这类），保留动画节奏，无副作用。
+const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay:0s !important;transition-delay:0s !important}</style>';
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
