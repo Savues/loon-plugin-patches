@@ -1,0 +1,27 @@
+{
+  "_comment": "Vendored upstream scripts, byte-for-byte. See UPSTREAM.md. Regenerate with: python3 tools/vendor-check.py --manifest",
+  "sources": {
+    "plugins/PinDuoDuo/src/upstream/PinDuoDuo_remove_ads.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js",
+      "bytes": 2475,
+      "sha256": "63af2e44da24da11f5c1bc930aefdcef2ce16aa65293be3e80ba8520d46e9c58"
+    },
+    "plugins/PinDuoDuo/src/chunks/9410-b8806e870a26db7d.js": {
+      "upstream": "https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js",
+      "bytes": 5131,
+      "sha256": "e8e4f0e81525d314a7bc6af0fa45600b7d49b098f71f53ab36155d9ebd327ba7"
+    },
+    "plugins/PinDuoDuo/src/homepage.response.js": {
+      "upstream": null,
+      "origin": "self-authored",
+      "bytes": 3815,
+      "sha256": "76d605ed928740009b26c908b8cef4138c7d076481e5bc4beefe015cbf8453de"
+    },
+    "plugins/PinDuoDuo/src/stub.response.js": {
+      "upstream": null,
+      "origin": "self-authored",
+      "bytes": 3368,
+      "sha256": "899a2de76dde53feef9298108e276e8405c45d46acffe58422aa2ebd5b398dde"
+    }
+  }
+}

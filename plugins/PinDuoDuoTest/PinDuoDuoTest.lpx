@@ -1,4 +1,4 @@
-#!name=拼多多去广告(测试版) v2.39t2
+#!name=拼多多去广告(测试版) v2.39t1
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -12,9 +12,6 @@
 
 [Argument]
 # ===== 高危：接口响应体改写 =====
-api_stub = switch,true,false,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
-chat_stub = switch,false,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
-phantom_stub = switch,false,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
 search_stub = switch,true,false,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
 feed_ad = switch,true,tag=[信息流] 给广告商品打「广告」标,desc=只标记不删除;靠服务端自己的 data.ad 字段识别,正常推荐零误伤
 cps_rewrite = switch,true,tag=[高危] 商品链接改写成进宝领券页,desc=把信息流 link_url 换成带 goods_sign 的 duo_coupon_landing 链接;拼多多自购比价规则要求第一次点击就是 CPS 链才计佣金;需配合 cps_token
@@ -39,10 +36,7 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 
 [Rule]
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
-# [t2 实验] 移除 titan REJECT —— 验证客服页底栏
-# 主插件 v2.39 实证：移除后 api.pinduoduo.com 请求从 125 条掉到 4 条
-# （App 走 HTTPDNS 直连，绕过 Loon）。本版在独立项目里再验一次。
-# DOMAIN, titan.pinduoduo.com, REJECT
+DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
 DOMAIN, cdl-1.pddpic.com, REJECT
 DOMAIN, cdl-p2.pddpic.com, REJECT
@@ -87,9 +81,9 @@ DOMAIN, cd-1.pddpic.com, REJECT
 ^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/order_list_v4\? response-body-json-jq '.orders |= map(.order_buttons |= map(del(.order_growth_tip)))'
 
 [Script]
-http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element)|api\/aquarius\/hungary\/global\/homepage|api\/caterham\/(v2\/query\/goods_detail_with_tags|v3\/query\/(order_express_group|likes))|api\/alexa\/goods\/back_up|api\/brand-olay\/goods_detail\/bybt_guide|api\/engels\/(reviews\/require\/append|wait\/receive\/review)|api\/buffon\/nasus\/recommend|api\/phantom\/gbdbpdv\/extra|api\/manufacturer\/cross\/shortcut\/list|api\/dunkirk\/liveactivity\/push\/create\/url\/report|api\/growth\/nagato\/app\/index\/gather|api\/zaire_biz\/chat\/resource\/get_list_data)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/stub.response.js?v=1, requires-body=true, argument=[{api_stub},{chat_stub},{search_stub},{phantom_stub}], timeout=5, tag=接口拦截与搜索词屏蔽
+http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/stub.response.js?v=1, requires-body=true, argument=[{search_stub}], timeout=5, tag=接口拦截与搜索词屏蔽
 http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/PinDuoDuo_remove_ads.js, requires-body=true, tag=移除扫码取件页面商品推荐及弹窗
-http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/homepage.response.js, requires-body=true, argument=[{api_stub},{search_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
+http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/homepage.response.js, requires-body=true, argument=[{search_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
 http-response ^https:\/\/m\.pinduoduo\.net\/(brand_activity_subsidy|tandy_vase)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/subsidy.response.js?v=18, requires-body=true, argument=[{search_stub},{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token},{no_anim}], timeout=15, tag=百亿补贴搜索框去推广词+广告打标
 
 http-response ^https:\/\/m\.pinduoduo\.net\/(hub_monthly_card|hub_renew_manage)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuoTest/src/hub_skip.response.js?v=2, requires-body=true, argument=[{auto_skip},{no_anim}], timeout=5, tag=月卡页面自动跳过动效
@@ -117,7 +111,7 @@ hostname=api.pinduoduo.com, m.pinduoduo.net
 # 五个脚本中前两个为托管、其余为本仓库自研，依据逐条如下）
 #  1. 新增 [Argument] 开关：chat_stub / telemetry_stub
 #     （telemetry 已于 v1.75 删除——它挂的是 [Rule]，enable= 在那里无效，见 15）
-#  2. 4 条聊天与推荐端点挂 enable={chat_stub}，可关以恢复聊天刷新
+#  2. 4 条聊天与推荐端点挂 enable=，可关以恢复聊天刷新
 #  3. homepage/hub 的 jq 空值崩溃缺陷——已由自研脚本取代（见 13）
 #  4. 移除 1 条 QUIC REJECT（api 的 ALPN 只协商 h2，不触发）
 #  5. 移除 DOMAIN, xg.pinduoduo.com REJECT——实测是消息推送 WebSocket 通道

@@ -1,0 +1,353 @@
+{
+ "sku": [
+  {
+   "id": null,
+   "side_car_labels": [
+    {
+     "margin_right": 3,
+     "display_type": 1,
+     "margin_left": 0,
+     "url": "https://commimg.pddpic.com/upload/transaction/0be0b0f2-ba41-47a6-9891-85d660897a87.png.slim.png",
+     "width": 10,
+     "height": 12
+    },
+    {
+     "font_size": 14,
+     "display_type": 0,
+     "font_color": "#E02E24",
+     "text": "已拼1.3万+袋"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "side_car_labels": [
+    {
+     "margin_right": 3,
+     "display_type": 1,
+     "margin_left": 0,
+     "url": "https://commimg.pddpic.com/upload/transaction/0be0b0f2-ba41-47a6-9891-85d660897a87.png.slim.png",
+     "width": 10,
+     "height": 12
+    },
+    {
+     "font_size": 14,
+     "display_type": 0,
+     "font_color": "#E02E24",
+     "text": "已拼1.3万+袋"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "side_car_labels": [
+    {
+     "margin_right": 3,
+     "display_type": 1,
+     "margin_left": 0,
+     "url": "https://commimg.pddpic.com/upload/transaction/0be0b0f2-ba41-47a6-9891-85d660897a87.png.slim.png",
+     "width": 10,
+     "height": 12
+    },
+    {
+     "font_size": 14,
+     "display_type": 0,
+     "font_color": "#E02E24",
+     "text": "已拼1.3万+袋"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "side_car_labels": [
+    {
+     "margin_right": 3,
+     "display_type": 1,
+     "margin_left": 0,
+     "url": "https://commimg.pddpic.com/upload/transaction/0be0b0f2-ba41-47a6-9891-85d660897a87.png.slim.png",
+     "width": 10,
+     "height": 12
+    },
+    {
+     "font_size": 14,
+     "display_type": 0,
+     "font_color": "#E02E24",
+     "text": "已拼1.3万+袋"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "side_car_labels": [
+    {
+     "margin_right": 3,
+     "display_type": 1,
+     "margin_left": 0,
+     "url": "https://commimg.pddpic.com/upload/transaction/0be0b0f2-ba41-47a6-9891-85d660897a87.png.slim.png",
+     "width": 10,
+     "height": 12
+    },
+    {
+     "font_size": 14,
+     "display_type": 0,
+     "font_color": "#E02E24",
+     "text": "已拼1.3万+袋"
+    }
+   ]
+  }
+ ],
+ "ui": {
+  "live_section": {
+   "float_info": {
+    "ad": 1
+   }
+  },
+  "pull_down_title_section": {
+   "second_line_rich_list": [
+    {
+     "txt": "已拼1.3万+袋",
+     "type": 1,
+     "font": 14,
+     "color": "#58595B"
+    }
+   ]
+  },
+  "new_price_section": {
+   "is_normal": 1,
+   "prefix": "剩54分钟",
+   "desc_color": "#58595B",
+   "use_new_desc_labels_rule": false,
+   "desc_labels_rich": [
+    [
+     {
+      "txt": "已拼1.3万+袋",
+      "type": 1,
+      "font": 13,
+      "color": "#58595B"
+     }
+    ]
+   ],
+   "type": "normal",
+   "color": "#E02E24",
+   "price": "27",
+   "prefix_rich": [
+    {
+     "txt": "剩54分钟",
+     "font": 14,
+     "type": 1
+    },
+    {
+     "type": 2,
+     "space": 2
+    },
+    {
+     "txt": "¥",
+     "font": 15,
+     "type": 1
+    }
+   ],
+   "desc_labels_for_carousel": [],
+   "price_tag": {
+    "color": "#FFFFFF",
+    "click_bg_color": "#C51E14",
+    "bg_color": "#E02E24",
+    "style": 3,
+    "click_url": "lego_goods_detail_coupon_price_popup_goods_detail_coupon_price_popup.html?lego_type=v8&lego_minversion=5.28.0&lego_ssr_api=/api/goods_detail_coupon_price_popup/get_config/goods_detail_coupon_price_popup&rp=0&goods_id=845610791762&mall_id=633315906&cat_id=23998&cat_id1=6630&cat_id2=6671&cat_id3=6682&cat_id4=23998&goods_type=1&event_type=0&oversea_type=0&min_on_sale_group_price=5400&from_page=26&promo_price_version=1792564739216&activity_id=29397910879&activity_type=3&sub_activity_type=0&cost_type=0&activity_options=%5B81%2C53%2C88%2C44%2C29%2C47%5D&activity_play_type=0&activity_start_time=1788609234&activity_end_time=1820145234&options=%5B0%2C179%2C132%2C117%2C54%2C7%2C9%2C204%2C236%2C60%2C13%2C31%5D&promo_price=2700&old_min_on_sale_group_price=6000&fb_send_amount=0&has_suffix=1&disable_pop_gesture=1",
+    "click_track": {
+     "extra": {
+      "details": 2700
+     },
+     "page_el_sn": "7665880"
+    },
+    "txt": "已优惠27元",
+    "hidden_arrow": 1,
+    "click_color": "#EDBBB8"
+   },
+   "is_elder": 0,
+   "prefix_icon": {
+    "url": "https://commimg.pddpic.com/upload/ddpay/aa576497-b3eb-48f0-a9bc-a419408019f6.png.slim.png",
+    "width": 11,
+    "height": 17
+   },
+   "desc_labels": [
+    "已拼1.3万+袋"
+   ],
+   "price_rich": [
+    {
+     "txt": "27",
+     "can_hidden": false,
+     "font": 28,
+     "type": 1,
+     "min_font": 19
+    }
+   ],
+   "bg_color": "#FFFFFF"
+  },
+  "bottom_section": {
+   "keep": false
+  }
+ },
+ "using_secondary_bottom_section_order": false,
+ "goods": {
+  "brand_id": 13207107,
+  "spu_id": 0,
+  "image_url": "https://img.pddpic.com/gaudit-image/2025-12-04/02373fb58a9233225437ced18f949bb6.jpeg",
+  "is_cold_goods": 0,
+  "goods_property_type": 0,
+  "event_type": 0,
+  "oversea_type": 0,
+  "app_new": 0,
+  "preview_share_link": "mall_quality_assurance.html?_t_timestamp=comm_share_landing&goods_id=845610791762",
+  "we_chat_only": 0,
+  "share_link": "goods2.html?goods_id=845610791762&page_from=26&_oc_trace_mark=199&pxq_secret_key=HT47VTHFDYIHYMYVDTT3DOTTVGGJOPKPT3YGGZ5KCPGLVHQFRYKA&_oak_share_snapshot_num=5400&_oak_share_detail_id=29397910879&_oak_share_time=1792564739&share_oak_rcto=YWIdt5WTcZAMf6ZZ0LkwoVy2KGCJgNgr47IMFq7NvhrNwo6zciD0cfYp",
+  "allowed_region": "2,3,4,6,10,11,13,14,16,17,22,25,26,27,31",
+  "customer_num": 2,
+  "pre_sale_time": 0,
+  "goods_type": 1,
+  "status": 1,
+  "second_hand": 0,
+  "sold_quantity": 10000,
+  "cat_id_1": 6630,
+  "sku_type": 0,
+  "cat_id_2": 6671,
+  "cat_id": 23998,
+  "skip_goods": "0",
+  "thumb_url": "https://img.pddpic.com/gaudit-image/2025-12-04/02373fb58a9233225437ced18f949bb6.jpeg",
+  "has_promotion": 1,
+  "show_rec": 1,
+  "cat_id_3": 6682,
+  "cat_id_4": 23998,
+  "goods_name_prefix_tag": [
+   {
+    "height": 15,
+    "type": 3,
+    "url": "https://promotion.pddpic.com/promo/logistics_on_time/new_cmt/f7e048cf-4297-48a1-b1c6-542bd703d804.png",
+    "width": 47
+   }
+  ],
+  "property_show_num": 6,
+  "show_history_group": 1,
+  "property_card_click": 0,
+  "goods_id": 845610791762,
+  "country": "",
+  "has_cost": 0,
+  "service_promise_version": 0,
+  "shipment_limit_second": 172800,
+  "market_price": 31000,
+  "gpv": 2,
+  "side_sales_tip": "已拼1.3万+袋",
+  "call_waist_rec_extra_params": {
+   "shield_mall_goods_rec": 1
+  },
+  "is_app_flow": 1,
+  "tag": 10,
+  "new_share_title": {
+   "price": "54元 ",
+   "suf": "【肠常乐】爆汁鲜肉烤肠原味鲜肉无添加淀粉火山石烤肠大块肉粒 拼多多",
+   "not_null": true
+  },
+  "hd_url": "https://img.pddpic.com/mms-material-img/2025-12-03/cb72c1e4-96d3-47fb-a641-7f42a128f2ba.png.a.jpeg",
+  "new_options": [
+   0,
+   179,
+   132,
+   117,
+   54,
+   7,
+   9,
+   204,
+   236,
+   60,
+   13,
+   31
+  ],
+  "is_sku_onsale": 1,
+  "warehouse": "",
+  "hd_thumb_url": "https://img.pddpic.com/gaudit-image/2025-12-04/1b9f595d35bff9e977f63004d0bdbe3a.jpeg",
+  "mall_id": 633315906,
+  "created_at": 1761726234,
+  "sku_direct_order": 1,
+  "default_sku_id": 1959298426955,
+  "options": [
+   0,
+   54,
+   7,
+   9,
+   60,
+   13,
+   31
+  ],
+  "is_app": 0,
+  "rv_image": 1,
+  "is_mall_dsr": 1,
+  "route": "goods2.html",
+  "check_quantity": 1,
+  "app_client_only": 0,
+  "short_name": "【肠常乐】爆汁鲜肉烤肠原味鲜肉无添加淀粉火山石烤肠大块肉粒",
+  "hot_goods_from_gin": false,
+  "show_rec_title": 1,
+  "share_desc": "【坏了包赔】【肠常乐】爆汁鲜肉烤肠原味鲜肉无添加淀粉火山石烤肠大块肉粒",
+  "cost_province_codes": "5,9,19,20,21,28,29",
+  "goods_name": "【肠常乐】爆汁鲜肉烤肠原味鲜肉无添加淀粉火山石烤肠大块肉粒",
+  "rv": 1,
+  "off_sale_type": -1,
+  "open_in_festival": 0,
+  "is_onsale": 1,
+  "is_pre_sale": 0,
+  "goods_rec_style": 1,
+  "is_hidden": 0,
+  "sku_direct_order_select_sku_id": 1959298426955,
+  "group": [
+   {
+    "id": 148524091590,
+    "regular_limit": 0,
+    "customer_num": 1,
+    "start_time": 1451577600,
+    "regular_limit_duration": 0,
+    "price": 0,
+    "group_id": 148524091590,
+    "goods_id": 845610791762,
+    "end_time": 2082729600,
+    "duration": 86400,
+    "buy_limit": 999999,
+    "order_limit": 999999,
+    "is_open": 1
+   },
+   {
+    "id": 148524091591,
+    "regular_limit": 0,
+    "customer_num": 2,
+    "start_time": 1451577600,
+    "regular_limit_duration": 0,
+    "price": 0,
+    "group_id": 148524091591,
+    "goods_id": 845610791762,
+    "end_time": 2082729600,
+    "duration": 86400,
+    "buy_limit": 999999,
+    "order_limit": 999999,
+    "is_open": 1
+   }
+  ],
+  "quantity": 1000,
+  "bottom_notice": {
+   "notice": "",
+   "notice_type": 0,
+   "degrade_notice": "",
+   "priority": 1,
+   "type": 0
+  },
+  "has_activity": 1,
+  "sku_preview_group_buy_txt": "去拼单",
+  "cost_template_id": 695275049983554,
+  "is_mall_rec": 0,
+  "vas_template_id": {}
+ },
+ "section_index": 9,
+ "server_time": 1792564739,
+ "bottom_section_list": [
+  {
+   "x": 1
+  }
+ ]
+}
