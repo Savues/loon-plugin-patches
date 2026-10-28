@@ -1,6 +1,6 @@
 # Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> **版本 v3.50.4** · 2026-10-29
+> **版本 v3.50.5** · 2026-10-29
 > 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
 > 运行环境：Loon (iOS / iPadOS)
 
@@ -181,6 +181,7 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 | 版本 | 内容 | 验证 |
 |------|------|------|
+| **v3.50.5** | 🔴 **撤销 `mtop.etao.fe.chaojisheng.draw.hongbao` 拦截** —— 它是一淘「前往结算」的入口接口（返回 `placeOrderUrl`，内含 `etaoRoutePageCode=v3`），拦成 `{}` 后 App 弹「人多拥挤，获取返利信息失败…」并退回旧 H5 结算页，付款按钮消失 | 真机对照（插件关 200/1251B 正常进 v3 页）|
 | **v3.50.4** | 一淘 NOAH 全屏弹窗（`etao_dx_home_popup` = 抓猫猫/下单挑战 lottie 1125×2436）未拦：过滤器只认 Moon 的 resKey 名单。已加入 blockResKeys（前缀匹配，兼容 `_v2` 等后缀）| HAR 实证（noah.query 2852B → 1646B，assetResult 清空）|
 | **v3.50.3** | 🔴 **撤销 `ossgw.alicdn.com` 整域拦截** —— 它是阿里**静态模板 CDN**（`rapid-oss-bucket/template_online/*`），不是埋点域。一淘结算页 154 个 dinamicx 组件中 **103 个**托管于此，付款按钮 `submitOrder_1`（`dinamicx$475$buysubmit` → `buy_submit_h5.js`）被整域 REJECT 后模板拉取失败，底部「提交订单」栏整条消失 | HAR + 模拟器实证 ✅ |
 | **v3.50.2** | 🔴 **撤销 adzone.default.get 拦截** —— 它是分享链路前置（取 pid），拦成 `{}` 导致双11会场「去分享」按钮完全无反应（下游 3 接口一次未发出）| HAR 实证 ✅ |

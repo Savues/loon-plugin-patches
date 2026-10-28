@@ -1,8 +1,8 @@
-#!name=Alibaba-AdBlock v3.50.4
+#!name=Alibaba-AdBlock v3.50.5
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Alibaba-AdBlock/icon.png
 #!desc=阿里系去广告 · 支持支付宝/Moon/淘宝/天猫/闲鱼/盒马/飞猪等 · 开屏/热启动广告/弹窗/双11氛围/小卡片/Feed/搜索推荐/TAC/NOAH/私域/埋点全拦截
 #!system=iOS, iPadOS
-#!version=3.50.4
+#!version=3.50.5
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Alibaba-AdBlock
 
@@ -173,7 +173,7 @@ response if ${url} ~= /^https?:\/\/acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.4")
+request if ${url} ~= /^https?:\/\/(?:acs|guide-acs)\.m\.taobao\.com\/gw\/loon-sim\.probe\.alibaba-adblock/i then reject(200, "3.50.5")
 # === 淘宝弹窗闸门与营销浮层 (v3.38.0 反编译发现) ===
 # UCP 全局弹窗控制闸门: 客户端请求后按 checkResult 决定是否弹窗
 #   拦掉 -> UCPCheckCodeInvalid -> checkResult:false -> 弹窗被抑制
@@ -362,8 +362,14 @@ request if ${url} ~= /mtop\.taobao\.idle\.(?:mini\.game\.ad\.|play\.ad)/i then r
 # === 一淘 (etaocoupon 10.5.6 二进制审计 2026-10-24) ===
 # 开屏: NOAH_SPLASH 体系 (noah.query 已有响应清洗; trigger/wireless.config 为其触发与配置)
 request if ${url} ~= /mtop\.etao\.noah\.(?:trigger|wireless\.config)/i then reject_dict(200)
-# 红包/优惠券营销: 超级省红包 + 三种优惠券抽取
-request if ${url} ~= /mtop\.etao\.fe\.chaojisheng\.draw\.hongbao/i then reject_dict(200)
+# 红包/优惠券营销: 三种优惠券抽取
+# ⚠️ 不拦 mtop.etao.fe.chaojisheng.draw.hongbao —— 它是一淘「前往结算」的入口接口, 不是广告
+#    2026-10-29 结算页无付款按钮事故根因:
+#    该接口返回 {"noticeType","placeOrderUrl"}, placeOrderUrl 里带 exParams.etaoRoutePageCode=v3
+#    → 决定 App 打开哪套结算页 (v3 新页 / 旧 H5 页)
+#    reject_dict(200) 返回 {} → 拿不到 placeOrderUrl → App 弹「人多拥挤，获取返利信息失败…」
+#    → 退回旧 H5 页 → 旧页 buy_submit 模板缺失 → 底部付款栏消失
+#    插件关闭时该接口 200/1251B 正常返回, 直接进 v3 结算页 (真机对照实证)
 request if ${url} ~= /mtop\.etao\.(?:fe\.seller|follow|member)\.coupon\.(?:batch\.)?draw/i then reject_dict(200)
 # 隐藏促销 H5
 request if ${url} ~= /mtop\.etao\.hidden\.promotion\.h5\.apply/i then reject_dict(200)

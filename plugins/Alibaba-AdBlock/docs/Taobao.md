@@ -148,6 +148,33 @@ v3.39.0 把它当"埋点域名"下沉到 `[Rule]` 整域 REJECT。模板拉取�
 - 插件关：App 走 5.0 新页 → 20 个 `buy_v3_*` 模板全部 200 → 正常
 - v3.50.3 下两套页面的全部组件 URL（154 + 171 条）跑 `loon-sim rules` 均 **0 命中**
 
+#### 真正的根因：结算入口接口被误拦（2026-10-29 第三次取证）
+
+用户提示：失败时会弹「**人多拥挤，获取返利信息失败……**」再跳到无按钮的结算页。
+
+真机对照抓包（同一 HAR 内插件开/关）：
+
+| 插件状态 | `mtop.etao.fe.chaojisheng.draw.hongbao` | 结果 |
+|---------|----------------------------------------|------|
+| 开 | `reject_dict(200)` → 2B `{}` | 弹 toast → 退回旧 H5 页 → 无付款按钮 |
+| 关 | 200 / 1251B，含 `placeOrderUrl` | 直接进 `etaoRoutePageCode=v3` 结算页 → 按钮正常 |
+
+该接口的真实返回（不是广告，是结算入口）：
+
+```json
+{"data":{"noticeType":"0",
+  "placeOrderUrl":"https://h5.m.taobao.com/awp/base/buy.htm?...&exParams=...%22etaoRoutePageCode%22%3A%22v3%22..."}}
+```
+
+- `placeOrderUrl` 里的 `exParams.etaoRoutePageCode=v3` **决定 App 打开哪套结算页**
+- 拦成 `{}` → 拿不到 URL → App 走默认旧页 → 旧页 `buy_submit` 模板缺失 → 付款栏消失
+- 规则 v3.46.0 引入时按名字「超级省红包」归类为营销接口 → 误伤主链路
+- **v3.50.5 已撤销**，原位留事故注释
+
+> 判定教训：接口名含 `hongbao`/`coupon`/`draw` ≠ 广告。一淘把「返利信息 + 结算页路由」塞在
+> `chaojisheng.draw.hongbao` 里，这是第三次同类误判（前两次：`adzone.default.get` 分享链路、
+> `home.metax.query` 首页白屏）。
+
 ---
 
 ## 三、已知限制
