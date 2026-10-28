@@ -53,12 +53,8 @@ try {
   const r = j && j.result;
   if (!r || typeof r !== 'object') { $done({ body: JSON.stringify(j) }); return; }
 
-  // 1) 去广告字段（仅在总开关开着时才删）
-  //    r 已在上方确认是非 null 对象，dy_module 是二级路径，需先确认它存在
-  if (on(A.api_stub)) {
-    delete r.icon_set;
-    if (r.dy_module && typeof r.dy_module === 'object') delete r.dy_module.irregular_banner_dy;
-  }
+  // 1) 去广告字段 —— v2.40 起 api_stub 参数已移除，固定【不删】
+  //    用户明确该开关一直关闭，保留 icon_set / irregular_banner_dy
 
   // 1b) 搜索框轮播词：归 search_stub 管，不归 api_stub
   //     实测该字段是 dict，含 hotqs(20 条) 与 items(20 条)，
@@ -75,15 +71,7 @@ try {
     r.buffer_bottom_tabs = keepTabs(r.buffer_bottom_tabs, sigs);
   }
 
-  // 3) 顶部候选图字段（沿用上游行为，字段缺失时原样跳过）
-  if (on(A.api_stub) && Array.isArray(r.all_top_opts)) {
-    r.all_top_opts = r.all_top_opts.map((o) => {
-      if (!o || typeof o !== 'object') return o;
-      const c = Object.assign({}, o);
-      delete c.selected_image; delete c.image; delete c.height; delete c.width;
-      return c;
-    });
-  }
+  // 3) 顶部候选图字段 —— 同 api_stub，固定不动
 
   $done({ body: JSON.stringify(j) });
 } catch (e) {

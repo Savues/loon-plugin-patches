@@ -1,3 +1,39 @@
+## v2.40（2026-10-28）
+
+### 移除 3 个从未使用的开关
+
+用户明确：`api_stub`（[高危]屏蔽会场/推荐类接口 13 条）从一开始就是关闭状态，
+`chat_stub` / `phantom_stub` 也从未开启。移除后行为不变。
+
+| 移除 | 影响 |
+|---|---|
+| `api_stub` | 13 条 stub 规则 + homepage 里两处 icon_set/all_top_opts 处理 |
+| `chat_stub` | 2 条（get_list_data / buffon recommend） |
+| `phantom_stub` | 1 条（phantom/gbdbpdv/extra） |
+
+stub 规则 URL 正则从 17 个路径收敛到 2 个（`search_hotquery|search`）。
+`Argument`: 23 → 20。
+
+### 新增开屏广告预防性屏蔽
+
+沙盒取证：开屏是「预下载素材 + 本地调度」，只拦网络无法清掉已下载的素材。
+二进制确认唯一下发路径是 `/api/cappuccino/splash`。
+
+新脚本 `splash.response.js` 返回 `{"splash_list":[],"size":0}`，
+与「服务端无开屏」时的正常响应一致（27B）。
+
+价值：大促前装上可阻断新素材下载与调度表写入。
+
+### 已知问题（未修复）
+
+**首页冷启动偶发全部失效**：hub/feed 响应未被 Loon 处理 → 原始配置写入
+`Documents/mmkv/StartupMMKVID` → 之后读缓存渲染。
+
+修复方法：杀进程后删除 `Documents/mmkv/` 目录（或只删 `StartupMMKVID` + `.crc`）。
+根因在 App 的缓存机制 + Loon 冷启动时序，插件层无法解决。
+
+---
+
 # CHANGELOG · PinDuoDuo
 
 > 只记录 **v1.99 → v2.29** 这一轮「列表显示佣金率 + CPS 链接改写」的完整过程。

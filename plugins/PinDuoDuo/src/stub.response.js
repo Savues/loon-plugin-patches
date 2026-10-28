@@ -21,14 +21,11 @@ const on = (v) => v === true || v === 1 || v === 'true' || v === '1' || v === 'o
 
 // [开关, 动作, 路径, 动作参数]
 const RULES = [
-  ['chat_stub', 'stub', '/api/zaire_biz/chat/resource/get_list_data'],
   // v2.37：这两个端点已从 stub 移除 —— 它们现在返回【商品流】
   // (data.goods_list[].data)，交给 feed.response.js 做广告标 + 佣金率 + 转链。
   // Loon 同一 URL 只跑首个命中的 [Script]，留着这里会把 feed 规则挡掉。
   // chat_stub 仍覆盖 zaire_biz / buffon 两个纯聊天端点。
-  ['chat_stub', 'stub', '/api/buffon/nasus/recommend'],
 
-  ['phantom_stub', 'stub', '/api/phantom/gbdbpdv/extra'],
   // v2.38：my_order_group 也移出 stub —— 它返回【商品流】(data.goods_list[].data)，
   // 交给 feed.response.js 做广告标 + 佣金率 + 转链。原 order_stub 语义（屏蔽订单列表）
   // 与「在商品流上显示佣金」互斥，Loon 同 URL 只能跑一个 Script，取后者。
@@ -36,19 +33,6 @@ const RULES = [
   ['search_stub', 'stub', '/search_hotquery'],
   ['search_stub', 'del', '/search', ['expansion']],
 
-  ['api_stub', 'stub', '/api/aristotle/unrated_order_for_unreceived_tab'],
-  ['api_stub', 'stub', '/api/aristotle/query_order_list_tabs_element'],
-  ['api_stub', 'stub', '/api/aquarius/hungary/global/homepage'],
-  ['api_stub', 'stub', '/api/caterham/v3/query/order_express_group'],
-  ['api_stub', 'stub', '/api/alexa/goods/back_up'],
-  ['api_stub', 'stub', '/api/brand-olay/goods_detail/bybt_guide'],
-  ['api_stub', 'stub', '/api/engels/reviews/require/append'],
-  ['api_stub', 'stub', '/api/caterham/v3/query/likes'],
-  ['api_stub', 'stub', '/api/manufacturer/cross/shortcut/list'],
-  ['api_stub', 'stub', '/api/dunkirk/liveactivity/push/create/url/report'],
-  ['api_stub', 'stub', '/api/growth/nagato/app/index/gather'],
-  ['api_stub', 'stub', '/api/engels/wait/receive/review'],
-  ['api_stub', 'stub', '/api/caterham/v2/query/goods_detail_with_tags'],
 ];
 
 function pathOf(url) {
