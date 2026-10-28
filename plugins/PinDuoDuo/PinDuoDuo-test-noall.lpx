@@ -1,0 +1,249 @@
+#!name=拼多多去广告(测试-禁用脚本+MITM)
+#!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
+#!openUrl=https://apps.apple.com/app/id1044283059
+#!author=@Savues <https://github.com/Savues>
+#!tag=去广告
+#!system=
+#!system_version=
+#!loon_version=3.5.0(969)
+#!homepage=https://hub.kelee.one
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/PinDuoDuo.png
+#!date=2026-10-27 23:20:00
+
+[Argument]
+# ===== 高危：接口响应体改写 =====
+api_stub = switch,true,tag=[高危] 屏蔽会场/推荐类接口(13 条),desc=关闭后这些端点返回真实数据;首页去广告与底栏裁剪同时失效
+chat_stub = switch,false,tag=[高危] 屏蔽聊天相关接口(4 条),desc=默认关闭；打开后屏蔽 new_chat_group / get_list_data 等，聊天可正常刷新
+phantom_stub = switch,false,tag=[高危] 屏蔽 phantom 风控模块,desc=默认关闭；与消息推送 WebSocket 同模块(xg.pinduoduo.com/api/phantom/_stm)，怀疑被风控时可尝试打开
+search_stub = switch,true,tag=[高危] 屏蔽搜索框轮播推荐词,desc=拦 /search_hotquery 并删 /search 的 expansion 字段;搜索框仍显示「酷态科cp12」这类词时检查本项
+feed_ad = switch,true,tag=[信息流] 给广告商品打「广告」标,desc=只标记不删除;靠服务端自己的 data.ad 字段识别,正常推荐零误伤
+cps_rewrite = switch,true,tag=[高危] 商品链接改写成进宝领券页,desc=把信息流 link_url 换成带 goods_sign 的 duo_coupon_landing 链接;拼多多自购比价规则要求第一次点击就是 CPS 链才计佣金;需配合 cps_token
+cps_label = switch,true,tag=[信息流] 销量行显示佣金率,desc=把「已拼/已售x件」那行改成「佣金9.6%·已拼x件」；去掉冗余的广告前缀腾位置，超宽时只留佣金。标签行会被折券横幅遮挡，故不用它
+cps_budget = input,"22",tag=[信息流] 销量行宽度预算,desc=显示宽度上限（汉字算2、数字算1）。实测原始最长条目=22，超过24会被客户端整段丢弃；调试可调小（如16）强制只看佣金
+cps_ttl = input,"21600",tag=[信息流] 列表缓存秒数,desc=首页列表的佣金率缓存时长（默认 6 小时，且不跨自然日，因为 cpsSign 内嵌日期）。商品详情页不走缓存，每次都拉实时佣金率
+cps_token = input,"0ygkhUM7anL-DCQqMDW43Z9F9MW0M2zK8-aC5E7Y1_ZPA-9AblWXTaz1fuK7Q0RrVClBO3OcYvnA4s0gDErdR8d2nnwaaiuNgdMftWmjYevhYsqfHzlOR_dzZhMZ--lxqwgRsX36H1ZoJQj-fPhXyJfs9USo1Y2ZhAJpXHVP8F0",tag=[高危] 大淘客 app_token,desc=用于批量换取 goods_sign;取自大淘客 App 的 get-user-info 接口 jaw_uid 字段(171 字符);留空则不改写
+cps_pid = input,"41096949_318859099",tag=[高危] 推广位 PID,desc=改写进链接的 pid，需与你的多多进宝推广位一致
+lightup_secs = input,"1",tag=[消费券] 点亮任务秒数,desc=把 light-up/start_task 的 task_duration 改成该秒数，默认 1；设 0 关闭。⚠️ 服务端可能校验真实停留时长，若点亮失败请调大或设 0
+no_anim = switch,true,tag=[通用] 压制页面动画,desc=往月卡页/消费券页注入 CSS，把 animation/transition 时长压到 0.01s。服务端没有开关能关掉这些 CSS 动画（153 个 keyframes / 730 处 animation），只能从渲染层压；关掉可恢复原动画
+hub_anim = switch,true,tag=[月卡] 屏蔽强化续费提醒动效,desc=把 gather/homepage 的 gift_cash.hit_enhance_renew_remind 置 0；那个全屏 Lottie 动效按一下才继续，纯前端无网络请求，抓包证实无需点击也不影响发券
+auto_skip = switch,true,tag=[月卡] 自动点掉全屏动效的「跳过」,desc=省钱月卡/续费页的补贴动效（右上角跳过）自动点掉;点跳过与动效跑完等效，不影响发券
+# ===== 底栏自定义 =====
+bottom_custom = switch,true,tag=[底栏] 启用自定义底栏
+Bot_index = switch,true,tag=[底栏] 首页
+Bot_chat = switch,true,tag=[底栏] 聊天
+Bot_personal = switch,true,tag=[底栏] 我的
+Bot_live = switch,false,tag=[底栏] 多多视频
+Bot_class = switch,false,tag=[底栏] 分类
+Bot_attendance = switch,false,tag=[底栏] 签到
+Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包含匹配,逗号分隔;一个都不选时回落首页/聊天/我的
+
+[Rule]
+# [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
+DOMAIN, titan.pinduoduo.com, REJECT
+# [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
+# [v2.41 临时注释] 这 3 条来自上游，从未验证过具体拦了什么。
+# 用户反馈：客服对话页的底栏按钮（发订单给客服 / 平台热门活动）在开插件时不显示，
+# 关插件后出现。该页 28 个 API 全部正常返回、HTML 无注入、脚本 0 命中，
+# 唯一还能真正阻断网络的就是这 3 条域名级 REJECT（被拒的请求不会出现在抓包里，
+# 所以从 HAR 上看不出来）。先注释掉验证。
+# DOMAIN, cdl-1.pddpic.com, REJECT
+# DOMAIN, cdl-p2.pddpic.com, REJECT
+# DOMAIN, cd-1.pddpic.com, REJECT
+# [已移除-死开关] v1.75：以下 8 条原挂 enable={telemetry_stub}，真机实测该开关无效。
+#   2026-09-30 18:31 用户截图确认 telemetry_stub 在参数页是「关」，
+#   同一时段的 Loon 抓包里 meta/apm 仍被这 8 条规则 REJECT（meta 5 次、apm+apm-a 24 次）。
+#   根因：Loon 官方手册只有 script.md 记载 enable=（[Script] 专用），
+#   rule.md / rewrite.md / plugin.md / general.md 全文都没有这个参数。
+#   ⇒ [Rule] 上的 enable= 是死开关，规则等同于无条件生效。
+#   这与 v1.5 在 [Rewrite] 上踩的是同一个坑（见文末第 12 条），
+#   当时只迁走了 [Rewrite]，漏了 [Rule]。
+#   埋点/遥测拦截没有任何正当理由留在一个开关失效的插件里，整段删除。
+#   历史行见 git：a84dc22（v1.74 之前的版本）
+# [已移除-死开关] DOMAIN, apm.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th-b.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, ta.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, th-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, ta-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, meta.pinduoduo.com, REJECT, enable={telemetry_stub}
+# [已移除-死开关] DOMAIN, apm-a.pinduoduo.com, REJECT, enable={telemetry_stub}
+
+[Rewrite]
+
+
+# [已由脚本接管] ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? response-b …
+
+# [已由脚本接管] ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? response-b …
+
+
+^https:\/\/api\.pinduoduo\.com\/api\/philo\/personal\/hub\? response-body-json-del monthly_card_entrance personal_center_style_v2_vo icon_set.icons icon_set.top_personal_icons personal_banner
+
+# [已由脚本接管] ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? response-body-json-del bottom_section_list ui.bottom_section ui.live_section.float_info
+#   原因：Loon 同端点 [Rewrite] 与 [Script] 同命中时只跑 [Rewrite]（2026-10-20 实证），
+#   要在详情页响应上打广告标就必须把这三处 json-del 并进 detail.response.js。
+
+^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/order_detail_group\? response-body-json-del data.goods_list
+
+^https:\/\/api\.pinduoduo\.com\/order\/ response-body-json-del marketing_banner_vo shipping.banner_above_recommend
+
+^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/order_list_v4\? response-body-json-jq '.orders |= map(.order_buttons |= map(del(.order_growth_tip)))'
+
+[Script]
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/(search_hotquery|search|api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element)|api\/aquarius\/hungary\/global\/homepage|api\/caterham\/(v2\/query\/goods_detail_with_tags|v3\/query\/(order_express_group|likes))|api\/alexa\/goods\/back_up|api\/brand-olay\/goods_detail\/bybt_guide|api\/engels\/(reviews\/require\/append|wait\/receive\/review)|api\/buffon\/nasus\/recommend|api\/phantom\/gbdbpdv\/extra|api\/manufacturer\/cross\/shortcut\/list|api\/dunkirk\/liveactivity\/push\/create\/url\/report|api\/growth\/nagato\/app\/index\/gather|api\/zaire_biz\/chat\/resource\/get_list_data)\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/stub.response.js?v=1, requires-body=true, argument=[{api_stub},{chat_stub},{search_stub},{phantom_stub}], timeout=5, tag=接口拦截与搜索词屏蔽
+# [TEST] http-response ^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/PinDuoDuo_remove_ads.js, requires-body=true, tag=移除扫码取件页面商品推荐及弹窗
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/homepage\/hub\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/homepage.response.js, requires-body=true, argument=[{api_stub},{search_stub},{bottom_custom},{Bot_index},{Bot_chat},{Bot_personal},{Bot_live},{Bot_class},{Bot_attendance},{Bot_custom}], timeout=5, tag=首页去广告与底栏自定义
+# [TEST] http-response ^https:\/\/m\.pinduoduo\.net\/(brand_activity_subsidy|tandy_vase)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy.response.js?v=18, requires-body=true, argument=[{search_stub},{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token},{no_anim}], timeout=15, tag=百亿补贴搜索框去推广词+广告打标
+
+# [TEST] http-response ^https:\/\/m\.pinduoduo\.net\/(hub_monthly_card|hub_renew_manage)\.html\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_skip.response.js?v=2, requires-body=true, argument=[{auto_skip},{no_anim}], timeout=5, tag=月卡页面自动跳过动效
+
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/special-sale-coupon\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy_api.response.js?v=4, requires-body=true, argument=[{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=百补列表分页广告角标+佣金率
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-oppo\/cma\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/subsidy_api.response.js?v=4, requires-body=true, argument=[{feed_ad},{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=消费券专区列表广告角标+佣金率
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-zara\/bybt\/goods_fresh\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/bybt_fresh.response.js?v=3, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=百补goods_fresh佣金率
+
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/oak\/integration\/render\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/detail.response.js?v=2, requires-body=true, argument=[{feed_ad},{cps_label},{cps_token},{cps_pid}], timeout=5, tag=详情页广告打标
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/alexa\/cells\/hub\/v3\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=13, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=信息流广告打标+CPS链接改写
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/personal\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=13, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=个人中心商品流广告标+佣金率+转链
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/new_chat_group\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=13, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=聊天列表商品流广告标+佣金率+转链
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v3\/query\/my_order_group\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/feed.response.js?v=13, requires-body=true, argument=[{feed_ad},{cps_rewrite},{cps_label},{cps_budget},{cps_ttl},{cps_token},{cps_pid}], timeout=10, tag=订单页底部商品流广告标+佣金率+转链
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/hermes\/goods_list\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/bybt_goods.response.js?v=5, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_ttl},{cps_token}], timeout=10, tag=百亿补贴列表佣金率
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/naga\/selected\/goods\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/hub_selected.response.js?v=1, requires-body=true, argument=[{cps_label},{cps_rewrite},{cps_budget},{cps_ttl},{cps_token}], timeout=10, tag=省钱月卡精选列表佣金率
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/homepage\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/popup_kill.response.js?v=1, requires-body=true, argument=[{hub_anim}], timeout=10, tag=月卡页屏蔽弹窗(homepage)
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/wizard\/gather\/common\/page\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/popup_kill.response.js?v=1, requires-body=true, argument=[{hub_anim}], timeout=10, tag=月卡页屏蔽弹窗(common/page)
+# [TEST] http-response ^https:\/\/api\.pinduoduo\.com\/api\/brand-sega\/light-up\/start_task\? script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/PinDuoDuo/src/lightup.response.js?v=1, requires-body=true, argument=[{lightup_secs}], timeout=10, tag=消费券点亮任务缩短倒计时
+
+[MitM]
+# [TEST] hostname=api.pinduoduo.com, m.pinduoduo.net
+
+# ─────────────────────────────────────────────
+# 修复说明（上游脚本仅改 1 行远程依赖 URL；homepage/stub/detail/feed/subsidy
+# 五个脚本中前两个为托管、其余为本仓库自研，依据逐条如下）
+#  1. 新增 [Argument] 开关：chat_stub / telemetry_stub
+#     （telemetry 已于 v1.75 删除——它挂的是 [Rule]，enable= 在那里无效，见 15）
+#  2. 4 条聊天与推荐端点挂 enable={chat_stub}，可关以恢复聊天刷新
+#  3. homepage/hub 的 jq 空值崩溃缺陷——已由自研脚本取代（见 13）
+#  4. 移除 1 条 QUIC REJECT（api 的 ALPN 只协商 h2，不触发）
+#  5. 移除 DOMAIN, xg.pinduoduo.com REJECT——实测是消息推送 WebSocket 通道
+#  6. 移除上游 2 条裸 IP REJECT（正则对不上真实路径，且与 HTTPDNS 拦截重复）
+#  7. script-path 改为本仓库托管的副本（原 kelee.one 远程 URL）
+#  8. 脚本内 newChunk 常量改指本仓库（上游硬编码 kelee.one chunk 地址）
+#  9. 新增 [Argument] api_stub
+# 10. 【重要】20 条 [Rewrite] reject-dict 全部改为自研脚本 stub.response.js
+#     原因：enable= 只在 script.md 有记载，rewrite.md 没有——
+#     [Rewrite] 上挂 enable= 是死开关（v1.3/v1.4 真机实测全部失效）
+# 11. 从 api_stub 拆出 phantom_stub / order_stub
+# 12. 新增 search_stub：搜索词三源（hub 热词 / search_hotquery / 百补 queryWords）
+# 13. 新增底栏自定义：homepage.response.js（自研）
+# 14. 新增 subsidy.response.js：百补页搜索框去推广词
+# 15. 【v1.75】删除 telemetry_stub 与其 8 条 [Rule]——enable= 在 [Rule] 上
+#     同样无效（官方手册只有 script.md 有该参数）。写不生效的开关比不写更糟。
+# 16. 【v1.76】新增 feed.response.js：信息流广告打标（不删除）。
+#     识别依据=服务端自打的 data.ad（bkfl=1/openinfo.ad_id），正常推荐无此字段；
+#     三路标记：need_ad_logo=true（客户端原生角标，服务端故意压成 false）/
+#     tag_list 红字「广告」/ sales_tip 前缀。
+# 17. 【v1.77】新增 detail.response.js：详情页广告打标。
+#     详情响应无任何广告标记 → feed 打标时把 goodsId 写 $persistentStore
+#     （环形 200，write(value,key) 值在前），详情查名单；销量文案 5 个
+#     渲染副本统一「广告·」前缀；无销量文案回落标题「【广告】」。
+#     原 oak render 的 [Rewrite] json-del 并入本脚本（同端点 Rewrite+Script
+#     只跑 Rewrite，不搬则打标永不执行）。
+# 18. 【v1.78】详情页滚动条补漏：价格区滚动条有两套数据源，
+#     desc_labels_for_carousel（逐帧下发）v1.77 漏了；正则补「抢光/仅剩」。
+# 19. 【v1.79】subsidy.response.js 新增百补职责（方案 1）：
+#     百补列表 rawData 里广告商品（ad 字段转义 JSON 串，与 feed 同构），
+#     goodsId 并进 $persistentStore 名单 → 百补进详情自动打标。
+# 20. 【v1.80】移除 tagInfoList 打标——真机证伪：数据层注入成功但列表页
+#     不可见（H5 卡片渲染器不消费该标签），死代码。
+# 21. 【v1.81】百补列表三通道：① activityPriceWord 价格词前缀（用户点名）
+#     ② salesTip 销量行前缀 ③ titleTop 头部插「广告」徽章 PNG
+#     （assets/ad-badge.png，530×150 与官方百补徽章同槽位）。
+# 22. 【v1.82】「列表完全不可见」双根因：① 百补模板换 URL——真实列表页是
+#     tandy_vase.html，注入全打在旧模板 brand_activity_subsidy.html 上，
+#     [Script] 正则扩为二者；② 新模板 rawData 顶层是 stores 且为 dict
+#     （stores.store.tabStore…），旧收集器 for...of 对象抛 TypeError 被静默
+#     吞掉 → collectAdGoods 三形态归一。副作用修正：v1.79「stores 形态无广告」
+#     实为收集器 bug（该页实际含 2 个广告商品）。
+# 23. 【v1.83】通道④：titleTop 只在优惠券子列表渲染，主瀑布流不读——
+#     主列表「百亿补贴」logo 来自 goodsFlagIcon（数组）/ltIcon（字符串），
+#     头部插徽章 URL。
+# 24. 【v1.84】feed 补 fallback_sales_tip——客户端在这类商品上渲染备用销量
+#     文案而非 sales_tip（「黄金厚切炸猪排」「甲泰康」实测），空串跳过。
+# 25. 【v1.85】徽章 CDN 切 jsdelivr——raw.githubusercontent.com 在部分线路
+#     不可达（iPad 碎图占位符），jsdelivr/fastly 双线实测 200。
+# 26. 【v1.86】ltIcon 类型修复（iPad 碎图真正根因）：ltIcon 是单个 URL 字符串，
+#     H5 组件把数组 join(',') 拼成一个 URL 再请求——v1.83 转数组后拼出
+#     `badge.png,原URL` → 404 碎图。改为直接替换成徽章 URL（占位意图更明确）。
+# 27.【v1.87】百补列表收敛（用户确认）：移除 ①价格词 ②销量行 ③titleTop
+#      三通道（真机证伪/冗余），只保留商品图左上角图片角标
+#      （goodsFlagIcon 头插 + ltIcon 替换）；徽章宽度收窄 530→236，
+#      正好容纳「广告」二字。
+# 28.【v1.88】徽章内联为 data URI（零网络依赖）——jsdelivr @main 有缓存延迟
+#      （曾把旧 530×150 缓存到次日），raw 域部分线路不可达，data URI 彻底
+#      消除 CDN/缓存/设备差异；资产源文件仍在 src/assets/ 备查。
+# 29.【v1.89】徽章高度收至 50px（用户确认 236×150 渲染过大——宽高比 1.57:1
+#      与官方徽章 3.53:1 不一致，按宽适配时高度放大 2.2 倍），内容不变，
+#      仅重制 PNG（106×50，wqy-zenhei 42pt）。
+# 30.【v1.90】徽章恢复 530×150（官方百补徽章同比例）——v1.89 的 106×50
+#      宽高比 1.57:1 与官方 3.53:1 不一致，渲染器按宽适配时高度放大 2.2 倍
+#      显得巨大；同比例才能渲染出同高度。内容「广告」居中放大（140pt）。
+# 31.【v1.91】徽章素材更换为用户自备（530×150，半透明黑底白字，原图提供）
+#      ——红底白字视觉过重，用户选定更低调的黑底样式；仍内联 data URI。
+# 32.【v1.92】徽章素材再次更换为用户自备图（直接替换，不做处理）。
+# 33.【v1.92】ITERATION.md 补第二部分「广告打标体系与排障手册」（八~十四节）：
+#      三层广告判据 / 各打标点真机渲染结论 / 图片角标五条铁律 /
+#      Loon 通用守则（enable= 死开关、Rewrite 抢跑 Script）/ 读 HAR 要点 /
+#      红线清单 / 开发流程规约（shared 目录不持久化等）。文档改动，无行为变化。
+# 34.【v1.93】省钱月卡/续费页自动点「跳过」：新增 src/hub_skip.response.js?v=2，
+#      钩 m.pinduoduo.net/hub_monthly_card.html 与 hub_renew_manage.html，
+#      往 HTML 里注入一小段自执行脚本，命中「跳过」（文本或 ::after 内容）
+#      就模拟 pointerdown/mousedown/pointerup/mouseup/click 整串事件。
+#      判据来自 2026-10-22 抓包：全屏补贴动效 = hub_popup_limit_expire 弹窗
+#      （Lottie 750×1624/92 帧，图层烘焙「跳过.png」），其 onClick 做的是
+#      清倒计时 + emphasizeLimitExpirePopupDone=true + 显示补贴倒计时，
+#      与动效自然跑完等效；签到领好礼（每日抽奖券）本身 autoClaim=true，
+#      领取接口只带 anti_content，跳过动效不影响发券。开关 auto_skip（默认开）。
+# 35.【v1.94】百补列表广告角标改走「商品图左上角」官方角标槽（修手机版看不见）：
+#      根因（抓包 383_1792646492521，808 条）：
+#      ① 手机版列表页是 m.pinduoduo.net/tandy_vase.html，其商品**没有 ltIcon 字段**
+#         （ltIcon 出现 0 次；brand_activity_subsidy.html 有 42 次）——
+#         v1.87~v1.93 只做「替换已有字符串」，手机版等于无处可写；
+#      ② 旧实现把徽章写进 goodsFlagIcon（标题旗标槽），CSS
+#         `.aFOWVd6O{height:.15rem}` ≈15px 高（375pt 手机）→ 横幅「广告」被压到
+#         ~10px，等于看不见；iPad 上 rem 更大所以看得见 —— 这就是
+#         「手机看不到 / iPad 能看到」的差异来源；
+#      ③ 真正的角标槽是 ltIcon（商品图左上角），CSS
+#         `.ilx1YR3r{height:.52rem;width:.46rem}` ≈46×52px。
+#      改动：
+#      · 角标只写 ltIcon（缺失即新增），不再写 goodsFlagIcon；
+#      · 资产换竖版 184×208（比例 0.885 = 0.46/0.52，填角标槽不畸变），
+#        半透明黑底 + 浅灰白字「广告」竖排，生成脚本 tools/make-badge.py；
+#      · 新增 src/subsidy_api.response.js：钩 POST
+#        /api/brand-sega/special-sale-coupon/goods_list（上拉加载分页，实测
+#        20 条里 10 条带 ad），给广告条目写 lt_icon 并把 goods_id 并进
+#        pddAdGoodsIds 名单（详情页自动打标）—— 旧版本只改 HTML，
+#        手机上往下翻的广告商品一条角标都没有。
+# 36.【v1.95】百补广告角标换回用户自备的那张图（手机版显示已确认正常）：
+#      角标资产改用用户 v1.92 提供的原图（530×150 半透明黑底 + 白字「广告」），
+#      存为 src/assets/ad-badge-src.png 作为唯一美术源；
+#      但横幅（宽高比 3.53）直接塞进近方形角标槽（0.46×0.52rem，比例 0.885）
+#      会被拉变形 → 生成脚本 tools/make-badge.py 从原图里**取出用户自己的字形**
+#      （不重新排字体，保留原字形与抗锯齿），竖排叠进 184×208 画布，
+#      底色 (0,0,0,134)、白字 alpha 沿用原图。输出 src/assets/ad-badge.png。
+#      附带修复：v1.94 漏提交 tools/make-badge.py（badge-asset 用例在干净克隆上
+#      会 ENOENT）—— 本次一并补齐，并把「用户原图在仓库里」也纳入断言。
+# 37.【v1.96】角标改回**横排**（用户反馈竖排 46×52 的黑块太大）：
+#      画布仍是 184×208（= 角标槽 0.46×0.52rem 的 0.885 比例，否则 img 会被
+#      object-fit:fill 拉变形），但内容改成「用户原图里那块黑底+横排广告」
+#      整体缩放到 150px 宽、居中放置，四周留透明 —— 屏幕上表现为角标位置
+#      一条横向小黑标（约 37×23px），既横排又不遮商品图。
+#      字形/底色/字色 alpha 仍全部沿用用户原图。
+# 37b.【v1.97】角标资产换成用户新提供的成品图（184×208，横排「广告」块贴左上角，
+#       半透明黑底 alpha 114 + 浅灰字 221/220）：
+#       美术源 src/assets/ad-badge-src.png = 用户图（逐字节保留），
+#       产物 src/assets/ad-badge.png 同字节；tools/make-badge.py 退化为
+#       「校验 184×208 + 复制」（比例 0.885 仍被角标槽 CSS 锁死，不能乱改）。
+#       两个脚本的 data URI 同步更新。
+# 37c.【v1.98】角标资产再换一版（用户新图）：184×208，横排「广告」块更小，
+#       贴画布左上（内容 bbox x 19-88 / y 19-60），半透明黑底 alpha 114 +
+#       浅灰字 221/220。美术源与产物同字节，data URI 同步更新。
+# 上游脚本与署名：ZenmoFeiShi / 可莉
+# ─────────────────────────────────────────────
