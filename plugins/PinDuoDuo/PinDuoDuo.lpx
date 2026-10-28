@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.40
+#!name=拼多多去广告(修复版) v2.41
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -41,9 +41,14 @@ Bot_custom = input,"",tag=[底栏] 自定义项(逗号分隔),desc=按 link 包�
 # [已移除-高风险] AND, ((DOMAIN, api.pinduoduo.com), (PROTOCOL, QUIC)), REJECT
 DOMAIN, titan.pinduoduo.com, REJECT
 # [已移除] DOMAIN, xg.pinduoduo.com, REJECT  <- 实测 xg.pinduoduo.com/ngrtt/zqog 是 WebSocket(101) 长连接，聊天消息推送通道
-DOMAIN, cdl-1.pddpic.com, REJECT
-DOMAIN, cdl-p2.pddpic.com, REJECT
-DOMAIN, cd-1.pddpic.com, REJECT
+# [v2.41 临时注释] 这 3 条来自上游，从未验证过具体拦了什么。
+# 用户反馈：客服对话页的底栏按钮（发订单给客服 / 平台热门活动）在开插件时不显示，
+# 关插件后出现。该页 28 个 API 全部正常返回、HTML 无注入、脚本 0 命中，
+# 唯一还能真正阻断网络的就是这 3 条域名级 REJECT（被拒的请求不会出现在抓包里，
+# 所以从 HAR 上看不出来）。先注释掉验证。
+# DOMAIN, cdl-1.pddpic.com, REJECT
+# DOMAIN, cdl-p2.pddpic.com, REJECT
+# DOMAIN, cd-1.pddpic.com, REJECT
 # [已移除-死开关] v1.75：以下 8 条原挂 enable={telemetry_stub}，真机实测该开关无效。
 #   2026-09-30 18:31 用户截图确认 telemetry_stub 在参数页是「关」，
 #   同一时段的 Loon 抓包里 meta/apm 仍被这 8 条规则 REJECT（meta 5 次、apm+apm-a 24 次）。
