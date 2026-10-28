@@ -322,7 +322,43 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.44（2026-10-28）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.45（2026-10-28）
+
+### 福袋领券弹窗自动点关闭
+
+**背景**：消费券页福袋领券弹窗，动画（Lottie）播完才显示关闭按钮，要手动点。
+服务端在动画开始瞬间就已发券（`take_coupon` 立即返回 `code: 0`），动画纯拖延。
+
+**定位**（`LuckyBagTakeCouPopNewTwo_*.js`）：
+
+```js
+l.createElement(f.ZP, {
+  className: m()(x().BX_Class521, x().BX_Ani521),   // → "_1-lALGJL _1CIjIqvj"
+  src: D.IMG_SRC_13,
+  onClick: a                                         // a = closePop
+})
+```
+
+**为什么用图片 URL 而不是 class**
+
+| 特征 | 稳定性 |
+|---|---|
+| class `_1-lALGJL` | ❌ CSS Modules 编译产物，每次构建都变 |
+| 图片 URL `f57ce24c-...png` | ✅ 写死在 JS 里 |
+
+实测两个弹窗变体（`BX_Class521` / `BX_Class240`）都用同一张关闭图。
+
+**实现**：注入 JS，每 500ms 扫 `img`：
+
+- `src` 命中 `f57ce24c-be68-49a3-ab54-dd45824a4a1d`
+- 尺寸 > 5px（跳过未渲染的）
+- 每个元素只点一次（`__pddLbClicked` 标记）
+
+新开关 `lucky_close`（默认开）。`Argument`: 21 → 22。
+
+---
+
+## v2.44（2026-10-28）
 
 ### 点亮自动倒计时修正：必须主动触发 scroll 事件
 
