@@ -1,6 +1,6 @@
 # 美团去广告 · Meituan-AdBlock
 
-> **版本 v1.3.1** · 订阅以 lpx 内版本为准
+> **版本 v1.4.0** · 订阅以 lpx 内版本为准
 
 拦截我的页会员营销、弹窗族、营销素材；清洗 horn 远程配置中的广告/弹窗开关（**134 键**，完整清单见 [HORN.md](HORN.md)），并关闭全部隐私采集、遥测上报、灰度实验与开发测试开关。
 **从零自研**（无上游），基于二进制逆向 + 五份 HAR + 双沙盒取证的全新开发。
@@ -92,6 +92,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meitua
 | v1.2.0 | **基于真机 703KB 实际响应漏网扫描** → +14 键（位置监控 / 采样上报 / 首页漏斗+速度 / Feed Raptor / 图片流量日志 / 代码日志采样率 / 酒店 Pike 直播开关 / AB 白名单 / **播放器流量测试 bid** / 调试信息升级 / 公交原生测试）|
 | v1.3.0 | 曾尝试清理测试环境 URL（deeplink 2 条 + SSR `test-g`→`g`），**已按用户要求回退** |
 | v1.3.1 | AB 实验分组 + 图标 Babel 上报 → +2 键（**134 键**）；测试环境 URL 仅记录不处理 |
+| **v1.4.0** | 🔴 **修复会员页「活动太火爆」** —— 4 条 reject_dict 规则误拦会员页核心数据接口：<br>• `member/activity/api/expose`（名字像曝光上报，实际返回**会员等级 + 惊喜值 + 惊喜多选一奖品**）→ **放行**<br>• `marketing/SLevelBanner`（含 **ifMember/memberLevel** 会员身份）→ **放行**<br>• `dailyMagicalCoupon` / `marketing/featuredActivity` → 改为**响应侧清洗**（保留 `code:0/message:成功` 结构，只清空营销内容）|
 
 ### horn 清洗机制说明
 
@@ -139,6 +140,7 @@ h.meituan.com/horn_ios/mergeRequest?...     → 增量 / 冷启动全量（697KB
 - 开屏当前对该设备未投放（定向未命中）；插件防线为预防性
 - `products/recommend`（我的页商品推荐）暂放行 —— 功能性存疑，观察中
 - `member/homepage/query` 的 banner/coupon 字段服务端下发为 null —— 无需处理
+- **会员页 `member/activity/api/expose` 与 `marketing/SLevelBanner` 必须放行** —— 二者承载会员等级、惊喜值、惊喜多选一奖品，拦掉会导致「活动太火爆」报错（v1.4.0 修复）
 
 ---
 
@@ -160,3 +162,4 @@ h.meituan.com/horn_ios/mergeRequest?...     → 增量 / 冷启动全量（697KB
 | 2026-10-29 | **v1.1.0 真机验证** | ✅ 177MB HAR 冷启动：703KB 全量响应 → 63 规则 0 残留 / 24 抽查键全对（含 allowShowDebugBoard=true）/ 幂等通过 |
 | 2026-10-29 | v1.2.0 漏网扫描 | ✅ 基于真机 703KB 响应 +14 键（16 处变化）/ JSON 合法 / 幂等通过 |
 | 2026-10-29 | v1.3.1 修正 | ✅ 测试环境 URL 3 条已回退（不动 deeplink/SSR）/ AB 分组+图标上报生效 / 18 处变化 / 幂等通过 |
+| 2026-10-29 | **v1.4.0 会员页修复** | ✅ HAR 双状态对比定位（插件关=全部 200/插件开=3 个接口 2B）/ expose+SLevelBanner 放行 / 另两个响应清洗保留结构（5706→83B、8146→221B）/ 真实响应验证通过 |
