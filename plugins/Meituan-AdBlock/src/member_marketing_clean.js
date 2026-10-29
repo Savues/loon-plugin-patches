@@ -50,12 +50,19 @@
   // ---------- ② 会员等级自定义 ----------
   const A = (typeof $argument === 'string' ? {} : $argument) || {};
   const raw = String(A.memberLevel === undefined || A.memberLevel === null ? '' : A.memberLevel);
+
+  // 成长值自定义（可选，留空则沿用真实成长值）
+  const gvRaw = String(A.growthValue === undefined || A.growthValue === null ? '' : A.growthValue).trim();
+  const gvCustom = (gvRaw && /^\d+$/.test(gvRaw)) ? parseInt(gvRaw, 10) : null;
+
+  let target = 0;
   if (raw && raw !== '不修改' && raw !== '0') {
-    const target = parseInt(raw, 10);
-    if (target >= 1 && target <= 6) {
-      const NAMES = ['', '普通会员', '白银会员', '黄金会员', '白金会员', '黑金会员', '黑钻会员'];
-      if (patchLevel(obj, target, NAMES)) dirty = true;
-    }
+    const t = parseInt(raw, 10);
+    if (t >= 1 && t <= 6) target = t;
+  }
+  if (target || gvCustom !== null) {
+    const NAMES = ['', '普通会员', '白银会员', '黄金会员', '白金会员', '黑金会员', '黑钻会员'];
+    if (patchLevel(obj, target, NAMES, gvCustom)) dirty = true;
   }
 
   if (dirty) return $done({ body: JSON.stringify(obj) });
@@ -63,13 +70,13 @@
 })();
 
 // 递归改写「当前等级」字段；allLevelData 走专门的迁移逻辑
-function patchLevel(o, target, NAMES) {
+function patchLevel(o, target, NAMES, gvCustom) {
   let changed = false;
   if (!o || typeof o !== 'object') return false;
 
   if (Array.isArray(o)) {
     for (const x of o) {
-      if (patchLevel(x, target, NAMES)) changed = true;
+      if (patchLevel(x, target, NAMES, gvCustom)) changed = true;
     }
     return changed;
   }
@@ -79,23 +86,23 @@ function patchLevel(o, target, NAMES) {
 
     // allLevelData：等级定义表，需要迁移「当前等级」标记，而不是改定义
     if (k === 'allLevelData' && Array.isArray(v)) {
-      if (patchAllLevelData(v, target)) changed = true;
+      if (patchAllLevelData(v, target, gvCustom)) changed = true;
       continue;
     }
 
-    if (k === 'memberLevel' || k === 'memberActualLevel' || k === 'memberSubLevel' || k === 'memberActualSubLevel') {
+    if (target && (k === 'memberLevel' || k === 'memberActualLevel' || k === 'memberSubLevel' || k === 'memberActualSubLevel')) {
       const n = parseInt(v, 10);
       if (!isNaN(n) && n !== target) {
         o[k] = target;
         changed = true;
       }
-    } else if (k === 'memberLevelShow') {
+    } else if (target && k === 'memberLevelShow') {
       const nv = 'V' + target;
       if (v !== nv) {
         o[k] = nv;
         changed = true;
       }
-    } else if (k === 'memberLevelName') {
+    } else if (target && k === 'memberLevelName') {
       const nv = NAMES[target];
       if (v !== nv) {
         o[k] = nv;
@@ -107,7 +114,7 @@ function patchLevel(o, target, NAMES) {
         changed = true;
       }
     } else if (v && typeof v === 'object') {
-      if (patchLevel(v, target, NAMES)) changed = true;
+      if (patchLevel(v, target, NAMES, gvCustom)) changed = true;
     }
   }
   return changed;
@@ -116,8 +123,25 @@ function patchLevel(o, target, NAMES) {
 // 迁移 allLevelData 的「当前等级」标记
 // realLevelCompare: 0 = 当前等级, -1 = 未达到（前端据此判断，必须改）
 // 同时把真实当前等级上的状态字段（有效期 / 保级 / 成长值）搬到目标等级
-function patchAllLevelData(arr, target) {
+function patchAllLevelData(arr, target, gvCustom) {
   let changed = false;
+
+  // 等级成长值门槛（来自 allLevelData 各级 growthInfo.info 的实证：满500/2000/5000/10000/30000）
+  const THRESHOLDS = { 1: 0, 2: 500, 3: 2000, 4: 5000, 5: 10000, 6: 30000 };
+
+  // 只设成长值（未指定等级）时，作用于当前等级项
+  if (!target) {
+    for (const it of arr) {
+      if (!it || typeof it !== 'object' || it.realLevelCompare !== 0) continue;
+      if (gvCustom === null) continue;
+      if (!it.growthInfo) it.growthInfo = {};
+      if (it.growthInfo.growthValue !== gvCustom) {
+        it.growthInfo.growthValue = gvCustom;
+        changed = true;
+      }
+    }
+    return changed;
+  }
 
   // 找到真实当前等级项（realLevelCompare === 0）
   let src = null;
@@ -164,10 +188,27 @@ function patchAllLevelData(arr, target) {
           it.retainLevelFlag = snap.retainLevelFlag;
           changed = true;
         }
-        // 成长值：目标等级原本 growthValue 为 null（未达到），补上真实成长值
-        if (it.growthInfo && it.growthInfo.growthValue === null && snap.growthValue !== null && snap.growthValue !== undefined) {
-          it.growthInfo.growthValue = snap.growthValue;
-          it.growthInfo.growthValueStart = snap.growthValueStart;
+        // 成长值：按目标等级的门槛重建进度区间
+        if (!it.growthInfo) it.growthInfo = {};
+        const start = THRESHOLDS[target] !== undefined ? THRESHOLDS[target] : 0;
+        const end = THRESHOLDS[target + 1] !== undefined ? THRESHOLDS[target + 1] : null;
+        if (it.growthInfo.growthValueStart !== start) {
+          it.growthInfo.growthValueStart = start;
+          changed = true;
+        }
+        if (it.growthInfo.growthValueEnd !== end) {
+          it.growthInfo.growthValueEnd = end;
+          changed = true;
+        }
+        // 当前等级不显示「成长值满X可升级」提示（真实当前等级该项就是 null）
+        if (it.growthInfo.info !== null) {
+          it.growthInfo.info = null;
+          changed = true;
+        }
+        // 成长值：优先用自定义值，否则沿用真实成长值
+        const wantGv = (gvCustom !== null) ? gvCustom : snap.growthValue;
+        if (wantGv !== null && wantGv !== undefined && it.growthInfo.growthValue !== wantGv) {
+          it.growthInfo.growthValue = wantGv;
           changed = true;
         }
       }
