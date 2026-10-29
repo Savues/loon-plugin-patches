@@ -205,8 +205,9 @@ function patchAllLevelData(arr, target, gvCustom) {
           it.growthInfo.info = null;
           changed = true;
         }
-        // 成长值：优先用自定义值，否则沿用真实成长值
-        const wantGv = (gvCustom !== null) ? gvCustom : snap.growthValue;
+        // 成长值：优先用自定义值；未指定时自动填「该等级起点」，
+        // 避免前端用成长值反算等级时得出真实低等级（真实成长值 28 → 会被算成 V1）
+        const wantGv = (gvCustom !== null) ? gvCustom : start;
         if (wantGv !== null && wantGv !== undefined && it.growthInfo.growthValue !== wantGv) {
           it.growthInfo.growthValue = wantGv;
           changed = true;
