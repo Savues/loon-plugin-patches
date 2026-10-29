@@ -1,0 +1,28 @@
+#!name=淘金币小镇·自动喂能量
+#!desc=淘金币双11小游戏（金币小镇）自动喂能量 + 自动跳过升级动画。原理：MITM 改写小镇页前端包 p_index.js，在页面内调用游戏自己的喂养接口（签名由淘宝原生层补，不伪造）。一次长按/一轮最多消耗 5000 点能量，脚本按能量/单次消耗自动算满格数循环。⚠️ 高频自动操作有账号风控风险，默认保守间隔。
+#!author=@Savues <https://github.com/Savues>
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/TaobaoCoinAuto
+#!date=2026-10-30
+#!version=0.1.0
+#!system=iOS, iPadOS
+#!loon_version=3.2.0
+#!tag=淘宝,淘金币,小镇,自动化
+
+[Argument]
+autoFeed = switch,true,tag=🍚自动喂能量,desc=按 能量/单次消耗 自动算满格数，循环调用喂养接口直到能量不足
+skipUpgradeAnim = switch,true,tag=⏭自动跳过升级动画,desc=升级动画的「跳过」按钮一出现就立刻点击
+liteAnim = switch,false,tag=⚡升级动画降级,desc=用静态图替代升级 Lottie（更彻底，但会让页面图片质量降级到 30，默认关）
+drawEnergy = switch,true,tag=🔋能量不足时领能量,desc=能量耗尽后调用 drawTomEnergy 尝试领取
+gapMs = input,2500,tag=两轮间隔(ms),desc=每喂完一轮等多久再算下一轮，默认 2500
+idleMs = input,8000,tag=能量不足后等待(ms),desc=能量不足时多久后再检查一次，默认 8000
+maxRounds = input,30,tag=单次加载最多轮数,desc=防止意外长跑，默认 30 轮
+
+[Script]
+http-response ^https:\/\/g\.alicdn\.com\/code\/npm\/@ali\/pegasus-project-taocoin-home\/[^\/]+\/js\/p_index\.js script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/TaobaoCoinAuto/src/town_inject.response.js, requires-body=true, timeout=30, argument=[{autoFeed},{skipUpgradeAnim},{liteAnim},{drawEnergy},{gapMs},{idleMs},{maxRounds}], tag=小镇页注入
+
+[MITM]
+hostname = g.alicdn.com
+
+[Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/g\.alicdn\.com\/gw\/loon-sim\.probe\.taobaocoinauto/i then reject(200, "0.1.0")
