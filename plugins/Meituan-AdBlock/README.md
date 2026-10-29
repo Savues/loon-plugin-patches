@@ -163,3 +163,4 @@ h.meituan.com/horn_ios/mergeRequest?...     → 增量 / 冷启动全量（697KB
 | 2026-10-29 | v1.2.0 漏网扫描 | ✅ 基于真机 703KB 响应 +14 键（16 处变化）/ JSON 合法 / 幂等通过 |
 | 2026-10-29 | v1.3.1 修正 | ✅ 测试环境 URL 3 条已回退（不动 deeplink/SSR）/ AB 分组+图标上报生效 / 18 处变化 / 幂等通过 |
 | 2026-10-29 | **v1.4.0 会员页修复** | ✅ HAR 双状态对比定位（插件关=全部 200/插件开=3 个接口 2B）/ expose+SLevelBanner 放行 / 另两个响应清洗保留结构（5706→83B、8146→221B）/ 真实响应验证通过 |
+| 2026-10-29 | **v1.4.0 真机确认** | ✅ 用户确认会员页恢复正常；抓包复核：expose 2469B 完整 / SLevelBanner 221B 完整 / dailyMagicalCoupon 83B（code:0 结构完整）/ featuredActivity 220B（保留 ifMember+memberLevel，仅清空活动列表）|
