@@ -315,28 +315,28 @@ const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
-// v2.60：点亮自动倒计时 —— 加诊断 + 增强抖动
+// v2.61：点亮自动倒计时 —— 改用文案检测（API 拦截失败）
 // ---------------------------------------------------------------------------
-// v2.59 抓包显示：start_task 发出了（task_duration:10），但没有 end_task
-// → 10 秒倒计时没走完 → 抖动没让页面认为在滑动。
+// v2.60 诊断：cap=0 → start_task 拦截失败（页面可能走了别的通道）。
 //
-// 本版：
-//   ① 抖动幅度 1px → 3px，同时用 scrollTop 和 window.scrollTo 双写
-//   ② 加 touchmove 事件（有些页面只认 move）
-//   ③ 左下角标签显示诊断：cap（是否捕获 start_task）/ shake（抖动次数）/ top
+// 但截图显示任务进行中时，页面顶部有横幅：
+//   「滑动浏览当前页面10秒即可点亮 | 10秒」
 //
-// 判读：
-//   cap=0        → 拦截失败，start_task 没捕获到
-//   cap=1 shake=0 → startShake 没执行
-//   shake>0 但没完成 → 滚动位置不对（页面用的是别的滚动容器）
+// 改用【文案检测】判定任务是否进行中，不依赖 API 通道：
+//   · 页面 innerText 含「滑动浏览当前页面」→ 开始抖
+//   · 文案消失 → 停止
+//   · 兜底：最长 90 秒
+//
+// 保留 API 拦截作为辅助（能捕获就更快触发）。
 const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   if (window.__pddLightupAuto) return;
   window.__pddLightupAuto = 1;
 
+  var KEY = '滑动浏览当前页面';   // 只有 lightForceSwipe=true 时才有「滑动」二字
   var shaking = false, timer = null, deadline = 0, up = true;
-  var cap = 0, shakeN = 0, dbg = null;
+  var hooked = 0, cap = 0, txt = 0, shakeN = 0, dbg = null;
 
-  function show(txt) {
+  function show() {
     try {
       if (!dbg) {
         dbg = document.createElement('div');
@@ -347,8 +347,8 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       }
       var el = document.scrollingElement || document.documentElement || document.body;
       var top = el ? Math.round(el.scrollTop) : -1;
-      dbg.textContent = 'lightup cap=' + cap + ' shake=' + shakeN +
-        ' top=' + top + ' run=' + (shaking ? 'Y' : 'N');
+      dbg.textContent = 'lightup hook=' + hooked + ' cap=' + cap + ' txt=' + txt +
+        ' shake=' + shakeN + ' top=' + top + ' run=' + (shaking ? 'Y' : 'N');
     } catch (e) {}
   }
 
@@ -376,6 +376,8 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
     shaking = true;
     timer = setInterval(function () {
       if (Date.now() > deadline) { stopShake(); return; }
+      // 每次抖之前再确认一次文案（任务可能提前结束）
+      if (!hasTaskText()) { stopShake(); return; }
       shake();
     }, 300);
     shake();
@@ -387,19 +389,28 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
     show();
   }
 
-  function onStartResp(txt) {
+  function hasTaskText() {
     try {
-      var j = JSON.parse(txt);
-      if (j && j.success && j.result && j.result.code === 0) {
-        cap = 1;
-        var d = (j.result.data || {});
-        startShake(Number(d.task_duration) || 10);
-      }
-    } catch (e) {}
-    show();
+      var b = document.body;
+      if (!b) return false;
+      var s = b.innerText || '';
+      // 只有「滑动浏览当前页面」才需要抖；
+      // 若是不需要滑动的「浏览当前页面」，页面自己会倒计时，不用干预
+      return s.indexOf(KEY) >= 0;
+    } catch (e) { return false; }
   }
 
-  // ---- 拦截 XHR ----
+  // ---- 主循环：每秒检查文案 ----
+  setInterval(function () {
+    try {
+      txt = hasTaskText() ? 1 : 0;
+      if (txt && !shaking) startShake(10);
+      else if (!txt && shaking) stopShake();
+      show();
+    } catch (e) {}
+  }, 800);
+
+  // ---- API 拦截（辅助，能捕获就更早触发）----
   try {
     var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (m, u) { this.__pddU = u; return XO.apply(this, arguments); };
@@ -407,37 +418,52 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       var self = this;
       try {
         var u = String(self.__pddU || '');
-        if (u.indexOf('light-up/end_task') >= 0) stopShake();
         if (u.indexOf('light-up/start_task') >= 0) {
-          self.addEventListener('load', function () { onStartResp(self.responseText); });
+          self.addEventListener('load', function () {
+            try {
+              var j = JSON.parse(self.responseText);
+              if (j && j.success && j.result && j.result.code === 0) {
+                cap = 1;
+                startShake(Number((j.result.data || {}).task_duration) || 10);
+              }
+            } catch (e) {}
+            show();
+          });
         }
       } catch (e) {}
       return XS.apply(this, arguments);
     };
+    hooked |= 1;
   } catch (e) {}
 
-  // ---- 拦截 fetch ----
   try {
     if (window.fetch) {
       var OF = window.fetch;
       window.fetch = function (input, init) {
         var url = (typeof input === 'string') ? input : ((input && input.url) || '');
-        var u = String(url);
-        if (u.indexOf('light-up/end_task') >= 0) stopShake();
         var p = OF.apply(this, arguments);
-        if (u.indexOf('light-up/start_task') >= 0) {
-          try {
+        try {
+          if (String(url).indexOf('light-up/start_task') >= 0) {
             p.then(function (resp) {
-              resp.clone().text().then(onStartResp).catch(function () {});
+              resp.clone().text().then(function (t) {
+                try {
+                  var j = JSON.parse(t);
+                  if (j && j.success && j.result && j.result.code === 0) {
+                    cap = 1;
+                    startShake(Number((j.result.data || {}).task_duration) || 10);
+                  }
+                } catch (e) {}
+                show();
+              }).catch(function () {});
             }).catch(function () {});
-          } catch (e) {}
-        }
+          }
+        } catch (e) {}
         return p;
       };
+      hooked |= 2;
     }
   } catch (e) {}
 
-  // 每 2 秒刷新诊断（即使没抖动）
   setInterval(show, 2000);
   show();
 })();</script>`;
