@@ -478,6 +478,56 @@ function injectLightupAuto(body) {
   return body.slice(0, i) + LIGHTUP_JS + body.slice(i);
 }
 
+// v2.63：点亮任务 3 秒提示弹窗自动关闭
+// ---------------------------------------------------------------------------
+// 流程（用户描述 + 截图实证）：
+//   点「立即点亮」→ 弹窗「浏览商品10秒，即可点亮1次」
+//     + 按钮「去看看（3S）」倒计时 3 秒
+//   3 秒后弹窗自动关闭（也可以点「去看看」立即关闭）
+//   → 之后才开始 10 秒滑动倒计时
+//
+// 本脚本自动点「去看看（3S）」按钮，跳过 3 秒等待。
+//
+// 定位：chunk 5235（模块 48030）渲染，抓包里没加载到（缓存），
+// 所以不依赖 class，改用【文本精确匹配】：
+//   · 弹窗按钮：textContent 以「去看看（」或「去看看(」开头（带倒计时括号）
+//   · 页面 banner 的「去看看」不带括号 → 不会误点
+const LIGHTUP_POPUP_JS = `<script id="pdd-lightup-popup">(function(){
+  if (window.__pddLightupPopup) return;
+  window.__pddLightupPopup = 1;
+
+  // 匹配「去看看（3S）」「去看看(3s)」这类带倒计时的按钮
+  var RE = /^去看看\\s*[（(]/;
+
+  setInterval(function () {
+    try {
+      var els = document.querySelectorAll('div,span,a,button,p');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.children && el.children.length > 0) continue;   // 只要叶子节点
+        var t = (el.textContent || '').trim();
+        if (!t || t.length > 14) continue;
+        if (!RE.test(t)) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width < 20 || r.height < 10) continue;
+        try { el.click(); } catch (e) {}
+        try { if (el.parentElement) el.parentElement.click(); } catch (e) {}
+        return;
+      }
+    } catch (e) {}
+  }, 250);
+})();</script>`;
+const LIGHTUP_POPUP = (A.lightup_popup === undefined || A.lightup_popup === null || A.lightup_popup === '')
+  ? true : on(A.lightup_popup);
+
+function injectLightupPopup(body) {
+  if (!LIGHTUP_POPUP) return body;
+  if (body.indexOf('id="pdd-lightup-popup"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</body>');
+  if (i < 0) return body;
+  return body.slice(0, i) + LIGHTUP_POPUP_JS + body.slice(i);
+}
+
 // v2.47：福袋自动关闭 —— 覆盖两个弹窗变体
 // ---------------------------------------------------------------------------
 // 之前几版为什么失败：PDD 有两个不同的福袋弹窗组件，我只覆盖了其中一个。
@@ -680,6 +730,7 @@ try {
             }
             body = injectNoAnim(body);
   body = injectLightupAuto(body);
+  body = injectLightupPopup(body);
   body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
           };
@@ -700,6 +751,7 @@ try {
 
   body = injectNoAnim(body);
   body = injectLightupAuto(body);
+  body = injectLightupPopup(body);
   body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
