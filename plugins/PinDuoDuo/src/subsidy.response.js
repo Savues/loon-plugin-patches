@@ -622,9 +622,11 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       'z-index:2147483647;' +
       'font:11px/1.5 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased;' +
-      'background:rgba(28,28,30,.86);color:#fff;border-radius:14px;' +
-      'box-shadow:0 4px 20px rgba(0,0,0,.26);overflow:hidden;' +
-      '-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);' +
+      'background:rgba(28,28,30,.50);color:#fff;border-radius:14px;' +
+      'border:.5px solid rgba(255,255,255,.35);' +
+      'box-shadow:0 6px 26px rgba(0,0,0,.24);' +
+      'overflow:hidden;text-shadow:0 1px 3px rgba(0,0,0,.4);' +
+      '-webkit-backdrop-filter:blur(8px) saturate(200%) brightness(1.15);backdrop-filter:blur(8px) saturate(200%) brightness(1.15);' +
       'max-width:calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));';
     box.addEventListener('click', function () { open = !open; render(); });
     (document.body || document.documentElement).appendChild(box);
@@ -632,7 +634,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
 
   function row(k, v, color) {
     return '<div style="display:flex;justify-content:space-between;gap:14px;padding:1.5px 0">' +
-           '<span style="color:rgba(255,255,255,.55)">' + k + '</span>' +
+           '<span style="color:rgba(255,255,255,.75)">' + k + '</span>' +
            '<span style="font-weight:600;font-variant-numeric:tabular-nums;' +
            (color ? 'color:' + color : '') + '">' + v + '</span></div>';
   }
@@ -647,7 +649,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
           '<span style="width:6px;height:6px;border-radius:50%;background:' + cpsColor + ';flex:0 0 auto"></span>' +
           '<span style="font-variant-numeric:tabular-nums">佣金 <b style="color:' + cpsColor + '">' + d.cps + '</b></span>' +
           '<span style="color:rgba(255,255,255,.3)">·</span>' +
-          '<span style="color:rgba(255,255,255,.7)">广告 ' + d.ad + '</span>' +
+          '<span style="color:rgba(255,255,255,.88)">广告 ' + d.ad + '</span>' +
           '<span style="color:rgba(255,255,255,.35);font-size:9px">▴</span>' +
         '</div>';
       return;
@@ -659,7 +661,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
     box.innerHTML =
       '<div style="padding:10px 13px 11px;min-width:186px">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;' +
-             'padding-bottom:7px;margin-bottom:6px;border-bottom:.5px solid rgba(255,255,255,.13)">' +
+             'padding-bottom:7px;margin-bottom:6px;border-bottom:.5px solid rgba(255,255,255,.2)">' +
           '<span style="font-size:11px;font-weight:600">HUD · ' + d.page + '</span>' +
           '<span style="font-size:9px;color:rgba(255,255,255,.35)">▾</span>' +
         '</div>' +
@@ -670,7 +672,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
         row('已补合计', d.subsidy + ' 元') +
         row('店铺优惠', d.discount + ' 元') +
 
-        '<div style="height:.5px;background:rgba(255,255,255,.13);margin:6px 0"></div>' +
+        '<div style="height:.5px;background:rgba(255,255,255,.2);margin:6px 0"></div>' +
 
         row('注入', d.inject + '/' + IDS.length, d.inject === IDS.length ? '#32d74b' : '#ffd60a') +
         row('CSS 动画', d.anim < 0 ? '—' : d.anim) +
