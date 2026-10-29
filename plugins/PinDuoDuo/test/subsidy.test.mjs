@@ -57,7 +57,7 @@ console.log('\n【6】异常输入不崩')
 t('空 body → 放行', PASSTHRU(run({ search_stub: 'true' }, '')))
 t('无 body 字段 → 放行', PASSTHRU(run({ search_stub: 'true' }, undefined)))
 // v2.43：默认会注入 pdd-lightup-auto，这里关掉以专注测「搜索词清理」职责
-t('完全不含 queryWords → 放行', PASSTHRU(run({ search_stub: 'true', lightup_auto: 'false', lightup_popup: 'false', lucky_close: 'false' }, '<html><body>hi</body></html>')));
+t('完全不含 queryWords → 放行', PASSTHRU(run({ search_stub: 'true', lightup_auto: 'false', lightup_popup: 'false', hud: 'false', lucky_close: 'false' }, '<html><body>hi</body></html>')));
 t('非字符串 body → 放行', PASSTHRU(run({ search_stub: 'true' }, 12345)))
 
 console.log('\n【7】只替换第一处，缩小影响面（真实抓包中该键全文仅出现 1 次）')
@@ -73,13 +73,13 @@ t('默认注入 pdd-lightup-auto', inj.body.includes('id="pdd-lightup-auto"'));
 t('注入在 </body> 前', inj.body.indexOf('pdd-lightup-auto') < inj.body.indexOf('</body>'));
 const again = run({ lightup_auto: 'true' }, inj.body);
 t('幂等（重复处理返回空，不叠加）', !again.body || (again.body.match(/pdd-lightup-auto/g) || []).length === 1);
-t('lightup_auto=false 不注入', PASSTHRU(run({ lightup_auto: 'false', lightup_popup: 'false', lucky_close: 'false' }, '<html><body>x</body></html>')));
+t('lightup_auto=false 不注入', PASSTHRU(run({ lightup_auto: 'false', lightup_popup: 'false', hud: 'false', lucky_close: 'false' }, '<html><body>x</body></html>')));
 
 console.log('\n【9】v2.45 福袋弹窗自动关闭注入');
 const lb = run({ lucky_close: 'true' }, '<html><body>x</body></html>');
 t('默认注入 pdd-lucky-close', lb.body.includes('id="pdd-lucky-close"'));
 t('注入在 </body> 前', lb.body.indexOf('pdd-lucky-close') < lb.body.indexOf('</body>'));
 t('含关闭按钮图片特征', lb.body.includes('f57ce24c-be68-49a3-ab54-dd45824a4a1d'));
-t('lucky_close=false 不注入', PASSTHRU(run({ lucky_close: 'false', lightup_auto: 'false', lightup_popup: 'false' }, '<html><body>x</body></html>')));
+t('lucky_close=false 不注入', PASSTHRU(run({ lucky_close: 'false', lightup_auto: 'false', lightup_popup: 'false', hud: 'false' }, '<html><body>x</body></html>')));
 
 done()

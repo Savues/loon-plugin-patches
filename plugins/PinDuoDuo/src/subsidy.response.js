@@ -334,26 +334,11 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
 
   var KEY = '滑动浏览当前页面';   // 只有 lightForceSwipe=true 时才有「滑动」二字
   var shaking = false, timer = null, deadline = 0, up = true;
-  var hooked = 0, cap = 0, txt = 0, shakeN = 0, dbg = null;
-
-  function show() {
-    try {
-      if (!dbg) {
-        dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;left:4px;bottom:70px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;' +
-          'padding:3px 6px;border-radius:4px;pointer-events:none;white-space:pre';
-        (document.body || document.documentElement).appendChild(dbg);
-      }
-      var el = document.scrollingElement || document.documentElement || document.body;
-      var top = el ? Math.round(el.scrollTop) : -1;
-      dbg.textContent = 'lightup hook=' + hooked + ' cap=' + cap + ' txt=' + txt +
-        ' shake=' + shakeN + ' top=' + top + ' run=' + (shaking ? 'Y' : 'N');
-    } catch (e) {}
-  }
+  var hooked = 0, cap = 0, txt = 0, shakeN = 0;
 
   function shake() {
     try {
+      window.__pddLightup = { txt: txt, shake: shakeN, run: true };
       document.dispatchEvent(new Event('touchstart', { bubbles: true }));
       document.dispatchEvent(new Event('touchmove', { bubbles: true }));
       var el = document.scrollingElement || document.documentElement || document.body;
@@ -366,7 +351,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       window.dispatchEvent(new Event('scroll'));
       shakeN++;
     } catch (e) {}
-    show();
+
   }
 
   function startShake(secs) {
@@ -384,9 +369,10 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   }
 
   function stopShake() {
+    try { window.__pddLightup = { txt: txt, shake: shakeN, run: false }; } catch (e) {}
     shaking = false;
     if (timer) { clearInterval(timer); timer = null; }
-    show();
+
   }
 
   function hasTaskText() {
@@ -406,7 +392,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       txt = hasTaskText() ? 1 : 0;
       if (txt && !shaking) startShake(10);
       else if (!txt && shaking) stopShake();
-      show();
+
     } catch (e) {}
   }, 800);
 
@@ -427,7 +413,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
                 startShake(Number((j.result.data || {}).task_duration) || 10);
               }
             } catch (e) {}
-            show();
+
           });
         }
       } catch (e) {}
@@ -453,7 +439,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
                     startShake(Number((j.result.data || {}).task_duration) || 10);
                   }
                 } catch (e) {}
-                show();
+
               }).catch(function () {});
             }).catch(function () {});
           }
@@ -465,7 +451,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   } catch (e) {}
 
   setInterval(show, 2000);
-  show();
+
 })();</script>`;
 const LIGHTUP_AUTO = (A.lightup_auto === undefined || A.lightup_auto === null || A.lightup_auto === '')
   ? true : on(A.lightup_auto);
@@ -526,6 +512,218 @@ function injectLightupPopup(body) {
   const i = body.indexOf('</body>');
   if (i < 0) return body;
   return body.slice(0, i) + LIGHTUP_POPUP_JS + body.slice(i);
+}
+
+// v2.63：HUD 数据面板（纯 DOM 统计，实时更新，零额外请求）
+// ---------------------------------------------------------------------------
+// 为什么纯 DOM：
+//   诊断标签能实时更新，是因为数据就在页面里。
+//   佣金标签是我们自己注入的文本，页面 JS 可以直接数出来。
+//
+// 显示内容（全部从 DOM 读取）：
+//   S 级：佣金数 / 广告数 / 商品数 / 覆盖率
+//   A 级：已补金额 / 最高佣金率 / 店铺优惠 / 注入脚本数 / CSS 动画数
+//   B 级：页面名 / 滚动% / 节点数 / 图片数 / FPS / 首屏耗时
+//   C 级：点亮倒计时 / 弹窗数
+//
+// 性能：textContent 全页扫 + 1 秒节流（innerText 会触发重排，太慢）
+const HUD_JS = `<script id="pdd-hud">(function(){
+  if (window.__pddHud) return;
+  window.__pddHud = 1;
+
+  var open = false, box = null, body = null, head = null;
+  var fps = 0, frames = 0, lastT = 0;
+
+  function tick(now) {
+    frames++;
+    if (!lastT) lastT = now;
+    if (now - lastT >= 1000) { fps = frames; frames = 0; lastT = now; }
+    requestAnimationFrame(tick);
+  }
+  try { requestAnimationFrame(tick); } catch (e) {}
+
+  function collect() {
+    var d = { cps:0, ad:0, goods:0, rate:0, subsidy:0, maxRate:0,
+              discount:0, inject:0, anim:-1, page:'', scroll:0,
+              nodes:0, imgs:0, load:0, light:-1, popup:0, shake:-1, lightRun:-1 };
+    try {
+      var t = (document.body && document.body.textContent) || '';
+
+      // S1 佣金标签数
+      var m = t.match(/佣金[\\d.]+%/g);
+      d.cps = m ? m.length : 0;
+
+      // S2 广告标数
+      var a = t.match(/广告·/g);
+      d.ad = a ? a.length : 0;
+
+      // S3 商品数（券后 ¥ 出现次数）
+      var g = t.match(/券后\\s*¥/g);
+      d.goods = g ? g.length : 0;
+
+      // S4 覆盖率
+      d.rate = d.goods > 0 ? Math.round(d.cps / d.goods * 100) : 0;
+
+      // A1 已补金额合计
+      var s = 0, ms = t.match(/已补([\\d.]+)元/g) || [];
+      for (var i = 0; i < ms.length; i++) {
+        var v = parseFloat(ms[i].replace(/[^\\d.]/g, ''));
+        if (!isNaN(v)) s += v;
+      }
+      d.subsidy = Math.round(s);
+
+      // A2 最高佣金率
+      var mx = 0, mr = t.match(/佣金([\\d.]+)%/g) || [];
+      for (var j = 0; j < mr.length; j++) {
+        var r = parseFloat(mr[j].replace(/[^\\d.]/g, ''));
+        if (!isNaN(r) && r > mx) mx = r;
+      }
+      d.maxRate = mx;
+
+      // A3 店铺优惠合计
+      var ds = 0, md = t.match(/店铺优惠(\\d+)元/g) || [];
+      for (var k = 0; k < md.length; k++) {
+        var dv = parseFloat(md[k].replace(/[^\\d.]/g, ''));
+        if (!isNaN(dv)) ds += dv;
+      }
+      d.discount = ds;
+
+      // A4 注入脚本数
+      d.inject = document.querySelectorAll('[id^="pdd-"]').length;
+
+      // A5 CSS 动画数
+      try { d.anim = document.getAnimations ? document.getAnimations().length : -1; } catch (e) {}
+
+      // B1 页面名
+      d.page = (location.pathname.split('/').pop() || '').replace('.html', '') || 'index';
+
+      // B2 滚动百分比
+      var el = document.scrollingElement || document.documentElement;
+      d.scroll = (el && el.scrollHeight > 0) ? Math.round(el.scrollTop / el.scrollHeight * 100) : 0;
+
+      // B3 DOM 节点数
+      d.nodes = document.getElementsByTagName('*').length;
+
+      // B4 图片数
+      d.imgs = document.images.length;
+
+      // B6 首屏耗时
+      try {
+        var nav = performance.timing;
+        if (nav && nav.loadEventEnd > 0 && nav.navigationStart > 0) {
+          d.load = Math.round(nav.loadEventEnd - nav.navigationStart);
+        }
+      } catch (e) {}
+
+      // C1/C2 点亮倒计时
+      var lm = t.match(/滑动浏览当前页面(\\d+)秒/);
+      d.light = lm ? parseInt(lm[1], 10) : -1;
+
+      // C5 抖动状态（由 pdd-lightup-auto 写入 window）
+      try {
+        var lp = window.__pddLightup;
+        if (lp) { d.shake = lp.shake || 0; d.lightRun = lp.run ? 1 : 0; }
+      } catch (e) {}
+
+      // C4 弹窗数
+      d.popup = document.querySelectorAll('[class*="popup"],[class*="Popup"]').length;
+    } catch (e) {}
+    return d;
+  }
+
+  function build() {
+    box = document.createElement('div');
+    box.id = 'pdd-hud-box';
+    box.style.cssText =
+      'position:fixed;left:10px;bottom:16px;z-index:2147483647;' +
+      'font:11px/1.5 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;' +
+      '-webkit-font-smoothing:antialiased;' +
+      'background:rgba(28,28,30,.84);color:#fff;border-radius:14px;' +
+      'box-shadow:0 4px 20px rgba(0,0,0,.24);overflow:hidden;' +
+      '-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);' +
+      'transition:width .18s ease;width:auto;max-width:calc(100vw - 20px);';
+    box.addEventListener('click', function () { open = !open; render(); });
+    (document.body || document.documentElement).appendChild(box);
+  }
+
+  function row(k, v, color) {
+    return '<div style="display:flex;justify-content:space-between;gap:14px;padding:1.5px 0">' +
+           '<span style="color:rgba(255,255,255,.55)">' + k + '</span>' +
+           '<span style="font-weight:600;font-variant-numeric:tabular-nums;' +
+           (color ? 'color:' + color : '') + '">' + v + '</span></div>';
+  }
+
+  function render() {
+    var d = collect();
+    var rateColor = d.rate >= 50 ? '#32d74b' : (d.rate >= 20 ? '#ffd60a' : '#ff453a');
+
+    if (!open) {
+      // 折叠态：单行胶囊
+      box.innerHTML =
+        '<div style="display:flex;align-items:center;gap:7px;padding:7px 12px 7px 10px">' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:' + rateColor + ';flex:0 0 auto"></span>' +
+          '<span style="font-variant-numeric:tabular-nums">佣金 <b style="color:' + rateColor + '">' + d.cps + '</b>' +
+          '<span style="color:rgba(255,255,255,.3)">/</span>' + d.goods + '</span>' +
+          '<span style="color:rgba(255,255,255,.3)">·</span>' +
+          '<span style="color:rgba(255,255,255,.7)">广告 ' + d.ad + '</span>' +
+          '<span style="color:rgba(255,255,255,.35);font-size:9px">▴</span>' +
+        '</div>';
+      return;
+    }
+
+    // 展开态：完整面板
+    box.innerHTML =
+      '<div style="padding:10px 13px 11px;min-width:196px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;' +
+             'padding-bottom:7px;margin-bottom:6px;border-bottom:.5px solid rgba(255,255,255,.13)">' +
+          '<span style="font-size:11px;font-weight:600">HUD · ' + d.page + '</span>' +
+          '<span style="font-size:9px;color:rgba(255,255,255,.35)">▾</span>' +
+        '</div>' +
+
+        row('佣金 / 商品', d.cps + ' / ' + d.goods, rateColor) +
+        row('覆盖率', d.rate + '%', rateColor) +
+        row('广告标', d.ad) +
+        row('最高佣金', d.maxRate + '%') +
+        row('已补合计', d.subsidy + ' 元') +
+        row('店铺优惠', d.discount + ' 元') +
+
+        '<div style="height:.5px;background:rgba(255,255,255,.13);margin:6px 0"></div>' +
+
+        row('注入脚本', d.inject) +
+        row('CSS 动画', d.anim < 0 ? '—' : d.anim) +
+        row('DOM 节点', d.nodes) +
+        row('图片', d.imgs) +
+        row('FPS', fps) +
+        row('首屏', d.load ? d.load + 'ms' : '—') +
+        row('滚动', d.scroll + '%') +
+        row('点亮倒计时', d.light < 0 ? '—' : d.light + 's', d.light >= 0 ? '#32d74b' : '') +
+        row('抖动状态', (function(){ var l = window.__pddLightup; return l ? (l.run ? ('运行 ' + l.shake) : ('停止 ' + l.shake)) : '—'; })(), (function(){ var l = window.__pddLightup; return l && l.run ? '#32d74b' : ''; })()) +
+        row('弹窗数', d.popup) +
+        (d.shake >= 0 ? row('抖动', d.shake + ' 次 · ' + (d.lightRun ? '进行中' : '已停'), d.lightRun ? '#32d74b' : '') : '') +
+      '</div>';
+  }
+
+  function start() {
+    build();
+    render();
+    setInterval(render, 1000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();</script>`;
+const HUD = (A.hud === undefined || A.hud === null || A.hud === '')
+  ? true : on(A.hud);
+
+function injectHud(body) {
+  if (!HUD) return body;
+  if (body.indexOf('id="pdd-hud"') !== -1) return body;   // 幂等
+  const i = body.indexOf('</body>');
+  if (i < 0) return body;
+  return body.slice(0, i) + HUD_JS + body.slice(i);
 }
 
 // v2.47：福袋自动关闭 —— 覆盖两个弹窗变体
@@ -731,6 +929,7 @@ try {
             body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLightupPopup(body);
+  body = injectHud(body);
   body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
           };
@@ -752,6 +951,7 @@ try {
   body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLightupPopup(body);
+  body = injectHud(body);
   body = injectLuckyClose(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
