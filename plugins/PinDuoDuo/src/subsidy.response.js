@@ -433,26 +433,25 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.54：三选一福袋自动选中间（加冷却，防刷新循环）
+// v2.55：三选一福袋自动选中间（一次会话只点一次）
 // ---------------------------------------------------------------------------
-// v2.53 问题：点福袋 → 弹窗关闭 → handleClose 触发 refreshPage() → 页面刷新
-//   → 刷新后 done 标记重置 → 又找到三个 itemWrapper → 又点 → 无限循环。
-//   抓包实证：tandy_vase.html 在 25 秒内刷新 15 次。
+// v2.54 的 3 分钟冷却不实用；v2.53 无冷却会无限循环
+//（点福袋 → 弹窗关 → refreshPage → 刷新后又点）。
 //
-// 修复：用 sessionStorage 记录上次点击时间，冷却期内不再点。
-//   sessionStorage 在页面刷新后保留（同一会话），所以能跨刷新生效。
+// 本版：一次会话只点一次。
+//   · sessionStorage 记录 'pdd_3of1_done'，页面刷新后仍然保留 → 不会循环
+//   · 杀 App 重开 = 新会话 → 自动重置，方便重测
+//   · 没有时间冷却，无需等待
 //
-// 定位依据（xbrand_special_sale.js）：
-//   Wr → <div className={Fr().itemWrapper}>  // _3-xTPO9u
-//   Fr = n(7591)：luckyBagListWrapper _1oeojQOY / itemWrapper _3-xTPO9u
+// 定位：Wr → <div className={Fr().itemWrapper}>  // _3-xTPO9u
+//       Fr = n(7591)：luckyBagListWrapper _1oeojQOY / itemWrapper _3-xTPO9u
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
   var ITEM = '_3-xTPO9u';
   var LIST = '_1oeojQOY';
-  var KEY = 'pdd_3of1_ts';
-  var COOLDOWN = 180000;   // 3 分钟内不再点（防刷新循环）
+  var DONE_KEY = 'pdd_3of1_done';   // 本次会话是否已点过（杀 App 重置）
 
   var dbg = null;
   function show(txt) {
@@ -467,12 +466,11 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
       dbg.textContent = txt;
     } catch (e) {}
   }
-
-  function lastTs() {
-    try { return Number(sessionStorage.getItem(KEY) || 0) || 0; } catch (e) { return 0; }
+  function isDone() {
+    try { return sessionStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; }
   }
-  function markTs() {
-    try { sessionStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+  function markDone() {
+    try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {}
   }
 
   setInterval(function () {
@@ -480,8 +478,7 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
       var items = document.querySelectorAll('.' + ITEM);
       if (items.length === 0) { show('3of1 items=0'); return; }
 
-      var left = Math.round((COOLDOWN - (Date.now() - lastTs())) / 1000);
-      if (left > 0) { show('3of1 items=' + items.length + ' cooldown=' + left + 's'); return; }
+      if (isDone()) { show('3of1 items=' + items.length + ' DONE(重启App重置)'); return; }
 
       show('3of1 items=' + items.length + ' ready');
       if (items.length !== 3) return;
@@ -500,14 +497,13 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
       });
       if (!ok) return;
 
-      // 记录坐标便于诊断排序是否正确
       var pos = arr.map(function (el) { return Math.round(el.getBoundingClientRect().left); });
       arr.sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
       var mid = arr[1];
       if (!mid) return;
 
-      markTs();
-      show('3of1 CLICK mid  lefts=' + pos.join(','));
+      markDone();
+      show('3of1 CLICK lefts=' + pos.join(','));
 
       var r = mid.getBoundingClientRect();
       var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
