@@ -433,89 +433,92 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.52：三选一福袋 —— 探测 background-image（只读）
+// v2.53：三选一福袋自动选中间（精确定位 itemWrapper）
 // ---------------------------------------------------------------------------
-// v2.51 诊断显示 no 3-in-row，但截图里三个福袋明显横向排列。
-// 原因：福袋图不是 <img>，而是 background-image（JS 里 style:{backgroundSize:"100% 100%"}）。
+// 定位依据（xbrand_special_sale.js 反查）：
+//   Wr 组件渲染福袋列表：
+//     <div className={Fr().itemWrapper}>      // _3-xTPO9u
+//       <io data={bagItem} index={idx} />
+//     </div>
+//   Fr = n(7591) 的 CSS Modules：
+//     luckyBagListWrapper: "_1oeojQOY"   // 列表容器
+//     itemWrapper:         "_3-xTPO9u"   // 每个福袋
 //
-// 本版同时检查 img.src 和 getComputedStyle().backgroundImage，
-// 输出「同一行三个尺寸相近」元素的 class + 图片 URL 片段。
-// 【仍然不点击】，只诊断。
+// 之前 v2.48~v2.52 全部失败的根因：一直盯着 LuckyBagTakeCouPopNewTwo 的
+// 3D 旋转布局（_1OzN-NpJ 等），而实际渲染的是这个平铺列表。
+//
+// 防误伤（用户强调过）：
+//   ① 必须恰好 3 个 itemWrapper
+//   ② 三个必须在同一个 luckyBagListWrapper 内
+//   ③ 按 x 排序取中间
+//   ④ 只点一次，列表消失后重置
+//   ⑤ 尺寸 > 30px
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
-  var dbg = null;
+  var ITEM = '_3-xTPO9u';        // itemWrapper
+  var LIST = '_1oeojQOY';        // luckyBagListWrapper
+  var done = false, dbg = null;
+
   function show(txt) {
     try {
       if (!dbg) {
         dbg = document.createElement('div');
         dbg.style.cssText = 'position:fixed;left:4px;bottom:110px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.28 monospace;' +
-          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:97vw;overflow:hidden';
+          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;' +
+          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre';
         (document.body || document.documentElement).appendChild(dbg);
       }
       dbg.textContent = txt;
     } catch (e) {}
   }
 
-  function cls(el) {
-    if (!el) return '-';
-    var c = (el.className || '') + '';
-    return c ? c.slice(0, 22) : el.tagName;
-  }
-  function name(u) {
-    u = (u || '').replace(/^url\\(["']?/, '').replace(/["']?\\)$/, '');
-    var i = u.lastIndexOf('/');
-    return i >= 0 ? u.slice(i + 1).slice(0, 30) : u.slice(0, 30);
-  }
-
-  // 收集「有图片」的元素：img.src 或 background-image
-  function collect() {
-    var out = [];
-    var els = document.querySelectorAll('div,img,span,a,li');
-    var n = Math.min(els.length, 4000);
-    for (var i = 0; i < n; i++) {
-      var el = els[i];
-      var r = el.getBoundingClientRect();
-      if (r.width < 50 || r.height < 20) continue;
-      if (r.top < 0 || r.bottom > window.innerHeight) continue;
-      var u = '';
-      if (el.tagName === 'IMG') u = el.currentSrc || el.src || '';
-      if (!u) {
-        try {
-          var bg = getComputedStyle(el).backgroundImage || '';
-          if (bg && bg !== 'none') u = bg;
-        } catch (e) {}
-      }
-      if (!u) continue;
-      out.push({ el: el, r: r, u: u });
-    }
-    return out;
-  }
-
   setInterval(function () {
     try {
-      var all = collect();
-      if (all.length < 3) { show('3of1: el=' + all.length + ' (<3)'); return; }
-      // 找同一行（y 差 < 25）三元素
-      for (var a = 0; a < all.length; a++) {
-        var row = all.filter(function (c) { return Math.abs(c.r.top - all[a].r.top) < 25; });
-        if (row.length !== 3) continue;
-        row.sort(function (x, y) { return x.r.left - y.r.left; });
-        var ws = row.map(function (c) { return c.r.width; });
-        if (Math.max.apply(null, ws) / Math.min.apply(null, ws) > 1.5) continue;
-        var lines = ['3of1 ROW3 readonly:'];
-        for (var i = 0; i < 3; i++) {
-          lines.push(i + ' w=' + Math.round(row[i].r.width) + ' h=' + Math.round(row[i].r.height) +
-                     ' ' + name(row[i].u) + '\\n  cls=' + cls(row[i].el));
-        }
-        show(lines.join('\\n'));
-        return;
+      var items = document.querySelectorAll('.' + ITEM);
+      if (items.length === 0) { done = false; show('3of1 items=0'); return; }
+      show('3of1 items=' + items.length + ' click=' + (done ? 'Y' : 'N'));
+      if (done) return;
+      if (items.length !== 3) return;
+
+      var arr = Array.prototype.slice.call(items);
+      // 校验：三个都在同一个 luckyBagListWrapper 内
+      var lists = document.querySelectorAll('.' + LIST);
+      var sameList = false;
+      for (var i = 0; i < lists.length; i++) {
+        var inThis = arr.filter(function (el) { return lists[i].contains(el); });
+        if (inThis.length === 3) { sameList = true; break; }
       }
-      show('3of1: el=' + all.length + ' no-row3');
+      if (!sameList) return;
+
+      // 尺寸校验
+      var ok = arr.every(function (el) {
+        var r = el.getBoundingClientRect();
+        return r.width > 30 && r.height > 30;
+      });
+      if (!ok) return;
+
+      arr.sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
+      var mid = arr[1];
+      done = true;
+
+      var r = mid.getBoundingClientRect();
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+
+      // ① 直接 click
+      try { mid.click(); } catch (e) {}
+      // ② 按坐标派发（React 合成事件需要 clientX/Y）
+      try {
+        var t = document.elementFromPoint(cx, cy) || mid;
+        ['mousedown', 'mouseup', 'click'].forEach(function (type) {
+          t.dispatchEvent(new MouseEvent(type, {
+            bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0
+          }));
+        });
+      } catch (e) {}
     } catch (e) {}
-  }, 900);
+  }, 700);
 })();</script>`;
 const LUCKY_3OF1 = (A.lucky_3of1 === undefined || A.lucky_3of1 === null || A.lucky_3of1 === '')
   ? true : on(A.lucky_3of1);
