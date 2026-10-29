@@ -114,14 +114,18 @@ node cli.js run ../../plugins/TaobaoCoinAuto/TaobaoCoinAuto.lpx \
 
 1. 淘宝 → 我的淘宝 → 设置 → 通用 → **清除缓存**（或删掉 App 重装，更彻底）
 2. 杀掉淘宝进程，重新进「淘金币小镇」
-3. 注入成功会弹一条通知：**「淘金币小镇 · 注入成功 v0.1.1」** ← 这是唯一可靠的成功信号
+3. 注入成功会弹一条通知：**「淘金币小镇 · 注入成功 v0.1.2」**
+4. 页面左下角会出现绿色诊断浮层（`TJB v0.1.2 / req=1 api=1 bus=1 ui=1 ...`），
+   同时每 3 秒往 `g.alicdn.com/gw/loon-sim.probe.taobaocoinauto/beacon?d=...` 打一条信标，
+   抓包里能直接看到注入后的运行状态（`api=0` 说明没找到业务模块，`ui=0` 说明 store 里没有 UserInfo）
 4. 响应已带 `Cache-Control: no-store`，之后每次进页面都会回源并重新注入，不会退回旧缓存
 
 若清缓存后仍无通知：
 
 | 检查 | 方法 |
 |------|------|
-| 插件是否加载 | Safari 打开 `https://g.alicdn.com/gw/loon-sim.probe.taobaocoinauto`，应返回 `0.1.1` |
+| 插件是否加载 | Safari 打开 `https://g.alicdn.com/gw/loon-sim.probe.taobaocoinauto`，应返回 `0.1.2` |
+| 注入后卡在哪 | 看左下角浮层：`req=1` 拿到 webpack；`api=1` 找到业务模块；`ui=1` 读到 UserInfo |
 | MITM 是否解密 g.alicdn.com | 抓包看 `p_index.js` 请求是否出现、响应体是否为 2,262,996B（注入后） |
 | 页面是否换了版本 | HAR 里看 JS 路径的版本号，正则已用 `[^/]+` 通配，但模块结构变了要重新取证 |
 

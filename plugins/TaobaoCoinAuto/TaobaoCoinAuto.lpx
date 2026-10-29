@@ -3,7 +3,7 @@
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/TaobaoCoinAuto
 #!date=2026-10-30
-#!version=0.1.1
+#!version=0.1.2
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=淘宝,淘金币,小镇,自动化
@@ -13,16 +13,19 @@ autoFeed = switch,true,tag=🍚自动喂能量,desc=按 能量/单次消耗 自�
 skipUpgradeAnim = switch,true,tag=⏭自动跳过升级动画,desc=升级动画的「跳过」按钮一出现就立刻点击
 liteAnim = switch,false,tag=⚡升级动画降级,desc=用静态图替代升级 Lottie（更彻底，但会让页面图片质量降级到 30，默认关）
 drawEnergy = switch,true,tag=🔋能量不足时领能量,desc=能量耗尽后调用 drawTomEnergy 尝试领取
+# 诊断开关：左下角浮层显示 req/api/bus/ui 状态，并每 3 秒往 HAR 打一条信标
+# （真机看不到 console，出问题时靠这个取证）
+debugPanel = switch,true,tag=🔍诊断面板,desc=页面左下角显示运行状态浮层；信标请求会出现在抓包里
 gapMs = input,2500,tag=两轮间隔(ms),desc=每喂完一轮等多久再算下一轮，默认 2500
 idleMs = input,8000,tag=能量不足后等待(ms),desc=能量不足时多久后再检查一次，默认 8000
 maxRounds = input,30,tag=单次加载最多轮数,desc=防止意外长跑，默认 30 轮
 
 [Script]
-http-response ^https:\/\/g\.alicdn\.com\/code\/npm\/@ali\/pegasus-project-taocoin-home\/[^\/]+\/js\/p_index\.js script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/702cb2a9ac97717101aaee2e5f8bc0723bd73de1/plugins/TaobaoCoinAuto/src/town_inject.response.js, requires-body=true, timeout=30, argument=[{autoFeed},{skipUpgradeAnim},{liteAnim},{drawEnergy},{gapMs},{idleMs},{maxRounds}], tag=小镇页注入
+http-response ^https:\/\/g\.alicdn\.com\/code\/npm\/@ali\/pegasus-project-taocoin-home\/[^\/]+\/js\/p_index\.js script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/702cb2a9ac97717101aaee2e5f8bc0723bd73de1/plugins/TaobaoCoinAuto/src/town_inject.response.js, requires-body=true, timeout=30, argument=[{autoFeed},{skipUpgradeAnim},{liteAnim},{drawEnergy},{debugPanel},{gapMs},{idleMs},{maxRounds}], tag=小镇页注入
 
 [MITM]
 hostname = g.alicdn.com
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/g\.alicdn\.com\/gw\/loon-sim\.probe\.taobaocoinauto/i then reject(200, "0.1.1")
+request if ${url} ~= /^https?:\/\/g\.alicdn\.com\/gw\/loon-sim\.probe\.taobaocoinauto/i then reject(200, "0.1.2")
