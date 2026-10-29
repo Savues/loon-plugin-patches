@@ -6,6 +6,8 @@
 //   com.meituan.retail.splash_vap: true → false (开屏 VAP 动画)
 //   com.meituan.retail.splash_video_disabled: false → true (开屏视频禁用)
 //   pt_business_mine_popup_enable: true → false (我的页弹窗, 沙盒horn实证)
+// 2026-10-25 v0.8: 全量 169 模块 751KB 二次盘点, 补 29 个漏网键
+// 2026-10-25 v0.9: 广告系统模块深挖 (mt_ad_common_strategy/mt_bb_ad_config/adp_pagasus), 补 10 个
 const REVERSES = [
   [/("com\.meituan\.retail\.should_show_group_supermarket_guide_popup"\s*:\s*)"?true"?/g, '$1"false"'],
   [/("com\.meituan\.retail\.maicai_splash_hidden"\s*:\s*)false/g, '$1true'],
@@ -43,6 +45,35 @@ const REVERSES = [
   [/("(?:traffic_platform_banner_switch|open_banner_optimized|updateNewMliveBanner|is_fix_banner_promotion|enable_city_commerce_activity)"\s*:\s*)true/g, '$1false'],
   // 引导/运营
   [/("(?:iOS_enableGuideComment|guide_detail|guide_page_preload_result_page|enable_live_activity_pike|enableMannulReceiveOperational|popupLimitStatus)"\s*:\s*)true/g, '$1false'],
+  // --- v0.8: 169 模块全量二次盘点 (751KB), 29 个漏网键 ---
+  // 插屏广告 (最重要)
+  [/("interstitialUseBridge"\s*:\s*)true/g, '$1false'],
+  // 推送族
+  [/("(?:miaowaPush|metpush_categories_enable|iOS_enablePushFilterMultiple|order_new_push_list)"\s*:\s*)true/g, '$1false'],
+  // 任务列表 (抢任务/任务中心)
+  [/("gb_tasklist_mrn_on"\s*:\s*)true/g, '$1false'],
+  [/("isGrabTaskListPikeOn[^"]*"\s*:\s*)true/g, '$1false'],
+  // 透明活动 / 浮层冲突
+  [/("(?:check_transparent_activity|resolve_touch_matrix_and_hi_float_conflict)"\s*:\s*)true/g, '$1false'],
+  // 券/折扣列表族 (mrn 页面 + 订单页)
+  [/("(?:mrn_voucher_list|order_voucherlist_isEnabled|mrn_hotel_coupon_detail_page)"\s*:\s*)true/g, '$1false'],
+  // 酒店营销族 (券/红包/推广订单)
+  [/("(?:mrn_hotel_deal_voucher_list|mrn_hotel_order_fill_discount_list|mrn_hotel_order_fill_voucher_list|mrn_hotel_preload_poidetail_not_use_activity|mrn_hotel_promote_order_detail)"\s*:\s*)true/g, '$1false'],
+  [/("(?:rn_hotel_deal_coupon_detail_enable|rn_hotel_promote_orderdetail|rn_hotel_homepage_tex_redpacket_enable|rn_submit_order_discount_list_is_enable)"\s*:\s*)true/g, '$1false'],
+  // 引导动画族 (数值 → 0 禁用)
+  [/("(?:show_anim_guide_cold_start|show_anim_guide_has_visit|show_anim_guide_no_visit|show_anim_guide_return_homepage|show_immersive_anim_guide_max_count|show_market_anim_guide_max_count)"\s*:\s*)\d+/g, '$10'],
+  // 首页/位置引导 (数值 → 0)
+  [/("(?:homepage_travel_guide_cell|location_guide_daily_show_times)"\s*:\s*)\d+/g, '$10'],
+  // --- v0.9: 广告系统模块深挖 (mt_ad_common_strategy / mt_bb_ad_config / adp_pagasus) ---
+  // 灵犀广告 + midas 广告上报 (mt_ad_common_strategy)
+  [/("ad_lingxi_config"\s*:\s*)true/g, '$1false'],
+  [/("(?:use_midas_4_ad|midas_is_open_wm_params|midas_mrnbridge_invokemsi_strategy)"\s*:\s*)true/g, '$1false'],
+  // 团购广告系统 (mt_bb_ad_config): 快手广告SDK适配器 + 广告上报 + 强制依赖请求
+  [/("(?:openKSAdapter|babelReportSwitch|forceRequestAdDependentInfo)"\s*:\s*)true/g, '$1false'],
+  // 搜索关键词监控 (adp_pagasus_render_monitor, iOS)
+  [/("mt_clcad_search_keywords_monitor_switch_ios"\s*:\s*)true/g, '$1false'],
+  // 夜间签到营销样式 + 搜索页直播 (false → true = 禁用)
+  [/("(?:disableMiddleNightCheckinStyle|disable_live_pike)"\s*:\s*)false/g, '$1true'],
 ];
 
 let body = $response.body;
