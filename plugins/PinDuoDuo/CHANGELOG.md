@@ -1,3 +1,11 @@
+## v2.68（2026-10-29）
+
+### HUD 位置可调 + 挂载点修正
+
+- 新增参数 `hud_bottom`（默认 0，安全区最底部；负数更贴底）
+- HUD 从 `<body>` 改挂到 `<html>` 直属 —— body 上有 transform 时 `position:fixed` 会失效
+- bottom 从固定 10px 改为 `calc(hud_bottom px + env(safe-area-inset-bottom))`
+
 ## v2.67（2026-10-29）
 
 ### HUD 位置下移

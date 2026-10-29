@@ -598,6 +598,11 @@ function injectLightupPopup(body) {
 //   ① 去掉「佣金/商品」和「覆盖率」，只保留绝对数（永远准确）
 //   ② 注入数改成精确检查 5 个固定 ID
 //   ③ 位置用 env(safe-area-inset-*) 避开刘海/指示条
+// v2.68：距底部偏移可调（hud_bottom，默认 0 = 安全区最底；负数更贴底）
+const HUD_BOTTOM = (function () {
+  const v = parseInt(A.hud_bottom, 10);
+  return isNaN(v) ? 0 : v;
+})();
 const HUD_JS = `<script id="pdd-hud">(function(){
   if (window.__pddHud) return;
   window.__pddHud = 1;
@@ -726,7 +731,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
     box.style.cssText =
       'position:fixed;' +
       'left:calc(14px + env(safe-area-inset-left, 0px));' +
-      'bottom:calc(10px + env(safe-area-inset-bottom, 0px));' +
+      'bottom:calc(${HUD_BOTTOM}px + env(safe-area-inset-bottom, 0px));' +
       'z-index:2147483647;' +
       'font:11px/1.5 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased;' +
@@ -744,7 +749,8 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       if (!open) listOpen = false;
       render();
     });
-    (document.body || document.documentElement).appendChild(box);
+    // v2.68：挂到 <html> 直属 —— body 上若有 transform，position:fixed 会失效
+    document.documentElement.appendChild(box);
   }
 
   function row(k, v, color, act) {
