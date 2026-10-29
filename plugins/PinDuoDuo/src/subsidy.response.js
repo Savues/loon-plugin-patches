@@ -112,6 +112,62 @@ const CPS_API = 'https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 const CPS_BATCH = 20;
 const CPS_CACHE_KEY = 'pddCpsCache';
 const CPS_CACHE_CAP = 300;
+// v2.66：HUD 佣金账本（真佣金明细 + 转链统计）
+// 真相源只有大淘客：dtk 返回 rate>0 的商品才算「真佣金」，记 name/price/amount
+// 进 pddHudLedger；每次调用的计数进 pddHudStats。HTML 注入时快照进页面。
+const HUD_STATS_KEY = 'pddHudStats';
+const HUD_LEDGER_KEY = 'pddHudLedger';
+const HUD_LEDGER_CAP = 60;
+
+function hudStatsLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return null;
+    const raw = $persistentStore.read(HUD_STATS_KEY);
+    const o = raw ? JSON.parse(String(raw)) : null;
+    return (o && typeof o === 'object') ? o : null;
+  } catch (e) { return null; }
+}
+
+function hudStatsSave(s) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    $persistentStore.write(JSON.stringify(s), HUD_STATS_KEY);
+  } catch (e) { /* ignore */ }
+}
+
+// 转链统计：tr=总请求条数 tats=不支持的（code=0）ok=成功条数（code=1）pos=真佣金（rate>0）
+// 另：ch/ca = 消费券删零缓存 hit/all（cps_label 分支）
+function hudStatsBump(delta) {
+  const d = delta || {};
+  const s = hudStatsLoad() || { c: 0, tr: 0, tok: 0, tpos: 0, tf: 0, ch: 0, ca: 0 };
+  for (const k of Object.keys(d)) {
+    const v = parseInt(d[k], 10);
+    if (v) s[k] = (s[k] || 0) + v;
+  }
+  hudStatsSave(s);
+  return s;
+}
+
+function hudLedgerLoad() {
+  try {
+    if (typeof $persistentStore === 'undefined') return null;
+    const raw = $persistentStore.read(HUD_LEDGER_KEY);
+    const o = raw ? JSON.parse(String(raw)) : null;
+    return (o && typeof o === 'object') && !Array.isArray(o) ? o : null;
+  } catch (e) { return null; }
+}
+
+function hudLedgerSave(o) {
+  try {
+    if (typeof $persistentStore === 'undefined') return;
+    const keys = Object.keys(o);
+    if (keys.length > HUD_LEDGER_CAP) {
+      keys.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < keys.length - HUD_LEDGER_CAP; i++) delete o[keys[i]];
+    }
+    $persistentStore.write(JSON.stringify(o), HUD_LEDGER_KEY);
+  } catch (e) { /* ignore */ }
+}
 const CPS_CACHE_TTL = (function () {
   const v = parseInt(A.cps_ttl, 10);
   return v > 0 ? v : 21600;
@@ -193,20 +249,36 @@ function cpsFetch(ids, cb) {
     try { j = JSON.parse(data); } catch (e) { cb(null); return; }
     const list = j && j.data && j.data.pdd && j.data.pdd.data;
     if (!Array.isArray(list)) { cb(null); return; }
+    // v2.66：转链统计（大淘客分数层就是全部真相）：
+    //   tr=总条数 ok=code=1（转链成功条数）pos=rate>0（真佣金）tf=code=0（不支持转链）
+    let _tr = 0, _ok = 0, _pos = 0, _tf = 0;
     const map = {};
     for (let i = 0; i < list.length; i++) {
-      const g = (list[i] || {}).goods || {};
+      const x = list[i] || {};
+      const g = (x || {}).goods || {};
       const rate = parseFloat(g.rate);
+      _tr++;
+      if (x.code === '1' || x.code === 1) _ok++;
+      else if (x.code === '0' || x.code === 0) _tf++;
       if (!(rate > 0)) continue;
-      const link = list[i].item_link;
+      _pos++;
+      const link = x.item_link;
       if (typeof link !== 'string') continue;
       const m = link.match(/[?&]goods_id=(\d+)/);
       if (m && !map[m[1]]) {
         // v2.27：同时返回 item_link（相对路径），供 link_url 改写用
+        // v2.66：name/price/amt 供 HUD 账本展示（price 单位元，amt 佣金金额元）
         const rel = link.replace(/^https?:\/\/[^/]+\//, '');
-        map[m[1]] = { rate: rate, link: rel.indexOf('duo_coupon_landing.html') === 0 ? rel : '' };
+        map[m[1]] = {
+          rate: rate,
+          link: rel.indexOf('duo_coupon_landing.html') === 0 ? rel : '',
+          name: String(g.goods_name || '').slice(0, 24),
+          price: parseFloat(g.min_group_price) || 0,
+          amt: parseFloat(g.commission_amount) || 0
+        };
       }
     }
+    hudStatsBump({ tr: _tr, tok: _ok, tpos: _pos, tf: _tf, c: 1 });
     cb(map);
   });
 }
@@ -532,8 +604,26 @@ const HUD_JS = `<script id="pdd-hud">(function(){
 
   var IDS = ['pdd-no-anim','pdd-lightup-auto','pdd-lightup-popup',
              'pdd-lucky-close','pdd-hud'];
-  var open = false, box = null;
+  var open = false, box = null, listOpen = false;
   var fps = 0, frames = 0, lastT = 0;
+
+  function fmtB(b) {
+    if (!(b > 0)) return '—';
+    if (b < 1024) return b + 'B';
+    if (b < 1048576) return (Math.round(b / 102.4) / 10) + 'K';
+    return (Math.round(b / 104857.6) / 10) + 'M';
+  }
+  function fmtLoad(ms) {
+    if (!(ms > 0)) return '—';
+    return ms < 1000 ? ms + 'ms' : (Math.round(ms / 100) / 10) + 's';
+  }
+  function fmtP(v) {
+    v = +v; if (!(v > 0)) return '—';
+    return '¥' + (Math.round(v * 100) / 100);
+  }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
   function tick(now) {
     frames++;
@@ -546,7 +636,8 @@ const HUD_JS = `<script id="pdd-hud">(function(){
   function collect() {
     var d = { cps:0, ad:0, maxRate:0, subsidy:0, discount:0,
               inject:0, anim:-1, page:'', scroll:0, nodes:0,
-              imgs:0, load:0, light:-1, shake:null, popup:0 };
+              imgs:0, load:0, light:-1, shake:null, popup:0,
+              bytes:-1, stats:null, ledger:null };
     try {
       var t = (document.body && document.body.textContent) || '';
 
@@ -607,6 +698,23 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       d.shake = window.__pddLightup || null;
 
       d.popup = document.querySelectorAll('[class*="popup"],[class*="Popup"]').length;
+
+      // v2.66：资源解码字节累计（拿不到就退化为图片数）
+      try {
+        var res = performance.getEntriesByType ? performance.getEntriesByType('resource') : [];
+        var sum = 0, have = 0;
+        for (var r2 = 0; r2 < res.length; r2++) {
+          var db = res[r2].decodedBodySize || 0;
+          if (db > 0) { sum += db; have = 1; }
+        }
+        d.bytes = have ? sum : -1;
+      } catch (e) {}
+
+      // v2.66：Loon 侧注入的账本快照（转链统计 + 真佣金明细）
+      try {
+        var hd = window.__pddHudData;
+        if (hd && typeof hd === 'object') { d.stats = hd.s || null; d.ledger = hd.l || null; }
+      } catch (e) {}
     } catch (e) {}
     return d;
   }
@@ -628,35 +736,84 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       'overflow:hidden;text-shadow:0 1px 3px rgba(0,0,0,.4);' +
       '-webkit-backdrop-filter:blur(8px) saturate(200%) brightness(1.15);backdrop-filter:blur(8px) saturate(200%) brightness(1.15);' +
       'max-width:calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));';
-    box.addEventListener('click', function () { open = !open; render(); });
+    box.addEventListener('click', function (ev) {
+      var tg = ev.target;
+      var act = (tg && tg.getAttribute) ? tg.getAttribute('data-act') : null;
+      if (act === 'ledger') { listOpen = !listOpen; render(); return; }
+      open = !open;
+      if (!open) listOpen = false;
+      render();
+    });
     (document.body || document.documentElement).appendChild(box);
   }
 
-  function row(k, v, color) {
-    return '<div style="display:flex;justify-content:space-between;gap:14px;padding:1.5px 0">' +
+  function row(k, v, color, act) {
+    return '<div' + (act ? ' data-act="' + act + '"' : '') +
+           ' style="display:flex;justify-content:space-between;gap:14px;padding:1.5px 0' +
+           (act ? ';cursor:pointer' : '') + '">' +
            '<span style="color:rgba(255,255,255,.75)">' + k + '</span>' +
            '<span style="font-weight:600;font-variant-numeric:tabular-nums;' +
            (color ? 'color:' + color : '') + '">' + v + '</span></div>';
   }
+  function divider() {
+    return '<div style="height:.5px;background:rgba(255,255,255,.2);margin:6px 0"></div>';
+  }
+
+  function ledgerList(led) {
+    if (!led) return '';
+    var arr = [];
+    for (var k in led) {
+      var it = led[k] || {};
+      if ((+it.r || 0) > 0) arr.push(it);
+    }
+    arr.sort(function (x, y) { return (+y.r || 0) - (+x.r || 0); });
+    if (!arr.length) {
+      return '<div style="padding:4px 0 6px;font-size:10px;color:rgba(255,255,255,.4)">暂无真佣金商品</div>';
+    }
+    var s = '';
+    for (var i = 0; i < arr.length && i < 30; i++) {
+      var it2 = arr[i];
+      s += '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-size:10.5px">' +
+        '<span style="color:#32d74b;font-weight:600;flex:0 0 auto;width:36px">' + (+it2.r) + '%</span>' +
+        '<span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;opacity:.9">' +
+          esc((it2.n || '商品').slice(0, 16)) + '</span>' +
+        '<span style="flex:0 0 auto;font-variant-numeric:tabular-nums;opacity:.7">' + fmtP(it2.p) + '</span></div>';
+    }
+    return s;
+  }
 
   function render() {
     var d = collect();
-    var cpsColor = d.cps > 0 ? '#32d74b' : 'rgba(255,255,255,.4)';
+    var st = d.stats || {};
+    var led = d.ledger || {};
+    var nReal = 0, sumAmt = 0;
+    for (var lk in led) {
+      var li = led[lk] || {};
+      if ((+li.r || 0) > 0) { nReal++; sumAmt += (+li.a || 0); }
+    }
 
     if (!open) {
+      // v2.66：收起态 = 性能一行（FPS / 首屏 / 资源字节），圆点=注入完整性
+      var dot = d.inject === IDS.length ? '#32d74b' : '#ffd60a';
+      var fcol = '#fff';
+      if (fps <= 15) fcol = '#ff6961'; else if (fps <= 30) fcol = '#ffd60a';
+      if (d.load > 3000 && fcol === '#fff') fcol = '#ffd60a';
+      var bytesTxt = d.bytes >= 0 ? fmtB(d.bytes) : (d.imgs > 0 ? d.imgs + ' 图' : '—');
       box.innerHTML =
         '<div style="display:flex;align-items:center;gap:7px;padding:7px 12px 7px 10px">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:' + cpsColor + ';flex:0 0 auto"></span>' +
-          '<span style="font-variant-numeric:tabular-nums">佣金 <b style="color:' + cpsColor + '">' + d.cps + '</b></span>' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:' + dot + ';flex:0 0 auto"></span>' +
+          '<b style="color:' + fcol + ';font-variant-numeric:tabular-nums">' + fps + 'fps</b>' +
           '<span style="color:rgba(255,255,255,.3)">·</span>' +
-          '<span style="color:rgba(255,255,255,.88)">广告 ' + d.ad + '</span>' +
+          '<span style="font-variant-numeric:tabular-nums">' + fmtLoad(d.load) + '</span>' +
+          '<span style="color:rgba(255,255,255,.3)">·</span>' +
+          '<span style="font-variant-numeric:tabular-nums">' + bytesTxt + '</span>' +
           '<span style="color:rgba(255,255,255,.35);font-size:9px">▴</span>' +
         '</div>';
       return;
     }
 
-    var shakeTxt = '—';
-    if (d.shake) shakeTxt = (d.shake.run ? '运行 ' : '停止 ') + (d.shake.shake || 0);
+    var cpsColor = d.cps > 0 ? '#32d74b' : 'rgba(255,255,255,.45)';
+    var zero = Math.max(0, (st.tok || 0) - (st.tpos || 0));
 
     box.innerHTML =
       '<div style="padding:10px 13px 11px;min-width:186px">' +
@@ -666,24 +823,27 @@ const HUD_JS = `<script id="pdd-hud">(function(){
           '<span style="font-size:9px;color:rgba(255,255,255,.35)">▾</span>' +
         '</div>' +
 
-        row('佣金', d.cps, cpsColor) +
-        row('广告标', d.ad) +
-        row('最高佣金', d.maxRate + '%') +
-        row('已补合计', d.subsidy + ' 元') +
-        row('店铺优惠', d.discount + ' 元') +
-
-        '<div style="height:.5px;background:rgba(255,255,255,.2);margin:6px 0"></div>' +
-
-        row('注入', d.inject + '/' + IDS.length, d.inject === IDS.length ? '#32d74b' : '#ffd60a') +
-        row('CSS 动画', d.anim < 0 ? '—' : d.anim) +
-        row('DOM 节点', d.nodes) +
-        row('图片', d.imgs) +
-        row('FPS', fps) +
-        row('首屏', d.load ? d.load + 'ms' : '—') +
+        row('展示佣金', d.cps, cpsColor) +
+        row('真佣金', nReal, nReal ? '#32d74b' : 'rgba(255,255,255,.4)', 'ledger') +
+        row('转链成功率', st.tr ? (st.tok || 0) + '/' + st.tr : '—') +
+        row('大淘客调用', st.c || 0) +
+        row('缓存命中', st.ca ? (st.ch + '/' + st.ca) : '—') +
+        divider() +
+        row('最高佣金', d.maxRate ? d.maxRate + '%' : '—') +
+        row('佣金合计', sumAmt > 0 ? '¥' + (Math.round(sumAmt * 100) / 100).toFixed(2) : '—') +
+        divider() +
+        row('FPS', fps, fps <= 15 ? '#ff6961' : (fps <= 30 ? '#ffd60a' : '')) +
+        row('首屏', fmtLoad(d.load)) +
+        row('资源', d.bytes >= 0 ? fmtB(d.bytes) : (d.imgs > 0 ? d.imgs + ' 图' : '—')) +
         row('滚动', d.scroll + '%') +
-        row('点亮倒计时', d.light < 0 ? '—' : d.light + 's', d.light >= 0 ? '#32d74b' : '') +
-        row('抖动状态', shakeTxt, d.shake && d.shake.run ? '#32d74b' : '') +
-        row('弹窗数', d.popup) +
+        divider() +
+        row('注入', d.inject + '/' + IDS.length, d.inject === IDS.length ? '#32d74b' : '#ffd60a') +
+        row('动画', d.anim < 0 ? '—' : d.anim) +
+        (listOpen
+          ? divider() + ledgerList(led) +
+            '<div style="font-size:9px;color:rgba(255,255,255,.45);padding-top:2px">rate=0 已转 ' + zero +
+            ' · 不支持 ' + (st.tf || 0) + '</div>'
+          : '') +
       '</div>';
   }
 
@@ -702,12 +862,28 @@ const HUD_JS = `<script id="pdd-hud">(function(){
 const HUD = (A.hud === undefined || A.hud === null || A.hud === '')
   ? true : on(A.hud);
 
+// v2.66：把 Loon 侧统计/账本快照进页面（HUD 展示用）
+// 保护：< 字符全部替成 \u003c，避免 goods_name 里的 < 意外关闭 script 标签
+function hudPageData() {
+  const s = hudStatsLoad();
+  const l = hudLedgerLoad();
+  const d = {};
+  if (s) d.s = s;
+  if (l) d.l = l;
+  if (!d.s && !d.l) return null;
+  try { return JSON.stringify(d).replace(/</g, '\\u003c'); } catch (e) { return null; }
+}
+
 function injectHud(body) {
   if (!HUD) return body;
   if (body.indexOf('id="pdd-hud"') !== -1) return body;   // 幂等
   const i = body.indexOf('</body>');
   if (i < 0) return body;
-  return body.slice(0, i) + HUD_JS + body.slice(i);
+  const snap = hudPageData();
+  const snapJS = snap
+    ? '<script id="pdd-hud-data">window.__pddHudData=' + snap + ';</script>'
+    : '';
+  return body.slice(0, i) + snapJS + HUD_JS + body.slice(i);
 }
 
 // v2.47：福袋自动关闭 —— 覆盖两个弹窗变体
@@ -868,6 +1044,8 @@ try {
               need.push(gid);
             }
           }
+          // v2.66：缓存命中率（口径=本页商品全量，累计）
+          hudStatsBump({ ca: order.length, ch: order.length - need.length });
           const done = (fetched) => {
             if (fetched) for (const k in fetched) map[k] = fetched[k];
             let n = 0;
@@ -921,8 +1099,26 @@ try {
           cpsFetch(need, function (fetched) {
             if (fetched) {
               const now = Math.floor(Date.now() / 1000);
-              for (const gid in fetched) cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
+              const ent = {};
+              for (const gid in fetched) {
+                cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
+                // v2.66：真佣金账本（rate>0，name/price/amt 由 dtk 给出）
+                if (fetched[gid].rate > 0) {
+                  ent[gid] = {
+                    n: fetched[gid].name || '',
+                    p: fetched[gid].price || 0,
+                    r: fetched[gid].rate,
+                    a: fetched[gid].amt || 0,
+                    t: now
+                  };
+                }
+              }
               cacheSave(cache);
+              if (Object.keys(ent).length) {
+                const led = hudLedgerLoad() || {};
+                for (const gid in ent) led[gid] = ent[gid];   // 同 goods_id 覆盖更新
+                hudLedgerSave(led);
+              }
             }
             done(fetched);
           });

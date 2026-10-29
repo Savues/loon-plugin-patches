@@ -1,3 +1,50 @@
+## v2.66（2026-10-29）
+
+### HUD 重构：收起态改性能一行 + 展开态接「佣金账本」
+
+**collapsing（收起）态**：从「佣金 N · 广告 N」改为性能一行
+
+```
+● 60fps · 1.6s · 1.2M        ▴
+```
+
+- 圆点绿 = 注入 5/5 完整，黄 = 缺
+- FPS ≤30 黄、≤15 红；首屏 >3s 黄
+- 资源字节取 `performance.resource entries` 解码字节求和，拿不到退化为「N 图」
+
+**expanded（展开）态**：三段式
+
+```
+展示佣金 N / 真佣金 N（点击展开清单）/ 转链成功率 tok/tr
+大淘客调用 c / 缓存命中 ch/ca
+──
+最高佣金 max% / 佣金合计 ¥xx.xx
+──
+FPS / 首屏 / 资源 / 滚动% / 注入 5/5 / 动画
+```
+
+点「真佣金」行展开子清单：rate 降序前 30 条（品名 / 券后价 / rate），
+页脚给「rate=0 已转 tok-tpos · 不支持 tf」。旧「广告标/已补合计/店铺优惠/
+DOM 节点/图片/点亮倒计时/抖动状态/弹窗数」按新规格移除（数据收集保留，只是不渲染）。
+
+**数据链路（v2.66 全新增）**
+
+- Loon 侧：`cpsFetch` 统计大淘客每批 `{tr=总条, ok=code1, pos=rate>0, tf=code0, c=调用次数}`
+  与缓存命中 `{ch/ca}` 累计写 `$persistentStore.pddHudStats`；
+  rate>0 条目 `name/price/amount` 写 `$persistentStore.pddHudLedger`（60 条环形）
+- HTML 注入：`<script id="pdd-hud-data">window.__pddHudData={s,l}</script>` 快照进页面
+  （`<` → `\u003c` 防闭合）
+- 页面侧：`collect()` 读 `performance.resource` 字节 + `__pddHudData`
+
+**真相口径**
+
+- PDD 接口本身没有佣金字段；「佣金 x.x%」是本插件写入 `activity_price_word` 的显示文本
+- 「真佣金」（rate>0）只有大淘客知道 —— 本次 HAR 实证：转链 88 条里 code=1 成功 73、
+  rate>0 仅 3（0.1%/0.1%/3.2%）、不支持 15
+- 「最高佣金」= 页面 DOM 文本的 max（可见口径）；「佣金合计」= dtk `commission_amount` 之和（金额口径）
+
+**测试**：test/subsidy.test.mjs 35 → 47（新增【10】账本链路 12 条）
+
 ## v2.41（2026-10-28）
 
 ### 点亮任务改为「无需滑动的倒计时」

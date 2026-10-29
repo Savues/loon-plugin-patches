@@ -82,4 +82,66 @@ t('注入在 </body> 前', lb.body.indexOf('pdd-lucky-close') < lb.body.indexOf(
 t('含关闭按钮图片特征', lb.body.includes('f57ce24c-be68-49a3-ab54-dd45824a4a1d'));
 t('lucky_close=false 不注入', PASSTHRU(run({ lucky_close: 'false', lightup_auto: 'false', lightup_popup: 'false', hud: 'false' }, '<html><body>x</body></html>')));
 
+console.log('\n【10】v2.66 HUD 佣金账本（Loon → 页面快照全链路）');
+{
+  // fake $persistentStore / $httpClient
+  const m2 = {}
+  const ps2 = { read: (k) => (k in m2 ? m2[k] : null), write: (v, k) => { m2[k] = v } }
+  const dtk2 = JSON.stringify({ data: { pdd: { data: [
+    { code: '0', goods: {}, match: 'goods.html?goods_id=444', msg: '该商品不支持转链' },
+    { code: '1', goods: { rate: 0, goods_name: 'X商品', min_group_price: 9.9 }, match: 'goods.html?goods_id=222' },
+    { code: '1', goods: { rate: 3.2, goods_name: 'AVS 充电器', commission_amount: '0.08', min_group_price: 82.9 },
+      item_link: 'https://mobile.yangkeduo.com/duo_coupon_landing.html?goods_id=333&pid=1&cpsSign=CC_x',
+      match: 'goods.html?goods_id=333' }
+  ] } } })
+  let httpN = 0
+  const http2 = { post: (o, cb) => { httpN++; cb(null, {}, dtk2) } }
+  const goods2 = [
+    { goodsId: 333, activityPrice: 8290, activityPriceWordBeforeTag: { type: 23, tag_ext: {}, text: '券后' }, link_url: 'goods.html?goods_id=333' },
+    { goodsId: 222, activityPrice: 990, activityPriceWord: '券后', link_url: 'goods.html?goods_id=222' },
+    { goodsId: 444, activityPrice: 500, activityPriceWord: '券后', link_url: 'goods.html?goods_id=444' }
+  ]
+  const html2 = '<html><body>x<script>window.rawData=' +
+    JSON.stringify({ stores: { store: { tabStore: { tabList: [{ subTabGoodsLists: [{ list: goods2 }] }] } } } }) +
+    ';<\\/script></body></html>'
+  let res3
+  new Function('$argument', '$response', '$done', 'console', '$persistentStore', '$httpClient', src)(
+    { search_stub: 'false', cps_label: true, cps_token: 't', cps_rewrite: 'true',
+      no_anim: 'false', lightup_auto: 'false', lightup_popup: 'false', lucky_close: 'false', hud: 'true' },
+    { body: html2 }, (r) => { res3 = r }, console, ps2, http2)
+  const b2 = String(res3 && res3.body)
+  const s2raw = m2['pddHudStats']
+  const led2raw = m2['pddHudLedger']
+  t('dtk 被调用 1 次', httpN === 1, `实际 ${httpN}`)
+  t('转链统计已写入 $persistentStore', !!s2raw, 'pddHudStats 缺失')
+  if (s2raw) {
+    const s2 = JSON.parse(s2raw)
+    t('tr=3 tok=2 pos=1 tf=1 c=1',
+      s2.tr === 3 && s2.tok === 2 && s2.tpos === 1 && s2.tf === 1 && s2.c === 1, s2raw)
+    t('缓存命中统计 ca=3 ch=0', s2.ca === 3 && s2.ch === 0)
+  }
+  t('真佣金账本已写入', !!led2raw, 'pddHudLedger 缺失')
+  if (led2raw) {
+    const led2 = JSON.parse(led2raw)
+    const e = led2['333']
+    t('账本条目 r/p/a 齐备', !!e && e.r === 3.2 && e.p === 82.9 && e.a === 0.08, led2raw)
+  }
+  t('佣金标签注入页面（佣金3.2%）', b2.includes('佣金3.2%'))
+  t('link_url 已转 duo_coupon_landing', b2.includes('duo_coupon_landing.html?goods_id=333'))
+  t('HTML 注入 __pddHudData 快照', b2.includes('id="pdd-hud-data"') && b2.includes('window.__pddHudData='))
+  const idx2 = b2.indexOf('window.__pddHudData=')
+  const end2 = b2.indexOf(';</script>', idx2)
+  let snap = null
+  try { snap = JSON.parse(b2.slice(b2.indexOf('=', idx2) + 1, end2)) } catch (e) { /* ignore */ }
+  t('快照 JSON 可解析且含 s/l', !!snap && !!snap.s && !!snap.l, snap ? 'ok' : '解析失败')
+  t('HUD 内嵌 JS 语法合法', (() => {
+    const a1 = src.indexOf('<script id="pdd-hud">')
+    const a2 = src.indexOf('</script>', a1)
+    const js = src.slice(a1 + 21, a2)
+    try { new Function(js); return true } catch (e) { return false }
+  })())
+  t('HUD 含账本渲染（ledgerList/data-act/真佣金）',
+    b2.includes('ledgerList') && b2.includes('data-act') && b2.includes('真佣金'))
+}
+
 done()
