@@ -1,8 +1,8 @@
-#!name=美团去广告 v0.9.0
-#!desc=拦截广告与营销内容：我的页会员营销（每日领券/营销横幅）、弹窗族（会员活动/运营活动/问卷/直播券/酒店）、消息横幅、DSP抽奖红包、信息流广告物料与营销素材；并清洗horn远程配置99个开关（买菜开屏/闪购弹窗/悬浮窗/券弹层/小说阅读器广告/灵犀广告/团购快手广告SDK/酒店营销/引导动画/返现与权益横幅）。
+#!name=美团去广告 v1.0.0
+#!desc=拦截广告与营销内容：我的页会员营销（每日领券/营销横幅）、弹窗族（会员活动/运营活动/问卷/直播券/酒店）、消息横幅、DSP抽奖红包、信息流广告物料与营销素材；并清洗horn远程配置102个开关（买菜开屏/闪购弹窗/悬浮窗/券弹层/小说阅读器广告/灵犀广告/团购快手广告SDK/酒店营销/引导动画/返现与权益横幅）。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Meituan-AdBlock
-#!version=0.9.0
+#!version=1.0.0
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/icon/icon.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
@@ -10,7 +10,7 @@
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "0.9.0")
+request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "1.0.0")
 # === 我的页会员营销 (market.waimai 实证明文 JSON, 2026-10-25 HAR) ===
 # 每日领券 (神券弹窗候选)
 request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/member\/homepage\/dailyMagicalCoupon/i then reject_dict(200)

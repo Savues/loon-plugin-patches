@@ -1,6 +1,6 @@
 # 美团 horn 远程配置清洗清单
 
-> 配套代码：`src/horn_clean.js` · 生效版本：v0.9.0（2026-10-29）
+> 配套代码：`src/horn_clean.js` · 生效版本：v1.0.0（2026-10-29）
 > 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
 
 ## 一、horn 是什么
@@ -27,7 +27,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 ---
 
-## 二、清洗清单（99 个键 · 49 条规则）
+## 二、清洗清单（102 个键 · 52 条规则）
 
 ### ① 开屏族（3 键）
 
@@ -203,6 +203,17 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 > 首页卡片频控的原理：`pfb_module_frequency_control` 里每个卡片有独立的曝光/点击次数上限，把上限改为 0 = 该卡片不再展示。**只影响营销卡片，不影响正常功能模块。**
 
+### ⑮ 字符串内嵌 JSON / 增长业务 / CPC 广告（3 键 · v1.0.0 全量 2655 叶子键穷举）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| **`rec_config`** | 字符串 JSON → `{"count":0,"data":[]}` | **推荐流信息流广告位**（内含 3 个 `ad_feed_poi_deal` 广告位：slotId 50004 / 50005 / 50023）| `mt_rec_blue_config` |
+| `enableGrowthBusiness` | `true` → `false` | 增长业务（拉新/促活营销）| `growthbusiness_ios` |
+| `enable_preheat` | `true` → `false` | 增长预热 | 同上 |
+| `isCPCAdDisabled` | `false` → `true` | **旅行 CPC 广告禁用**（false = 广告启用）| `mt_travel_mrn` |
+
+> **字符串内嵌 JSON 是一个隐蔽盲区**：`rec_config` 的值是一段字符串化的 JSON，常规的键扫描（只看 JSON 结构）扫不到里面的 `ad_feed_poi_deal`。本规则用 `("rec_config"\s*:\s*)"((?:[^"\\]|\\.)*ad_feed_poi_deal(?:[^"\\]|\\.)*)"` 精确匹配含广告位的整段字符串再整体替换 —— 只在含 `ad_feed_poi_deal` 时触发，保证幂等。
+
 ---
 
 ## 三、保守未动的键（有歧义，说明理由）
@@ -220,6 +231,11 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 | `disableModalCache`（航班营销）| `false` | 语义是"禁用模态缓存"（性能），不是禁用营销 |
 | `pfb_homepage_t3_config.enabled` | `true` | 首页 t3 配置总开关，可能是核心渲染链路 |
 | `share_defined` | `true` | 分享功能，非广告 |
+| `mt_iOS_universal_realtime_lingxi_config.lingxi_config` | 含 bids 列表 | 灵犀曝光归因配置（埋点映射），非展示开关；关了会影响正常埋点 |
+| `dsp_startup_strategy.*` | 多为 `false` | DSP 在这里是 **DeepLink Service Provider**（深度链接），不是广告 DSP |
+| `push_notification_banner_disturb` | 含页面白名单 | 推送横幅**打扰保护**（哪些页面不弹），关了反而更糟 |
+| `mt_bb_ad_config.enableBBAdUseOld` | `false` | 用新版团购广告；改 true 反而回退旧广告 |
+| `enableDspBlackList` | `true` | DSP 黑名单生效中，关了会放行更多广告 |
 
 ---
 

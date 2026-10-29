@@ -9,6 +9,7 @@
 // 2026-10-25 v0.8: 全量 169 模块 751KB 二次盘点, 补 29 个漏网键
 // 2026-10-25 v0.9: 广告系统模块深挖 (mt_ad_common_strategy/mt_bb_ad_config/adp_pagasus), 补 10 个
 // 2026-10-29 v0.9.0: 169 模块深度二次扫描 (开屏时长/promo/券列表/首页营销卡片频控/拼好饭弹窗), 补 13 个
+// 2026-10-29 v1.0.0: 全量 2655 叶子键穷举 — 字符串内嵌 JSON 盲区 (rec_config 3个广告位) + 增长业务 + CPC广告, 补 3 个
 const REVERSES = [
   [/("com\.meituan\.retail\.should_show_group_supermarket_guide_popup"\s*:\s*)"?true"?/g, '$1"false"'],
   [/("com\.meituan\.retail\.maicai_splash_hidden"\s*:\s*)false/g, '$1true'],
@@ -90,6 +91,13 @@ const REVERSES = [
   [/("remoteThemedCard"[\s\S]{0,300}?"hourViewCount"\s*:\s*)[1-9]\d*/g, '$10'],
   // 拼好饭小程序弹窗请求
   [/("sendPopupRequestConfig"\s*:\s*\{\s*"shouldSend"\s*:\s*)true/g, '$1false'],
+  // --- v1.0.0: 字符串内嵌 JSON 盲区 + 增长业务 (全量 2655 叶子键扫描) ---
+  // 推荐流信息流广告位 (mt_rec_blue_config.rec_config 是字符串化 JSON, 内含 3 个 ad_feed_poi_deal 广告位)
+  [/("rec_config"\s*:\s*)"((?:[^"\\]|\\.)*ad_feed_poi_deal(?:[^"\\]|\\.)*)"/g, '$1"{\\"count\\":0,\\"data\\":[]}"'],
+  // 增长业务 (拉新/促活营销) + 预热
+  [/("(?:enableGrowthBusiness|enable_preheat)"\s*:\s*)true/g, '$1false'],
+  // 旅行 CPC 广告禁用 (false → true = 禁用)
+  [/("isCPCAdDisabled"\s*:\s*)false/g, '$1true'],
 ];
 
 let body = $response.body;
