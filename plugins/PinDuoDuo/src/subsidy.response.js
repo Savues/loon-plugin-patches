@@ -514,24 +514,25 @@ function injectLightupPopup(body) {
   return body.slice(0, i) + LIGHTUP_POPUP_JS + body.slice(i);
 }
 
-// v2.63：HUD 数据面板（纯 DOM 统计，实时更新，零额外请求）
+// v2.64：HUD 数据面板（修正版）
 // ---------------------------------------------------------------------------
-// 为什么纯 DOM：
-//   诊断标签能实时更新，是因为数据就在页面里。
-//   佣金标签是我们自己注入的文本，页面 JS 可以直接数出来。
+// v2.63 的问题：
+//   ① 覆盖率虚高（360%）—— 分母用 /券后\s*¥/ 只匹配到 1/3 的商品
+//      拼多多价格显示有多种格式（券后 ¥168 / ¥168 / 券后价 ¥168），匹配不全
+//   ② 注入脚本数不准（显示 6，实际 5）—— [id^="pdd-"] 会命中 PDD 自己的元素
+//   ③ 边角被屏幕边缘挡住 —— 没考虑 iPhone 底部安全区（Home Indicator）
 //
-// 显示内容（全部从 DOM 读取）：
-//   S 级：佣金数 / 广告数 / 商品数 / 覆盖率
-//   A 级：已补金额 / 最高佣金率 / 店铺优惠 / 注入脚本数 / CSS 动画数
-//   B 级：页面名 / 滚动% / 节点数 / 图片数 / FPS / 首屏耗时
-//   C 级：点亮倒计时 / 弹窗数
-//
-// 性能：textContent 全页扫 + 1 秒节流（innerText 会触发重排，太慢）
+// 本版：
+//   ① 去掉「佣金/商品」和「覆盖率」，只保留绝对数（永远准确）
+//   ② 注入数改成精确检查 5 个固定 ID
+//   ③ 位置用 env(safe-area-inset-*) 避开刘海/指示条
 const HUD_JS = `<script id="pdd-hud">(function(){
   if (window.__pddHud) return;
   window.__pddHud = 1;
 
-  var open = false, box = null, body = null, head = null;
+  var IDS = ['pdd-no-anim','pdd-lightup-auto','pdd-lightup-popup',
+             'pdd-lucky-close','pdd-hud'];
+  var open = false, box = null;
   var fps = 0, frames = 0, lastT = 0;
 
   function tick(now) {
@@ -543,36 +544,18 @@ const HUD_JS = `<script id="pdd-hud">(function(){
   try { requestAnimationFrame(tick); } catch (e) {}
 
   function collect() {
-    var d = { cps:0, ad:0, goods:0, rate:0, subsidy:0, maxRate:0,
-              discount:0, inject:0, anim:-1, page:'', scroll:0,
-              nodes:0, imgs:0, load:0, light:-1, popup:0, shake:-1, lightRun:-1 };
+    var d = { cps:0, ad:0, maxRate:0, subsidy:0, discount:0,
+              inject:0, anim:-1, page:'', scroll:0, nodes:0,
+              imgs:0, load:0, light:-1, shake:null, popup:0 };
     try {
       var t = (document.body && document.body.textContent) || '';
 
-      // S1 佣金标签数
       var m = t.match(/佣金[\\d.]+%/g);
       d.cps = m ? m.length : 0;
 
-      // S2 广告标数
       var a = t.match(/广告·/g);
       d.ad = a ? a.length : 0;
 
-      // S3 商品数（券后 ¥ 出现次数）
-      var g = t.match(/券后\\s*¥/g);
-      d.goods = g ? g.length : 0;
-
-      // S4 覆盖率
-      d.rate = d.goods > 0 ? Math.round(d.cps / d.goods * 100) : 0;
-
-      // A1 已补金额合计
-      var s = 0, ms = t.match(/已补([\\d.]+)元/g) || [];
-      for (var i = 0; i < ms.length; i++) {
-        var v = parseFloat(ms[i].replace(/[^\\d.]/g, ''));
-        if (!isNaN(v)) s += v;
-      }
-      d.subsidy = Math.round(s);
-
-      // A2 最高佣金率
       var mx = 0, mr = t.match(/佣金([\\d.]+)%/g) || [];
       for (var j = 0; j < mr.length; j++) {
         var r = parseFloat(mr[j].replace(/[^\\d.]/g, ''));
@@ -580,7 +563,13 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       }
       d.maxRate = mx;
 
-      // A3 店铺优惠合计
+      var s = 0, ms = t.match(/已补([\\d.]+)元/g) || [];
+      for (var i = 0; i < ms.length; i++) {
+        var v = parseFloat(ms[i].replace(/[^\\d.]/g, ''));
+        if (!isNaN(v)) s += v;
+      }
+      d.subsidy = Math.round(s);
+
       var ds = 0, md = t.match(/店铺优惠(\\d+)元/g) || [];
       for (var k = 0; k < md.length; k++) {
         var dv = parseFloat(md[k].replace(/[^\\d.]/g, ''));
@@ -588,26 +577,23 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       }
       d.discount = ds;
 
-      // A4 注入脚本数
-      d.inject = document.querySelectorAll('[id^="pdd-"]').length;
+      // 精确统计注入数（只认我们自己的 5 个 ID）
+      var n = 0;
+      for (var q = 0; q < IDS.length; q++) {
+        if (document.getElementById(IDS[q])) n++;
+      }
+      d.inject = n;
 
-      // A5 CSS 动画数
       try { d.anim = document.getAnimations ? document.getAnimations().length : -1; } catch (e) {}
 
-      // B1 页面名
       d.page = (location.pathname.split('/').pop() || '').replace('.html', '') || 'index';
 
-      // B2 滚动百分比
       var el = document.scrollingElement || document.documentElement;
       d.scroll = (el && el.scrollHeight > 0) ? Math.round(el.scrollTop / el.scrollHeight * 100) : 0;
 
-      // B3 DOM 节点数
       d.nodes = document.getElementsByTagName('*').length;
-
-      // B4 图片数
       d.imgs = document.images.length;
 
-      // B6 首屏耗时
       try {
         var nav = performance.timing;
         if (nav && nav.loadEventEnd > 0 && nav.navigationStart > 0) {
@@ -615,17 +601,11 @@ const HUD_JS = `<script id="pdd-hud">(function(){
         }
       } catch (e) {}
 
-      // C1/C2 点亮倒计时
       var lm = t.match(/滑动浏览当前页面(\\d+)秒/);
       d.light = lm ? parseInt(lm[1], 10) : -1;
 
-      // C5 抖动状态（由 pdd-lightup-auto 写入 window）
-      try {
-        var lp = window.__pddLightup;
-        if (lp) { d.shake = lp.shake || 0; d.lightRun = lp.run ? 1 : 0; }
-      } catch (e) {}
+      d.shake = window.__pddLightup || null;
 
-      // C4 弹窗数
       d.popup = document.querySelectorAll('[class*="popup"],[class*="Popup"]').length;
     } catch (e) {}
     return d;
@@ -634,14 +614,18 @@ const HUD_JS = `<script id="pdd-hud">(function(){
   function build() {
     box = document.createElement('div');
     box.id = 'pdd-hud-box';
+    // 关键：避开 iPhone 安全区（底部 Home Indicator / 左侧圆角）
     box.style.cssText =
-      'position:fixed;left:10px;bottom:16px;z-index:2147483647;' +
+      'position:fixed;' +
+      'left:calc(14px + env(safe-area-inset-left, 0px));' +
+      'bottom:calc(26px + env(safe-area-inset-bottom, 0px));' +
+      'z-index:2147483647;' +
       'font:11px/1.5 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased;' +
-      'background:rgba(28,28,30,.84);color:#fff;border-radius:14px;' +
-      'box-shadow:0 4px 20px rgba(0,0,0,.24);overflow:hidden;' +
+      'background:rgba(28,28,30,.86);color:#fff;border-radius:14px;' +
+      'box-shadow:0 4px 20px rgba(0,0,0,.26);overflow:hidden;' +
       '-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);' +
-      'transition:width .18s ease;width:auto;max-width:calc(100vw - 20px);';
+      'max-width:calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));';
     box.addEventListener('click', function () { open = !open; render(); });
     (document.body || document.documentElement).appendChild(box);
   }
@@ -655,15 +639,13 @@ const HUD_JS = `<script id="pdd-hud">(function(){
 
   function render() {
     var d = collect();
-    var rateColor = d.rate >= 50 ? '#32d74b' : (d.rate >= 20 ? '#ffd60a' : '#ff453a');
+    var cpsColor = d.cps > 0 ? '#32d74b' : 'rgba(255,255,255,.4)';
 
     if (!open) {
-      // 折叠态：单行胶囊
       box.innerHTML =
         '<div style="display:flex;align-items:center;gap:7px;padding:7px 12px 7px 10px">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:' + rateColor + ';flex:0 0 auto"></span>' +
-          '<span style="font-variant-numeric:tabular-nums">佣金 <b style="color:' + rateColor + '">' + d.cps + '</b>' +
-          '<span style="color:rgba(255,255,255,.3)">/</span>' + d.goods + '</span>' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:' + cpsColor + ';flex:0 0 auto"></span>' +
+          '<span style="font-variant-numeric:tabular-nums">佣金 <b style="color:' + cpsColor + '">' + d.cps + '</b></span>' +
           '<span style="color:rgba(255,255,255,.3)">·</span>' +
           '<span style="color:rgba(255,255,255,.7)">广告 ' + d.ad + '</span>' +
           '<span style="color:rgba(255,255,255,.35);font-size:9px">▴</span>' +
@@ -671,17 +653,18 @@ const HUD_JS = `<script id="pdd-hud">(function(){
       return;
     }
 
-    // 展开态：完整面板
+    var shakeTxt = '—';
+    if (d.shake) shakeTxt = (d.shake.run ? '运行 ' : '停止 ') + (d.shake.shake || 0);
+
     box.innerHTML =
-      '<div style="padding:10px 13px 11px;min-width:196px">' +
+      '<div style="padding:10px 13px 11px;min-width:186px">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;' +
              'padding-bottom:7px;margin-bottom:6px;border-bottom:.5px solid rgba(255,255,255,.13)">' +
           '<span style="font-size:11px;font-weight:600">HUD · ' + d.page + '</span>' +
           '<span style="font-size:9px;color:rgba(255,255,255,.35)">▾</span>' +
         '</div>' +
 
-        row('佣金 / 商品', d.cps + ' / ' + d.goods, rateColor) +
-        row('覆盖率', d.rate + '%', rateColor) +
+        row('佣金', d.cps, cpsColor) +
         row('广告标', d.ad) +
         row('最高佣金', d.maxRate + '%') +
         row('已补合计', d.subsidy + ' 元') +
@@ -689,7 +672,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
 
         '<div style="height:.5px;background:rgba(255,255,255,.13);margin:6px 0"></div>' +
 
-        row('注入脚本', d.inject) +
+        row('注入', d.inject + '/' + IDS.length, d.inject === IDS.length ? '#32d74b' : '#ffd60a') +
         row('CSS 动画', d.anim < 0 ? '—' : d.anim) +
         row('DOM 节点', d.nodes) +
         row('图片', d.imgs) +
@@ -697,9 +680,8 @@ const HUD_JS = `<script id="pdd-hud">(function(){
         row('首屏', d.load ? d.load + 'ms' : '—') +
         row('滚动', d.scroll + '%') +
         row('点亮倒计时', d.light < 0 ? '—' : d.light + 's', d.light >= 0 ? '#32d74b' : '') +
-        row('抖动状态', (function(){ var l = window.__pddLightup; return l ? (l.run ? ('运行 ' + l.shake) : ('停止 ' + l.shake)) : '—'; })(), (function(){ var l = window.__pddLightup; return l && l.run ? '#32d74b' : ''; })()) +
+        row('抖动状态', shakeTxt, d.shake && d.shake.run ? '#32d74b' : '') +
         row('弹窗数', d.popup) +
-        (d.shake >= 0 ? row('抖动', d.shake + ' 次 · ' + (d.lightRun ? '进行中' : '已停'), d.lightRun ? '#32d74b' : '') : '') +
       '</div>';
   }
 
