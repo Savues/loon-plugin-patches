@@ -11,6 +11,7 @@
 // 2026-10-29 v0.9.0: 169 模块深度二次扫描 (开屏时长/promo/券列表/首页营销卡片频控/拼好饭弹窗), 补 13 个
 // 2026-10-29 v1.0.0: 全量 2655 叶子键穷举 — 字符串内嵌 JSON 盲区 (rec_config 3个广告位) + 增长业务 + CPC广告, 补 3 个
 // 2026-10-29 v1.1.0: 隐私/遥测/内部测试 (截图上传/设备指纹/Beacon+WiFi采集/请求异常上报/Logan+Raptor/midas监控/酒店mock), 补 16 个
+// 2026-10-29 v1.2.0: 真机 703KB 全量漏网扫描 — 位置监控/采样上报/首页漏斗速度/FeedRaptor/图片流量日志/酒店Pike/AB白名单/流量测试/调试信息/公交原生测试, 补 14 个
 const REVERSES = [
   [/("com\.meituan\.retail\.should_show_group_supermarket_guide_popup"\s*:\s*)"?true"?/g, '$1"false"'],
   [/("com\.meituan\.retail\.maicai_splash_hidden"\s*:\s*)false/g, '$1true'],
@@ -121,6 +122,18 @@ const REVERSES = [
   // 内部测试: 播放器调试面板 (enable 关; allowShow 按用户要求打开)
   [/("enablePlayerDebugBoard"\s*:\s*)true/g, '$1false'],
   [/("allowShowDebugBoard"\s*:\s*)false/g, '$1true'],
+  // --- v1.2.0: 真机 703KB 全量响应的漏网扫描 (隐私/遥测/灰度/测试) ---
+  // 隐私: 位置监控
+  [/("location_monitor_switch"\s*:\s*)true/g, '$1false'],
+  // 遥测: 采样上报 / 推荐 FS 指标 / 首页漏斗+速度 / Feed Raptor / 指标 v2 / 图片流量日志 / 代码日志采样
+  [/("(?:enableSample|recommend_fs_metrics_report|hp_funnel_load_report|hp_speed_new_report|need_report_feed_request_raptor|metrics_speed_report_v2|trafficLogEnable)"\s*:\s*)true/g, '$1false'],
+  [/("codeLogSamplingRate"\s*:\s*)[1-9]\d*/g, '$10'],
+  // 灰度: 酒店 Pike (AB 实验平台) + 播放器 AB 白名单
+  [/("isOpeniOS"\s*:\s*)true/g, '$1false'],
+  [/("enableABTestWhitelist"\s*:\s*)true/g, '$1false'],
+  // 内部测试: 播放器流量测试 bid / 调试信息升级 / 公交首页原生测试
+  [/("enable_flow_rate_test_bid"\s*:\s*)\{([^}]*?:\s*1[^}]*)\}/g, '$1{"JUMP_MTNativeShortVideo":0,"MRNGameVideo":0,"MTNativeShortVideo":0}'],
+  [/("(?:enableDebugInfoUpgrade|bus_home_native_test)"\s*:\s*)[1-9]\d*/g, '$10'],
 ];
 
 let body = $response.body;

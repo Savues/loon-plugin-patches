@@ -1,6 +1,6 @@
 # 美团 horn 远程配置清洗清单
 
-> 配套代码：`src/horn_clean.js` · 生效版本：v1.1.0（2026-10-29）
+> 配套代码：`src/horn_clean.js` · 生效版本：v1.2.0（2026-10-29）
 > 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
 
 ## 一、horn 是什么
@@ -27,7 +27,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 ---
 
-## 二、清洗清单（118 个键 · 68 条规则）
+## 二、清洗清单（132 个键 · 70 条规则）
 
 ### ① 开屏族（3 键）
 
@@ -250,6 +250,56 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 > **注意 `allowShowDebugBoard` 是本次唯一"打开"的键** —— 它是"是否允许展示调试面板"的权限开关，打开后可在播放器界面调出调试信息（逆向/排查用）。配套的 `enablePlayerDebugBoard`（默认是否展示）已关闭，避免默认就弹出。
 
 > **截图上传的锚定**：`enable` 这个键名在 169 个模块里出现 **22 次**，必须用模块名 `screenshot_info_upload` 做锚点匹配，否则会误伤其他 21 处 `enable`。
+
+### ⑰ 真机全量漏网扫描（14 键 · v1.2.0，基于设备 703KB 实际响应）
+
+**隐私（1 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `location_monitor_switch` | `true` → `false` | **位置监控上报** | `pfb_location_optimization` |
+
+**遥测（8 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `enableSample` | `true` → `false` | 埋点采样上报总开关（原采样率 0.5）| `tak_sampling_report` |
+| `recommend_fs_metrics_report` | `true` → `false` | 推荐流 FS 指标上报 | `mt_recommend_iOS_config` |
+| `hp_funnel_load_report` | `true` → `false` | 首页漏斗上报 | `homepage_switches_v1` |
+| `hp_speed_new_report` | `true` → `false` | 首页速度上报 | 同上 |
+| `need_report_feed_request_raptor` | `true` → `false` | Feed 请求 Raptor 上报 | 同上 |
+| `metrics_speed_report_v2` | `true` → `false` | 指标速度上报 v2 | 同上 |
+| `trafficLogEnable` | `true` → `false` | 图片流量日志 | `dp_image_service` |
+| `codeLogSamplingRate` | `10` → `0` | 图片服务代码日志采样率 | 同上 |
+
+**灰度 / AB 实验（2 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `isOpeniOS` | `true` → `false` | **酒店业务 Pike 开关**（Pike = 美团 AB 实验平台）| `hotel_pike_switch` |
+| `enableABTestWhitelist` | `true` → `false` | 播放器 AB 测试白名单 | `MTVodPlayer_SDK_Config` |
+
+**开发者测试（3 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `enable_flow_rate_test_bid` | 3 个子项 `1` → `0` | **播放器流量测试 bid**（JUMP_MTNativeShortVideo / MRNGameVideo / MTNativeShortVideo）| `MTVodPlayer_SDK_Config` |
+| `enableDebugInfoUpgrade` | `1` → `0` | 播放器调试信息升级 | 同上 |
+| `bus_home_native_test` | `1` → `0` | 公交首页原生测试 | `traffic_bus_config` |
+
+> 本组基于**设备实际下发的 703KB 全量响应**扫描得出（此前基于 751KB 样本，模块集合略有差异）。
+
+**扫描时甄别掉的项目**
+
+| 项 | 为什么不动 |
+|----|-----------|
+| `phoenix.iOS_enableRemovePrivacyQueryParams` / `iOS_enableRemoveRouterLocationParams` | `true` 是**保护性**的（移除隐私/位置参数），保持开启 |
+| `soter_switch.isSoterOpenAndroid` | 仅 Android 生效，iOS 侧 `isSoterOpen` 已是 false |
+| `Picasso.JSI_whitelist.*` | JS 引擎白名单，功能必需 |
+| `MTVodPlayer_SDK_Config.ab_group_mtlive_provider_config.*` | AB 分组编号（数值），非开关 |
+| `pfb_second_floor_guide_config.beta_sign_*` | 「体验版」文案/URL，是显示内容不是开关，改动可能破坏 UI |
+| `homepage_switches_v1.enable_tab_ffp` / `tab_refresh_delay` | 首帧绘制/刷新性能优化，非营销 |
+| `pfb_met_addresscenter_ability_building.*`（43 键）| 全是 address（地址），被 `ad` 误匹配 |
 
 ---
 
