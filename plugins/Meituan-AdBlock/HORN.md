@@ -1,6 +1,6 @@
 # 美团 horn 远程配置清洗清单
 
-> 配套代码：`src/horn_clean.js` · 生效版本：v1.0.0（2026-10-29）
+> 配套代码：`src/horn_clean.js` · 生效版本：v1.1.0（2026-10-29）
 > 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
 
 ## 一、horn 是什么
@@ -27,7 +27,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 ---
 
-## 二、清洗清单（102 个键 · 52 条规则）
+## 二、清洗清单（118 个键 · 68 条规则）
 
 ### ① 开屏族（3 键）
 
@@ -213,6 +213,43 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 | `isCPCAdDisabled` | `false` → `true` | **旅行 CPC 广告禁用**（false = 广告启用）| `mt_travel_mrn` |
 
 > **字符串内嵌 JSON 是一个隐蔽盲区**：`rec_config` 的值是一段字符串化的 JSON，常规的键扫描（只看 JSON 结构）扫不到里面的 `ad_feed_poi_deal`。本规则用 `("rec_config"\s*:\s*)"((?:[^"\\]|\\.)*ad_feed_poi_deal(?:[^"\\]|\\.)*)"` 精确匹配含广告位的整段字符串再整体替换 —— 只在含 `ad_feed_poi_deal` 时触发，保证幂等。
+
+### ⑯ 隐私 / 遥测 / 内部测试（16 键 · v1.1.0，用户裁决「涉及隐私的全部关闭」）
+
+**隐私采集（6 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `screenshot_info_upload.enable` | `true` → `false` | **截图信息上传** | `screenshot_info_upload` |
+| `capture_screen_upload_config.alwaysReco` | `true` → `false` | 截屏后总是推荐（酒店/机票/火车/门票等 7 业务）| `hotel_travel_domestic_config` |
+| `needFingerprint` | `true` → `false` | **设备指纹** | `meituan_gc_poi_optimization_switch` |
+| `max_count.beacon` | `5` → `0` | iBeacon 采集上限 | `mt_food_home_location` |
+| `max_count.wifi` | `30` → `0` | WiFi 采集上限 | 同上 |
+| `train_param_privacy_rn` | `true` → `false` | 火车票隐私参数 RN 化 | `ttk_train_config` |
+
+**遥测上报（7 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `iOS_enableRequestReport` | `true` → `false` | 全量请求上报 | `phoenix` |
+| `iOS_enableTrycatchExceptionReport` | `true` → `false` | 异常捕获上报 | `phoenix` |
+| `enableReportBabel` | `true` → `false` | Babel 上报 | `dianping_tos_report_config` |
+| `enableReportLogan` | `true` → `false`（5 处）| Logan 日志上报（含 MTLive KS/TX 播放日志）| `dianping_tos_report_config` + `MTLive_Log_Config` |
+| `enableReportRaptorCommand` | `true` → `false` | Raptor 指令上报 | `dianping_tos_report_config` |
+| `enableReportRaptorCustom` | `true` → `false` | Raptor 自定义上报 | 同上 |
+| `midas_*_monitor_config.is_open_monitor` | `true` → `false`（5 处）| midas 广告 SDK 监控埋点 | `mt_ad_common_strategy` + `mt_midas_monitor_config` |
+
+**内部测试（3 键）**
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `hotel_homepage_inland_mock_data_enable` | `true` → `false` | **酒店首页 mock 假数据渲染** | `hotel_mt_domestic_mrn_switch` |
+| `enablePlayerDebugBoard` | `true` → `false` | 播放器调试面板默认展示 | `MTVodPlayer_SDK_Config` |
+| **`allowShowDebugBoard`** | `false` → **`true`** | **允许显示调试面板（用户要求打开）** | `MTVodPlayer_SDK_Config` |
+
+> **注意 `allowShowDebugBoard` 是本次唯一"打开"的键** —— 它是"是否允许展示调试面板"的权限开关，打开后可在播放器界面调出调试信息（逆向/排查用）。配套的 `enablePlayerDebugBoard`（默认是否展示）已关闭，避免默认就弹出。
+
+> **截图上传的锚定**：`enable` 这个键名在 169 个模块里出现 **22 次**，必须用模块名 `screenshot_info_upload` 做锚点匹配，否则会误伤其他 21 处 `enable`。
 
 ---
 
