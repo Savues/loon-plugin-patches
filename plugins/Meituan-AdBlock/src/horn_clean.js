@@ -61,9 +61,9 @@ const REVERSES = [
   [/("(?:mrn_hotel_deal_voucher_list|mrn_hotel_order_fill_discount_list|mrn_hotel_order_fill_voucher_list|mrn_hotel_preload_poidetail_not_use_activity|mrn_hotel_promote_order_detail)"\s*:\s*)true/g, '$1false'],
   [/("(?:rn_hotel_deal_coupon_detail_enable|rn_hotel_promote_orderdetail|rn_hotel_homepage_tex_redpacket_enable|rn_submit_order_discount_list_is_enable)"\s*:\s*)true/g, '$1false'],
   // 引导动画族 (数值 → 0 禁用)
-  [/("(?:show_anim_guide_cold_start|show_anim_guide_has_visit|show_anim_guide_no_visit|show_anim_guide_return_homepage|show_immersive_anim_guide_max_count|show_market_anim_guide_max_count)"\s*:\s*)\d+/g, '$10'],
+  [/("(?:show_anim_guide_cold_start|show_anim_guide_has_visit|show_anim_guide_no_visit|show_anim_guide_return_homepage|show_immersive_anim_guide_max_count|show_market_anim_guide_max_count)"\s*:\s*)[1-9]\d*/g, '$10'],
   // 首页/位置引导 (数值 → 0)
-  [/("(?:homepage_travel_guide_cell|location_guide_daily_show_times)"\s*:\s*)\d+/g, '$10'],
+  [/("(?:homepage_travel_guide_cell|location_guide_daily_show_times)"\s*:\s*)[1-9]\d*/g, '$10'],
   // --- v0.9: 广告系统模块深挖 (mt_ad_common_strategy / mt_bb_ad_config / adp_pagasus) ---
   // 灵犀广告 + midas 广告上报 (mt_ad_common_strategy)
   [/("ad_lingxi_config"\s*:\s*)true/g, '$1false'],
