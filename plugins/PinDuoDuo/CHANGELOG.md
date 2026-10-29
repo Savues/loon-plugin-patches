@@ -1,3 +1,11 @@
+## v2.67（2026-10-29）
+
+### HUD 位置下移
+
+bottom: calc(26px + env(safe-area-inset-bottom)) → calc(10px + env(safe-area-inset-bottom))
+
+（真机截图：安全区内再多留 16px，视觉更贴底）
+
 ## v2.66（2026-10-29）
 
 ### HUD 重构：收起态改性能一行 + 展开态接「佣金账本」

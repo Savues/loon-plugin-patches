@@ -726,7 +726,7 @@ const HUD_JS = `<script id="pdd-hud">(function(){
     box.style.cssText =
       'position:fixed;' +
       'left:calc(14px + env(safe-area-inset-left, 0px));' +
-      'bottom:calc(26px + env(safe-area-inset-bottom, 0px));' +
+      'bottom:calc(10px + env(safe-area-inset-bottom, 0px));' +
       'z-index:2147483647;' +
       'font:11px/1.5 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased;' +
