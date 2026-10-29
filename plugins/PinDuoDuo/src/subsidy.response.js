@@ -315,56 +315,88 @@ const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
-// v2.59：点亮任务自动倒计时 —— 用 API 生命周期控制抖动（方案 A）
+// v2.60：点亮自动倒计时 —— 加诊断 + 增强抖动
 // ---------------------------------------------------------------------------
-// v2.44 的问题：每 300ms 无条件抖 scrollTop 1px，只要在页面就一直抖。
+// v2.59 抓包显示：start_task 发出了（task_duration:10），但没有 end_task
+// → 10 秒倒计时没走完 → 抖动没让页面认为在滑动。
 //
-// 本版改为「按任务生命周期抖动」：
-//   · 拦截 light-up/start_task 响应成功 → 开始抖
-//   · 拦截 light-up/end_task 请求        → 立即停止
-//   · deadline = 当前时间 + task_duration + 20 秒（兜底，防异常情况一直抖）
+// 本版：
+//   ① 抖动幅度 1px → 3px，同时用 scrollTop 和 window.scrollTo 双写
+//   ② 加 touchmove 事件（有些页面只认 move）
+//   ③ 左下角标签显示诊断：cap（是否捕获 start_task）/ shake（抖动次数）/ top
 //
-// 为什么这样抖：
-//   页面的倒计时 hook 只在 debounce(scroll) 执行后把 m.current 置 false，
-//   且 500ms 后要求 scrollTop 有变化才保持 false。所以必须：
-//     ① dispatch touchstart（挂上 scroll 监听）
-//     ② 真实改 scrollTop（让「位置是否变化」判断失败）
-//     ③ dispatch scroll（驱动 debounce）
-//
-// 不依赖任何 DOM class，不受构建 hash 变化影响。
+// 判读：
+//   cap=0        → 拦截失败，start_task 没捕获到
+//   cap=1 shake=0 → startShake 没执行
+//   shake>0 但没完成 → 滚动位置不对（页面用的是别的滚动容器）
 const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   if (window.__pddLightupAuto) return;
   window.__pddLightupAuto = 1;
 
   var shaking = false, timer = null, deadline = 0, up = true;
+  var cap = 0, shakeN = 0, dbg = null;
+
+  function show(txt) {
+    try {
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;left:4px;bottom:70px;z-index:2147483647;' +
+          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;' +
+          'padding:3px 6px;border-radius:4px;pointer-events:none;white-space:pre';
+        (document.body || document.documentElement).appendChild(dbg);
+      }
+      var el = document.scrollingElement || document.documentElement || document.body;
+      var top = el ? Math.round(el.scrollTop) : -1;
+      dbg.textContent = 'lightup cap=' + cap + ' shake=' + shakeN +
+        ' top=' + top + ' run=' + (shaking ? 'Y' : 'N');
+    } catch (e) {}
+  }
 
   function shake() {
     try {
       document.dispatchEvent(new Event('touchstart', { bubbles: true }));
-      var el = document.scrollingElement || document.documentElement;
-      var cur = el.scrollTop;
-      el.scrollTop = up ? cur + 1 : Math.max(0, cur - 1);
+      document.dispatchEvent(new Event('touchmove', { bubbles: true }));
+      var el = document.scrollingElement || document.documentElement || document.body;
+      var cur = (el && el.scrollTop) || window.pageYOffset || 0;
+      var next = up ? cur + 3 : Math.max(0, cur - 3);
+      if (el) el.scrollTop = next;
+      try { window.scrollTo(0, next); } catch (e) {}
       up = !up;
       document.dispatchEvent(new Event('scroll'));
       window.dispatchEvent(new Event('scroll'));
+      shakeN++;
     } catch (e) {}
+    show();
   }
 
   function startShake(secs) {
     var dur = (typeof secs === 'number' && secs > 0) ? secs : 10;
-    deadline = Date.now() + (dur + 20) * 1000;   // 任务时长 + 20 秒兜底
+    deadline = Date.now() + (dur + 20) * 1000;
     if (shaking) return;
     shaking = true;
     timer = setInterval(function () {
       if (Date.now() > deadline) { stopShake(); return; }
       shake();
     }, 300);
-    shake();   // 立即抖一次，别等第一个 300ms
+    shake();
   }
 
   function stopShake() {
     shaking = false;
     if (timer) { clearInterval(timer); timer = null; }
+    show();
+  }
+
+  function onStartResp(txt) {
+    try {
+      var j = JSON.parse(txt);
+      if (j && j.success && j.result && j.result.code === 0) {
+        cap = 1;
+        var d = (j.result.data || {});
+        startShake(Number(d.task_duration) || 10);
+      }
+    } catch (e) {}
+    show();
   }
 
   // ---- 拦截 XHR ----
@@ -375,17 +407,9 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       var self = this;
       try {
         var u = String(self.__pddU || '');
-        if (u.indexOf('light-up/end_task') >= 0) stopShake();   // 请求发出即停
+        if (u.indexOf('light-up/end_task') >= 0) stopShake();
         if (u.indexOf('light-up/start_task') >= 0) {
-          self.addEventListener('load', function () {
-            try {
-              var j = JSON.parse(self.responseText);
-              if (j && j.success && j.result && j.result.code === 0) {
-                var d = (j.result.data || {});
-                startShake(Number(d.task_duration) || 10);
-              }
-            } catch (e) {}
-          });
+          self.addEventListener('load', function () { onStartResp(self.responseText); });
         }
       } catch (e) {}
       return XS.apply(this, arguments);
@@ -404,14 +428,7 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
         if (u.indexOf('light-up/start_task') >= 0) {
           try {
             p.then(function (resp) {
-              resp.clone().json().then(function (j) {
-                try {
-                  if (j && j.success && j.result && j.result.code === 0) {
-                    var d = (j.result.data || {});
-                    startShake(Number(d.task_duration) || 10);
-                  }
-                } catch (e) {}
-              }).catch(function () {});
+              resp.clone().text().then(onStartResp).catch(function () {});
             }).catch(function () {});
           } catch (e) {}
         }
@@ -419,6 +436,10 @@ const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
       };
     }
   } catch (e) {}
+
+  // 每 2 秒刷新诊断（即使没抖动）
+  setInterval(show, 2000);
+  show();
 })();</script>`;
 const LIGHTUP_AUTO = (A.lightup_auto === undefined || A.lightup_auto === null || A.lightup_auto === '')
   ? true : on(A.lightup_auto);
