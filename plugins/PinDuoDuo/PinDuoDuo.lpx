@@ -1,4 +1,4 @@
-#!name=拼多多去广告(修复版) v2.56
+#!name=拼多多去广告(修复版) v2.57
 #!desc=移除开屏广告、会场入口，精简首页与个人中心；底栏按钮可配置隐藏；广告商品打标【广告】；首页/详情页/百补/消费券各处列表显示佣金率，并把商品链接改写成多多进宝推广链接（自购返利）。多档开关可调。
 #!openUrl=https://apps.apple.com/app/id1044283059
 #!author=@Savues <https://github.com/Savues>
@@ -23,7 +23,7 @@ cps_pid = input,"41096949_318859099",tag=[高危] 推广位 PID,desc=改写进�
 lightup_secs = input,"10",tag=[消费券] 点亮任务秒数,desc=把 light-up/start_task 的 task_duration 改成该秒数，默认 1；设 0 关闭。⚠️ 服务端可能校验真实停留时长，若点亮失败请调大或设 0
 lightup_auto = switch,true,tag=[消费券] 点亮任务自动倒计时,desc=注入 JS 让「浏览N秒点亮」不需要手动滑动，进入任务后自动倒计时
 lucky_close = switch,true,tag=[消费券] 福袋弹窗自动关闭,desc=福袋领券弹窗动画播完后自动点关闭按钮（服务端在动画开始瞬间就已发券，动画纯拖延）
-lucky_3of1 = switch,true,tag=[消费券] 三选一福袋自动选中间,desc=三选一福袋弹窗自动点中间的福袋（用户确认默认选中间）
+lucky_3of1 = switch,false,tag=[消费券] 三选一福袋自动选中间,desc=三选一福袋弹窗自动点中间的福袋（用户确认默认选中间）
 no_anim = switch,true,tag=[通用] 压制页面动画,desc=往月卡页/消费券页注入 CSS，把 animation/transition 时长压到 0.01s。服务端没有开关能关掉这些 CSS 动画（153 个 keyframes / 730 处 animation），只能从渲染层压；关掉可恢复原动画
 hub_anim = switch,true,tag=[月卡] 屏蔽强化续费提醒动效,desc=把 gather/homepage 的 gift_cash.hit_enhance_renew_remind 置 0；那个全屏 Lottie 动效按一下才继续，纯前端无网络请求，抓包证实无需点击也不影响发券
 auto_skip = switch,true,tag=[月卡] 自动点掉全屏动效的「跳过」,desc=省钱月卡/续费页的补贴动效（右上角跳过）自动点掉;点跳过与动效跑完等效，不影响发券
