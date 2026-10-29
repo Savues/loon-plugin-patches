@@ -2,26 +2,20 @@
  * member_marketing_clean.js —— 会员页营销清洗 + 会员等级自定义
  *
  * 功能一：营销内容清洗（2026-10-29 修复「活动太火爆」）
- * ---------------------------------------------------
- * 只处理两个纯营销接口，响应侧清空内容、保留 code/message 结构：
  *   dailyMagicalCoupon → data = {}
  *   featuredActivity   → data.marketingResourceList = []
- * expose 与 SLevelBanner 直接放行（承载会员等级/惊喜值/惊喜多选一，不能动）。
  *
- * 功能二：会员等级自定义（v1.5.0 新增）
+ * 功能二：会员等级自定义（v1.5.x）
+ *   参数 memberLevel = 不修改 / 1~6
+ *
+ * 关键发现（2026-10-29 真机 HAR 实证）
  * ---------------------------------
- * 参数 memberLevel = 不修改 / 1 / 2 / 3 / 4 / 5 / 6
- * 命中 5 个下发会员等级的接口，把「当前等级」字段改成目标值：
- *   member/homepage/query                  → data.{memberLevel, memberActualLevel,
- *                                             memberLevelShow, memberLevelName, ifMember, memberSubLevel}
- *   member/activity/api/expose             → data.userMemberLevel.{memberLevel, memberSubLevel, ifMemberShip}
- *   member/homepage/products/recommend/v3  → data.{memberLevel, ifMember, memberSubLevel}
- *   marketing/featuredActivity             → data.{ifMember, memberLevel, memberSubLevel, memberLevelName}
- *   marketing/SLevelBanner                 → 同上
+ * 只改 data.memberLevel 等字段，前端 UI 不变！因为前端判断「当前等级」用的是
+ * allLevelData[] 里的 realLevelCompare（0 = 当前，-1 = 未达到）。
+ * 必须把目标等级的 realLevelCompare 改成 0，其余改成 -1，UI 才会跟着变。
  *
- * ⚠️ 仅改客户端显示：服务端仍是真实等级。
- *    领券 / 权益 / 下单等校验以服务端为准，可能出现「等级不足」或降级提示。
- *    allLevelData（6 级定义表）不改，避免破坏升级进度展示。
+ * 同时「当前等级」还带一组状态字段（有效期、保级标记、成长值），
+ * 这些只挂在真实当前等级上，需要迁移到目标等级，否则 UI 会缺信息。
  */
 (function () {
   const url = $request.url;
@@ -68,7 +62,7 @@
   return $done({});
 })();
 
-// 递归替换「当前等级」字段；跳过 allLevelData（等级定义表）
+// 递归改写「当前等级」字段；allLevelData 走专门的迁移逻辑
 function patchLevel(o, target, NAMES) {
   let changed = false;
   if (!o || typeof o !== 'object') return false;
@@ -81,8 +75,13 @@ function patchLevel(o, target, NAMES) {
   }
 
   for (const k of Object.keys(o)) {
-    if (k === 'allLevelData') continue; // 等级定义表，不动
     const v = o[k];
+
+    // allLevelData：等级定义表，需要迁移「当前等级」标记，而不是改定义
+    if (k === 'allLevelData' && Array.isArray(v)) {
+      if (patchAllLevelData(v, target)) changed = true;
+      continue;
+    }
 
     if (k === 'memberLevel' || k === 'memberActualLevel' || k === 'memberSubLevel' || k === 'memberActualSubLevel') {
       const n = parseInt(v, 10);
@@ -109,6 +108,84 @@ function patchLevel(o, target, NAMES) {
       }
     } else if (v && typeof v === 'object') {
       if (patchLevel(v, target, NAMES)) changed = true;
+    }
+  }
+  return changed;
+}
+
+// 迁移 allLevelData 的「当前等级」标记
+// realLevelCompare: 0 = 当前等级, -1 = 未达到（前端据此判断，必须改）
+// 同时把真实当前等级上的状态字段（有效期 / 保级 / 成长值）搬到目标等级
+function patchAllLevelData(arr, target) {
+  let changed = false;
+
+  // 找到真实当前等级项（realLevelCompare === 0）
+  let src = null;
+  for (const it of arr) {
+    if (it && typeof it === 'object' && it.realLevelCompare === 0) {
+      src = it;
+      break;
+    }
+  }
+
+  // ⚠️ 先快照 src 的状态字段 —— 遍历时可能先清空 src，再迁移就会拿到 null
+  const snap = src ? {
+    levelStrategyTypeInfo: src.levelStrategyTypeInfo,
+    levelStrategyType: src.levelStrategyType,
+    retainLevelFlag: src.retainLevelFlag,
+    growthValue: src.growthInfo ? src.growthInfo.growthValue : null,
+    growthValueStart: src.growthInfo ? src.growthInfo.growthValueStart : null,
+  } : null;
+
+  for (const it of arr) {
+    if (!it || typeof it !== 'object') continue;
+    const lv = parseInt(it.memberLevel, 10);
+    if (isNaN(lv)) continue;
+
+    const shouldBeCurrent = lv === target;
+    const wantCmp = shouldBeCurrent ? 0 : -1;
+    if (it.realLevelCompare !== wantCmp) {
+      it.realLevelCompare = wantCmp;
+      changed = true;
+    }
+
+    if (shouldBeCurrent) {
+      // 目标等级：补上「当前等级」才有的状态字段（用快照，避免 src 已被清空）
+      if (snap && src !== it) {
+        if (snap.levelStrategyTypeInfo && it.levelStrategyTypeInfo !== snap.levelStrategyTypeInfo) {
+          it.levelStrategyTypeInfo = snap.levelStrategyTypeInfo;
+          changed = true;
+        }
+        if (snap.levelStrategyType !== undefined && it.levelStrategyType !== snap.levelStrategyType) {
+          it.levelStrategyType = snap.levelStrategyType;
+          changed = true;
+        }
+        if (snap.retainLevelFlag !== undefined && it.retainLevelFlag !== snap.retainLevelFlag) {
+          it.retainLevelFlag = snap.retainLevelFlag;
+          changed = true;
+        }
+        // 成长值：目标等级原本 growthValue 为 null（未达到），补上真实成长值
+        if (it.growthInfo && it.growthInfo.growthValue === null && snap.growthValue !== null && snap.growthValue !== undefined) {
+          it.growthInfo.growthValue = snap.growthValue;
+          it.growthInfo.growthValueStart = snap.growthValueStart;
+          changed = true;
+        }
+      }
+    } else if (src === it) {
+      // 原当前等级：清掉「当前」标记
+      if (it.levelStrategyTypeInfo !== null) {
+        it.levelStrategyTypeInfo = null;
+        changed = true;
+      }
+      if (it.retainLevelFlag !== null) {
+        it.retainLevelFlag = null;
+        changed = true;
+      }
+      if (it.growthInfo && it.growthInfo.growthValue !== null) {
+        it.growthInfo.growthValue = null;
+        it.growthInfo.growthValueStart = null;
+        changed = true;
+      }
     }
   }
   return changed;

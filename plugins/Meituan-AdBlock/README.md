@@ -1,6 +1,6 @@
 # 美团去广告 · Meituan-AdBlock
 
-> **版本 v1.5.0** · 订阅以 lpx 内版本为准
+> **版本 v1.5.1** · 订阅以 lpx 内版本为准
 
 拦截我的页会员营销、弹窗族、营销素材；清洗 horn 远程配置中的广告/弹窗开关（**134 键**，完整清单见 [HORN.md](HORN.md)），并关闭全部隐私采集、遥测上报、灰度实验与开发测试开关。
 **从零自研**（无上游），基于二进制逆向 + 五份 HAR + 双沙盒取证的全新开发。
@@ -92,6 +92,7 @@ https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meitua
 | v1.2.0 | **基于真机 703KB 实际响应漏网扫描** → +14 键（位置监控 / 采样上报 / 首页漏斗+速度 / Feed Raptor / 图片流量日志 / 代码日志采样率 / 酒店 Pike 直播开关 / AB 白名单 / **播放器流量测试 bid** / 调试信息升级 / 公交原生测试）|
 | v1.3.0 | 曾尝试清理测试环境 URL（deeplink 2 条 + SSR `test-g`→`g`），**已按用户要求回退** |
 | v1.3.1 | AB 实验分组 + 图标 Babel 上报 → +2 键（**134 键**）；测试环境 URL 仅记录不处理 |
+| **v1.5.1** | 🔴 **修复等级伪装 UI 不生效** —— 只改 `data.memberLevel` 前端不认，实际前端读 `allLevelData[].realLevelCompare`（0=当前/-1=未达到）。现同步迁移该标记 + 有效期/保级/成长值状态字段 |
 | **v1.5.0** | ⭐ **新增会员等级自定义参数** —— `memberLevel` 可选 1~6（普通/白银/黄金/白金/黑金/黑钻），覆盖 5 个下发等级的接口（`member/homepage/query` 的当前等级字段、`activity/api/expose`、`products/recommend/v3`、`marketing/featuredActivity`、`marketing/SLevelBanner`）。**仅改客户端显示**，`allLevelData` 等级定义表不动，服务端仍为真实等级 |
 | **v1.4.0** | 🔴 **修复会员页「活动太火爆」** —— 4 条 reject_dict 规则误拦会员页核心数据接口：<br>• `member/activity/api/expose`（名字像曝光上报，实际返回**会员等级 + 惊喜值 + 惊喜多选一奖品**）→ **放行**<br>• `marketing/SLevelBanner`（含 **ifMember/memberLevel** 会员身份）→ **放行**<br>• `dailyMagicalCoupon` / `marketing/featuredActivity` → 改为**响应侧清洗**（保留 `code:0/message:成功` 结构，只清空营销内容）|
 
@@ -153,7 +154,13 @@ h.meituan.com/horn_ios/mergeRequest?...     → 增量 / 冷启动全量（697KB
 | `marketing/featuredActivity` | `data.{ifMember, memberLevel, memberSubLevel, memberLevelName}` |
 | `marketing/SLevelBanner` | 同上 |
 
-**不改的部分**：`data.allLevelData`（6 级定义表 + 升级门槛 + 成长值）保持原样，避免破坏升级进度展示。
+**关键**：前端判断「当前等级」读的是 `data.allLevelData[].realLevelCompare`（`0` = 当前，`-1` = 未达到），不是 `data.memberLevel`。因此插件会：
+
+1. 把目标等级的 `realLevelCompare` 改为 `0`，其余改为 `-1`
+2. 把真实当前等级上的状态字段（`levelStrategyTypeInfo` 有效期 / `retainLevelFlag` 保级 / `growthInfo.growthValue` 成长值）迁移到目标等级
+3. 原当前等级的这些字段清空
+
+`allLevelData` 的**等级定义**（等级名、升级门槛 `growthValueEnd`）保持不变。
 
 ### ⚠️ 重要限制
 
@@ -195,6 +202,7 @@ h.meituan.com/horn_ios/mergeRequest?...     → 增量 / 冷启动全量（697KB
 | 2026-10-29 | **v1.1.0 真机验证** | ✅ 177MB HAR 冷启动：703KB 全量响应 → 63 规则 0 残留 / 24 抽查键全对（含 allowShowDebugBoard=true）/ 幂等通过 |
 | 2026-10-29 | v1.2.0 漏网扫描 | ✅ 基于真机 703KB 响应 +14 键（16 处变化）/ JSON 合法 / 幂等通过 |
 | 2026-10-29 | v1.3.1 修正 | ✅ 测试环境 URL 3 条已回退（不动 deeplink/SSR）/ AB 分组+图标上报生效 / 18 处变化 / 幂等通过 |
+| 2026-10-29 | **v1.5.1 UI 修复** | ✅ 真机 HAR 证实 `data.memberLevel=6` 已改写但 UI 不变 → 定位到 `allLevelData[].realLevelCompare` / 已改为迁移该标记 + 状态字段 / V1~V6 全档位验证 / 幂等 |
 | 2026-10-29 | **v1.5.0 等级自定义** | ✅ 5 接口等级字段全部改写（V1~V6）/ 参数边界（不修改/空/0/7/abc 不生效）/ 营销清洗与等级伪造并存 / 幂等通过 / `allLevelData` 定义表不动 |
 | 2026-10-29 | **v1.4.0 会员页修复** | ✅ HAR 双状态对比定位（插件关=全部 200/插件开=3 个接口 2B）/ expose+SLevelBanner 放行 / 另两个响应清洗保留结构（5706→83B、8146→221B）/ 真实响应验证通过 |
 | 2026-10-29 | **v1.4.0 真机确认** | ✅ 用户确认会员页恢复正常；抓包复核：expose 2469B 完整 / SLevelBanner 221B 完整 / dailyMagicalCoupon 83B（code:0 结构完整）/ featuredActivity 220B（保留 ifMember+memberLevel，仅清空活动列表）|

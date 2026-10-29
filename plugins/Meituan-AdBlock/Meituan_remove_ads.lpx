@@ -1,8 +1,8 @@
-#!name=美团去广告 v1.5.0
+#!name=美团去广告 v1.5.1
 #!desc=拦截广告与营销内容：我的页会员营销（每日领券/营销横幅）、弹窗族（会员活动/运营活动/问卷/直播券/酒店）、消息横幅、DSP抽奖红包、信息流广告物料与营销素材；并清洗horn远程配置134个开关（开屏/弹窗/悬浮窗/券弹层/小说广告/灵犀广告/快手SDK/信息流广告位/酒店营销/首页营销卡片/引导动画），以及隐私采集与遥测上报全关（截图上传/设备指纹/Beacon+WiFi/请求异常上报/Logan+Raptor/midas监控）。
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/Meituan-AdBlock
-#!version=1.5.0
+#!version=1.5.1
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Meituan-AdBlock/icon/icon.png
 #!tag=去广告
 #!loon_version=3.5.1(998)
@@ -13,7 +13,7 @@ memberLevel = select,"不修改","1","2","3","4","5","6",tag=会员等级显示,
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "1.5.0")
+request if ${url} ~= /^https?:\/\/market\.waimai\.meituan\.com\/gw\/loon-sim\.probe\.meituan_remove_ads/i then reject(200, "1.5.1")
 # === 我的页会员营销 (market.waimai 实证明文 JSON, 2026-10-25 HAR) ===
 # ⚠️ 2026-10-29 修正：以下 3 条原为 reject_dict(200)，导致会员页「活动太火爆」——
 #   dailyMagicalCoupon / featuredActivity / SLevelBanner 的正常响应都带
