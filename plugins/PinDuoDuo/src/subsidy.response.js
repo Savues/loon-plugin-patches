@@ -315,48 +315,110 @@ const NOANIM_CSS = '<style id="pdd-no-anim">*,*::before,*::after{animation-delay
 const NO_ANIM = (A.no_anim === undefined || A.no_anim === null || A.no_anim === '')
   ? true : on(A.no_anim);
 
-// v2.44：点亮任务自动倒计时（无需滑动）—— 修正版
+// v2.59：点亮任务自动倒计时 —— 用 API 生命周期控制抖动（方案 A）
 // ---------------------------------------------------------------------------
-// v2.43 只给 scrollTop 打了「读取扰动」补丁，但没触发 scroll 事件，
-// 页面的 debounce 监听不执行 → m.current 永远是初始的 true → 倒计时不走。
+// v2.44 的问题：每 300ms 无条件抖 scrollTop 1px，只要在页面就一直抖。
 //
-// 页面真实逻辑（xbrand_special_sale_*.js）：
-//   const t = debounce(() => {
-//     m.current = false;                       // 只有这里才会变 false
-//     const a = scrollTop();
-//     setTimeout(() => { if (a === scrollTop()) m.current = true }, 500);
-//   }, 1000);
-//   document.addEventListener('touchstart', () => {
-//     document.addEventListener('scroll', t);  // 首次触摸才挂监听
-//   });
-//   setInterval(() => { if (!m.current) d(e => e - 1) }, 1000);
+// 本版改为「按任务生命周期抖动」：
+//   · 拦截 light-up/start_task 响应成功 → 开始抖
+//   · 拦截 light-up/end_task 请求        → 立即停止
+//   · deadline = 当前时间 + task_duration + 20 秒（兜底，防异常情况一直抖）
 //
-// 所以必须同时满足：
-//   ① 触发 touchstart  → 挂上 scroll 监听
-//   ② 触发 scroll      → debounce 1 秒后执行，m.current 变 false
-//   ③ 500ms 内 scrollTop 真的变化 → m.current 保持 false
+// 为什么这样抖：
+//   页面的倒计时 hook 只在 debounce(scroll) 执行后把 m.current 置 false，
+//   且 500ms 后要求 scrollTop 有变化才保持 false。所以必须：
+//     ① dispatch touchstart（挂上 scroll 监听）
+//     ② 真实改 scrollTop（让「位置是否变化」判断失败）
+//     ③ dispatch scroll（驱动 debounce）
 //
-// 做法：每 300ms 真实抖动 1px + 派发 touchstart/scroll 事件。
-//   抖动幅度 1px，用户基本察觉不到；页面其他依赖滚动位置的逻辑
-//   （吸顶/懒加载）判定阈值通常远大于 1px。
+// 不依赖任何 DOM class，不受构建 hash 变化影响。
 const LIGHTUP_JS = `<script id="pdd-lightup-auto">(function(){
   if (window.__pddLightupAuto) return;
   window.__pddLightupAuto = 1;
-  var up = true;
-  setInterval(function () {
+
+  var shaking = false, timer = null, deadline = 0, up = true;
+
+  function shake() {
     try {
-      // ① 触发 touchstart：页面首次收到才会挂 scroll 监听（内部有 f.current 去重）
       document.dispatchEvent(new Event('touchstart', { bubbles: true }));
-      // ② 真实抖动 1px：让 debounce 里的「位置是否变化」判断失败
       var el = document.scrollingElement || document.documentElement;
       var cur = el.scrollTop;
       el.scrollTop = up ? cur + 1 : Math.max(0, cur - 1);
       up = !up;
-      // ③ 派发 scroll：驱动页面的 debounce
       document.dispatchEvent(new Event('scroll'));
       window.dispatchEvent(new Event('scroll'));
     } catch (e) {}
-  }, 300);
+  }
+
+  function startShake(secs) {
+    var dur = (typeof secs === 'number' && secs > 0) ? secs : 10;
+    deadline = Date.now() + (dur + 20) * 1000;   // 任务时长 + 20 秒兜底
+    if (shaking) return;
+    shaking = true;
+    timer = setInterval(function () {
+      if (Date.now() > deadline) { stopShake(); return; }
+      shake();
+    }, 300);
+    shake();   // 立即抖一次，别等第一个 300ms
+  }
+
+  function stopShake() {
+    shaking = false;
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  // ---- 拦截 XHR ----
+  try {
+    var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (m, u) { this.__pddU = u; return XO.apply(this, arguments); };
+    XMLHttpRequest.prototype.send = function () {
+      var self = this;
+      try {
+        var u = String(self.__pddU || '');
+        if (u.indexOf('light-up/end_task') >= 0) stopShake();   // 请求发出即停
+        if (u.indexOf('light-up/start_task') >= 0) {
+          self.addEventListener('load', function () {
+            try {
+              var j = JSON.parse(self.responseText);
+              if (j && j.success && j.result && j.result.code === 0) {
+                var d = (j.result.data || {});
+                startShake(Number(d.task_duration) || 10);
+              }
+            } catch (e) {}
+          });
+        }
+      } catch (e) {}
+      return XS.apply(this, arguments);
+    };
+  } catch (e) {}
+
+  // ---- 拦截 fetch ----
+  try {
+    if (window.fetch) {
+      var OF = window.fetch;
+      window.fetch = function (input, init) {
+        var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+        var u = String(url);
+        if (u.indexOf('light-up/end_task') >= 0) stopShake();
+        var p = OF.apply(this, arguments);
+        if (u.indexOf('light-up/start_task') >= 0) {
+          try {
+            p.then(function (resp) {
+              resp.clone().json().then(function (j) {
+                try {
+                  if (j && j.success && j.result && j.result.code === 0) {
+                    var d = (j.result.data || {});
+                    startShake(Number(d.task_duration) || 10);
+                  }
+                } catch (e) {}
+              }).catch(function () {});
+            }).catch(function () {});
+          } catch (e) {}
+        }
+        return p;
+      };
+    }
+  } catch (e) {}
 })();</script>`;
 const LIGHTUP_AUTO = (A.lightup_auto === undefined || A.lightup_auto === null || A.lightup_auto === '')
   ? true : on(A.lightup_auto);

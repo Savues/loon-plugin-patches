@@ -322,7 +322,32 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.58（2026-10-29）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.59（2026-10-29）
+
+### 点亮自动倒计时：用 API 生命周期控制抖动
+
+**问题**：v2.44 每 300ms **无条件**抖 `scrollTop` 1px，只要在页面就一直抖
+（用户反馈「只要在页面就会上下跳」）。
+
+**方案**：按任务生命周期抖动。
+
+| 事件 | 动作 |
+|---|---|
+| `light-up/start_task` 响应 `code:0` | 开始抖 |
+| `light-up/end_task` 请求发出 | **立即停止** |
+| `deadline = task_duration + 20s` | 兜底，防异常情况一直抖 |
+
+**实现**：劫持 `XMLHttpRequest` / `fetch` 检测这两个接口。
+
+**为什么必须抖**：页面的倒计时 hook 只在 `debounce(scroll)` 执行后把
+`m.current` 置 `false`，且 500ms 后要求 `scrollTop` 有变化才保持。
+所以必须同时：① dispatch `touchstart` ② 真实改 `scrollTop` ③ dispatch `scroll`。
+
+**不依赖任何 DOM class**，不受构建 hash 变化影响。
+
+---
+
+## v2.58（2026-10-29）
 
 ### 移除三选一福袋自动选择
 
