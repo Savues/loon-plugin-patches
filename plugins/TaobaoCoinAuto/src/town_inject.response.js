@@ -10,16 +10,37 @@
      → Loon 无法伪造签名，纯 HTTP 重放/定时调用必被拒
    → 唯一可行路线：MITM 改写 p_index.js，在页面内调用它自己的封装（签名由 WebView 原生层补）
 
- 本脚本只做一件事：把 INJECT 追加到 bundle 尾部。任何异常都原样放行。
+ 本脚本做两件事：
+   1. 把 INJECT 追加到 bundle 尾部
+   2. 把响应的缓存头改成 no-store —— WebKit 的 NetworkCache 会长期缓存这个 2.2MB 的 JS，
+      不清掉的话下次加载根本不发请求，脚本永远不会执行（2026-10-30 实测：HAR 里零请求）
+ 任何异常都原样放行。
 */
 
 var body = $response.body || '';
+
+/* 让 WebKit 不要缓存这个 bundle：否则注入只生效一次，之后一直读旧缓存 */
+function noStore(extra) {
+  var h = {};
+  var src = $response.headers || {};
+  for (var k in src) {
+    var lk = String(k).toLowerCase();
+    if (lk === 'cache-control' || lk === 'expires' || lk === 'pragma' || lk === 'etag' || lk === 'last-modified' || lk === 'age') continue;
+    h[k] = src[k];
+  }
+  h['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
+  h['Pragma'] = 'no-cache';
+  if (extra && extra.body !== undefined) h['Content-Length'] = String(extra.body.length);
+  var out = { headers: h };
+  if (extra && extra.body !== undefined) out.body = extra.body;
+  return out;
+}
 
 // 只处理真正的游戏 bundle；拿不到特征串就放行
 if (body.indexOf('webpackChunk_ali_pegasus_project_taocoin_home') === -1) {
   $done({});
 } else if (body.indexOf('__TJB_AUTO__') !== -1) {
-  $done({}); // 已注入过（避免重复加载时叠加）
+  $done(noStore({})); // 已注入过（避免重复加载时叠加），但仍要禁缓存
 } else {
   var arg = $argument || {};
   function on(v, dflt) {
@@ -153,5 +174,8 @@ if (body.indexOf('webpackChunk_ali_pegasus_project_taocoin_home') === -1) {
     'log("injected", JSON.stringify(CFG));\n' +
     '})();\n';
 
-  $done({ body: body + INJECT });
+  // 注入成功给个通知：真机上唯一能确认「脚本真的跑了」的信号
+  try { $notify('淘金币小镇', '注入成功 v0.1.1', 'p_index.js ' + body.length + 'B → 已追加自动化'); } catch (e) {}
+
+  $done(noStore({ body: body + INJECT }));
 }

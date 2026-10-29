@@ -3,7 +3,7 @@
 #!author=@Savues <https://github.com/Savues>
 #!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/TaobaoCoinAuto
 #!date=2026-10-30
-#!version=0.1.0
+#!version=0.1.1
 #!system=iOS, iPadOS
 #!loon_version=3.2.0
 #!tag=淘宝,淘金币,小镇,自动化
@@ -25,4 +25,4 @@ hostname = g.alicdn.com
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/g\.alicdn\.com\/gw\/loon-sim\.probe\.taobaocoinauto/i then reject(200, "0.1.0")
+request if ${url} ~= /^https?:\/\/g\.alicdn\.com\/gw\/loon-sim\.probe\.taobaocoinauto/i then reject(200, "0.1.1")

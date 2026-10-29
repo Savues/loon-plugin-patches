@@ -103,6 +103,28 @@ node cli.js run ../../plugins/TaobaoCoinAuto/TaobaoCoinAuto.lpx \
 实测：2,258,843B → 2,262,996B，`node --check` 通过；沙盒模拟三轮调用参数
 `walkGridNum=500/500/200, operationType=EXHAUST_ENERGY, displayedSingleEnergyCost=10`。
 
+## 首次使用必须清一次淘宝缓存（否则插件永远不触发）
+
+**2026-10-30 实测**：装了插件后 HAR 里 **完全没有 `p_index.js` 请求**（连页面 HTML 都没有），
+只有 `coupon.urge` 这类原生接口 —— 说明 WebView 直接用沙盒里的磁盘缓存
+（`Library/Caches/WebKit/NetworkCache/...`，我们已确认里面有完整的 2,258,843B bundle）。
+没有请求 = 响应脚本没有执行机会 = 不会自动点击。
+
+处理：
+
+1. 淘宝 → 我的淘宝 → 设置 → 通用 → **清除缓存**（或删掉 App 重装，更彻底）
+2. 杀掉淘宝进程，重新进「淘金币小镇」
+3. 注入成功会弹一条通知：**「淘金币小镇 · 注入成功 v0.1.1」** ← 这是唯一可靠的成功信号
+4. 响应已带 `Cache-Control: no-store`，之后每次进页面都会回源并重新注入，不会退回旧缓存
+
+若清缓存后仍无通知：
+
+| 检查 | 方法 |
+|------|------|
+| 插件是否加载 | Safari 打开 `https://g.alicdn.com/gw/loon-sim.probe.taobaocoinauto`，应返回 `0.1.1` |
+| MITM 是否解密 g.alicdn.com | 抓包看 `p_index.js` 请求是否出现、响应体是否为 2,262,996B（注入后） |
+| 页面是否换了版本 | HAR 里看 JS 路径的版本号，正则已用 `[^/]+` 通配，但模块结构变了要重新取证 |
+
 ## 风险
 
 - 高频自动喂养有**账号风控/降权**风险，默认间隔已放保守，别把 `gapMs` 调到 500 以下
