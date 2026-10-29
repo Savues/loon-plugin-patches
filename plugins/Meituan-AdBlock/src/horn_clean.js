@@ -12,7 +12,8 @@
 // 2026-10-29 v1.0.0: 全量 2655 叶子键穷举 — 字符串内嵌 JSON 盲区 (rec_config 3个广告位) + 增长业务 + CPC广告, 补 3 个
 // 2026-10-29 v1.1.0: 隐私/遥测/内部测试 (截图上传/设备指纹/Beacon+WiFi采集/请求异常上报/Logan+Raptor/midas监控/酒店mock), 补 16 个
 // 2026-10-29 v1.2.0: 真机 703KB 全量漏网扫描 — 位置监控/采样上报/首页漏斗速度/FeedRaptor/图片流量日志/酒店Pike/AB白名单/流量测试/调试信息/公交原生测试, 补 14 个
-// 2026-10-29 v1.3.0: 开发者测试遗留 — deeplink 2 条测试URL指向生产 + SSR test-g→g + AB实验分组 + 图标Babel上报, 补 5 个
+// 2026-10-29 v1.3.1: AB实验分组 + 图标Babel上报, 补 2 个
+// (原 v1.3.0 的 3 条测试环境 URL 改写已按用户要求移除 — 不动 deeplink/SSR 配置)
 const REVERSES = [
   [/("com\.meituan\.retail\.should_show_group_supermarket_guide_popup"\s*:\s*)"?true"?/g, '$1"false"'],
   [/("com\.meituan\.retail\.maicai_splash_hidden"\s*:\s*)false/g, '$1true'],
@@ -136,11 +137,6 @@ const REVERSES = [
   [/("enable_flow_rate_test_bid"\s*:\s*)\{([^}]*?:\s*1[^}]*)\}/g, '$1{"JUMP_MTNativeShortVideo":0,"MRNGameVideo":0,"MTNativeShortVideo":0}'],
   [/("(?:enableDebugInfoUpgrade|bus_home_native_test)"\s*:\s*)[1-9]\d*/g, '$10'],
   // --- v1.3.0: 开发者测试遗留清理 (测试环境 URL 指向生产) + AB 实验 + 图标上报 ---
-  // deeplink 测试环境条目 → 生产 URL (支付绑定卡 / 魔方跳转, 均与生产版重复)
-  [/("url"\s*:\s*)"https:\/\/i8\.test\.meituan\.com\/awp\/hfe\/block\/4323\/index\.html"/g, '$1"https://i.meituan.com/awp/hfe/block/4323/index.html"'],
-  [/("url"\s*:\s*)"https:\/\/test\.i\.meituan\.com\/c\/#\{id\}"/g, '$1"https://i.meituan.com/c/#{id}"'],
-  // SSR URL 列表里的测试域名 → 生产域名
-  [/https:\/\/test-g\.meituan\.com\//g, 'https://g.meituan.com/'],
   // AB 实验分组 (图片服务 UGC 新星人) — 关闭后走默认逻辑
   [/("ab_IOS_ugc_nvstarman"\s*:\s*)true/g, '$1false'],
   // 图标字体 Babel 上报 (遥测)

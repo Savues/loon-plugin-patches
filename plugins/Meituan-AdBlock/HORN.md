@@ -1,6 +1,6 @@
 # 美团 horn 远程配置清洗清单
 
-> 配套代码：`src/horn_clean.js` · 生效版本：v1.3.0（2026-10-29）
+> 配套代码：`src/horn_clean.js` · 生效版本：v1.3.1（2026-10-29）
 > 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
 
 ## 一、horn 是什么
@@ -27,7 +27,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 ---
 
-## 二、清洗清单（137 个键 · 75 条规则）
+## 二、清洗清单（134 个键 · 72 条规则）
 
 ### ① 开屏族（3 键）
 
@@ -327,45 +327,32 @@ PikeLiveModuleServiceImpl                        ← PikeLive 模块服务
 | `homepage_switches_v1.enable_tab_ffp` / `tab_refresh_delay` | 首帧绘制/刷新性能优化，非营销 |
 | `pfb_met_addresscenter_ability_building.*`（43 键）| 全是 address（地址），被 `ad` 误匹配 |
 
-### ⑱ 开发者测试遗留清理（5 项 · v1.3.0）
+### ⑱ AB 实验分组 + 图标上报（2 项 · v1.3.1）
 
-**测试环境 URL → 生产 URL（3 项）**
+| 键 | 原值 → 新值 | 说明 | 模块 |
+|----|------------|------|------|
+| `ab_IOS_ugc_nvstarman` | `true` → `false` | 图片服务 AB 实验分组（UGC 新星人）。关闭后走默认逻辑 | `dp_image_service` |
+| `enableBabelReport` | `true` → `false` | 图标字体 Babel 上报（遥测）| `cipiconfont_config` |
 
-| 位置 | 原值 | 改为 | 说明 |
-|------|------|------|------|
-| `deeplink.data[7].url` | `https://i8.test.meituan.com/awp/hfe/block/4323/index.html` | `https://i.meituan.com/awp/hfe/block/4323/index.html` | 支付绑定卡的**测试环境** deeplink（`[6]` 是同一功能的生产版，完全重复）|
-| `deeplink.data[8].url` | `https://test.i.meituan.com/c/#{id}` | `https://i.meituan.com/c/#{id}` | **标题原文就是「魔方跳转 test」**（`[9]` 是生产版「魔方跳转」）|
-| `key_dz_web_ssr_urls.urlList` | 含 2 处 `test-g.meituan.com` | 替换为 `g.meituan.com` | SSR 页面 URL 列表混入测试域名 |
+**关于测试环境 URL（已按用户要求不做）**
 
-> **这三项是开发者调试遗留**：测试环境地址与生产版成对出现在正式下发的配置里。改成生产 URL 而非删除条目，避免数组索引错位。
+扫描发现配置里有 3 处测试环境地址，**已确认存在但决定不处理**（避免改动 deeplink / SSR 配置结构）：
 
-**AB 实验（1 项）**
+| 位置 | 值 | 说明 |
+|------|-----|------|
+| `deeplink.data[7].url` | `https://i8.test.meituan.com/awp/hfe/block/4323/index.html` | 支付绑定卡测试版（`[6]` 是生产版）|
+| `deeplink.data[8].url` | `https://test.i.meituan.com/c/#{id}` | 标题原文「魔方跳转 test」（`[9]` 是生产版）|
+| `key_dz_web_ssr_urls.urlList` | 含 2 处 `test-g.meituan.com` | SSR 页面 URL 列表 |
 
-| 键 | 原值 → 新值 | 说明 |
-|----|------------|------|
-| `ab_IOS_ugc_nvstarman` | `true` → `false` | 图片服务 AB 实验分组（UGC 新星人）。关闭后走默认逻辑，**若该实验组是改进版会失去新功能** |
-
-**遥测（1 项）**
-
-| 键 | 原值 → 新值 | 说明 |
-|----|------------|------|
-| `enableBabelReport` | `true` → `false` | 图标字体 Babel 上报（`cipiconfont_config`）|
-
-**全量扫描结论（测试域名）**
-
-```
-i8.test.meituan.com    1 处  → 已处理（deeplink[7]）
-test.i.meituan.com     1 处  → 已处理（deeplink[8]）
-test-g.meituan.com     2 处  → 已处理（SSR urlList）
-www.test1.com/test2    仅字符串模板，不在配置里 → 忽略
-```
+> 这是美团正式下发配置里的开发遗留，仅作记录，插件不改动。
 
 **其他观察**
 
 | 项 | 情况 |
 |----|------|
-| `ciptestflightkit_config_ios` | 模块 `customer = null`（无配置下发，无需处理）|
-| `CIPABTestHornConfig`（二进制类名）| AB 实验配置类存在，但本份 horn 响应无对应模块 → AB 实验配置走别的通道，不在 horn 里 |
+| `ciptestflightkit_config_ios` | 模块 `customer = null`（无配置下发）|
+| `CIPABTestHornConfig`（二进制类名）| AB 实验配置类存在，但本份 horn 响应无对应模块 → AB 实验配置走别的通道 |
+| 开发者测试类 8 键 | 已全部覆盖（enablePlayerDebugBoard / enableDebugInfoUpgrade / enable_flow_rate_test_bid / bus_home_native_test / hotel_homepage_inland_mock_data_enable / allowShowDebugBoard / enableGetDebugInfoOpt / ios18beta2_decode_fix）|
 
 ---
 
