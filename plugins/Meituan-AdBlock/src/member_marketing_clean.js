@@ -1,32 +1,27 @@
 /*
- * member_marketing_clean.js —— 会员页营销数据清洗（响应侧，保留结构）
+ * member_marketing_clean.js —— 会员页营销清洗 + 会员等级自定义
  *
- * 背景（2026-10-29 HAR 实证）
- * -------------------------
- * 原 v0.1.0 用 reject_dict(200) 把这三个接口拦成 {}：
- *   /member/homepage/dailyMagicalCoupon/query          每日领券
- *   /member/homepage/marketing/featuredActivity/query  精选活动
- *   /member/homepage/marketing/SLevelBanner/query      S级横幅
- *   /member/activity/api/expose                        活动曝光
+ * 功能一：营销内容清洗（2026-10-29 修复「活动太火爆」）
+ * ---------------------------------------------------
+ * 只处理两个纯营销接口，响应侧清空内容、保留 code/message 结构：
+ *   dailyMagicalCoupon → data = {}
+ *   featuredActivity   → data.marketingResourceList = []
+ * expose 与 SLevelBanner 直接放行（承载会员等级/惊喜值/惊喜多选一，不能动）。
  *
- * 结果：会员页提示「活动太火爆，请稍后重试喔～」。
- * 原因：这些接口正常返回 {"code":0,"message":"成功","data":{...}}，
- *       返回 {} 后前端取不到 code，判定为服务端故障 → 弹通用错误。
+ * 功能二：会员等级自定义（v1.5.0 新增）
+ * ---------------------------------
+ * 参数 memberLevel = 不修改 / 1 / 2 / 3 / 4 / 5 / 6
+ * 命中 5 个下发会员等级的接口，把「当前等级」字段改成目标值：
+ *   member/homepage/query                  → data.{memberLevel, memberActualLevel,
+ *                                             memberLevelShow, memberLevelName, ifMember, memberSubLevel}
+ *   member/activity/api/expose             → data.userMemberLevel.{memberLevel, memberSubLevel, ifMemberShip}
+ *   member/homepage/products/recommend/v3  → data.{memberLevel, ifMember, memberSubLevel}
+ *   marketing/featuredActivity             → data.{ifMember, memberLevel, memberSubLevel, memberLevelName}
+ *   marketing/SLevelBanner                 → 同上
  *
- * 更关键的是响应内容并非纯营销：
- *   expose        → userMemberLevel（会员等级）+ userSurpriseScoreInfo（惊喜值）
- *                   + productList（惊喜多选一奖品）+ consumptionPlanProductList
- *   SLevelBanner  → ifMember / memberLevel / memberLevelName（会员身份）
- * 拦掉它们 = 会员页拿不到会员状态。
- *
- * 本脚本策略
- * ---------
- * 只处理两个「纯营销」接口，响应侧清空内容、保留 code/message 结构：
- *   dailyMagicalCoupon → data = {}（无券可领）
- *   featuredActivity   → data.marketingResourceList = []（无活动）
- * expose 与 SLevelBanner 直接放行（承载会员等级/惊喜值，不能动）。
- *
- * 注意：每个 $done 后必须 return —— 否则后续 $done({}) 会覆盖前一次结果。
+ * ⚠️ 仅改客户端显示：服务端仍是真实等级。
+ *    领券 / 权益 / 下单等校验以服务端为准，可能出现「等级不足」或降级提示。
+ *    allLevelData（6 级定义表）不改，避免破坏升级进度展示。
  */
 (function () {
   const url = $request.url;
@@ -43,14 +38,13 @@
 
   let dirty = false;
 
+  // ---------- ① 营销内容清洗 ----------
   if (/dailyMagicalCoupon/i.test(url)) {
-    // 每日领券：清空 data，保留 {"code":0,"message":"成功","data":{}}
     if (obj.data !== undefined) {
       obj.data = {};
       dirty = true;
     }
   } else if (/featuredActivity/i.test(url)) {
-    // 精选活动：清空活动列表，保留其它字段（marketingQueryLevel 等）
     if (obj.data && typeof obj.data === 'object' && Array.isArray(obj.data.marketingResourceList)) {
       if (obj.data.marketingResourceList.length) {
         obj.data.marketingResourceList = [];
@@ -59,6 +53,63 @@
     }
   }
 
+  // ---------- ② 会员等级自定义 ----------
+  const A = (typeof $argument === 'string' ? {} : $argument) || {};
+  const raw = String(A.memberLevel === undefined || A.memberLevel === null ? '' : A.memberLevel);
+  if (raw && raw !== '不修改' && raw !== '0') {
+    const target = parseInt(raw, 10);
+    if (target >= 1 && target <= 6) {
+      const NAMES = ['', '普通会员', '白银会员', '黄金会员', '白金会员', '黑金会员', '黑钻会员'];
+      if (patchLevel(obj, target, NAMES)) dirty = true;
+    }
+  }
+
   if (dirty) return $done({ body: JSON.stringify(obj) });
   return $done({});
 })();
+
+// 递归替换「当前等级」字段；跳过 allLevelData（等级定义表）
+function patchLevel(o, target, NAMES) {
+  let changed = false;
+  if (!o || typeof o !== 'object') return false;
+
+  if (Array.isArray(o)) {
+    for (const x of o) {
+      if (patchLevel(x, target, NAMES)) changed = true;
+    }
+    return changed;
+  }
+
+  for (const k of Object.keys(o)) {
+    if (k === 'allLevelData') continue; // 等级定义表，不动
+    const v = o[k];
+
+    if (k === 'memberLevel' || k === 'memberActualLevel' || k === 'memberSubLevel' || k === 'memberActualSubLevel') {
+      const n = parseInt(v, 10);
+      if (!isNaN(n) && n !== target) {
+        o[k] = target;
+        changed = true;
+      }
+    } else if (k === 'memberLevelShow') {
+      const nv = 'V' + target;
+      if (v !== nv) {
+        o[k] = nv;
+        changed = true;
+      }
+    } else if (k === 'memberLevelName') {
+      const nv = NAMES[target];
+      if (v !== nv) {
+        o[k] = nv;
+        changed = true;
+      }
+    } else if (k === 'ifMember' || k === 'ifMemberShip') {
+      if (v !== true) {
+        o[k] = true;
+        changed = true;
+      }
+    } else if (v && typeof v === 'object') {
+      if (patchLevel(v, target, NAMES)) changed = true;
+    }
+  }
+  return changed;
+}
