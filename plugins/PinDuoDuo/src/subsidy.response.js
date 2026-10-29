@@ -433,34 +433,28 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.53：三选一福袋自动选中间（精确定位 itemWrapper）
+// v2.54：三选一福袋自动选中间（加冷却，防刷新循环）
 // ---------------------------------------------------------------------------
-// 定位依据（xbrand_special_sale.js 反查）：
-//   Wr 组件渲染福袋列表：
-//     <div className={Fr().itemWrapper}>      // _3-xTPO9u
-//       <io data={bagItem} index={idx} />
-//     </div>
-//   Fr = n(7591) 的 CSS Modules：
-//     luckyBagListWrapper: "_1oeojQOY"   // 列表容器
-//     itemWrapper:         "_3-xTPO9u"   // 每个福袋
+// v2.53 问题：点福袋 → 弹窗关闭 → handleClose 触发 refreshPage() → 页面刷新
+//   → 刷新后 done 标记重置 → 又找到三个 itemWrapper → 又点 → 无限循环。
+//   抓包实证：tandy_vase.html 在 25 秒内刷新 15 次。
 //
-// 之前 v2.48~v2.52 全部失败的根因：一直盯着 LuckyBagTakeCouPopNewTwo 的
-// 3D 旋转布局（_1OzN-NpJ 等），而实际渲染的是这个平铺列表。
+// 修复：用 sessionStorage 记录上次点击时间，冷却期内不再点。
+//   sessionStorage 在页面刷新后保留（同一会话），所以能跨刷新生效。
 //
-// 防误伤（用户强调过）：
-//   ① 必须恰好 3 个 itemWrapper
-//   ② 三个必须在同一个 luckyBagListWrapper 内
-//   ③ 按 x 排序取中间
-//   ④ 只点一次，列表消失后重置
-//   ⑤ 尺寸 > 30px
+// 定位依据（xbrand_special_sale.js）：
+//   Wr → <div className={Fr().itemWrapper}>  // _3-xTPO9u
+//   Fr = n(7591)：luckyBagListWrapper _1oeojQOY / itemWrapper _3-xTPO9u
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
-  var ITEM = '_3-xTPO9u';        // itemWrapper
-  var LIST = '_1oeojQOY';        // luckyBagListWrapper
-  var done = false, dbg = null;
+  var ITEM = '_3-xTPO9u';
+  var LIST = '_1oeojQOY';
+  var KEY = 'pdd_3of1_ts';
+  var COOLDOWN = 180000;   // 3 分钟内不再点（防刷新循环）
 
+  var dbg = null;
   function show(txt) {
     try {
       if (!dbg) {
@@ -474,41 +468,50 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
     } catch (e) {}
   }
 
+  function lastTs() {
+    try { return Number(sessionStorage.getItem(KEY) || 0) || 0; } catch (e) { return 0; }
+  }
+  function markTs() {
+    try { sessionStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+  }
+
   setInterval(function () {
     try {
       var items = document.querySelectorAll('.' + ITEM);
-      if (items.length === 0) { done = false; show('3of1 items=0'); return; }
-      show('3of1 items=' + items.length + ' click=' + (done ? 'Y' : 'N'));
-      if (done) return;
+      if (items.length === 0) { show('3of1 items=0'); return; }
+
+      var left = Math.round((COOLDOWN - (Date.now() - lastTs())) / 1000);
+      if (left > 0) { show('3of1 items=' + items.length + ' cooldown=' + left + 's'); return; }
+
+      show('3of1 items=' + items.length + ' ready');
       if (items.length !== 3) return;
 
       var arr = Array.prototype.slice.call(items);
-      // 校验：三个都在同一个 luckyBagListWrapper 内
       var lists = document.querySelectorAll('.' + LIST);
       var sameList = false;
       for (var i = 0; i < lists.length; i++) {
-        var inThis = arr.filter(function (el) { return lists[i].contains(el); });
-        if (inThis.length === 3) { sameList = true; break; }
+        if (arr.filter(function (el) { return lists[i].contains(el); }).length === 3) { sameList = true; break; }
       }
       if (!sameList) return;
 
-      // 尺寸校验
       var ok = arr.every(function (el) {
         var r = el.getBoundingClientRect();
         return r.width > 30 && r.height > 30;
       });
       if (!ok) return;
 
+      // 记录坐标便于诊断排序是否正确
+      var pos = arr.map(function (el) { return Math.round(el.getBoundingClientRect().left); });
       arr.sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
       var mid = arr[1];
-      done = true;
+      if (!mid) return;
+
+      markTs();
+      show('3of1 CLICK mid  lefts=' + pos.join(','));
 
       var r = mid.getBoundingClientRect();
       var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-
-      // ① 直接 click
       try { mid.click(); } catch (e) {}
-      // ② 按坐标派发（React 合成事件需要 clientX/Y）
       try {
         var t = document.elementFromPoint(cx, cy) || mid;
         ['mousedown', 'mouseup', 'click'].forEach(function (type) {
