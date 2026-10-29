@@ -322,7 +322,40 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 5. **批量替换后必须跑端到端测试** —— v2.28 误删一行 `else`，
    导致 v2.29 前百补首页完全失效，而我只验证了另一个脚本
 6. **双阶段渲染**：静态 HTML 被接口覆盖，两处都得改
-7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.48（2026-10-28）
+7. **改错字段**：前端 `W = BeforeTag.text || priceWord`，只改后者会被前者盖住## v2.58（2026-10-29）
+
+### 移除三选一福袋自动选择
+
+**原因**：v2.48~v2.56 共 9 个版本尝试，全部失败或误伤。
+
+| 版本 | 方案 | 结果 |
+|---|---|---|
+| v2.48 | `_1OzN-NpJ` 等 3D 布局 class | cards=0（class 属于未使用的组件） |
+| v2.49 | 改用 offsetWidth（避开 3D transform） | 仍 0 |
+| v2.50 | 几何探测「同行三个 img」 | **误伤**：跳到 promotion_op.html |
+| v2.51 | 只探测不点 | no 3-in-row（福袋不是 img） |
+| v2.52 | 加 background-image 检查 | 探到的是轮播图（`_22S3K0mB`） |
+| v2.53 | `_3-xTPO9u`（itemWrapper） | **误伤**：13 秒开 21 次页面 |
+| v2.54 | 3 分钟冷却 | 不实用（无法测试） |
+| v2.55 | 一次会话一次 | 不实用（限制使用） |
+| v2.56 | 拦截 take_coupon 判断成功 | 仍误点链接 |
+
+**根本原因**：始终拿不到准确的 DOM 结构。
+- 「选我」按钮是图片（JS 里搜不到文本）
+- 福袋容器 class 与实际渲染不符
+- 每次靠猜测，猜错就误伤
+
+**处置**：整段移除（参数 `lucky_3of1`、`injectLucky3of1`、测试用例）。
+`Argument`: 23 → 22。
+
+**保留**（均已真机验证）：
+- 普通福袋自动关闭（`lucky_close`）
+- 点亮自动倒计时（`lightup_auto`）
+- CSS 动画压制（`no_anim`）
+
+---
+
+## v2.48（2026-10-28）
 
 ### 三选一福袋自动选中间
 

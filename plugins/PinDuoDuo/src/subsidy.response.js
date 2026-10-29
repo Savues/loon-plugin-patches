@@ -433,139 +433,6 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.56：三选一福袋自动选中间（拦截 take_coupon 判断成功）
-// ---------------------------------------------------------------------------
-// 抓包实证：v2.53 的点击其实成功了（code:0，coupon "0.66元现金"）。
-// 真正的问题是：领取成功后 JS 无法感知 → 页面 refreshPage() 刷新
-// → 又找到三个福袋 → 又点 → 循环刷新 15 次。
-//
-// 本版拦截 XHR / fetch，检测 lucky-bag/take_coupon 响应：
-//   · code === 0（领取成功）→ 写入 sessionStorage 'pdd_3of1_done'
-//   · 之后不再点（页面刷新后标记仍在 → 不循环）
-//   · 杀 App 重开 = 新会话 → 标记清空 → 可以正常再领
-//   · 领取失败不标记 → 下次还能重试
-//
-// 这样既没有时间冷却，也不会无限循环。
-const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
-  if (window.__pddLucky3of1) return;
-  window.__pddLucky3of1 = 1;
-
-  var ITEM = '_3-xTPO9u';
-  var LIST = '_1oeojQOY';
-  var DONE_KEY = 'pdd_3of1_done';
-  var API = 'lucky-bag/take_coupon';
-
-  var dbg = null;
-  function show(txt) {
-    try {
-      if (!dbg) {
-        dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;left:4px;bottom:110px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;' +
-          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre';
-        (document.body || document.documentElement).appendChild(dbg);
-      }
-      dbg.textContent = txt;
-    } catch (e) {}
-  }
-  function isDone() { try { return sessionStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; } }
-  function markDone() { try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {} }
-
-  // ---- 拦截 XHR ----
-  try {
-    var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.open = function (m, u) { this.__pddUrl = u; return XO.apply(this, arguments); };
-    XMLHttpRequest.prototype.send = function () {
-      var self = this;
-      try {
-        self.addEventListener('load', function () {
-          try {
-            if (!self.__pddUrl || String(self.__pddUrl).indexOf(API) < 0) return;
-            var j = JSON.parse(self.responseText);
-            if (j && j.success && j.result && j.result.code === 0) markDone();
-          } catch (e) {}
-        });
-      } catch (e) {}
-      return XS.apply(this, arguments);
-    };
-  } catch (e) {}
-
-  // ---- 拦截 fetch ----
-  try {
-    if (window.fetch) {
-      var OF = window.fetch;
-      window.fetch = function (input, init) {
-        var url = (typeof input === 'string') ? input : (input && input.url) || '';
-        return OF.apply(this, arguments).then(function (resp) {
-          try {
-            if (String(url).indexOf(API) >= 0) {
-              resp.clone().json().then(function (j) {
-                if (j && j.success && j.result && j.result.code === 0) markDone();
-              }).catch(function () {});
-            }
-          } catch (e) {}
-          return resp;
-        });
-      };
-    }
-  } catch (e) {}
-
-  // ---- 主循环 ----
-  setInterval(function () {
-    try {
-      var items = document.querySelectorAll('.' + ITEM);
-      if (items.length === 0) { show('3of1 items=0'); return; }
-      if (isDone()) { show('3of1 items=' + items.length + ' 已领取(重启App重置)'); return; }
-
-      show('3of1 items=' + items.length + ' ready');
-      if (items.length !== 3) return;
-
-      var arr = Array.prototype.slice.call(items);
-      var lists = document.querySelectorAll('.' + LIST);
-      var sameList = false;
-      for (var i = 0; i < lists.length; i++) {
-        if (arr.filter(function (el) { return lists[i].contains(el); }).length === 3) { sameList = true; break; }
-      }
-      if (!sameList) return;
-
-      var ok = arr.every(function (el) {
-        var r = el.getBoundingClientRect();
-        return r.width > 30 && r.height > 30;
-      });
-      if (!ok) return;
-
-      var pos = arr.map(function (el) { return Math.round(el.getBoundingClientRect().left); });
-      arr.sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
-      var mid = arr[1];
-      if (!mid) return;
-
-      show('3of1 CLICK lefts=' + pos.join(','));
-
-      var r = mid.getBoundingClientRect();
-      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      try { mid.click(); } catch (e) {}
-      try {
-        var t = document.elementFromPoint(cx, cy) || mid;
-        ['mousedown', 'mouseup', 'click'].forEach(function (type) {
-          t.dispatchEvent(new MouseEvent(type, {
-            bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0
-          }));
-        });
-      } catch (e) {}
-    } catch (e) {}
-  }, 700);
-})();</script>`;
-const LUCKY_3OF1 = (A.lucky_3of1 === undefined || A.lucky_3of1 === null || A.lucky_3of1 === '')
-  ? true : on(A.lucky_3of1);
-
-function injectLucky3of1(body) {
-  if (!LUCKY_3OF1) return body;
-  if (body.indexOf('id="pdd-lucky-3of1"') !== -1) return body;   // 幂等
-  const i = body.indexOf('</body>');
-  if (i < 0) return body;
-  return body.slice(0, i) + LUCKY_3OF1_JS + body.slice(i);
-}
-
 function injectNoAnim(body) {
   if (!NO_ANIM) return body;
   if (body.indexOf('id="pdd-no-anim"') !== -1) return body;   // 幂等
@@ -705,7 +572,6 @@ try {
             body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLuckyClose(body);
-  body = injectLucky3of1(body);
   $done(body === $response.body ? {} : { body });
           };
           if (!need.length) { done(null); return; }
@@ -726,7 +592,6 @@ try {
   body = injectNoAnim(body);
   body = injectLightupAuto(body);
   body = injectLuckyClose(body);
-  body = injectLucky3of1(body);
   $done(body === $response.body ? {} : { body });
 } catch (e) {
   // 兜底：出错一律放行，绝不因脚本问题让百亿补贴页打不开
