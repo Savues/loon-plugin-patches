@@ -276,7 +276,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 | 键 | 原值 → 新值 | 含义 | 模块 |
 |----|------------|------|------|
-| `isOpeniOS` | `true` → `false` | **酒店业务 Pike 开关**（Pike = 美团 AB 实验平台）| `hotel_pike_switch` |
+| `isOpeniOS` | `true` → `false` | **酒店业务 Pike 开关**（Pike = 美团直播/房间长连接 SDK，非 AB 平台，见下方说明）| `hotel_pike_switch` |
 | `enableABTestWhitelist` | `true` → `false` | 播放器 AB 测试白名单 | `MTVodPlayer_SDK_Config` |
 
 **开发者测试（3 键）**
@@ -288,6 +288,32 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 | `bus_home_native_test` | `1` → `0` | 公交首页原生测试 | `traffic_bus_config` |
 
 > 本组基于**设备实际下发的 703KB 全量响应**扫描得出（此前基于 751KB 样本，模块集合略有差异）。
+
+**关于 Pike 的实证（原判断已修正）**
+
+初版文档把 Pike 写成「美团 AB 实验平台」，这是**没有证据的猜测，已推翻**。二进制实证（`meituan_strings.txt`）显示 Pike 是**直播 / 房间长连接 SDK**：
+
+```
+PikeLiveModuleServiceImpl                        ← PikeLive 模块服务
+-[CSCChatWindowContext pikePushReceiveMessage:]  ← 聊天窗口接收 Pike 消息
+-[CSCChatWindowViewModel pikeConnectionStatusChanged:forBizID:]
+%p joinPikeConnect is not working after calling leaveLiveRoom
+%p pike link fail - alias %@ , chatRoomId %lld   ← 聊天室 ID
+%p start pike:%p when becoming active - disablePike:%@
+%p pause leavePike:%d isSharing:%d
+!!! pike live config analyze exception !!!
+```
+
+所以：
+
+| 键 | 真实含义 |
+|----|---------|
+| `hotel_pike_switch.isOpeniOS` | **酒店业务的直播连接开关**（关掉 = 酒店页不建立直播房间连接）|
+| `mt_search_new_config.disable_live_pike` | 禁用搜索页的直播（**已覆盖，判断正确**）|
+| `enable_live_activity_pike` | 直播活动（**已覆盖，判断正确**）|
+| `dead_code_detector.ABPike` | 值为 `false`，未动 |
+
+> 结论：`isOpeniOS` 属于**功能开关**（酒店直播），不是广告/隐私/灰度开关。若不用酒店直播可保留关闭；若可能用到应移除该规则。
 
 **扫描时甄别掉的项目**
 
