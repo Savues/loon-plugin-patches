@@ -433,25 +433,27 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.55：三选一福袋自动选中间（一次会话只点一次）
+// v2.56：三选一福袋自动选中间（拦截 take_coupon 判断成功）
 // ---------------------------------------------------------------------------
-// v2.54 的 3 分钟冷却不实用；v2.53 无冷却会无限循环
-//（点福袋 → 弹窗关 → refreshPage → 刷新后又点）。
+// 抓包实证：v2.53 的点击其实成功了（code:0，coupon "0.66元现金"）。
+// 真正的问题是：领取成功后 JS 无法感知 → 页面 refreshPage() 刷新
+// → 又找到三个福袋 → 又点 → 循环刷新 15 次。
 //
-// 本版：一次会话只点一次。
-//   · sessionStorage 记录 'pdd_3of1_done'，页面刷新后仍然保留 → 不会循环
-//   · 杀 App 重开 = 新会话 → 自动重置，方便重测
-//   · 没有时间冷却，无需等待
+// 本版拦截 XHR / fetch，检测 lucky-bag/take_coupon 响应：
+//   · code === 0（领取成功）→ 写入 sessionStorage 'pdd_3of1_done'
+//   · 之后不再点（页面刷新后标记仍在 → 不循环）
+//   · 杀 App 重开 = 新会话 → 标记清空 → 可以正常再领
+//   · 领取失败不标记 → 下次还能重试
 //
-// 定位：Wr → <div className={Fr().itemWrapper}>  // _3-xTPO9u
-//       Fr = n(7591)：luckyBagListWrapper _1oeojQOY / itemWrapper _3-xTPO9u
+// 这样既没有时间冷却，也不会无限循环。
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
 
   var ITEM = '_3-xTPO9u';
   var LIST = '_1oeojQOY';
-  var DONE_KEY = 'pdd_3of1_done';   // 本次会话是否已点过（杀 App 重置）
+  var DONE_KEY = 'pdd_3of1_done';
+  var API = 'lucky-bag/take_coupon';
 
   var dbg = null;
   function show(txt) {
@@ -466,19 +468,54 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
       dbg.textContent = txt;
     } catch (e) {}
   }
-  function isDone() {
-    try { return sessionStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; }
-  }
-  function markDone() {
-    try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {}
-  }
+  function isDone() { try { return sessionStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; } }
+  function markDone() { try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {} }
 
+  // ---- 拦截 XHR ----
+  try {
+    var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (m, u) { this.__pddUrl = u; return XO.apply(this, arguments); };
+    XMLHttpRequest.prototype.send = function () {
+      var self = this;
+      try {
+        self.addEventListener('load', function () {
+          try {
+            if (!self.__pddUrl || String(self.__pddUrl).indexOf(API) < 0) return;
+            var j = JSON.parse(self.responseText);
+            if (j && j.success && j.result && j.result.code === 0) markDone();
+          } catch (e) {}
+        });
+      } catch (e) {}
+      return XS.apply(this, arguments);
+    };
+  } catch (e) {}
+
+  // ---- 拦截 fetch ----
+  try {
+    if (window.fetch) {
+      var OF = window.fetch;
+      window.fetch = function (input, init) {
+        var url = (typeof input === 'string') ? input : (input && input.url) || '';
+        return OF.apply(this, arguments).then(function (resp) {
+          try {
+            if (String(url).indexOf(API) >= 0) {
+              resp.clone().json().then(function (j) {
+                if (j && j.success && j.result && j.result.code === 0) markDone();
+              }).catch(function () {});
+            }
+          } catch (e) {}
+          return resp;
+        });
+      };
+    }
+  } catch (e) {}
+
+  // ---- 主循环 ----
   setInterval(function () {
     try {
       var items = document.querySelectorAll('.' + ITEM);
       if (items.length === 0) { show('3of1 items=0'); return; }
-
-      if (isDone()) { show('3of1 items=' + items.length + ' DONE(重启App重置)'); return; }
+      if (isDone()) { show('3of1 items=' + items.length + ' 已领取(重启App重置)'); return; }
 
       show('3of1 items=' + items.length + ' ready');
       if (items.length !== 3) return;
@@ -502,7 +539,6 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
       var mid = arr[1];
       if (!mid) return;
 
-      markDone();
       show('3of1 CLICK lefts=' + pos.join(','));
 
       var r = mid.getBoundingClientRect();
