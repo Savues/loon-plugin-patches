@@ -1,0 +1,275 @@
+# 美团 horn 远程配置清洗清单
+
+> 配套代码：`src/horn_clean.js` · 生效版本：v0.8.2（2026-10-29）
+> 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
+
+## 一、horn 是什么
+
+horn 是美团版「橙配」——全 App 的远程配置主干道，启动时下发 **169 个模块 / 约 1.1MB** 的配置，控制开屏、弹窗、悬浮窗、券弹层、小说广告、酒店营销等所有功能开关。
+
+**关键约束**：horn 是功能配置载体（支付/定位/IM/登录都靠它），**绝不能整体 reject**（会让 App 瘫痪），只能做**键级反转**。
+
+```
+请求  https://h.meituan.com/horn_ios?id=<deviceId>&version=v1
+       https://h.meituan.com/horn_ios/mergeRequest?...
+响应  ~700KB（h 域） / ~1.1MB（portal-portm 域）JSON
+处理  24 条等长正则，把广告/营销键的值反转，其余 95% 配置原样保留
+```
+
+**两种接口形态都要覆盖**（2026-10-29 真机 HAR 实证）：
+
+| 接口 | 场景 | 响应 |
+|------|------|------|
+| `horn_ios?id=...&version=v1` | 全量拉取 | 200 / 304（有缓存时）|
+| `horn_ios/mergeRequest?...` | 增量或冷启动全量 | 200，697KB / 1.1MB |
+
+> 304 = App 用本地缓存，脚本无法修改（无 body）。要让新规则生效需删本地缓存（见「五、强制重新下发」）。
+
+---
+
+## 二、清洗清单（86 个键 · 41 条规则）
+
+### ① 开屏族（3 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `com.meituan.retail.maicai_splash_hidden` | `false` → `true` | 买菜开屏隐藏 | retail |
+| `com.meituan.retail.splash_vap` | `true` → `false` | 开屏 VAP 动画 | retail |
+| `com.meituan.retail.splash_video_disabled` | `false` → `true` | 开屏视频禁用 | retail |
+
+### ② 弹窗族（7 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `com.meituan.retail.should_show_group_supermarket_guide_popup` | `"true"` → `"false"` | 闪购超市引导弹窗 | retail |
+| `pt_business_mine_popup_enable` | `true` → `false` | 我的页弹窗 | — |
+| `general_popup_enable` | `true` → `false` | 通用弹窗总开关 | — |
+| `popup_service_switch` | `true` → `false` | 弹窗服务开关 | `met_popup_service_switch` |
+| `sharkpush_MTPushPopupMessage` | `true` → `false` | 推送弹窗消息 | — |
+| `rn_hotel_homepage_popup` | `true` → `false` | 酒店首页弹窗 | hotel |
+| `popupLimitStatus` | `true` → `false` | 弹窗频控状态 | `hotel_mt_domestic_mrn_switch` |
+
+### ③ 悬浮窗 / 浮层（9 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `floatWindowAB` | `true` → `false` | 悬浮窗 A/B 实验 | — |
+| `floatWindowMGC` | `true` → `false` | 悬浮窗（MGC）| — |
+| `channel_float_refresh_open` | `true` → `false` | 频道浮层刷新 | — |
+| `showTopFloatLayer_single` | `true` → `false` | 顶部浮层（单例）| — |
+| `msi_showFloatLayer_onMainThread` | `true` → `false` | 主线程浮层 | — |
+| `coupons_float_layer_get_sharedStorage` | `true` → `false` | 券浮层共享存储 | — |
+| `sharkpush_meishi_float_picasso` | `true` → `false` | 美食浮窗（Picasso）| — |
+| `gc_poidetail_float_video` | `true` → `false` | POI 详情浮动视频 | `MTVodPlayer_SDK_Config` |
+| `resolve_touch_matrix_and_hi_float_conflict` | `true` → `false` | 触摸矩阵与高浮层冲突处理 | `hotel_mt_domestic_mrn_switch` |
+
+### ④ 券 / 优惠弹层（10 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `head_coupon_ios` | `true` → `false` | 券头（iOS）| — |
+| `head_coupon_layer_ios` | `true` → `false` | 券弹层（iOS）| — |
+| `coupon_dialog_is_open_by_url` | `true` → `false` | URL 唤起券弹窗 | — |
+| `receiveCoupon` | `true` → `false` | 领券入口 | — |
+| `iOS_enableHostSendCoupon` | `true` → `false` | 宿主发放优惠券 | phoenix |
+| `findCouponUpgradeEnable` | `true` → `false` | 找券升级 | — |
+| `enable_coupon_detail_pre_request` | `true` → `false` | 券详情预请求 | — |
+| `mrn_voucher_list` | `true` → `false` | 券列表页 | `mt_food_ios_config` |
+| `order_voucherlist_isEnabled` | `true` → `false` | 订单页券列表 | `hotel_mrn` |
+| `mrn_hotel_coupon_detail_page` | `true` → `false` | 酒店券详情页 | `hotel_mt_domestic_mrn_switch` |
+
+### ⑤ 横幅（7 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `benefit_banner_animation` | `true` → `false` | 权益横幅动画 | `traffic_skeleton_config` |
+| `cashback_banner_enable` | `true` → `false` | 返现横幅 | — |
+| `traffic_platform_banner_switch` | `true` → `false` | 流量平台横幅 | `tak_traffic_homepage` |
+| `open_banner_optimized` | `true` → `false` | 横幅优化实验 | — |
+| `updateNewMliveBanner` | `true` → `false` | 直播新横幅 | — |
+| `is_fix_banner_promotion` | `true` → `false` | 固定推广横幅 | — |
+| `enable_city_commerce_activity` | `true` → `false` | 城市商业活动 | — |
+
+### ⑥ 小说阅读器广告（8 键，数值 `1` → `0`）
+
+模块：`readerMSCToMRN`
+
+| 键 | 含义 |
+|----|------|
+| `adPageBanner` | 章节页横幅 |
+| `adParaEnd` | 段末广告 |
+| `adInsertPage` | 插页广告 |
+| `adChapterUnLock` | 章节解锁广告 |
+| `adChapterEnd` | 章节末广告 |
+| `adParaGoldCoin` | 段末金币 |
+| `openScreen` | 开屏（阅读器内）|
+| `fullScreen` | 全屏广告 |
+
+### ⑦ 引导 / 运营（14 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `recommend_guide_layer_switch` | `true` → `false` | 推荐引导层 | `mt_recommend_iOS_config` |
+| `iOS_enableShowDirectSaleGuide` | `true` → `false` | 直营引导 | phoenix |
+| `iOS_enableGuideComment` | `true` → `false` | 引导评论 | phoenix |
+| `guide_detail` | `true` → `false` | 引导详情 | `hotel_mt_overseas_mrn_switch` |
+| `guide_page_preload_result_page` | `true` → `false` | 引导页预载结果页 | — |
+| `enable_live_activity_pike` | `true` → `false` | 直播活动 | — |
+| `enableMannulReceiveOperational` | `true` → `false` | 手动领取运营奖励 | — |
+| `check_transparent_activity` | `true` → `false` | 透明活动检查 | `homepage_switches_v1` |
+| `show_anim_guide_cold_start` | `7` → `0` | 冷启动引导动画 | `pfb_second_floor_guide_config` |
+| `show_anim_guide_has_visit` | `14` → `0` | 引导动画（老访客）| 同上 |
+| `show_anim_guide_no_visit` | `7` → `0` | 引导动画（新访客）| 同上 |
+| `show_anim_guide_return_homepage` | `3` → `0` | 回首页引导动画 | 同上 |
+| `show_immersive_anim_guide_max_count` | `1` → `0` | 沉浸式引导最大次数 | 同上 |
+| `show_market_anim_guide_max_count` | `3` → `0` | 市集引导最大次数 | 同上 |
+
+### ⑧ 首页 / 位置引导（2 键，数值 → 0）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `homepage_travel_guide_cell` | `3` → `0` | 首页旅行引导位 | `MTVodPlayer_SDK_Config` |
+| `location_guide_daily_show_times` | `2` → `0` | 位置引导每日次数 | `pfb_homepage_address_config` |
+
+### ⑨ 推送（5 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `miaowaPush` | `true` → `false` | 秒哇推送 | `ptim_common_config` |
+| `metpush_categories_enable` | `true` → `false` | 推送分类 | `metpushservice_pushconfiguration` |
+| `iOS_enablePushFilterMultiple` | `true` → `false` | 多推送过滤 | phoenix |
+| `order_new_push_list` | `true` → `false` | 订单新推送列表 | `pfb_message_center_config` |
+| `sharkpush_MTPushPopupMessage` | `true` → `false` | 推送弹窗消息（同 ②）| — |
+
+### ⑩ 任务列表（2 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `gb_tasklist_mrn_on` | `true` → `false` | 任务列表（团购）| `ttk_grabticket_rn` |
+| `isGrabTaskListPikeOn` | `true` → `false` | 抢任务列表 | `ttk_pioneer_direct` |
+
+### ⑪ 酒店营销（9 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `mrn_hotel_deal_voucher_list` | `true` → `false` | 酒店特惠券列表 | `hotel_mt_domestic_mrn_switch` |
+| `mrn_hotel_order_fill_discount_list` | `true` → `false` | 订单填写折扣列表 | 同上 |
+| `mrn_hotel_order_fill_voucher_list` | `true` → `false` | 订单填写券列表 | 同上 |
+| `mrn_hotel_preload_poidetail_not_use_activity` | `true` → `false` | POI 详情预载（活动）| 同上 |
+| `mrn_hotel_promote_order_detail` | `true` → `false` | 推广订单详情 | 同上 |
+| `rn_hotel_deal_coupon_detail_enable` | `true` → `false` | 酒店特惠券详情 | `hotel_mrn` |
+| `rn_hotel_promote_orderdetail` | `true` → `false` | 推广订单详情（RN）| `hotel_mrn` |
+| `rn_hotel_homepage_tex_redpacket_enable` | `true` → `false` | 酒店首页红包 | `hotel_mt_domestic_mrn_switch` |
+| `rn_submit_order_discount_list_is_enable` | `true` → `false` | 提交订单折扣列表 | `hotel_mrn` |
+
+### ⑫ 广告系统（8 键，最关键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `ad_lingxi_config` | `true` → `false` | **灵犀广告配置**（美团广告投放系统）| `mt_ad_common_strategy` |
+| `use_midas_4_ad` | `true` → `false` | midas 广告上报 | `mt_food_ios_config` |
+| `midas_is_open_wm_params` | `true` → `false` | midas 外卖参数 | `mt_ad_common_strategy` |
+| `midas_mrnbridge_invokemsi_strategy` | `true` → `false` | midas MRN Bridge 策略 | 同上 |
+| `openKSAdapter` | `true` → `false` | **快手广告 SDK 适配器** | `mt_bb_ad_config` |
+| `babelReportSwitch` | `true` → `false` | 广告上报开关 | `mt_bb_ad_config` |
+| `forceRequestAdDependentInfo` | `true` → `false` | 强制请求广告依赖信息 | `mt_bb_ad_config` |
+| `interstitialUseBridge` | `true` → `false` | **插屏广告** | `mt_bb_ad_config` |
+
+### ⑬ 其他（3 键）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| `mt_clcad_search_keywords_monitor_switch_ios` | `true` → `false` | 搜索关键词监控（埋点）| `adp_pagasus_render_monitor` |
+| `disableMiddleNightCheckinStyle` | `false` → `true` | 夜间签到营销样式 | phoenix |
+| `disable_live_pike` | `false` → `true` | 搜索页直播入口 | `mt_search_new_config` |
+
+---
+
+## 三、保守未动的键（有歧义，说明理由）
+
+| 键 | 当前值 | 为什么不动 |
+|----|-------|-----------|
+| `popupLimitCount` | `3` | 是「弹窗数量限制」，改 0 可能被解释为「无限制」反而更糟 |
+| `floatLayerTime` | `3` | 浮层时间配置，改 0 语义不明 |
+| `bus_home_use_sharkpush_or_loop` | `2` | 模式选择（非开关）|
+| `is_open_monitor` | `true` | 监控埋点，关闭可能影响 App 稳定性判断 |
+| `pike` 系列（抢票/订单/火车票）| 多为 `true` | 是功能开关不是广告，动了会坏功能 |
+| `enableDspBlackList` | `true` | 开着是好事（DSP 黑名单生效），不能关 |
+| `MSCSpeedLaunch` / `iOS_enableNewLaunch` / `enablePreCreatePageForLaunch` | `true` | 启动性能优化，非广告 |
+
+---
+
+## 四、验证方法
+
+### 模拟器端到端（真实 horn 响应）
+
+```bash
+cd tools/loon-sim
+node cli.js run ../../plugins/Meituan-AdBlock/Meituan_remove_ads.lpx \
+  --url "https://h.meituan.com/horn_ios/mergeRequest" \
+  --phase response --response-file /tmp/horn_merge.json
+# 期望: 已修改 · 49 键变化 · JSON 合法 · 幂等（再跑一次 = 未修改）
+```
+
+### 真机验证（清数据冷启动后抓包）
+
+1. 清美团数据 → 冷启动（App 拉全量）
+2. 抓 HAR，检查 `horn_ios/mergeRequest` 响应
+3. 搜关键键（如 `ad_lingxi_config`）应为 `false`
+
+**2026-10-29 真机实证**：697KB（h 域）+ 1.1MB（portal-portm 域）双全量响应，10/10 关键键全部反转，沙盒 616 个落地配置验证一致。
+
+---
+
+## 五、强制重新下发（缓存问题）
+
+horn 全量请求带 `if-none-match`，本地有配置时服务器返回 304（无 body，脚本无法介入）。etag 不落盘（实测全沙盒搜不到），推测由本地配置内容运行时计算。
+
+**要让新规则重新下发，删除以下任一组合：**
+
+### 方案 A：彻底（推荐）
+
+```
+Documents/com.cipstorage.archiver/public/sakhorn/sak_horn_file_type_1/*.json   # 616 个模块配置
+Documents/com.cipstorage.archiver/public/cache/horn/*.bin                      # horn 元数据
+```
+
+代价：首次冷启动配置下发稍慢，功能无影响。
+
+### 方案 B：只删广告模块（最小）
+
+```
+1b615ce38e86376516a2c01c60ba3624.json   # mt_bb_ad_config（团购广告）
+346863f875f61a47c4e6276bc069cf89.json   # mt_ad_common_strategy（灵犀/midas）
+14873876a61191f2d8dfec698179cc76.json   # 插屏配置
+b01abd3e5d4a04fa9c4249aee766ebbe.json   # adp_pagasus 渲染监控
+```
+
+代价：几乎为零（App 只重新拉这几个模块）。
+
+---
+
+## 六、如何新增 / 回滚
+
+### 新增一个键
+
+1. 从 horn 响应里确认键名与当前值（`rg -o '"键名"\s*:\s*[^,}]+'`）
+2. 在 `src/horn_clean.js` 的 `REVERSES` 数组加一行：
+   ```js
+   [/("你的键名"\s*:\s*)true/g, '$1false'],
+   ```
+3. 数值型注意用 `[1-9]\d*`（避免重复匹配已改为 0 的值，保证幂等）
+4. 跑模拟器端到端验证（见「四」）
+5. 更新本文件与 README 版本历史
+
+### 回滚（误伤某功能）
+
+删除对应那一行规则即可，键反转完全可逆 —— 下次拉配置即恢复原值。
+
+---
+
+## 七、已知边界
+
+- **304 缓存**：有本地配置时服务器返回 304，脚本无 body 可改。需清缓存（见「五」）才能让新规则生效
+- **长连接配置**：部分模块配置走 TCP 长连接下发，HTTP 层不可达
+- **horn 之外的广告**：搜索框热搜/信息流数据（长连接）、原生写死的入口（如市集 tab）不在本清单范围
