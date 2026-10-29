@@ -1,6 +1,6 @@
 # 美团 horn 远程配置清洗清单
 
-> 配套代码：`src/horn_clean.js` · 生效版本：v0.8.2（2026-10-29）
+> 配套代码：`src/horn_clean.js` · 生效版本：v0.9.0（2026-10-29）
 > 命中接口：`h.meituan.com` / `portal-portm.meituan.com` 的 `horn_ios` 全量（`?id=`）与增量（`/mergeRequest`）
 
 ## 一、horn 是什么
@@ -27,7 +27,7 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 
 ---
 
-## 二、清洗清单（86 个键 · 41 条规则）
+## 二、清洗清单（99 个键 · 49 条规则）
 
 ### ① 开屏族（3 键）
 
@@ -183,6 +183,26 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 | `disableMiddleNightCheckinStyle` | `false` → `true` | 夜间签到营销样式 | phoenix |
 | `disable_live_pike` | `false` → `true` | 搜索页直播入口 | `mt_search_new_config` |
 
+### ⑭ 时长 / 频控 / 卡片（13 键 · v0.9.0 深度二次扫描新增）
+
+| 键 | 原值 → 新值 | 含义 | 模块 |
+|----|------------|------|------|
+| **`startup_picture_duration`** | `5` → `0` | **开屏启动图显示时长（5 秒 → 0）** | `homepage_switches_v1` |
+| `meituan_ios` | `true` → `false` | promo 列表 native→mrn 切换 | `gc_promo_list_native_to_mrn` |
+| `show_count_left` | `1` → `0` | 二层引导左卡展示次数 | `pfb_second_floor_guide_config` |
+| `show_count_right` | `3` → `0` | 二层引导右卡展示次数 | 同上 |
+| `hotel_rn_group_voucherlist_ios.isEnabled` | `true` → `false` | 酒店团购券列表页 | `hotel_rn_group_voucherlist_ios` |
+| `financeRepaymentCard.clickCount` | `1` → `0` | **金融还款卡**（借贷推广）| `pfb_module_frequency_control` |
+| `headUnitSmartCard.clickCount` | `2` → `0` | 头部智能卡 | 同上 |
+| `memberBirthdayCard.clickCount` | `3` → `0` | 会员生日卡（营销）| 同上 |
+| `ticketAttractionCard.clickCount` | `3` → `0` | 门票景点卡 | 同上 |
+| `chronicDiseaseDynamicCard.coldStartViewCount` | `3` → `0` | 慢病动态卡 | 同上 |
+| `travelPredictionCard.coldStartViewCount` | `7` → `0` | 旅行预测卡 | 同上 |
+| `remoteThemedCard.hourViewCount` | `3` → `0` | 远程主题卡（小时曝光）| 同上 |
+| `sendPopupRequestConfig.shouldSend` | `true` → `false` | 拼好饭小程序弹窗请求 | `pinhaofan_mp_common` |
+
+> 首页卡片频控的原理：`pfb_module_frequency_control` 里每个卡片有独立的曝光/点击次数上限，把上限改为 0 = 该卡片不再展示。**只影响营销卡片，不影响正常功能模块。**
+
 ---
 
 ## 三、保守未动的键（有歧义，说明理由）
@@ -196,6 +216,10 @@ horn 是美团版「橙配」——全 App 的远程配置主干道，启动时�
 | `pike` 系列（抢票/订单/火车票）| 多为 `true` | 是功能开关不是广告，动了会坏功能 |
 | `enableDspBlackList` | `true` | 开着是好事（DSP 黑名单生效），不能关 |
 | `MSCSpeedLaunch` / `iOS_enableNewLaunch` / `enablePreCreatePageForLaunch` | `true` | 启动性能优化，非广告 |
+| `anim_guide_showed_since_last_time_*` | `7`/`14` | 是**时间戳**不是次数 —— 改 0 会变成"1970 年展示过"，反而每次必现 |
+| `disableModalCache`（航班营销）| `false` | 语义是"禁用模态缓存"（性能），不是禁用营销 |
+| `pfb_homepage_t3_config.enabled` | `true` | 首页 t3 配置总开关，可能是核心渲染链路 |
+| `share_defined` | `true` | 分享功能，非广告 |
 
 ---
 

@@ -8,6 +8,7 @@
 //   pt_business_mine_popup_enable: true → false (我的页弹窗, 沙盒horn实证)
 // 2026-10-25 v0.8: 全量 169 模块 751KB 二次盘点, 补 29 个漏网键
 // 2026-10-25 v0.9: 广告系统模块深挖 (mt_ad_common_strategy/mt_bb_ad_config/adp_pagasus), 补 10 个
+// 2026-10-29 v0.9.0: 169 模块深度二次扫描 (开屏时长/promo/券列表/首页营销卡片频控/拼好饭弹窗), 补 13 个
 const REVERSES = [
   [/("com\.meituan\.retail\.should_show_group_supermarket_guide_popup"\s*:\s*)"?true"?/g, '$1"false"'],
   [/("com\.meituan\.retail\.maicai_splash_hidden"\s*:\s*)false/g, '$1true'],
@@ -74,6 +75,21 @@ const REVERSES = [
   [/("mt_clcad_search_keywords_monitor_switch_ios"\s*:\s*)true/g, '$1false'],
   // 夜间签到营销样式 + 搜索页直播 (false → true = 禁用)
   [/("(?:disableMiddleNightCheckinStyle|disable_live_pike)"\s*:\s*)false/g, '$1true'],
+  // --- v0.9.0: 169 模块深度二次扫描 (时长/频控/promo/券列表) ---
+  // 开屏启动图显示时长 (5 秒 → 0, 开屏停留归零; 若异常可改回 1)
+  [/("startup_picture_duration"\s*:\s*)[1-9]\d*/g, '$10'],
+  // promo 列表 native→mrn 切换 (美团 iOS 侧)
+  [/("meituan_ios"\s*:\s*)true/g, '$1false'],
+  // 二层引导左右展示次数
+  [/("show_count_(?:left|right)"\s*:\s*)[1-9]\d*/g, '$10'],
+  // 酒店团购券列表页
+  [/("hotel_rn_group_voucherlist_ios"\s*:\s*\{\s*"data"\s*:\s*\{\s*"customer"\s*:\s*\{\s*"isEnabled"\s*:\s*)true/g, '$1false'],
+  // 首页营销卡片频控 (pfb_module_frequency_control): 点击/曝光次数归零 = 不再展示
+  [/("(?:financeRepaymentCard|headUnitSmartCard|memberBirthdayCard|ticketAttractionCard)"[\s\S]{0,200}?"clickCount"\s*:\s*\{\s*"clickCount"\s*:\s*)[1-9]\d*/g, '$10'],
+  [/("(?:chronicDiseaseDynamicCard|travelPredictionCard)"[\s\S]{0,300}?"coldStartViewCount"\s*:\s*)[1-9]\d*/g, '$10'],
+  [/("remoteThemedCard"[\s\S]{0,300}?"hourViewCount"\s*:\s*)[1-9]\d*/g, '$10'],
+  // 拼好饭小程序弹窗请求
+  [/("sendPopupRequestConfig"\s*:\s*\{\s*"shouldSend"\s*:\s*)true/g, '$1false'],
 ];
 
 let body = $response.body;
