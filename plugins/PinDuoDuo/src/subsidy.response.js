@@ -433,14 +433,14 @@ function injectLuckyClose(body) {
   return body.slice(0, i) + LUCKY_CLOSE_JS + body.slice(i);
 }
 
-// v2.51：三选一福袋 —— 只探测不点击（紧急止损）
+// v2.52：三选一福袋 —— 探测 background-image（只读）
 // ---------------------------------------------------------------------------
-// v2.50 误伤：探测「同一行三个尺寸相近的 img」在商品列表里也满足，
-// 点了之后跳到 promotion_op.html（用户反馈「自动进入不相干的页面」）。
+// v2.51 诊断显示 no 3-in-row，但截图里三个福袋明显横向排列。
+// 原因：福袋图不是 <img>，而是 background-image（JS 里 style:{backgroundSize:"100% 100%"}）。
 //
-// 本版【完全不点击】，只在左下角标签输出候选元素的特征：
-//   w=宽度  src=图片URL前40字符  cls=class  par=父元素class
-// 用户触发三选一后截图，我据此写精确匹配规则。
+// 本版同时检查 img.src 和 getComputedStyle().backgroundImage，
+// 输出「同一行三个尺寸相近」元素的 class + 图片 URL 片段。
+// 【仍然不点击】，只诊断。
 const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   if (window.__pddLucky3of1) return;
   window.__pddLucky3of1 = 1;
@@ -450,9 +450,9 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
     try {
       if (!dbg) {
         dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;left:4px;bottom:120px;z-index:2147483647;' +
-          'background:rgba(0,0,0,.88);color:#0f0;font:10px/1.3 monospace;' +
-          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:96vw;overflow:hidden';
+        dbg.style.cssText = 'position:fixed;left:4px;bottom:110px;z-index:2147483647;' +
+          'background:rgba(0,0,0,.9);color:#0f0;font:10px/1.28 monospace;' +
+          'padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;max-width:97vw;overflow:hidden';
         (document.body || document.documentElement).appendChild(dbg);
       }
       dbg.textContent = txt;
@@ -462,49 +462,58 @@ const LUCKY_3OF1_JS = `<script id="pdd-lucky-3of1">(function(){
   function cls(el) {
     if (!el) return '-';
     var c = (el.className || '') + '';
-    return c ? c.slice(0, 24) : el.tagName;
+    return c ? c.slice(0, 22) : el.tagName;
   }
-  function shortSrc(u) {
-    u = u || '';
+  function name(u) {
+    u = (u || '').replace(/^url\\(["']?/, '').replace(/["']?\\)$/, '');
     var i = u.lastIndexOf('/');
-    return i >= 0 ? u.slice(i + 1).slice(0, 34) : u.slice(0, 34);
+    return i >= 0 ? u.slice(i + 1).slice(0, 30) : u.slice(0, 30);
   }
 
-  // 找「同一行、尺寸相近」的 3 个 img —— 只输出，不点
-  function probe() {
-    var imgs = document.querySelectorAll('img');
-    var cands = [];
-    for (var i = 0; i < imgs.length; i++) {
-      var im = imgs[i];
-      var r = im.getBoundingClientRect();
-      if (r.width < 60 || r.height < 60) continue;
-      if (r.top < 0 || r.top > window.innerHeight) continue;
-      cands.push({ el: im, r: r });
-    }
-    if (cands.length < 3) return null;
-    for (var a = 0; a < cands.length; a++) {
-      var row = cands.filter(function (c) { return Math.abs(c.r.top - cands[a].r.top) < 30; });
-      if (row.length === 3) {
-        row.sort(function (x, y) { return x.r.left - y.r.left; });
-        var ws = row.map(function (c) { return c.r.width; });
-        if (Math.max.apply(null, ws) / Math.min.apply(null, ws) < 1.6) return row;
+  // 收集「有图片」的元素：img.src 或 background-image
+  function collect() {
+    var out = [];
+    var els = document.querySelectorAll('div,img,span,a,li');
+    var n = Math.min(els.length, 4000);
+    for (var i = 0; i < n; i++) {
+      var el = els[i];
+      var r = el.getBoundingClientRect();
+      if (r.width < 50 || r.height < 20) continue;
+      if (r.top < 0 || r.bottom > window.innerHeight) continue;
+      var u = '';
+      if (el.tagName === 'IMG') u = el.currentSrc || el.src || '';
+      if (!u) {
+        try {
+          var bg = getComputedStyle(el).backgroundImage || '';
+          if (bg && bg !== 'none') u = bg;
+        } catch (e) {}
       }
+      if (!u) continue;
+      out.push({ el: el, r: r, u: u });
     }
-    return null;
+    return out;
   }
 
   setInterval(function () {
     try {
-      var row = probe();
-      if (!row) { show('3of1: no 3-in-row'); return; }
-      var lines = ['3of1 ROW3 (readonly):'];
-      for (var i = 0; i < row.length; i++) {
-        var el = row[i].el;
-        lines.push(i + ' w=' + Math.round(row[i].r.width) +
-                   ' ' + shortSrc(el.currentSrc || el.src) +
-                   '\\n   cls=' + cls(el) + ' par=' + cls(el.parentElement));
+      var all = collect();
+      if (all.length < 3) { show('3of1: el=' + all.length + ' (<3)'); return; }
+      // 找同一行（y 差 < 25）三元素
+      for (var a = 0; a < all.length; a++) {
+        var row = all.filter(function (c) { return Math.abs(c.r.top - all[a].r.top) < 25; });
+        if (row.length !== 3) continue;
+        row.sort(function (x, y) { return x.r.left - y.r.left; });
+        var ws = row.map(function (c) { return c.r.width; });
+        if (Math.max.apply(null, ws) / Math.min.apply(null, ws) > 1.5) continue;
+        var lines = ['3of1 ROW3 readonly:'];
+        for (var i = 0; i < 3; i++) {
+          lines.push(i + ' w=' + Math.round(row[i].r.width) + ' h=' + Math.round(row[i].r.height) +
+                     ' ' + name(row[i].u) + '\\n  cls=' + cls(row[i].el));
+        }
+        show(lines.join('\\n'));
+        return;
       }
-      show(lines.join('\\n'));
+      show('3of1: el=' + all.length + ' no-row3');
     } catch (e) {}
   }, 900);
 })();</script>`;

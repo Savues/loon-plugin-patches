@@ -86,7 +86,7 @@ console.log('\n【10】v2.48 三选一福袋自动选中间注入');
 const t31 = run({ lucky_3of1: 'true' }, '<html><body>x</body></html>');
 t('默认注入 pdd-lucky-3of1', t31.body.includes('id="pdd-lucky-3of1"'));
 t('注入在 </body> 前', t31.body.indexOf('pdd-lucky-3of1') < t31.body.indexOf('</body>'));
-t('含只读探测逻辑', t31.body.includes('no 3-in-row') && t31.body.includes('readonly'));
+t('含只读探测逻辑', t31.body.includes('no-row3') && t31.body.includes('readonly'));
 t('lucky_3of1=false 不注入', PASSTHRU(run({ lucky_3of1: 'false', lucky_close: 'false', lightup_auto: 'false', lucky_3of1: 'false' }, '<html><body>x</body></html>')));
 
 done()
