@@ -14,7 +14,7 @@
  */
 (function () {
   var A = (typeof $argument === 'object' && $argument) ? $argument : {};
-  var DAYS = String(A.teenagerDialogInterval || '365');
+  var DAYS = String(A.teenagerDialogInterval || "0");
   var obj;
   try {
     obj = JSON.parse($response.body);
