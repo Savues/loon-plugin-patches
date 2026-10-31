@@ -76,9 +76,9 @@ t_pass=0; t_known=0; t_fail=0
 for f in "$PLUGINS"/*/test/*.test.mjs; do
   [ -f "$f" ] || continue
   name="$(basename "$(dirname "$(dirname "$f")")")/$(basename "$f")"
-  if timeout 60 node "$f" >/dev/null 2>&1; then t_pass=$((t_pass+1))
+  if timeout 60 node "$f" >/tmp/t.out 2>&1; then t_pass=$((t_pass+1))
   elif echo "$KNOWN_TEST_FAIL" | grep -qxF "$name"; then t_known=$((t_known+1)); echo "  ⚠️ 已知失败: $name"
-  else t_fail=$((t_fail+1)); echo "  ❌ 新失败: $name"; fi
+  else t_fail=$((t_fail+1)); echo "  ❌ 新失败: $name"; echo "----- OUTPUT $name -----"; tail -40 /tmp/t.out; echo "----- END -----"; fi
 done
 echo "  通过: $t_pass | 已知失败: $t_known | 新失败: $t_fail"
 [ "$t_fail" -eq 0 ] || { echo "❌ 插件单测出现新失败"; exit 6; }
