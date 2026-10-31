@@ -5,6 +5,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, '..', 'src', 'town_inject.response.js');
@@ -56,17 +57,32 @@ req.c = {
   } }
 };
 
-globalThis.window = globalThis;
-globalThis.self = globalThis;
-globalThis.webpackChunk_ali_pegasus_project_taocoin_home = { push: (c) => { if (c[2]) c[2](req); } };
-globalThis.document = { querySelectorAll: () => [] };
-globalThis.getComputedStyle = () => ({ opacity: '1' });
-globalThis.location = { search: '?hd_from=20261111home' };
+/* 在独立 vm 沙箱里跑注入代码：绝不动宿主的 setTimeout/fetch。
+   （v0.1.2 加了 beacon 的 fetch 调用后，改宿主全局 setTimeout 会让 node20 内置
+    undici 的 fastNowTimeout.refresh 拿到数字而崩溃 → CI 上必挂、node22 上侥幸不挂） */
 const queue = [];
-globalThis.setTimeout = (fn) => { queue.push(fn); return queue.length; };
-globalThis.setInterval = () => 0;
-
-new Function(payload)();
+const sandbox = {
+  console,
+  setTimeout: (fn) => { queue.push(fn); return queue.length; },
+  setInterval: () => 0,
+  clearTimeout: () => {},
+  clearInterval: () => {},
+  fetch: () => Promise.resolve({ ok: true }),
+  document: {
+    createElement: () => ({ style: {}, appendChild() {}, parentNode: null }),
+    body: { appendChild() {} },
+    documentElement: { appendChild() {} },
+    querySelectorAll: () => [],
+    querySelector: () => null
+  },
+  getComputedStyle: () => ({ opacity: '1' }),
+  location: { search: '?hd_from=20261111home' },
+  webpackChunk_ali_pegasus_project_taocoin_home: { push: (c) => { if (c[2]) c[2](req); } }
+};
+sandbox.window = sandbox;
+sandbox.self = sandbox;
+vm.createContext(sandbox);
+vm.runInContext(payload, sandbox);
 const flush = () => new Promise((r) => setImmediate(r));
 for (let i = 0; i < 4; i++) {
   const fn = queue.shift();
