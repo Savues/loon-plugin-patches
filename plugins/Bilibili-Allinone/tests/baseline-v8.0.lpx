@@ -1,4 +1,4 @@
-#!name=B站四合一(去广告+界面+空降+开屏) v8.0.2
+#!name=B站四合一(去广告+界面+空降+开屏) v8.0.3
 #!desc=Bilibili-Allinone: 四插件合体 — ①去广告+会员伪装+漫画净化(Bilibili-Dedup) ②首页标签页/底栏(Bilibili-UI) ③空降助手 SponsorBlock(Bilibili-Airborne) ④开屏节日定制(Splash-Festival)。参数 67 个按 tag 分组; ViewProgress 由 bundle 单管线处理(清洗+chronos 重签), 消除跨插件规则互抢。
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告,Bilibili,Allinone
@@ -7,7 +7,7 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Savues/loon-plugin-patches
 #!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/icon.png?v=2
-#!date=2026-10-26 05:20:00
+#!date=2026-10-27 02:10:00
 
 [Argument]
 # ======== 去广告 / 会员伪装 (原 Bilibili-Dedup v7.45) ========
@@ -91,7 +91,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.2")
+request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.0.3")
 
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 # 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
@@ -101,7 +101,8 @@ request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-s
 ^https:\/\/api\.bilibili\.com\/x\/push\/popup\/setting\? mock-response-body data-type=text status-code=200 data="{"code":0,"message":"OK","ttl":1,"data":{}}"
 ^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\? response-body-json-del data.common_equip
 ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\? mock-response-body data-type=text status-code=200 data="{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}"
-response if ${url} ~= /^https?:\/\/(grpc\.biliapi\.net|app\.bili(bili\.com|api\.net))\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$/i then response.body.mock("text", "AAAAAAIKAA==", 200, true)
+# [v8.0.3 实验] Teenagers/ModeStatus mock 已停用 — 透传服务端真实响应，用于逆向真实 UserModel 字段
+# 原规则: response.body.mock("text", "AAAAAAIKAA==", 200, true)
 ^https?:\/\/(app\.bili(bili\.com|api\.net)|grpc\.biliapi\.net)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$ mock-response-body data-type=text data="AQAAABQfiwgAAAAAAAIDAwAAAAAAAAAAAA==" mock-data-is-base64=true
 ^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.interface\.v1\.(Teenagers\/ModeStatus|Search\/DefaultWords)$ response-header-add grpc-status 0
 ^https:\/\/api\.bilibili\.com\/x\/pd-proxy\/tracker\? response-body-json-jq '.data[][]?="stun.chat.bilibili.com:3478"'
