@@ -8,6 +8,58 @@ nm 级符号检查可复现的客观事实。
 
 ---
 
+## [lcf-crypt] — 2026-11-01 · CCCrypt 拦截器（通用对称加密取证）
+
+**为什么做**
+B 站 memex 配置（`BFCMemexConfigPreferenceName.plist`）的值全是 base64 密文，
+需要拿到运行时密钥才能批量解密。静态穷举 6 种思路（80 万+ 候选）全部失败，
+故转向动态 hook。
+
+**做了什么**
+新增 `lcf-crypt.c`：用 dyld `__DATA,__interpose` 段替换 `CCCrypt`，
+原函数经 `dlsym(RTLD_NEXT, "CCCrypt")` 取得。落盘到
+`$HOME/Documents/lcf-crypt/crypt-<pid>.jsonl`，每行含：
+`op / alg / options / keyLength / key(hex) / iv(hex) / 密文(hex) / 明文(hex)`。
+过滤：仅 `op==1`（kCCDecrypt）且 `keyLength ∈ {16,24,32}` 且输入 ≤ 8 KB。
+
+**构建（iSH 交叉编译）**
+```sh
+SHIM=$(pwd)/shim
+clang --target=arm64-apple-ios15.0.0 -fPIC -O2 -fno-objc-arc \
+  -D__WCHAR_TYPE__=unsigned -nostdinc -isystem "$SHIM" -isystem /usr/include \
+  -include "$SHIM/compat.h" -o /tmp/lcf-crypt.o -c lcf-crypt.c
+/tmp/ld64.lld -dylib -arch arm64 -platform_version ios 15.0 16.0 \
+  -install_name @rpath/lcf-crypt.dylib -undefined dynamic_lookup -dead_strip -s \
+  -o lcf-crypt.dylib /tmp/lcf-crypt.o
+ldid -S lcf-crypt.dylib
+```
+
+**结果**
+产物 66 KB，`__DATA,__interpose` 段存在，`LC_CODE_SIGNATURE` + `LC_BUILD_VERSION` 齐备。
+
+**代价/教训：lld 硬依赖 libscudo，iSH 下必崩**
+Alpine `lld15` 的 `DT_NEEDED` 含 `libscudo.so`，而 scudo 在 iSH 初始化失败
+（`Error loading shared library libscudo.so: Out of memory`）。
+移除 scudo-malloc 会让 lld 报 `No such file`（硬依赖），无效。
+可行解 = **字节补丁 lld 副本**，把依赖名等长替换成真实 ELF：
+```sh
+cp /usr/bin/lld /tmp/ld64.lld
+python3 -c "
+p='/tmp/ld64.lld'; d=bytearray(open(p,'rb').read())
+i=d.find(b'libscudo.so'); d[i:i+11]=b'libssl.so.3'; open(p,'wb').write(d)"
+chmod +x /tmp/ld64.lld
+```
+`libgcc_s.so` 不可用（链接脚本 → `Exec format error`）；`libssl.so.3` 是真实 ELF。
+系统 `/usr/bin/lld` 不动。
+
+**已知限制**
+B 站无法注入（`LCAppInfo.plist` 有 `dontInjectTweakLoader` / `LCTweakLoaderCantInject`），
+本工具对 B 站无效；对其他 App 有效。
+
+详见 [RESEARCH-2026-11-01-teenagers.md](RESEARCH-2026-11-01-teenagers.md)。
+
+---
+
 ---
 
 ---
