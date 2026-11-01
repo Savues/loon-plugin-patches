@@ -1,3 +1,14 @@
+## v2.69（2026-11-01）
+
+### 新增开关：屏蔽首页直播购物补贴弹窗
+
+- 新脚本 `subsidy_popup.response.js`，挂 `api/aquarius/hungary/global/homepage`
+- 删除 `list` 中 module 前缀 `ddvideo_shopping_subsidy_payment` 的项（覆盖 v5/v6/v8 AB 变体）
+- 只删弹窗项，不 reject 接口（首页弹窗容器，reject 可能影响其他下发）
+- 弹窗实测内容：江苏专属补贴 ¥16.80 / 发放渠道 多多视频 / 下单可部分抵扣
+- 参数：`subsidy_popup`（默认开）
+- 测试：`test/subsidy_popup.test.mjs` 24 通过 0 失败
+
 ## v2.68（2026-10-29）
 
 ### HUD 位置可调 + 挂载点修正
