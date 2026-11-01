@@ -1,6 +1,7 @@
 name: loon-sim CI
 
 on:
+  workflow_dispatch:   # 允许手动触发（改 CI 配置本身不会命中下面的 paths，需要手动跑一次验证）
   push:
     paths: ['plugins/**', 'tools/loon-sim/**']
   pull_request:
@@ -11,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ② 历史问题回溯要 git show 老版本，浅克隆会让 3 项检查全部失效
       - uses: actions/setup-node@v4
         with:
           node-version: 20
