@@ -22,6 +22,17 @@ Airborne 的 `logLevel`（kokoryh 链）与 Dedup 同名同档 → 合一。合�
 - **chronos/**: 6 个自托管校验 zip（1×48 透明占位图 = 无降落伞图标），文件名=内容 md5。
 - **探针**: `loon-sim.probe/bilibili_allinone` → reject(200, 版本号)。
 
+## 空降助手（上游同步已冻结）
+
+`scripts/bilibili.airborne.js` 由 `patches/patch-airborne.py` 对上游
+[`kokoryh/Sparkle`](https://github.com/kokoryh/Sparkle) 打 16 处补丁生成。
+
+**2026-11-01 起停止跟进上游**：上游 dist 重建导致 11/16 锚点失效，且其 9.17.0+ 方案
+改走 `playerunite` 原生跳过（带历史记录被替换等副作用），对本仓库使用场景无收益。
+脚本冻结在 `Built at: 2026/10/9 20:50:34`。
+
+维护细节、重命名映射表、恢复步骤见 **[AIRBORNE.md](AIRBORNE.md)**。
+
 ## 验证
 
 - `tests/`: vip.test.mjs(66) / replay-splash.mjs(76) / replay-mine.js(3) / lpx-verify.mjs(基线 v8.0) / test-ii.js(11)

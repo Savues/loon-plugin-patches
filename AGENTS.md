@@ -22,6 +22,12 @@ sh tools/loon-sim/version-probe.sh <plugin.lpx              # ✅ 绿了才能�
 2. 上游 JavaScript 可改但必须本地化（拉取到 plugins/<Name>/src/ 后改 + README 记录改动与根因，勿直接引用上游 URL 改行为）——见 skill references/upstream-port.md
 3. 测试结论必须附证据（命令 + 输出）
 
+## 已封存 · 不要再动的项
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| `Bilibili-Allinone` 空降助手上游同步 | **2026-11-01 永久停止** | 上游 dist 重建导致 11/16 锚点失效；其 9.17.0+ 方案改走 `playerunite` 原生跳过且带副作用（历史记录被替换、不支持杜比视界），本仓库使用者仍在老客户端，跟进无收益。详见 [AIRBORNE.md](plugins/Bilibili-Allinone/AIRBORNE.md)。**不要提议重钉锚点，不要恢复 schedule。** |
+
 **取证手段按环境选**（选错会浪费大量时间）：
 
 | 环境 | 可用手段 | 能拿到 |
