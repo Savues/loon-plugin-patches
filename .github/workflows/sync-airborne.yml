@@ -1,9 +1,11 @@
 name: Sync Bilibili-Allinone (Airborne)
 
 on:
-  schedule:
-    # 每 6 小时一次，与 sync-blockads 错开 13 分钟
-    - cron: '30 */6 * * *'
+  # 定时同步已关闭（2026-11-01）：上游 10-30 重建 dist 后压缩器重命名，
+  # 11/16 个锚点失效；且上游 9.17.0+ 改走 playerunite 原生跳过（带副作用），
+  # 本仓库使用者仍在老客户端，无需跟进。想恢复只需取消下面两行注释。
+  # schedule:
+  #   - cron: '30 */6 * * *'
   workflow_dispatch:
     inputs:
       only_local:
