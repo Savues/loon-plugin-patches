@@ -1,5 +1,6 @@
 // 网络层重试的测试：假 $httpClient 前 N 次报错，看是否重试成功
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import assert from "node:assert";
 const SRC = readFileSync(new URL("../src/agentrouter.js", import.meta.url), "utf8");
 const CREATED = 1789048067;
@@ -48,9 +49,18 @@ function run({ failTimes = {}, statusFail = {} }) {
           quota: 348284948, used_quota: 1715052, created_at: CREATED } })), 1);
     },
   };
+  const sandbox = {
+    console,
+    // 插件内部的重试等待 delay(2000 * attempt) = 2s/4s/6s，
+    // 压到 0：测试验证的是「重试次数 + 最终通知」，不依赖真实时间。
+    // 用 vm 沙箱而不是劫持 globalThis.setTimeout（历史事故：污染宿主 undici）。
+    setTimeout: (fn) => setTimeout(fn, 0),
+    clearTimeout,
+    $argument, $loon, $persistentStore, $notification, $done, $httpClient,
+  };
+  vm.createContext(sandbox);
   const q = console.log; console.log = () => {};
-  new Function("$argument","$loon","$persistentStore","$notification","$done","$httpClient",SRC)
-    ($argument, $loon, $persistentStore, $notification, $done, $httpClient);
+  vm.runInContext(SRC, sandbox);
   console.log = q;
   return { ...out, counts, get notification() { return out.notification; },
     wait: () => new Promise((res) => { const t = () => (out.done ? res(out) : setTimeout(t, 10)); setTimeout(t, 10); }) };

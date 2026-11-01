@@ -11,6 +11,7 @@
  *   3. 服务端说没签到 → 不重试，立刻返回
  */
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import assert from "node:assert";
 
 // 天数会随时间变（真机那天是第 21 天，今天已经 25 天了），不能硬编码期望值。
@@ -78,9 +79,16 @@ function run({ logVisibleAt, checkedIn }) {
     },
   };
   // 脚本是异步的（run().catch().finally()），$done 在若干轮 setTimeout 之后才触发。
-  // eslint-disable-next-line no-new-func
-  new Function("$argument", "$loon", "$persistentStore", "$notification", "$done", "$httpClient", SRC)
-    ($argument, $loon, $persistentStore, $notification, $done, $httpClient);
+  // 沙箱内 setTimeout 压到 0：插件重试等待 delay(2000 * attempt) 不再真实等待，
+  // 测试验证的是「第几次查询能看到日志」，与真实时间无关。
+  const sandbox = {
+    console,
+    setTimeout: (fn) => setTimeout(fn, 0),
+    clearTimeout,
+    $argument, $loon, $persistentStore, $notification, $done, $httpClient,
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(SRC, sandbox);
   return {
     get logCalls() { return logCalls; },
     get notification() { return out.notification; },
