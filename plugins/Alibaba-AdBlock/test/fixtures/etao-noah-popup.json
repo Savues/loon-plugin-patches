@@ -1,0 +1,20 @@
+{
+  "api": "mtop.etao.noah.query",
+  "data": {
+    "assetResult": [
+      {
+        "resKey": "etao_dx_home_popup",
+        "asset": {
+          "assetId": "noah_test_1",
+          "fields": { "assetType": "lottie", "cartoonPositionId": "etao_home_v10_bigsale_body_section" }
+        },
+        "resMeta": { "resStyle": "POPUP", "pageName": "Page_MetaXHome", "width": 750, "height": 1628 },
+        "template": { "name": "etao_home_catch_civet_popup", "url": "https://example.invalid/civet.zip", "version": "41" }
+      }
+    ],
+    "extend": {},
+    "serverTime": 0
+  },
+  "ret": ["SUCCESS::调用成功"],
+  "v": "1.0"
+}

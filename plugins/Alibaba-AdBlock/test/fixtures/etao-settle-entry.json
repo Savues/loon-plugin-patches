@@ -1,0 +1,9 @@
+{
+  "api": "mtop.etao.fe.chaojisheng.draw.hongbao",
+  "data": {
+    "noticeType": "0",
+    "placeOrderUrl": "https://h5.m.taobao.com/awp/base/buy.htm?buyNow=false&openFrom=carts&isSettlementAlone=true&etaoSettleSource=weexCart&itemCount=1&buyParam=TEST_BUY_PARAM&exParams=%7B%22etaoRoutePageCode%22%3A%22v3%22%2C%22isBuyV2%22%3A%22true%22%7D"
+  },
+  "ret": ["SUCCESS::调用成功"],
+  "v": "1.0"
+}
