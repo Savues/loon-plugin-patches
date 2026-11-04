@@ -219,6 +219,109 @@ const CPS_RW = (function () {
   return v === true || v === 1 || v === 'true' || v === '1' || v === 'on' || v === 'ON';
 })();
 
+// v2.71：把「券后」这类价格前缀换成佣金文案
+// SSR 的 customData 与 API 的 item 都有 price_prefix_info + activity_price_word，
+// 实测同值；只改前者不足以让界面变化（前端读 activity_price_word）。
+function applyPrefix(o, text) {
+  let n = 0;
+  if (typeof o.price_prefix_info === 'string' && o.price_prefix_info !== text) {
+    o.price_prefix_info = text; n++;
+  }
+  if (typeof o.activity_price_word === 'string' && o.activity_price_word !== text) {
+    o.activity_price_word = text; n++;
+  }
+  return n;
+}
+
+// 百补搜索结果 API：{ items: [ {goods_id, link_url, price_prefix_info, ...} ] }
+// 与 HTML 分支共用 cpsCache / dtk，只是入口与字段名不同
+function handleSearchApi(body) {
+  let j;
+  try { j = JSON.parse(body); } catch (e) { $done({}); return; }
+  if (!j || typeof j !== 'object') { $done({}); return; }
+
+  // ① search_stub：删 expansion（原 stub.response.js 的 /search 职责，
+  //    Loon 同一 URL 只跑首个命中的 Script，故合并到这里）
+  let stubTouched = false;
+  if (on(A.search_stub) && Object.prototype.hasOwnProperty.call(j, 'expansion')) {
+    delete j.expansion; stubTouched = true;
+  }
+
+  if (!CPS_LB || !CPS_TOKEN || typeof $httpClient === 'undefined') {
+    $done(stubTouched ? { body: JSON.stringify(j) } : {}); return;
+  }
+  const items = Array.isArray(j.items) ? j.items : null;
+  if (!items || !items.length) {
+    $done(stubTouched ? { body: JSON.stringify(j) } : {}); return;
+  }
+
+  const order = [], seen = {};
+  for (const it of items) {
+    const gid = it && it.goods_id != null ? String(it.goods_id) : '';
+    if (!gid || seen[gid]) continue;
+    seen[gid] = 1;
+    if (order.length < CPS_BATCH) order.push(gid);
+  }
+  if (!order.length) {
+    $done(stubTouched ? { body: JSON.stringify(j) } : {}); return;
+  }
+
+  const cache = cacheLoad();
+  const map = {};
+  const need = [];
+  for (const gid of order) {
+    const cRec = cache[gid];
+    if (cacheFresh(cRec) && (!CPS_RW || cRec.l)) map[gid] = { rate: cRec.r, link: cRec.l || '' };
+    else need.push(gid);
+  }
+  hudStatsBump({ ca: order.length, ch: order.length - need.length });
+
+  const apply = (src) => {
+    let n = 0;
+    for (const it of items) {
+      const gid = it && it.goods_id != null ? String(it.goods_id) : '';
+      const ent = gid ? (src || {})[gid] : null;
+      if (!ent) continue;
+      const rate = ent.r != null ? ent.r : parseFloat(ent.rate);
+      if (!(rate > 0)) continue;
+      n += applyPrefix(it, '佣金' + fmtRate(rate) + '%');
+      if (CPS_RW && ent.link && typeof it.link_url === 'string'
+          && it.link_url.indexOf('duo_coupon_landing.html') !== 0) {
+        it.link_url = ent.link; n++;
+      }
+    }
+    return n;
+  };
+
+  const finish = (n) => {
+    $done((n || stubTouched) ? { body: JSON.stringify(j) } : {});
+  };
+
+  if (!need.length) { finish(apply(map)); return; }
+
+  cpsFetch(need, function (fetched) {
+    if (fetched) {
+      const now = Math.floor(Date.now() / 1000);
+      const ent = {};
+      for (const gid in fetched) {
+        cache[gid] = { r: fetched[gid].rate, l: fetched[gid].link || '', t: now };
+        if (fetched[gid].rate > 0) {
+          ent[gid] = { n: fetched[gid].name || '', p: fetched[gid].price || 0,
+                       r: fetched[gid].rate, a: fetched[gid].amt || 0, t: now };
+        }
+        map[gid] = { rate: fetched[gid].rate, link: fetched[gid].link || '' };
+      }
+      cacheSave(cache);
+      if (Object.keys(ent).length) {
+        const led = hudLedgerLoad() || {};
+        for (const gid in ent) led[gid] = ent[gid];
+        hudLedgerSave(led);
+      }
+    }
+    finish(apply(map));
+  });
+}
+
 function rewriteLink(g, ent) {
   if (!CPS_RW || !ent || !ent.link) return false;
   // 三种命名都要支持：snake_case（接口）/ camelCase（HTML rawData）/ 搜索页大写 URL
@@ -987,6 +1090,20 @@ try {
   let body = $response.body;
   if (!body) { $done({}); return; }
 
+  // ── 职责 4（v2.71）：百补搜索结果 API ──────────────────────
+  // 页面 tandy_vase.html 的 SSR 数据会被首屏/翻页的 /search API 覆盖，
+  // 只改 SSR 时界面仍是「券后」（2026-11-05 真机实证）。
+  // API items[] 是平铺结构：goods_id / link_url / price_prefix_info /
+  // activity_price_word（后两者实测 20/20 同值「券后」）。
+  {
+    const U = (typeof $request !== 'undefined' && $request && $request.url) ? String($request.url) : '';
+    if (U.indexOf('api.pinduoduo.com/search?') !== -1) {
+      if (U.indexOf('biz_id=brand_special_sale') !== -1) handleSearchApi(body);
+      else $done({});          // 普通搜索：本插件不管，立即放行
+      return;
+    }
+  }
+
   // ── 职责 1：搜索框去推广词（search_stub）──────────────────
   if (on(A.search_stub)) {
     const out = body
@@ -1087,16 +1204,25 @@ try {
                 // 精选页的前端都是 `W = BeforeTag.text || priceWord`，只改
                 // activityPriceWord 会被「只剩2天」这类标签完全盖住。
                 // v2.70：搜索页的前缀在 customData.price_prefix_info（"券后"）
+                // v2.71：customData.activity_price_word 与 price_prefix_info 实测同值，
+                //        前端读的是前者 → 两个都改（API item 同理，见 applyPrefix）
                 const bt = g.activityPriceWordBeforeTag;
                 if (bt && typeof bt === 'object') {
                   if (bt.text === text) continue;             // 幂等
                   bt.text = text;                             // 保留 type / tagExt
                   n++;
-                } else if (g.customData && typeof g.customData === 'object'
-                           && typeof g.customData.price_prefix_info === 'string') {
-                  if (g.customData.price_prefix_info === text) continue;
-                  g.customData.price_prefix_info = text;
-                  n++;
+                } else if (g.customData && typeof g.customData === 'object') {
+                  const cd = g.customData;
+                  if (typeof cd.price_prefix_info !== 'string'
+                      && typeof cd.activity_price_word !== 'string') {
+                    if (g.activityPriceWord === text) continue;
+                    g.activityPriceWord = text;
+                    n++;
+                  } else {
+                    const hit = applyPrefix(cd, text);
+                    if (!hit) continue;
+                    n += hit;
+                  }
                 } else {
                   if (g.activityPriceWord === text) continue;
                   g.activityPriceWord = text;

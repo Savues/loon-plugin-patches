@@ -1,3 +1,36 @@
+## v2.71（2026-11-04）
+
+### 修 v2.70 未生效：搜索页真正渲染源是 /search API
+
+**真机反馈**：v2.70 后搜索页仍显示「券后」。
+
+**取证**（HAR 对比）：
+- SSR 的 `buiSSRData.ssrListData.list` 里 `customData.price_prefix_info`
+  **确实已被改写**（14/20 变「佣金x.x%」，其余 6 个 dtk 无 rate 保持「券后」）
+- 但同一批商品另有：
+
+| 字段 | SSR 值 | API 值 |
+|---|---|---|
+| `price_prefix_info` | 佣金x.x%（已改） | 券后 |
+| **`activity_price_word`** | **券后（未改）** | **券后** |
+| `price_prefix_content.short.content` | 券后×17 / 秒杀×3 | 券后×19 / 秒杀×1 |
+
+- 页面首屏/翻页真正拿数据的是 `api.pinduoduo.com/search?...&biz_id=brand_special_sale`
+  （126KB，`items[]` 平铺 20 个商品），SSR 只是外壳
+- `activity_price_word` 与 `price_prefix_info` 原始值 20/20 同值 → 前端读的是前者
+
+**改动**：
+
+1. `applyPrefix()`：同时改 `price_prefix_info` + `activity_price_word`
+2. `handleSearchApi()`：新增 `/search` API 分支（`biz_id=brand_special_sale` 才处理），
+   共用 cpsCache / dtk，改 `price_prefix_info` / `activity_price_word` / `link_url`
+3. SSR 分支同步改 `customData.activity_price_word`
+4. `/search` 规则从 `stub.response.js` 迁到本脚本（Loon 同 URL 只跑首个命中的 Script），
+   原 `search_stub` 删 `expansion` 的职责一并合并
+5. `search_hotquery` 规则保持不变（仍走 stub.response.js）
+
+**不动 `price_prefix_content`**：里面混着「秒杀」，语义不同，误改会出错。
+
 ## v2.70（2026-11-04）
 
 ### 覆盖百补搜索结果页的佣金标识与转链
