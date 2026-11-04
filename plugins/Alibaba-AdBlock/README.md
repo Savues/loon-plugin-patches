@@ -1,6 +1,6 @@
 # Alibaba-AdBlock · 阿里系 App 通用去广告
 
-> **版本 v3.50.5** · 2026-10-29
+> **版本 v3.50.6** · 2026-11-05
 > 阿里系 App 去广告插件（淘宝 / 淘宝联盟 / 淘宝直播 / 闲鱼 / 天猫 / 淘宝特价版 / Moon 阿里妈妈）
 > 运行环境：Loon (iOS / iPadOS)
 
@@ -181,6 +181,7 @@ ms_tb-webb-widget-cloud_search_door_trending_nine_square_gridList@0.0.40.wlm   �
 
 | 版本 | 内容 | 验证 |
 |------|------|------|
+| **v3.50.6** | 🔴 **修复 Moon「我的」页打不开** —— `noah.wireless.config` 是 `bizScene` 驱动的**通用页面配置接口**（一淘开屏 `NOAH_SPLASH` 与 Moon「我的」`bizScene=UserCenter` 共用），不能当开屏专用接口整条拦。移除 `wireless.config`，保留 `noah.trigger`；开屏素材仍由 `noah.query` 响应清洗覆盖 | HAR 实证 ✅（UserCenter 配置连续 10 次被拦成 `{}` → 重试 169~216ms/次，页面卡死；补丁版模拟器不再命中，trigger 仍拦截）|
 | **v3.50.5** | 🔴 **撤销 `mtop.etao.fe.chaojisheng.draw.hongbao` 拦截** —— 它是一淘「前往结算」的入口接口（返回 `placeOrderUrl`，内含 `etaoRoutePageCode=v3`），拦成 `{}` 后 App 弹「人多拥挤，获取返利信息失败…」并退回旧 H5 结算页，付款按钮消失 | **真机确认 ✅**（`chaojisheng` 200/1251B → `order.build/5.0` root=`etaoBuyV3` → `buy_v3_submit_order` 正常渲染）|
 | **v3.50.4** | 一淘 NOAH 全屏弹窗（`etao_dx_home_popup` = 抓猫猫/下单挑战 lottie 1125×2436）未拦：过滤器只认 Moon 的 resKey 名单。已加入 blockResKeys（前缀匹配，兼容 `_v2` 等后缀）| HAR 实证（noah.query 2852B → 1646B，assetResult 清空）|
 | **v3.50.3** | 🔴 **撤销 `ossgw.alicdn.com` 整域拦截** —— 它是阿里**静态模板 CDN**（`rapid-oss-bucket/template_online/*`），不是埋点域。一淘结算页 154 个 dinamicx 组件中 **103 个**托管于此，付款按钮 `submitOrder_1`（`dinamicx$475$buysubmit` → `buy_submit_h5.js`）被整域 REJECT 后模板拉取失败，底部「提交订单」栏整条消失 | HAR + 模拟器实证 ✅ |
