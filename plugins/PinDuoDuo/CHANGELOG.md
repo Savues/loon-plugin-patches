@@ -1,3 +1,44 @@
+## v2.70（2026-11-04）
+
+### 覆盖百补搜索结果页的佣金标识与转链
+
+**问题**：进入「百补搜索结果」页（`tandy_vase.html?search_key=…&refer_page_name=subsidy_search_result`）
+后，商品既没有「佣金x.x%」也没有转链，HUD 正常。
+
+**根因（HAR 实证）**：该页商品不在 `tabStore`，而在
+
+```
+stores.store.buiSSRData.ssrListData.list     19/19 项
+```
+
+且字段全是 camelCase 变体，与常规百补页完全不同：
+
+| 含义 | 常规页 | 搜索页 |
+|---|---|---|
+| 商品 ID | `goodsId` | **`goodsID`** |
+| 链接 | `link_url` | **`linkURL`**（`goods.html?goods_id=…`） |
+| 价格（分） | `activityPrice` | **`rawPrice`** |
+| 价格前缀 | `activityPriceWord` = "券后" | **`customData.price_prefix_info`** = "券后" |
+
+`eachGoodsList()` 只遍历 `tabStore.*` → 该页 0 覆盖。
+
+**改动**：
+
+1. `eachGoodsList` 新增 `buiSSRData.ssrListData.list` 分支；
+   收集 store 时不再要求带 `tabStore`（搜索页只有 buiSSRData）
+2. `normSsrGoods()` 归一化：`goodsID`→`goodsId`、`rawPrice`→`activityPrice`
+   （原字段保留，改写必须写回前端真正读的字段）
+3. `rewriteLink()` 支持第三种 key `linkURL`
+4. 佣金文本写入新增分支：`customData.price_prefix_info`（"券后" → "佣金x.x%"）
+
+**验证**：
+
+- 真实 HAR HTML（380,095B，19 个商品）端到端：
+  请求 19 个 goods_id / 佣金前缀改写 19 处 / linkURL 转链 19 处 / 残留「券后」0
+- `test/search_page.test.mjs` 9 通过 0 失败（含幂等、开关、常规页回归）
+- `test/subsidy.test.mjs` 47 通过 0 失败
+- check：0 错误 0 警告
+
 ## v2.69（2026-11-01）
 
 ### 新增开关：屏蔽首页直播购物补贴弹窗

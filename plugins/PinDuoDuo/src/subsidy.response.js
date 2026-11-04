@@ -221,9 +221,10 @@ const CPS_RW = (function () {
 
 function rewriteLink(g, ent) {
   if (!CPS_RW || !ent || !ent.link) return false;
-  // 两种命名都要支持：snake_case（接口）与 camelCase（HTML rawData）
+  // 三种命名都要支持：snake_case（接口）/ camelCase（HTML rawData）/ 搜索页大写 URL
   const key = typeof g.link_url === 'string' ? 'link_url'
-            : (typeof g.linkUrl === 'string' ? 'linkUrl' : null);
+            : (typeof g.linkUrl === 'string' ? 'linkUrl'
+            : (typeof g.linkURL === 'string' ? 'linkURL' : null));
   if (!key) return false;
   const cur = g[key];
   if (cur.indexOf('duo_coupon_landing.html') === 0) return false;   // 幂等
@@ -321,9 +322,19 @@ function buildPriceRateMap(lists, map) {
 // 遍历所有 tab 的商品列表（兼容 store / stores / stores.store 三种形态）
 // v2.29：同时收集 tabStore.*GoodsInfoStore.goodsInfoMap（百补首页真正的渲染数据）
 //   key 形如 "BYBT_MAIN_693607160697"（前缀 + goodsId），值是商品对象
+// v2.70：新增百补搜索结果页 —— stores.store.buiSSRData.ssrListData.list
+//   字段全是 camelCase 变体：goodsID / linkURL / rawPrice（分）/ customData.price_prefix_info
+//   归一化到标准名供后续逻辑复用，原字段保留（改写必须写回原字段才生效）
+function normSsrGoods(g) {
+  if (!g || typeof g !== 'object') return false;
+  if (g.goodsId == null && g.goodsID != null) g.goodsId = g.goodsID;
+  if (g.activityPrice == null && g.rawPrice != null) g.activityPrice = g.rawPrice;
+  return g.goodsId != null;
+}
+
 function eachGoodsList(raw, fn) {
   const stores = [];
-  const pushStore = (st) => { if (st && typeof st === 'object' && st.tabStore) stores.push(st); };
+  const pushStore = (st) => { if (st && typeof st === 'object') stores.push(st); };
   if (raw && raw.store) pushStore(raw.store);
   if (raw && raw.stores) {
     if (Array.isArray(raw.stores)) {
@@ -343,7 +354,7 @@ function eachGoodsList(raw, fn) {
       }
     }
     // goodsInfoMap：值对象里没有 goodsId 字段，用 key 后缀反推
-    for (const sk in st.tabStore) {
+    for (const sk in (st.tabStore || {})) {
       const node = st.tabStore[sk];
       const gm = node && node.goodsInfoMap;
       if (!gm || typeof gm !== 'object') continue;
@@ -357,6 +368,14 @@ function eachGoodsList(raw, fn) {
         }
         if (g.goodsId != null) arr.push(g);
       }
+      if (arr.length) fn(arr);
+    }
+    // v2.70：百补搜索结果页的 SSR 商品列表
+    const sd = st.buiSSRData && st.buiSSRData.ssrListData;
+    const sl = sd && Array.isArray(sd.list) ? sd.list : null;
+    if (sl && sl.length) {
+      const arr = [];
+      for (const g of sl) if (normSsrGoods(g)) arr.push(g);
       if (arr.length) fn(arr);
     }
   }
@@ -1067,10 +1086,16 @@ try {
                 // v2.29：优先改 activityPriceWordBeforeTag.text —— 百补首页与
                 // 精选页的前端都是 `W = BeforeTag.text || priceWord`，只改
                 // activityPriceWord 会被「只剩2天」这类标签完全盖住。
+                // v2.70：搜索页的前缀在 customData.price_prefix_info（"券后"）
                 const bt = g.activityPriceWordBeforeTag;
                 if (bt && typeof bt === 'object') {
                   if (bt.text === text) continue;             // 幂等
                   bt.text = text;                             // 保留 type / tagExt
+                  n++;
+                } else if (g.customData && typeof g.customData === 'object'
+                           && typeof g.customData.price_prefix_info === 'string') {
+                  if (g.customData.price_prefix_info === text) continue;
+                  g.customData.price_prefix_info = text;
                   n++;
                 } else {
                   if (g.activityPriceWord === text) continue;
