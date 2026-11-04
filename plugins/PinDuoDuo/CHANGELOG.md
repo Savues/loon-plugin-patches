@@ -1,3 +1,57 @@
+## v2.73（2026-11-04）
+
+### 覆盖百补首页搜索框进入的搜索页（brand_activity_search_result.html）
+
+**页面**：`brand_activity_search_result.html?query=…&refer_page_sn=10015`
+（从百补首页搜索框进来，风格与首页一致；与 v2.70 的 `tandy_vase.html` 是两个不同页面）
+
+**调查结论**：
+
+1. 该 URL **没有任何 Loon 规则** → 脚本从未运行（HAR 里 `pdd-hud` 计数 0）
+2. 数据结构两层：
+   | 位置 | 现有代码 |
+   |---|---|
+   | `store.buiSSRData.ssrListData.list`（20 项，goodsID/linkURL/rawPrice/customData） | ✅ v2.70 已支持 |
+   | `store.commonGoodsInfoStoreUnderlineV3.goodsInfoMap`（20 项） | ❌ 未覆盖 |
+3. `goodsInfoMap` 的 key 是 `BYBT_SEARCH@<base64 refresh_sn>`，**不能**用
+   `_(\d+) 反推 goodsId；同级的 `goodsIdUnionIdMap` 是 `{goodsId: 同一个key}`，建反查表
+4. 页面**没有 SSR 商品卡片 DOM** —— 12 处「券后」全在 JSON 里（转义形式），
+   商品卡是客户端 JS 渲染 → 只需改数据，不需要 v2.72 的 DOM 字符串替换
+
+**前缀有 5 种**（实测 20 个商品）：
+
+| 前缀 | 数量 | 字段 |
+|---|---|---|
+| 今日疯抢 | 7 | `activity_price_word_before_tag.text` |
+| 本周热卖 | 7 | 同上 |
+| 仅一次 | 2 | 同上 |
+| 只剩2天 | 1 | 同上 |
+| 券后 | 3 | `activity_price_word` |
+
+每个商品只显示其中一种，优先级是 `before_tag.text || price_word`。
+
+**改动**：
+
+1. `.lpx` 规则正则加 `brand_activity_search_result`：
+   `(brand_activity_subsidy|brand_activity_search_result|tandy_vase)\.html\?`
+2. `eachGoodsList()` 新增 `commonGoodsInfoStoreUnderlineV3.goodsInfoMap` 分支，
+   用 `goodsIdUnionIdMap` 反查 goodsId（保留 `_(\d+) 作为兜底）
+3. `applyPrefix()` 增加 `activity_price_word_before_tag.text` 改写
+4. 前缀写入段重构为「一次全改」：`customData` + 自身 flat snake_case +
+   camelCase 老结构，避免一条链路漏改
+
+**验证**（真实 HAR HTML 453KB / 20 商品）：
+
+| 检查项 | 结果 |
+|---|---|
+| `activity_price_word` 改为佣金 | **40**（customData 20 + goodsInfoMap 20） |
+| 残留「券后」 | **0** |
+| `before_tag` 改为佣金 | 34（17 × 2 侧） |
+| `linkURL` 转链 | 20 |
+| dtk 调用 | 1 次 |
+
+`test/hub_search.test.mjs` 14 通过 0 失败（含 5 种前缀、幂等、开关、老结构回归）。
+
 ## v2.72（2026-11-04）
 
 ### 修首屏无佣金：SSR 直出的价格前缀是死文本

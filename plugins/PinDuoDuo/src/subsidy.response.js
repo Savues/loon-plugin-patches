@@ -230,6 +230,14 @@ function applyPrefix(o, text) {
   if (typeof o.activity_price_word === 'string' && o.activity_price_word !== text) {
     o.activity_price_word = text; n++;
   }
+  // v2.73：百补首页式前缀的优先级是 `before_tag.text || price_word`。
+  // 实测 20 个商品里：今日疯抢 7 / 本周热卖 7 / 仅一次 2 / 只剩2天 1 / 无标签 3。
+  // 有 before_tag 时前端只显示它，必须一起改，否则「券后」那 3 个能看到佣金、
+  // 其余 17 个仍无佣金。
+  const bt = o.activity_price_word_before_tag;
+  if (bt && typeof bt === 'object' && typeof bt.text === 'string' && bt.text !== text) {
+    bt.text = text; n++;
+  }
   return n;
 }
 
@@ -499,6 +507,33 @@ function eachGoodsList(raw, fn) {
     if (sl && sl.length) {
       const arr = [];
       for (const g of sl) if (normSsrGoods(g)) arr.push(g);
+      if (arr.length) fn(arr);
+    }
+    // v2.73：brand_activity_search_result.html（百补首页搜索框进来的搜索页）
+    //   store.commonGoodsInfoStoreUnderlineV3.goodsInfoMap
+    //   key 形如 "BYBT_SEARCH@<base64 refresh_sn>"，不能用 _(\d+)$ 反推；
+    //   同级的 goodsIdUnionIdMap 是 { goodsId: <同一个 key> }，建反查表即可。
+    const cgu = st.commonGoodsInfoStoreUnderlineV3;
+    if (cgu && typeof cgu === 'object' && cgu.goodsInfoMap && typeof cgu.goodsInfoMap === 'object') {
+      const gm = cgu.goodsInfoMap;
+      const rev = {};
+      const idm = cgu.goodsIdUnionIdMap;
+      if (idm && typeof idm === 'object') {
+        for (const gid in idm) rev[String(idm[gid])] = gid;
+      }
+      const arr = [];
+      for (const key in gm) {
+        const g = gm[key];
+        if (!g || typeof g !== 'object') continue;
+        if (g.goodsId == null) {
+          if (rev[key]) g.goodsId = rev[key];
+          else {
+            const m = String(key).match(/_(\d+)$/);
+            if (m) g.goodsId = m[1];
+          }
+        }
+        if (g.goodsId != null) arr.push(g);
+      }
       if (arr.length) fn(arr);
     }
   }
@@ -1226,28 +1261,21 @@ try {
                 // v2.70：搜索页的前缀在 customData.price_prefix_info（"券后"）
                 // v2.71：customData.activity_price_word 与 price_prefix_info 实测同值，
                 //        前端读的是前者 → 两个都改（API item 同理，见 applyPrefix）
-                const bt = g.activityPriceWordBeforeTag;
-                if (bt && typeof bt === 'object') {
-                  if (bt.text === text) continue;             // 幂等
-                  bt.text = text;                             // 保留 type / tagExt
-                  n++;
-                } else if (g.customData && typeof g.customData === 'object') {
-                  const cd = g.customData;
-                  if (typeof cd.price_prefix_info !== 'string'
-                      && typeof cd.activity_price_word !== 'string') {
-                    if (g.activityPriceWord === text) continue;
-                    g.activityPriceWord = text;
-                    n++;
-                  } else {
-                    const hit = applyPrefix(cd, text);
-                    if (!hit) continue;
-                    n += hit;
-                  }
-                } else {
-                  if (g.activityPriceWord === text) continue;
-                  g.activityPriceWord = text;
-                  n++;
+                // v2.73：一个商品可能有 5 种前缀（今日疯抢/本周热卖/仅一次/只剩2天/券后），
+                //        只显示其中一种 → 所有可能的字段一次全改，避免漏
+                let hit = 0;
+                if (g.customData && typeof g.customData === 'object') {
+                  hit += applyPrefix(g.customData, text);        // 嵌套形态
                 }
+                hit += applyPrefix(g, text);                     // flat snake_case（goodsInfoMap）
+                const bt = g.activityPriceWordBeforeTag;         // camelCase 老结构
+                if (bt && typeof bt === 'object' && typeof bt.text === 'string'
+                    && bt.text !== text) { bt.text = text; hit++; }
+                if (typeof g.activityPriceWord === 'string' && g.activityPriceWord !== text) {
+                  g.activityPriceWord = text; hit++;
+                }
+                if (!hit) continue;
+                n += hit;
               }
             }
             // 先改服务端预渲染的静态「券后」（首屏卡片是 SSR 死文本，改 rawData 不会重绘）
