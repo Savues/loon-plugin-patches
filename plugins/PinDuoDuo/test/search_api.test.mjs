@@ -76,11 +76,32 @@ const j2 = JSON.parse(r2.body)
 t('expansion 仍在', 'expansion' in j2)
 t('佣金仍改写', j2.items[0].activity_price_word === '佣金3.2%')
 
-console.log('\n【3】普通搜索（无 biz_id）→ 原样放行')
-const plainBody = mkBody()
+console.log('\n【3】无可识别商品的搜索 → 原样放行')
+// v2.74：入口不再按 biz_id 判断（主搜索 source=index 也走这里），
+// 改成按 items 里有没有可识别的商品结构判断
+const plainBody = JSON.stringify({ items: [{ foo: 'bar' }, { item_data: { other: 1 } }] })
 const r3 = run(ARG, PLAIN_URL, plainBody, RATES)
 t('未改动（$done({})）', r3.body === undefined, r3.body === undefined ? '' : '返回了 body')
 t('未请求大淘客', r3.httpN === 0, 'httpN=' + r3.httpN)
+
+console.log('\n【3b】主搜索 source=index（items[].item_data.goods_model）')
+const hubBody = JSON.stringify({ items: [
+  { item_type: 0, item_data: { goods_model: { goods_id: 111,
+      link_url: 'goods.html?goods_id=111', price_prefix_info: '限1件',
+      price_prefix_content: { short_price_prefix: { content: '券后' }, long_price_prefix: { content: '限1件' } } } } },
+  { item_type: 1, item_data: { goods_model: { goods_id: 222,
+      link_url: 'goods.html?goods_id=222', price_prefix_info: '秒杀价',
+      price_prefix_content: { short_price_prefix: { content: '秒杀' }, long_price_prefix: { content: '秒杀价' } } } } },
+] })
+const r3b = run(ARG, 'https://api.pinduoduo.com/search?source=index&pdduid=x', hubBody, RATES)
+const j3b = r3b.body ? JSON.parse(r3b.body) : null
+const g3b = j3b ? j3b.items.map((x) => x.item_data.goods_model) : []
+t('dtk 调用 1 次', r3b.httpN === 1, 'httpN=' + r3b.httpN)
+t('price_prefix_info 改 佣金3.2%', g3b[0] && g3b[0].price_prefix_info === '佣金3.2%', g3b[0] && g3b[0].price_prefix_info)
+t('short_price_prefix 也改（不跳过任何字段）', g3b[0] && g3b[0].price_prefix_content.short_price_prefix.content === '佣金3.2%')
+t('long_price_prefix 也改', g3b[0] && g3b[0].price_prefix_content.long_price_prefix.content === '佣金3.2%')
+t('第二个商品同样改写（rate 0.1 → 佣金0.1%）', g3b[1] && g3b[1].price_prefix_info === '佣金0.1%', g3b[1] && g3b[1].price_prefix_info)
+t('link_url 转链', !!(g3b[0] && g3b[0].link_url.indexOf('duo_coupon_landing') === 0))
 
 console.log('\n【4】HTML 页不受影响（无 rawData 时原样放行）')
 const r4 = run(ARG, 'https://m.pinduoduo.net/tandy_vase.html?x=1', '<html><body>hi</body></html>', RATES)

@@ -1,3 +1,53 @@
+## v2.74（2026-11-04）
+
+### 主搜索框的商品列表也加佣金（/search?source=index）
+
+**页面**：拼多多首页主搜索框搜索（Native 渲染，无 H5 页面）
+
+**数据**：`api.pinduoduo.com/search?source=index&pdduid=…`（约 90KB / 20 个商品）
+
+结构与百补搜索（`biz_id=brand_special_sale`）完全不同：
+
+```
+items[i] = { item_type, item_data: { goods_model: {…} } }     ← 主搜索（嵌套）
+items[i] = { goods_id, link_url, price_prefix_info, … }        ← 百补搜索（平铺）
+```
+
+原 `handleSearchApi` 只看平铺结构，且入口限定 `biz_id=brand_special_sale`，
+主搜索直接被 `$done({})` 放行 → 一直是「券后 / 限1件 / 秒杀价 / 新客」原样。
+
+**前缀字段（实测 20 个商品）**：
+
+| 字段 | 分布 |
+|---|---|
+| `goods_model.price_prefix_info` | 券后 7 / 限1件 7 / 秒杀价 5 / 新客 1 |
+| `price_prefix_content.short_price_prefix.content` | 券后 15 / 秒杀 5 |
+| `price_prefix_content.long_price_prefix.content` | 与 `price_prefix_info` 同值 |
+
+截图只能看到其中一种，**不能据此判定渲染源** —— 三个字段全部改写，不做取舍。
+
+**改动**：
+
+1. 入口不再按 `biz_id` 判断：`/search?` 全部交给 `handleSearchApi`，
+   由它按 items 结构自行识别；不认识的形态原样放行
+2. `handleSearchApi` 收集商品时兼容两种形态（平铺 / `item_data.goods_model`）
+3. 新增 `applyModelPrefix()`：`applyPrefix()` + 遍历 `price_prefix_content`
+   的所有子键，凡是带 `content` 字符串的一律替换
+4. `link_url` 转链逻辑共用（同样的 `goods.html?goods_id=` 格式）
+
+**验证**（真实 HAR 91,945B / 20 商品）：
+
+| 检查项 | 结果 |
+|---|---|
+| `price_prefix_info` 改为佣金 | **20** |
+| `short_price_prefix.content` 改为佣金 | **20** |
+| `long_price_prefix.content` 改为佣金 | **20** |
+| 残留（券后/限1件/秒杀价/新客/秒杀） | **0** |
+| `link_url` 转链 | 20 |
+| dtk 调用 | 1 次 |
+
+`test/search_api.test.mjs` 23 通过 0 失败（新增【3b】主搜索用例 7 条）。
+
 ## v2.73（2026-11-04）
 
 ### 覆盖百补首页搜索框进入的搜索页（brand_activity_search_result.html）

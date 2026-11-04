@@ -241,6 +241,25 @@ function applyPrefix(o, text) {
   return n;
 }
 
+// v2.74：主搜索列表（goods_model）的前缀字段更杂，不做取舍 —— 全部改。
+// 截图只能证明「限1件/秒杀价」这两个值在 price_prefix_info 上，
+// 不能证明 price_prefix_content.* 不是渲染源（不同商品/版本可能读不同字段）。
+// 遍历 price_prefix_content 的所有子键，凡是有 content 字符串的一律替换。
+function applyModelPrefix(g, text) {
+  let n = applyPrefix(g, text);
+  const pc = g.price_prefix_content;
+  if (pc && typeof pc === 'object') {
+    for (const k in pc) {
+      const node = pc[k];
+      if (node && typeof node === 'object' && typeof node.content === 'string'
+          && node.content !== text) {
+        node.content = text; n++;
+      }
+    }
+  }
+  return n;
+}
+
 // 百补搜索结果 API：{ items: [ {goods_id, link_url, price_prefix_info, ...} ] }
 // 与 HTML 分支共用 cpsCache / dtk，只是入口与字段名不同
 function handleSearchApi(body) {
@@ -263,9 +282,25 @@ function handleSearchApi(body) {
     $done(stubTouched ? { body: JSON.stringify(j) } : {}); return;
   }
 
-  const order = [], seen = {};
+  // v2.74：/search 有两种 items 形态（同一 URL 规则，靠结构区分）
+  //   A) 平铺 —— 百补搜索（biz_id=brand_special_sale）：items[i].goods_id
+  //   B) 嵌套 —— 主搜索框（source=index）：items[i].item_data.goods_model.goods_id
+  // 界面实测显示的是 goods_model.price_prefix_info（"限1件"/"秒杀价"），
+  // price_prefix_content.short_price_prefix 不是渲染源，故不改它。
+  const goods = [];
   for (const it of items) {
-    const gid = it && it.goods_id != null ? String(it.goods_id) : '';
+    if (!it || typeof it !== 'object') continue;
+    if (it.goods_id != null) { goods.push(it); continue; }
+    const gm = it.item_data && it.item_data.goods_model;
+    if (gm && typeof gm === 'object' && gm.goods_id != null) goods.push(gm);
+  }
+  if (!goods.length) {
+    $done(stubTouched ? { body: JSON.stringify(j) } : {}); return;
+  }
+
+  const order = [], seen = {};
+  for (const g of goods) {
+    const gid = g.goods_id != null ? String(g.goods_id) : '';
     if (!gid || seen[gid]) continue;
     seen[gid] = 1;
     if (order.length < CPS_BATCH) order.push(gid);
@@ -286,16 +321,16 @@ function handleSearchApi(body) {
 
   const apply = (src) => {
     let n = 0;
-    for (const it of items) {
-      const gid = it && it.goods_id != null ? String(it.goods_id) : '';
+    for (const g of goods) {
+      const gid = g.goods_id != null ? String(g.goods_id) : '';
       const ent = gid ? (src || {})[gid] : null;
       if (!ent) continue;
       const rate = ent.r != null ? ent.r : parseFloat(ent.rate);
       if (!(rate > 0)) continue;
-      n += applyPrefix(it, '佣金' + fmtRate(rate) + '%');
-      if (CPS_RW && ent.link && typeof it.link_url === 'string'
-          && it.link_url.indexOf('duo_coupon_landing.html') !== 0) {
-        it.link_url = ent.link; n++;
+      n += applyModelPrefix(g, '佣金' + fmtRate(rate) + '%');
+      if (CPS_RW && ent.link && typeof g.link_url === 'string'
+          && g.link_url.indexOf('duo_coupon_landing.html') !== 0) {
+        g.link_url = ent.link; n++;
       }
     }
     return n;
@@ -1153,8 +1188,10 @@ try {
   {
     const U = (typeof $request !== 'undefined' && $request && $request.url) ? String($request.url) : '';
     if (U.indexOf('api.pinduoduo.com/search?') !== -1) {
-      if (U.indexOf('biz_id=brand_special_sale') !== -1) handleSearchApi(body);
-      else $done({});          // 普通搜索：本插件不管，立即放行
+      // v2.74：不再只认 biz_id=brand_special_sale —— 主搜索框（source=index）
+      // 的响应结构完全不同（items[].item_data.goods_model），由 handleSearchApi
+      // 内部判断；不认识的形态原样放行。
+      handleSearchApi(body);
       return;
     }
   }
