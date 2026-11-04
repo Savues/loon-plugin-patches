@@ -1,3 +1,56 @@
+## v2.72（2026-11-04）
+
+### 修首屏无佣金：SSR 直出的价格前缀是死文本
+
+**真机反馈**（v2.71 后）：搜索页**首屏商品没有佣金**，下滑加载的新商品才有。
+这个「一半好一半坏」正好定位了两条链路的差别：
+
+| 链路 | 数据来源 | v2.71 状态 |
+|---|---|---|
+| 下滑加载的新卡片 | `/search` API → JS 动态渲染 | ✅ 已生效 |
+| **首屏卡片** | **SSR 直出的 HTML 文本** | ❌ 未生效 |
+
+首屏价格前缀在服务端就渲染成死文本：
+
+```html
+<span class="zlvRmSss">券后</span><span class="mgeHsFie">¥</span><span class="xZzDH4Sk">…</span>
+```
+
+改 `rawData` / API 的字段都不会让它重绘。
+
+**旧实现为什么一直没生效（v2.30~v2.71 的真实 BUG）**：
+
+`rewriteCouponTags()` 用「价格整数」做锚点：
+
+```js
+const ip = String(g.activityPrice || '').split('.')[0];   // activityPrice 单位是【分】
+rateByPrice["160"] = rate;                                 // 160
+RE = /…<span class="_2TFw6wKu">(\d+)<)/                    // DOM 里是【元】→ "1"
+```
+
+**160 vs 1 永远对不上** → 首屏 20 个商品一个都没改过。另外注释写的
+「只预渲染前 5 个商品」也不成立（实测 20 个全预渲染）。
+
+**新实现**：
+
+- `rewriteCouponTags(html, prefixList)`：按 DOM 顺序 ↔ 商品列表顺序一一对应
+  （实测 20 个前缀 span 与 `ssrListData.list` 20 项标题逐字匹配）
+- **数量不等则整体放弃** —— 宁可不改也不误伤
+- 正则只匹配「券后 / 抢券后 + 紧跟 ¥」，`秒杀` 等其他前缀天然不受影响
+- 不再硬依赖 CSS Modules 的 class 名（用 `[^"]*` 通配）
+- `buildPriceRateMap` → `buildSsrPrefixList`（按顺序生成目标文本）
+
+**验证**（真实 HAR，2026-11-05 抓包 380KB）：
+
+| 检查项 | 结果 |
+|---|---|
+| DOM 区「佣金x%」span | **20** |
+| DOM 区残留「券后」span | **0** |
+| rawData `price_prefix_info` 佣金 | 20 |
+| rawData `activity_price_word` 佣金 | 20 |
+
+`test/ssr_dom.test.mjs` 12 通过 0 失败（含数量不符放弃、秒杀不误伤、幂等）。
+
 ## v2.71（2026-11-04）
 
 ### 修 v2.70 未生效：搜索页真正渲染源是 /search API

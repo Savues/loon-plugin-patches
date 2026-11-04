@@ -391,35 +391,55 @@ function cpsFetch(ids, cb) {
 // 静态文本，不是 JSON 字段：
 //   <span class="zlvRmSss">券后</span><span class="mgeHsFie">¥</span>
 //   <span class="xZzDH4Sk"><span class="_2TFw6wKu">26</span>...
-// 实测只预渲染前 5 个商品，价格整数与 JSON activityPrice 完全同序。
-// 用「价格整数」做锚点替换，比按顺序稳。
-function rewriteCouponTags(html, rateByPrice) {
-  const RE = /(<span class="zlvRmSss">)券后(<\/span><span class="mgeHsFie">¥<\/span><span class="xZzDH4Sk"><span class="_2TFw6wKu">(\d+)<)/g;
-  let n = 0;
-  const out = html.replace(RE, function (m, head, tail, intPart) {
-    const rate = rateByPrice[intPart];
-    if (!(rate > 0)) return m;
-    n++;
-    return head + ('佣金' + fmtRate(rate) + '%') + tail;
-  });
+// v2.72：SSR 直出的价格前缀必须在 HTML 里替换 —— 改 rawData 不会重绘首屏
+// （下滑加载的新卡片由 JS 用 API 数据渲染，那条链路 v2.71 已通）。
+//
+// 旧实现（v2.30~v2.71）用「价格整数」做锚点，但 activityPrice 单位是【分】、
+// DOM 里是【元】，160 vs 1 永远对不上 → 首屏 20 个商品一个都没改过。
+//
+// 新实现：按 DOM 顺序 ↔ 商品列表顺序一一对应。实测搜索页 20 个前缀 span
+// 与 ssrListData.list 20 项逐字匹配（标题 4/4 全等），数量不等时整体放弃（宁可不改也不误伤）。
+function rewriteCouponTags(html, prefixList) {
+  if (!prefixList || !prefixList.length) return { html: html, n: 0 };
+  const RE = /<span class="([^"]*)">(券后|抢券后)<\/span>(<span class="[^"]*">¥<\/span>)/g;
+  const hits = [];
+  let m;
+  while ((m = RE.exec(html)) !== null) {
+    hits.push({ i: m.index, len: m[0].length, cls: m[1], text: m[2], rest: m[3] });
+  }
+  if (!hits.length || hits.length !== prefixList.length) return { html: html, n: 0 };
+  let out = '', last = 0, n = 0;
+  for (let k = 0; k < hits.length; k++) {
+    const h = hits[k];
+    const want = prefixList[k];
+    out += html.slice(last, h.i);
+    if (want && want.indexOf('佣金') === 0 && want !== h.text) {
+      out += '<span class="' + h.cls + '">' + want + '</span>' + h.rest;
+      n++;
+    } else {
+      out += html.slice(h.i, h.i + h.len);
+    }
+    last = h.i + h.len;
+  }
+  out += html.slice(last);
   return { html: out, n: n };
 }
 
-// 从商品列表建「价格整数 -> 佣金率」映射
-function buildPriceRateMap(lists, map) {
-  const out = {};
+// 按商品列表顺序生成 DOM 前缀的目标文本（有佣金 → 佣金x.x%，否则保留原值）
+function buildSsrPrefixList(lists, map) {
+  const arr = [];
   for (const lst of lists) {
     for (const g of lst) {
-      if (!g || typeof g !== 'object') continue;
-      const gid = g.goodsId != null ? String(g.goodsId) : '';
+      const gid = g && g.goodsId != null ? String(g.goodsId) : '';
       const ent = gid ? map[gid] : null;
-        const rate = ent ? ent.rate : 0;
-      if (!(rate > 0)) continue;
-      const ip = String(g.activityPrice || '').split('.')[0];
-      if (ip && !out[ip]) out[ip] = rate;
+      const rate = ent ? ent.rate : 0;
+      if (rate > 0) { arr.push('佣金' + fmtRate(rate) + '%'); continue; }
+      const cd = g && g.customData;
+      const p = cd && typeof cd.price_prefix_info === 'string' ? cd.price_prefix_info : '';
+      arr.push(p.indexOf('佣金') === 0 ? p : '');
     }
   }
-  return out;
+  return arr;
 }
 
 // 遍历所有 tab 的商品列表（兼容 store / stores / stores.store 三种形态）
@@ -1230,13 +1250,13 @@ try {
                 }
               }
             }
-            // 先改服务端预渲染的静态「券后」（前 5 个商品在 HTML 里，位于 rawData 之前）
+            // 先改服务端预渲染的静态「券后」（首屏卡片是 SSR 死文本，改 rawData 不会重绘）
             // ⚠️ 必须在 JSON 改写之前做：JSON 改写会改变 body 长度，p3.start 就失效了
             try {
-              const prMap = buildPriceRateMap(lists, map);
-              if (Object.keys(prMap).length) {
+              const prList = buildSsrPrefixList(lists, map);
+              if (prList.length) {
                 const seg = body.slice(0, p3.start);
-                const r2 = rewriteCouponTags(seg, prMap);
+                const r2 = rewriteCouponTags(seg, prList);
                 if (r2.n) body = r2.html + body.slice(p3.start);
               }
             } catch (e) { /* 静态改写失败不影响主流程 */ }
