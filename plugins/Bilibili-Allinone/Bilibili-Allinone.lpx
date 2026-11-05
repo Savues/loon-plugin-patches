@@ -1,4 +1,4 @@
-#!name=B站四合一(去广告+界面+空降+开屏) v8.2.0
+#!name=B站四合一(去广告+界面+空降+开屏) v8.2.1
 #!desc=Bilibili-Allinone: 四插件合体 — ①去广告+会员伪装+漫画净化(Bilibili-Dedup) ②首页标签页/底栏(Bilibili-UI) ③空降助手 SponsorBlock(Bilibili-Airborne) ④开屏节日定制(Splash-Festival)。参数 67 个按 tag 分组; ViewProgress 由 bundle 单管线处理(清洗+chronos 重签), 消除跨插件规则互抢。
 #!author=@Savues <https://github.com/Savues>
 #!tag=去广告,Bilibili,Allinone
@@ -93,7 +93,7 @@ AND,((DOMAIN-SUFFIX,chat.bilibili.com), (OR,((DOMAIN-KEYWORD,stun), (DOMAIN-KEYW
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.2.0")
+request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-sim\.probe\/bilibili_allinone/i then reject(200, "8.2.1")
 
 # 大会员伪装 / 推荐页去广告 / 关 P2P / 去付费 / 番剧页 / 开屏 等
 # 番剧首页 /pgc/page/ 由上面这条 jq 负责：bundle 内部 switch(gC.pathname) 只认
@@ -113,6 +113,8 @@ request if ${url} ~= /^https?:\/\/line3-h5-mobile-api\.biligame\.com\/gw\/loon-s
 ^https:\/\/app\.bilibili\.com\/x\/v2\/feed\/index\/story\? response-body-json-jq 'if .data.items then .data.items |= map(select((.ad_info == null) and (.card_goto | IN("vertical_ad_av", "vertical_ad_live", "vertical_ad_picture") | not)) | del(.story_cart_icon, .free_flow_toast, .image_infos, .course_info, .game_info)) end'
 
 [Script]
+# [实验] 删掉 param 里的 teenagers_mode_show_dialog_interval（键不存在 vs 值为0）
+http-response ^https?:\/\/app\.bili(bili\.com|api\.net)\/x\/v2\/param\? requires-body=1, script-path=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/Bilibili-Allinone/scripts/param-teenager.js
 # Teenagers/ModeStatus — 解析后把 mode=="teenagers" 那条的 policy.interval 去掉（=0）
 # 与全网通用做法一致（BiliUniverse / Keywos）：保留服务端真实的 mid/mode/status/#10/lessons，
 # 只动 policy.interval 一个字段；不再塞固定 mock blob。
