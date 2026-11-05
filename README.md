@@ -88,6 +88,7 @@ node selftest.js                                  # 内核自测 (46 项)
 | [Douban-Dedup](plugins/Douban-Dedup/) | 豆瓣开屏广告屏蔽 · **honue 原版纯移植，零改动**<br>Douban splash ad-block, honue original ported verbatim | **v3.0** |
 | [Douban-SearchAd](plugins/Douban-SearchAd/) | 豆瓣搜索页广告词屏蔽 · 与上一条互补 · 开关非绝对<br>Douban search-page ad-word stripping, complements the above | **v1.0** |
 | [Locally-HF-Swap](plugins/Locally-HF-Swap/) | Locally 换任意 HF 模型 · 改写下载 URL · 网络层已验证，App 端加载未解决<br>Locally model swap · URL rewrite · network layer verified, App-side load unresolved | **v1.6** ⚠️ |
+| [CtClient-AdBlock](plugins/CtClient-AdBlock/) | **中国电信去广告** · 12 处字段级清洗（首页营销位/信息流推荐/营销消息/我的页/卡片内嵌广告）+ 4 条纯广告接口拦截 · 开屏 Protobuf 不可达<br>China Telecom ad-block: 12 field-level cleaners + rewrite blocks; splash is Protobuf (unreachable) | **v1.0.0** 🆕 |
 
 ### 托管了脚本的插件
 

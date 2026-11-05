@@ -1,0 +1,53 @@
+#!name=中国电信去广告 v1.0.0
+#!version=1.0.0
+#!desc=中国电信 CtClient 13.5.0 去广告：清洗首页营销位(hotSelection)、套餐销售banner、信息流推荐广告、消息中心营销消息、首页AI卡推荐、我的页顶部广告、云监控/云盘/AI铃音/通信助理/出行/铃音生活卡片内嵌广告；拦截悬浮窗(suspendWindow/loginSuspendWindow/NotificationGuideDialog)与二进制常量区中 7 个纯广告接口。功能主干一律只清洗不 reject，首页九宫格 adList 与金刚位 compoundADSpace 保持原样；开屏走 Protobuf(GetSplashProtoRoot)不可达，小程序列表 capp 为密文，均在已知边界内。
+#!openUrl=https://apps.apple.com/app/id513836029
+#!author=@Savues <https://github.com/Savues>
+#!tag=去广告
+#!system=
+#!system_version=
+#!loon_version=3.5.1(998)
+#!homepage=https://github.com/Savues/loon-plugin-patches/tree/main/plugins/CtClient-AdBlock
+#!icon=https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/icon.png
+#!date=2026-11-05 21:00:00
+
+[Argument]
+homepageFloor = switch, true, false, tag=🏠首页-营销位, desc=清洗 queryHomepageMarketingFloor 的 hotSelection.advertisingListLeft/Right（实测 5+3 条：11.11限定/低价订酒店/合约机/出境漫游）；adList 九宫格与 sortList 不动
+homepageHotSelection = switch, true, false, tag=🏠首页-右侧精选, desc=上一条的细分开关：hotSelection 两侧推荐位
+homepageTariffBanner = switch, true, false, tag=🏠首页-套餐销售banner, desc=清空 packageAndNumberCard.tabList[].bottomBannerList（实测 3+1 条：5G-A套餐/5G畅享云套餐/卫星功能卡/精选好号）
+feedRecommendAd = switch, true, false, tag=📰信息流-推荐广告, desc=清空 getFeedList 卡片内 recommendAdBean.recommendAdList（实测 3/3/2 条：宽带新装/宽带专区/天翼出行）；feedList 本体与 topArea 保留
+marketingMessage = switch, true, false, tag=💬消息-营销消息流, desc=清空 queryMessageChannel 的 marketingMessageList(11条) 与 dynamicMessage.marketingMessageList(9条)；服务消息/实时事件不动
+aICardAd = switch, true, false, tag=🤖首页-AI卡推荐, desc=清空 queryHomepageAICard 的 digitalPersonCard.adList（6~7 条：充值100元/积分兑好礼）
+myChannelTopAd = switch, true, false, tag=👤我的-顶部广告条, desc=清空 queryMyChannelTop 的 topAdList（1~3 条）
+cardInnerAd = switch, true, false, tag=🧩我的-卡片内嵌广告, desc=清空云监控 noDeviceAdList / 云盘 unauthorizedData.adList / AI铃音 myCreation.adList / 通信助理 notOpenData.bottomAdList / 出行 hotelBean.topAdList / 铃音生活 adList
+
+[Rule]
+
+[MitM]
+hostname = appgoadsz.189.cn, appgoadhd.189.cn, appfuwusz.189.cn, appfuwuhd.189.cn, appkefusz.189.cn, appgosz.189.cn
+
+[Rewrite]
+# 版本探针 v2 (version-probe.sh 用, 勿删)
+request if ${url} ~= /^https?:\/\/appgoadsz\.189\.cn\/gw\/loon-sim\.probe\.ctclient_adblock/i then reject(200, "1.0.0")
+# ── 悬浮窗 / 登录悬浮 / 推送引导（实测均返回 data=null 或 []，App 有空响应容忍）──
+request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd|appgosz)\.189\.cn(?::\d+)?\/query\/(?:suspend\/suspendWindow|suspendWindowForQuery|suspendWindowForWap|suspendWindowV2|loginSuspendWindow)/i then reject_dict(200)
+request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd|appgosz)\.189\.cn(?::\d+)?\/query\/queryNotificationGuideDialog/i then reject_dict(200)
+
+# ── 纯广告接口（CTPocket 二进制常量区实证，本次未抓到响应样本）──
+# 名称即语义：compositeAd / mallPackageAd / serviceChannelAd / queryAdvertisingSpace /
+# queryCustomerAdvertising / qryNearConfigAdvertising / qryTraAdvertisingSpace
+# ⚠️ 未取证接口：若某页面（查询办理/商城/附近营业厅）出现白屏或空白区块，先注释本段再复测
+request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd|appgosz|appfuwusz|appfuwuhd|appkefusz)\.189\.cn(?::\d+)?\/query\/(?:advertising\/(?:compositeAd|mallPackageAd|serviceChannelAd)|queryAdvertisingSpace|queryCustomerAdvertising|qryNearConfigAdvertising|qryTraAdvertisingSpace)/i then reject_dict(200)
+
+[Script]
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd|appgosz)\.189\.cn(?::\d+)?\/query\/queryHomepageMarketingFloor/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${homepageFloor}, ${homepageHotSelection}, ${homepageTariffBanner}}) with requires_body=true, timeout=5, tag="首页营销位清洗"
+
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/getFeedList/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${feedRecommendAd}}) with requires_body=true, timeout=10, tag="信息流推荐广告清洗"
+
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/queryMessageChannel/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${marketingMessage}}) with requires_body=true, timeout=8, tag="营销消息流清洗"
+
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/queryHomepageAICard/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${aICardAd}}) with requires_body=true, timeout=5, tag="首页AI卡推荐清洗"
+
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/queryMyChannelTop/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${myChannelTopAd}}) with requires_body=true, timeout=5, tag="我的页顶部广告清洗"
+
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/(?:queryMyCloudMonitorCard|queryMyStorageCard|queryMyAiRingtoneCard|myCommunicationAssistantCard|myTravelCardNew|queryMyRingtoneAndLifeCard)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${cardInnerAd}}) with requires_body=true, timeout=8, tag="卡片内嵌广告清洗"
