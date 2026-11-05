@@ -165,44 +165,38 @@ node cli.js check CtClient-AdBlock.lpx
 
 ---
 
-## 八、证书校验边界（v1.0.2 实测定性）
+## 八、与 Loon「抓包」的冲突（v1.1.0 更正）
 
 ### 现象
 
-正式环境启用本插件后，App 首页/查询办理等页面全部「数据加载失败」，弹出：
+| 状态 | 结果 |
+|---|---|
+| 插件启用 + **抓包关闭** | ✅ **正常工作**（实测 v1.0.2：首页信息流里的「宽带新装 / 天翼出行」推荐位消失） |
+| 插件启用 + **抓包开启** | ❌ App 报「您可能正在连接到一个伪装成 appgoadsz.189.cn 的服务器」并断网 |
+| 插件禁用 | 一切正常，广告回来 |
 
-```
-您可能正在连接到一个伪装成“appgoadsz.189.cn”的服务器
-```
+### 更正说明
 
-同一台设备、同一 App、同一 Loon，在 **Live Container 里却完全正常**（62 条 appgoadsz 请求全部 `200`，
-且响应带本插件脚本的改写签名：`recommendAdBean.recommendAdList=[]` 但 `topArea` 保留、`bottomBannerList=[]`）。
+v1.0.2 的 README 曾判定「该 App 做了 SSL Pinning，正式环境不可用」——**这个结论是错的**。
+用户实测证明：关掉抓包后插件照常生效，MITM 与清洗都没问题。真正触发断网的是 Loon 的**抓包模式**，
+与被拦域名无关（把 MITM 目标换成 `appupdates.189.cn` 抓包，App 同样报错）。
 
-### 取证
+### 已排除的假设（附证据，勿重复走）
 
-```
-openssl s_client -connect appgoadsz.189.cn:443 -servername appgoadsz.189.cn
-  subject=O=Loon, CN=shop-api.retail.mi.com      ← CN 与目标域不符
-  issuer =O=Loon, CN=LOON CA(2026-07-10) …
-  X509v3 Subject Alternative Name: DNS:appgoadsz.189.cn   ← SAN 正确
-```
-
-同样命令对 `api.m.jd.com` / `api.pinduoduo.com` / `ci.xiaohongshu.com` 结果**完全一致**（CN 都是 `shop-api.retail.mi.com`）——
-说明这是 **Loon 本机证书模板的全局行为，不是本插件引入的**。
-其它 App 只看 SAN 就放行，中国电信 App 不放行。
-
-### 结论
-
-| 环境 | 伪造证书 | 结果 |
+| 假设 | 检验 | 结果 |
 |---|---|---|
-| Live Container | 同一张 Loon 证书 | **接受**，MITM + 清洗全部生效 |
-| 正式环境（桌面） | 同一张 Loon 证书 | **拒绝**，TLS 握手失败 → 全 App 断网 |
+| 叶子证书 CN 异常导致 | `openssl s_client -connect appgoadsz.189.cn:443` → `subject=O=Loon, CN=shop-api.retail.mi.com`，SAN=`DNS:appgoadsz.189.cn` | ❌ 排除。CN 取的是 MITM 列表里最早的那个域名（删掉那条后变成 `appconf.mail.163.com`），SAN 始终正确 |
+| CA 来源有问题 | 解出配置里的 `ca-p12`：只有 1 张自签 CA（`LOON CA(2026-07-10) 1783656365336`），无叶子证书；换成 openssl 现场生成的 CA 结果相同 | ❌ 排除。叶子由 Loon 现场签发 |
+| MITM 主机名列表残留 | 删除「本地」里的 `shop-api.retail.mi.com` 后重新签发 | ❌ 排除。CN 只是换成下一个域名 |
+| 域名级 pinning | 同设备同 CA，`appupdates.189.cn` 抓包 4 条请求全部 200；而 App 在日常使用中能正常请求 appgoadsz | ❌ 排除 |
 
-差异只能来自 App 自身的校验路径（登录态 / 风控 SDK / 运行时环境差异），非本插件可控制。
-**在找到让 Loon 证书 CN 正确的方法之前，HTTP 层清洗对该 App 的正式环境不可用。**
+### 使用建议
 
-### 若仍要在正式环境试
+- 平时**正常开着插件**即可，广告清洗生效
+- 需要抓包时，**先临时停用本插件**（或接受该 App 在抓包期间不可用）
+- 二进制里确实有 `AFSecurityPolicy` / `SecTrustSetAnchorCertificates` 等校验代码，但实际未对 appgoadsz 生效
 
-1. 先只保留本插件、关闭其它模块（尤其 BlockAds 这类超长 MitM 列表），冷启动一次看是否仍报错
-2. 若仍报错：Loon → 设置 → MitM → 重新生成证书，重启 Loon 后再试（若 CN 变成正确域名则可用）
-3. 都不行 → 本 App 证书固定，MITM 方案终止；回退到「不动网络层」的方案（无）
+### 环境坑
+
+Loon 重启时会用内存状态**重写 `.lcf`**：手工删掉 `ca-p12` / `ca-passphrase` 会导致「CA 证书生成或解析错误、MitM 不可用」。
+改 CA 必须在 Loon 完全退出时改，并保留 `.bak`。
