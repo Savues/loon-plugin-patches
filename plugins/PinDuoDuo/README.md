@@ -1,13 +1,13 @@
 # PinDuoDuo · 拼多多去广告（修复版）
 
-> **版本 v2.29** · 订阅以 lpx 内版本为准
+> **版本 v2.74** · 订阅以 lpx 内版本为准
 
-> 去广告 + **列表显示佣金率** + **CPS 链接改写**（自购返利）。
-> Ad blocking, plus commission-rate display and CPS link rewriting on every list.
+> 去广告 + **列表显示佣金率** + **CPS 链接改写**（自购返利）+ HUD 数据面板。
+> Ad blocking, plus commission-rate display, CPS link rewriting and an on-page HUD.
 
-**v2.29** · 21 项配置 / 11 条脚本规则 · 抓包基线 PDD 8.28.0（iPhone） · 更新 `2026-10-27T23:20`
+**v2.74** · 26 项配置 / 21 条脚本规则 · 更新 `2026-11-05`
 
-> 📋 完整的「佣金率 + 转链」实现过程（数据源考证、10 个版本的弯路、踩坑清单）
+> 📋 完整的「佣金率 + 转链」实现过程（数据源考证、逐版踩坑清单、真机验证记录）
 > 见 **[CHANGELOG.md](./CHANGELOG.md)**。
 
 | | 中文 | English |
@@ -79,7 +79,7 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 
 ## 开关 · Switches
 
-15 项配置全部在 Loon 插件参数页，**不用改文件**。分两组。
+26 项配置全部在 Loon 插件参数页，**不用改文件**。分四组（高危 / 通用交互 / 底栏 / 提示）。
 
 ### [高危] 会改写服务端下发内容的拦截
 
@@ -94,6 +94,23 @@ The upstream REJECTs this whole domain, severing the push connection outright.
 | `cps_token` | 空 | 大淘客 `app_token`（`jaw_uid`，171 字符）。用于批量换取 `rate` + `goods_sign` + `cpsSign`；**留空则全部跳过** | — |
 | `cps_pid` | `41096949_318859099` | 改写进链接的推广位，需与多多进宝后台一致 | — |
 | `auto_skip` | 开 | 省钱月卡 / 续费管理 H5 的**全屏补贴动效**：自动点掉右上角「跳过」 | 想自己看完动效时 |
+
+### [通用] 页面交互辅助（v2.44~v2.69）
+
+| 开关 | 默认 | 作用 |
+|---|---|---|
+| `lightup_auto` | 开 | 点亮任务「滑动浏览 N 秒」自动倒计时（文案检测触发抖动，真机验证 `end_task code:0`） |
+| `lightup_popup` | 开 | 跳过点亮前的「去看看（3S）」提示弹窗 |
+| `lightup_secs` | 10 | 点亮任务秒数（服务端校验真实间隔，改小会被 `code 50099` 拒绝） |
+| `lucky_close` | 开 | 福袋领券弹窗动画播完自动点关闭（覆盖两个变体，按图片 URL 识别） |
+| `no_anim` | 开 | 压制页面 CSS 动画（**只压 delay 不压 duration**，压 duration 会让 infinite 循环变 100Hz 闪烁） |
+| `hub_anim` | 开 | 月卡页屏蔽强化续费提醒动效 |
+| `hud` | 开 | HUD 数据面板（见下方「HUD 数据面板」） |
+| `hud_bottom` | 0 | HUD 距底部像素，负数更贴底 |
+| `subsidy_popup` | 开 | 屏蔽首页**直播购物补贴弹窗**（`aquarius/hungary/global/homepage` 里 `ddvideo_shopping_subsidy_payment*` 模块，覆盖 v5/v6/v8 变体；只删弹窗项不 reject） |
+
+> **三选一福袋已放弃**（v2.58 整段移除）。9 个版本尝试自动选中间卡片都失败，
+> 且点击会误触 `tandy_vase.html`（一次抓包里 13 秒内误开 21 次）。不做。
 
 > **v2.40 变更**：`api_stub` / `chat_stub` / `phantom_stub` **三个开关已整段移除**。
 > 原因：`api_stub` 从插件发布起就是关闭状态，另两个也从未开启 —— 保留开关等于保留假选项。
@@ -236,6 +253,22 @@ POST https://dtkapi.ffquan.cn/taobaoapi/parsing-content-three-in-one
 | 消费券栏目滚动 | `special-sale-coupon/goods_list` | 同上（`activity_price_word`） |
 | 消费券专区 | `cma/goods_list` | 同上 |
 | 从详情页返回 | `bybt/goods_fresh` | 同上（map 结构 `[place][gid]`） |
+| **百补搜索结果** | `tandy_vase.html` SSR DOM + `/search`（`biz_id=brand_special_sale`） | 价格前；首屏是 SSR 死文本需单独替换，下滑卡片走 API |
+| **百补首页搜索框** | `brand_activity_search_result.html` → `buiSSRData.ssrListData.list` + `commonGoodsInfoStoreUnderlineV3.goodsInfoMap` | 价格前；5 种前缀（今日疯抢/本周热卖/仅一次/只剩2天/券后）按 `before_tag \|\| word` 全部改写 |
+| **首页主搜索框** | `api.pinduoduo.com/search?source=index` → `items[].item_data.goods_model` | 价格前；`price_prefix_info` + `price_prefix_content` 所有子键全改（Native 渲染，无 H5） |
+
+> **v2.70~v2.74**：三个搜索页是三套完全不同的数据结构，且首屏/下滑走不同链路。
+> 排查「某页面不生效」的第一步是看 HAR 里有没有 `id="pdd-hud"` —— 没有就是
+> Loon 规则没匹配，脚本根本没跑。逐页取证见 [CHANGELOG.md](./CHANGELOG.md)。
+
+### HUD 数据面板（v2.63~v2.68）
+
+收起态一行性能数据 `● 60fps · 1.6s · 1.2M`（圆点绿=5/5 注入完整）；
+展开态显示佣金账本（展示佣金 / 真佣金 / 转链成功率 / 大淘客调用 / 缓存命中 /
+最高佣金 / 佣金合计）与性能全量。点「真佣金」可展开 rate 降序的商品清单。
+
+数据来自 `$persistentStore` 的 `pddHudStats` / `pddHudLedger`，注入进页面时快照为
+`window.__pddHudData`，**零额外请求**。开关 `hud`，位置用 `hud_bottom` 调（默认 0 = 安全区最底）。
 
 ### 为什么有些商品不显示佣金
 
@@ -312,10 +345,8 @@ Documents/mmkv/PDD_BIZ_SPLASH_MMKV_KEY  PDD_SPLASH_LIST 调度表
 驱动脚本，31 个用例覆盖：开关全关时零改动、默认三项裁剪、自定义组合、
 顺序保持服务端原序、空选回落默认、备用输入框、异常结构不崩。
 
-```
-node test/manifest.test.mjs    # 49 用例，清单层
-node test/homepage.test.mjs    # 31 用例，脚本逻辑
-```
+后续新增的页面（三个搜索页 / SSR DOM / 补贴弹窗 / HUD 账本）各有独立测试，
+见上方「回归测试」章节；每个测试都用真实 HAR 摘出的最小样本驱动。
 
 > 顺带修掉了本仓库 `manifest.test.mjs` 一个老 bug：`$done()` 早退漏了 `return`，
 > 会继续往下执行并被外层 catch 吞掉，把错误响应原样放行。测试当场报出来了。
@@ -351,12 +382,18 @@ node test/homepage.test.mjs    # 31 用例，脚本逻辑
 ## 回归测试 · Regression test
 
 ```bash
-node test/manifest.test.mjs      # 54 用例，清单层
-node test/homepage.test.mjs      # 37 用例，首页脚本
-node test/stub.test.mjs          # 60 用例，拦截开关
-node test/stub-wiring.test.mjs   # 40 用例，清单与脚本接线
-node test/hub-skip.test.mjs      # 21 用例，月卡自动跳过注入
-node test/subsidy-api.test.mjs   # 23 用例，百补分页广告角标
+node test/manifest.test.mjs      # 清单层
+node test/homepage.test.mjs      # 首页脚本
+node test/stub.test.mjs          # 拦截开关
+node test/stub-wiring.test.mjs   # 清单与脚本接线
+node test/hub-skip.test.mjs      # 月卡自动跳过注入
+node test/subsidy-api.test.mjs   # 百补分页广告角标
+node test/subsidy.test.mjs       # 47 · subsidy.response.js 主逻辑
+node test/search_api.test.mjs    # 23 · /search 两种结构（百补 + 主搜索）
+node test/search_page.test.mjs   #  9 · buiSSRData.ssrListData
+node test/ssr_dom.test.mjs       # 12 · SSR 直出前缀 DOM
+node test/hub_search.test.mjs    # 14 · brand_activity_search_result 双数据源
+node test/subsidy_popup.test.mjs # 24 · 补贴弹窗屏蔽
 ```
 
 清单层覆盖：开关声明与引用双向一致、三条高风险规则确已移除、
@@ -416,7 +453,7 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | 底栏顺序 | 跟随服务端下发顺序，插件不重排 |
 | **佣金覆盖率约 43%** | 只有进了多多进宝的商品有佣金率；未进进宝的 `rate=0`，不显示是正确的 |
 | **大淘客单次上限 20 个** | 一屏超过 20 个商品时，第 21 个之后本轮不处理，下屏再补 |
-| **消费券页面加载两次** | PDD 自身双阶段渲染（静态 HTML → hydration 后接口覆盖），插件两处都改，视觉上会看到内容闪一下 |
+| **消费券/搜索首屏是 SSR 死文本** | v2.72 已修：按 DOM 顺序与商品列表顺序一一对应替换（数量不等则整体放弃，不误伤） |
 | **依赖第三方接口** | 佣金率来自大淘客，其接口或 `app_token` 变动会导致功能失效（不影响去广告） |
 
 ---
@@ -435,19 +472,27 @@ kelee.one 托管版          5131 B   4 个模块:               82115 75637 434
 | `src/stub.response.js` | 21 条接口拦截 + 搜索词屏蔽（**自研**） | Endpoint stubbing script |
 | `src/feed.response.js` | 首页信息流：广告标 + 佣金率 + CPS 链接改写（**自研**） | Feed: ad tag + commission + link rewrite |
 | `src/detail.response.js` | 商品详情页：广告标 + 佣金率（**自研**） | Goods detail: ad tag + commission |
-| `src/subsidy.response.js` | 百补首页 + 消费券首屏：搜索词清理 + 广告标 + 佣金率 + 链接改写（**自研**） | Subsidy pages: scrub + ad + commission |
+| `src/subsidy.response.js` | 百补首页 / 消费券 / **三个搜索页** + `/search` API：搜索词清理、广告标、佣金率、链接改写、HUD、点亮、福袋（**自研**） | Subsidy & search: scrub + ad + commission + HUD |
+| `src/subsidy_popup.response.js` | 首页直播购物补贴弹窗屏蔽（**自研**，v2.69） | Subsidy popup blocking |
 | `src/bybt_goods.response.js` | 百补「精选」`hermes/goods_list`：佣金率 + 链接改写（**自研**） | Subsidy 精选 commission |
 | `src/subsidy_api.response.js` | 消费券滚动接口（2 个）：广告角标 + 佣金率 + 链接改写（**自研**） | Coupon list ad + commission |
 | `src/bybt_fresh.response.js` | `bybt/goods_fresh`：返回页面时重刷的佣金率 + 链接改写（**自研**） | goods_fresh commission |
 | `src/hub_skip.response.js` | 月卡 H5 自动点「跳过」动效（**自研**） | Month-card H5 auto-skip injector |
-| `CHANGELOG.md` | v1.99 → v2.29 完整改动记录（含数据源考证与踩坑） | Full changelog |
-| `test/manifest.test.mjs` | 49 个清单层回归用例 | 49 manifest-layer tests |
-| `test/homepage.test.mjs` | 31 个脚本逻辑用例 | 31 script-logic tests |
-| `test/stub.test.mjs` | 60 个拦截开关用例 | 60 stub-switch tests |
-| `test/stub-wiring.test.mjs` | 40 个清单与脚本接线用例 | 40 wiring tests |
-| `test/hub-skip.test.mjs` | 21 个月卡自动跳过用例 | 21 auto-skip tests |
-| `test/subsidy-api.test.mjs` | 23 个百补分页角标用例 | 23 subsidy-pagination tests |
-| `test/har-fixture.json` | 基线 HAR 摘出的最小样本 | Minimal excerpt of baseline HAR |
+| `CHANGELOG.md` | v1.99 → v2.74 完整改动记录（含数据源考证与踩坑） | Full changelog |
+| `ITERATION.md` | 版本迭代中的调查记录 | Iteration notes |
+| `test/manifest.test.mjs` | 清单层回归用例 | Manifest-layer tests |
+| `test/homepage.test.mjs` | 首页脚本逻辑用例 | Homepage script tests |
+| `test/stub.test.mjs` | 拦截开关用例 | Stub-switch tests |
+| `test/stub-wiring.test.mjs` | 清单与脚本接线用例 | Wiring tests |
+| `test/hub-skip.test.mjs` | 月卡自动跳过用例 | Auto-skip tests |
+| `test/subsidy-api.test.mjs` | 百补分页角标用例 | Subsidy-pagination tests |
+| `test/subsidy.test.mjs` | `subsidy.response.js` 主逻辑（47） | Main subsidy script |
+| `test/search_api.test.mjs` | `/search` 两种结构（23） | Search API, flat + nested |
+| `test/search_page.test.mjs` | `buiSSRData.ssrListData`（9） | SSR list |
+| `test/ssr_dom.test.mjs` | SSR 直出前缀 DOM（12） | SSR static DOM |
+| `test/hub_search.test.mjs` | `brand_activity_search_result` 双数据源（14） | Hub search |
+| `test/subsidy_popup.test.mjs` | 补贴弹窗屏蔽（24） | Subsidy popup |
+| `test/*-fixture.*` | 从真实 HAR 摘出的最小样本 | Minimal excerpts from real HARs |
 
 校验托管脚本完整性：
 

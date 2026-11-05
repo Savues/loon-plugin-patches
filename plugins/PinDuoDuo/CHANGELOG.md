@@ -48,6 +48,8 @@ items[i] = { goods_id, link_url, price_prefix_info, … }        ← 百补搜�
 
 `test/search_api.test.mjs` 23 通过 0 失败（新增【3b】主搜索用例 7 条）。
 
+**真机验证**：用户确认效果符合预期（首页主搜索框与百补搜索页均显示佣金）。
+
 ## v2.73（2026-11-04）
 
 ### 覆盖百补首页搜索框进入的搜索页（brand_activity_search_result.html）
