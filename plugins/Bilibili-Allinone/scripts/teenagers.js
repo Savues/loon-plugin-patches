@@ -20,6 +20,10 @@
   var FC = A.teenagerForceClose;
   var FORCE_CLOSE = !(FC === false || FC === 0 ||
                       String(FC) === '0' || String(FC) === 'false');
+  // 整条删除 mode=="teenagers" 的 UserModel（实验：3.20.1 返回空列表且不弹窗）
+  var DM = A.teenagerDropModel;
+  var DROP_MODEL = !(DM === false || DM === 0 ||
+                     String(DM) === '0' || String(DM) === 'false');
 
   function toU8(x) {
     if (!x) return null;
@@ -151,6 +155,7 @@
           if (mf[j].no === 2 && mf[j].wire === 2) { name = strOf(mf[j].val); break; }
         }
         if (name === 'teenagers') {
+          if (DROP_MODEL) { changed = true; continue; }   // 整条丢弃
           var nb = zeroPolicy(f.val);
           if (nb) { out.push(lenPrefixed(1, nb)); changed = true; continue; }
         }
