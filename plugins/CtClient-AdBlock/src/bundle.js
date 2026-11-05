@@ -1,21 +1,19 @@
 /*
  * CtClient-AdBlock bundle.js — 中国电信 CtClient (13.5.0 / CTPocket)
  *
- * 取证来源：Live Container 沙盒 lcf-forensics（原始响应，插件前）+ CTPocket 二进制常量区
- *   B8A26766-E671-400C-A2B1-65B16D3CC33A / 1E35CB6D-F739-41E2-8108-1F3627355398
+ * v2.1.0 修正：把「字段名叫 adList 但内容是功能入口」的容器全部放回原位。
+ * 实测这些字段装的是真功能，删了等于砍功能：
+ *   queryMyChannelTop.topAdList          = 设置 / 签到 / 关爱
+ *   queryHomepageAICard.digitalPersonCard.adList = 加装副卡 / 翼留言 / 开发票 / 买流量包
+ *   queryMyRingtoneAndLifeCard.adList    = 签到领流量 / 权益领取 / 服务管家 / 积分兑换 / 家庭圈
+ *   queryMyStorageCard.unauthorizedData.adList = 超大空间 / 安全保障 / 微信备份 / 云相册
+ *   queryMyAiRingtoneCard.myCreation.adList    = AI特效 / AI视频 / AI音乐
+ *   myCommunicationAssistantCard.notOpenData.bottomAdList = 号码识别 / 漏话提醒 / 语音助理…
+ *   queryMyCloudMonitorCard.noDeviceAdList     = 看家护院 / 特惠单品 / 看店宝
+ * 只有「纯营销位」才清洗，其余一律不动。
  *
- * 铁律（本文件的设计前提）：
- *  1. 功能主干容器只能清洗不能 reject —— 清空容器 = 白屏/功能消失
- *  2. adList 在 queryHomepageMarketingFloor 里是「常用功能九宫格」
- *     （查账单/办套餐/宽带到家/买手机/积分商城…20 项，全部带 linkType+sceneId）
- *     → 绝不清空，只清 hotSelection（纯营销位）
- *  3. compoundADSpace 实测全是功能入口（在线客服/数字人/扫一扫/付款码/关爱版/英文版
- *     /意见反馈/我要投诉/我的地址/特惠副卡/全屋光宽）→ 本插件不清洗它
- *  4. 三件套缺一即静默失效：① 本文件函数 ② main() 分发 ③ lpx [Script] 规则入口
- *  5. $done({}) 不动响应；只有真的改了字段才回写 body
+ * 三件套：① 本文件函数 ② main() 分发 ③ lpx [Script] 规则入口
  */
-
-// ─────────────────────────── 工具 ───────────────────────────
 
 function argObject() {
   var a = typeof $argument === 'undefined' ? null : $argument;
@@ -26,7 +24,7 @@ function argObject() {
 
 function on(key) {
   var v = argObject()[key];
-  if (v === undefined || v === null || v === '') return true; // 缺省=开
+  if (v === undefined || v === null || v === '') return true;
   return v === true || v === 'true' || v === '1' || v === 1;
 }
 
@@ -38,7 +36,6 @@ function parseBody() {
   }
 }
 
-// 兼容 data 直接挂在 responseData 下 or 顶层
 function dataOf(obj) {
   if (obj && obj.responseData && obj.responseData.data != null) return obj.responseData.data;
   if (obj && obj.data != null) return obj.data;
@@ -51,9 +48,10 @@ function clearArray(holder, key) {
   return true;
 }
 
-// ─────────────────── 各接口清洗函数（每个都必须被 main 调用） ───────────────────
+// ─── 清洗：只碰纯营销位 ───
 
-// 首页营销楼层：只清纯营销位，保留 adList（功能九宫格）与 sortList
+// 首页营销楼层：hotSelection（11.11限定/低价订酒店/合约机…）+ 套餐销售 banner
+// 注意：adList 是「常用功能九宫格」20 项，绝不动；sortList 不动
 function cleanHomepageMarketingFloor(d, opts) {
   var changed = false;
   if (!d) return false;
@@ -62,8 +60,6 @@ function cleanHomepageMarketingFloor(d, opts) {
     if (clearArray(d.hotSelection, 'advertisingListLeft')) changed = true;
     if (clearArray(d.hotSelection, 'advertisingListRight')) changed = true;
   }
-
-  // 套餐/选号/宽带 tab 底部销售 banner（5G-A套餐/5G畅享云套餐/卫星功能卡/精选好号）
   if (opts.tariffBanner && d.packageAndNumberCard && Array.isArray(d.packageAndNumberCard.tabList)) {
     d.packageAndNumberCard.tabList.forEach(function (t) {
       if (t && clearArray(t, 'bottomBannerList')) changed = true;
@@ -72,18 +68,17 @@ function cleanHomepageMarketingFloor(d, opts) {
   return changed;
 }
 
-// 信息流：只删卡片里的推荐广告三件套，feedList 本体与 topArea 保留
+// 信息流：卡片内推荐广告（宽带新装/宽带专区/天翼出行），feedList 本体与 topArea 保留
 function cleanFeedList(d) {
   if (!d || !Array.isArray(d.feedList)) return false;
   var changed = false;
   d.feedList.forEach(function (f) {
-    if (!f || !f.recommendAdBean) return;
-    if (clearArray(f.recommendAdBean, 'recommendAdList')) changed = true;
+    if (f && f.recommendAdBean && clearArray(f.recommendAdBean, 'recommendAdList')) changed = true;
   });
   return changed;
 }
 
-// 消息中心：营销消息流（闲置好物…）清空，服务消息/实时事件不动
+// 消息中心：营销消息流（闲置好物…），服务消息与实时事件不动
 function cleanMessageChannel(d) {
   if (!d) return false;
   var changed = false;
@@ -92,44 +87,8 @@ function cleanMessageChannel(d) {
   return changed;
 }
 
-// 首页 AI 数字人卡片：digitalPersonCard.adList（充值100元/积分兑好礼…）
-function cleanHomepageAICard(d) {
-  if (!d || !d.digitalPersonCard) return false;
-  return clearArray(d.digitalPersonCard, 'adList');
-}
-
-// 我的页顶部广告条
-function cleanMyChannelTop(d) {
-  if (!d) return false;
-  return clearArray(d, 'topAdList');
-}
-
-// 云监控卡片（未开通态）
-function cleanMyCloudMonitorCard(d) {
-  if (!d || !d.noDeviceData) return false;
-  return clearArray(d.noDeviceData, 'noDeviceAdList');
-}
-
-// 云盘卡片（未授权态）
-function cleanMyStorageCard(d) {
-  if (!d || !d.unauthorizedData) return false;
-  return clearArray(d.unauthorizedData, 'adList');
-}
-
-// AI 铃音卡片
-function cleanMyAiRingtoneCard(d) {
-  if (!d || !d.myCreation) return false;
-  return clearArray(d.myCreation, 'adList');
-}
-
-// 通信助理卡片（未开通态）
-function cleanCommunicationAssistantCard(d) {
-  if (!d || !d.notOpenData) return false;
-  return clearArray(d.notOpenData, 'bottomAdList');
-}
-
-// 出行卡片：酒店位 topAdList
-function cleanMyTravelCardNew(d) {
+// 出行卡片：酒店位推广（低价订酒店）
+function cleanTravelCard(d) {
   if (!d || !Array.isArray(d.myTravelTabList)) return false;
   var changed = false;
   d.myTravelTabList.forEach(function (tab) {
@@ -138,16 +97,9 @@ function cleanMyTravelCardNew(d) {
   return changed;
 }
 
-// 铃音+生活卡片：adList（签到领流量/权益领取…）
-function cleanRingtoneAndLifeCard(d) {
-  if (!d) return false;
-  return clearArray(d, 'adList');
-}
+// ─── 无用功能整接口置空 ───
 
-// ─────────────────── 无用功能整接口置空（v2.0.0） ───────────────────
-
-// 证据等级 B：仅 CTPocket 二进制常量区出现该路径，本次取证未触发。
-// 返回合法空信封（resultCode=1001 无数据）比 reject {} 更安全 —— App 对 data:null 有容错。
+// 返回合法空信封（resultCode=1001/data:null），App 有现成容错，比 reject {} 安全
 function stubBody() {
   return JSON.stringify({
     headerInfos: { code: '0000', reason: '操作成功' },
@@ -155,55 +107,39 @@ function stubBody() {
   });
 }
 
-// popup 组：弹窗类（可能含实名/欠费提醒，单独开关）
-var STUB_POPUP = /\/(?:query\/getPopUpWindows|query\/queryAdRotation|query\/suspendWindowV2)\b/i;
+// 弹窗类：可能含实名/欠费提醒，单独开关
+var STUB_POPUP = /\/(?:query\/getPopUpWindows|query\/queryAdRotation)\b/i;
 
-// marketing 组：营销/推荐/活动/装饰类，纯展示，无业务依赖
+// 营销/装饰类：纯展示，无业务依赖
+// 注意 queryHotNav / queryOffersAndBroadband 已移出 —— 有可能是「领流量」等入口所在行
 var STUB_MARKETING = new RegExp([
-  '\\/query\\/queryMyChannelAdvSpace',       // 我的页广告位
-  '\\/query\\/queryRechargeMarketing',       // 充值页营销
-  '\\/query\\/queryRechargeTips',            // 充值提示文案
-  '\\/query\\/queryRechargeMsg',             // 充值消息
+  '\\/query\\/queryMyChannelAdvSpace',
+  '\\/query\\/queryRechargeMarketing',
+  '\\/query\\/queryRechargeTips',
+  '\\/query\\/queryRechargeMsg',
   '\\/query\\/queryRechargerMsg',
-  '\\/query\\/userActivity\\/queryActivityInfo',      // 活动
-  '\\/query\\/userActivity\\/queryRechagerMessage',   // 充值活动消息
-  '\\/query\\/getSolarTerms',                // 节气装饰
-  '\\/query\\/queryBeautifulScr',            // 靓号推荐
-  '\\/query\\/queryOffersAndBroadband',      // 优惠/宽带推荐
-  '\\/query\\/queryHotNav'                   // 热门导航（营销入口行）
+  '\\/query\\/userActivity\\/queryActivityInfo',
+  '\\/query\\/userActivity\\/queryRechagerMessage',
+  '\\/query\\/getSolarTerms',
+  '\\/query\\/queryBeautifulScr'
 ].join('|'), 'i');
-
-function isStubTarget(url) {
-  return STUB_POPUP.test(url) || STUB_MARKETING.test(url);
-}
-
-// ─────────────────────────── 分发 ───────────────────────────
 
 function main() {
   var url = ($request && $request.url) || '';
 
-  // ① 无用功能整接口置空（先于 body 解析，空 body 也能处理）
+  // ① 无用功能整接口置空（先于 body 解析）
   if (STUB_POPUP.test(url)) {
     if (on('stubPopups')) { $done({ body: stubBody() }); return; }
   } else if (STUB_MARKETING.test(url)) {
     if (on('stubMarketing')) { $done({ body: stubBody() }); return; }
   }
 
-  if (!$response || !$response.body) {
-    $done({});
-    return;
-  }
+  if (!$response || !$response.body) { $done({}); return; }
 
   var obj = parseBody();
-  if (!obj) {
-    $done({});
-    return;
-  }
+  if (!obj) { $done({}); return; }
   var d = dataOf(obj);
-  if (!d || typeof d !== 'object') {
-    $done({});
-    return;
-  }
+  if (!d || typeof d !== 'object') { $done({}); return; }
 
   var changed = false;
 
@@ -219,34 +155,9 @@ function main() {
   } else if (/\/query\/queryMessageChannel/i.test(url)) {
     if (!on('marketingMessage')) { $done({}); return; }
     changed = cleanMessageChannel(d);
-  } else if (/\/query\/queryHomepageAICard/i.test(url)) {
-    if (!on('aICardAd')) { $done({}); return; }
-    changed = cleanHomepageAICard(d);
-  } else if (/\/query\/queryMyChannelTop/i.test(url)) {
-    if (!on('myChannelTopAd')) { $done({}); return; }
-    changed = cleanMyChannelTop(d);
-  } else if (/\/query\/queryMyCloudMonitorCard/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanMyCloudMonitorCard(d);
-  } else if (/\/query\/queryMyStorageCard/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanMyStorageCard(d);
-  } else if (/\/query\/queryMyAiRingtoneCard/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanMyAiRingtoneCard(d);
-  } else if (/\/query\/myCommunicationAssistantCard/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanCommunicationAssistantCard(d);
   } else if (/\/query\/myTravelCardNew/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanMyTravelCardNew(d);
-  } else if (/\/query\/queryMyRingtoneAndLifeCard/i.test(url)) {
-    if (!on('cardInnerAd')) { $done({}); return; }
-    changed = cleanRingtoneAndLifeCard(d);
-  } else if (isStubTarget(url)) {
-    // 已在 main 开头处理，兜底返回
-    $done({});
-    return;
+    if (!on('travelHotelAd')) { $done({}); return; }
+    changed = cleanTravelCard(d);
   } else {
     $done({});
     return;

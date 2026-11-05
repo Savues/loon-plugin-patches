@@ -243,3 +243,28 @@ App 对 `resultCode=1001 / data:null` 有现成容错（实测 `suspendWindow` �
 ### MITM 域名
 
 v2.0.0 起为 3 个：`appgoadsz` / `appgoadhd`（业务 API）、`appgosz`（通用查询，可能承载上述接口）。
+
+---
+
+## 十、v2.1.0 重要修正：名字叫 adList 的字段大多是功能入口
+
+v1.x 按字段名清洗，误删了真功能。逐个核对真实响应后（LC 取证 B8A26766，2026-11-05）：
+
+| 接口.字段 | 实际内容 | 处置 |
+|---|---|---|
+| `queryMyChannelTop.topAdList` | 设置 / 签到 / 关爱 | **不再清洗** |
+| `queryHomepageAICard.digitalPersonCard.adList` | 加装副卡 / 翼留言 / 开发票 / 合约机专区 / 影音服务0元享 / 买流量包 / 金豆兑权益 | **不再清洗** |
+| `queryMyRingtoneAndLifeCard.adList` | 签到领流量 / 权益领取 / 服务管家 / 积分兑换 / 人人有礼 / 装移修进度 / 家庭圈 | **不再清洗** |
+| `queryMyStorageCard.unauthorizedData.adList` | 超大空间 / 安全保障 / 微信备份 / 云相册 | **不再清洗** |
+| `queryMyAiRingtoneCard.myCreation.adList` | AI特效 / AI视频 / AI音乐 | **不再清洗** |
+| `myCommunicationAssistantCard.notOpenData.bottomAdList` | 号码识别 / 漏话提醒 / 情景模式 / 语音助理 / 智能应答 | **不再清洗** |
+| `queryMyCloudMonitorCard.noDeviceAdList` | 看家护院 / 特惠单品 / 看店宝 | **不再清洗** |
+| `queryHomepageMarketingFloor.adList` | 常用功能九宫格 20 项 | 从未清洗 |
+| `compoundADSpace.advertisingSpaceInfos` | 含「**领流量**」(`wapjs.189.cn/mall/pages/signinActivity`) 等入口 | 从未清洗 |
+
+**「领流量」入口位置（实测）**：`compoundADSpace` → `type=17, order=9, title=领流量`，
+`link=https://wapjs.189.cn/mall/pages/signinActivity/index.html`，是纯 H5 页面，不经 189 API，
+本插件不触碰这个接口，也不 MITM `wapjs.189.cn`，因此领流量功能不受影响。
+
+其余仍保留的清洗项：首页 `hotSelection`、套餐销售 banner、信息流 `recommendAdBean.recommendAdList`、
+消息中心 `marketingMessageList`、出行卡片 `hotelBean.topAdList`、弹窗/营销接口置空。
