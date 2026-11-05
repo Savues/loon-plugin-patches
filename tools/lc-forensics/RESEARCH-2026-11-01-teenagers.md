@@ -195,3 +195,108 @@ chmod +x /tmp/ld64.lld
 
 实际频率：`interval=1` 天 + 日历天比较 → **每台设备每天最多 1 次**。
 双设备（iPad + iPhone）合计 2 次/天，与用户观察一致。
+
+---
+
+# 追加：2026-11-06 全面复验（8 个版本迭代，最终定案）
+
+上一版结论是「HTTP 层无解」，本轮把每一种可能的杠杆都实测了一遍，并把结论收紧到**可证伪的程度**。
+
+## 八、全部实验清单（均实测，均无效）
+
+| # | 手段 | 具体做法 | 结果 |
+|---|---|---|---|
+| 1 | param 改间隔 | `teenagers_mode_show_dialog_interval` = 0 / 365 / 864000 + 改 `ver` | ❌ 弹 |
+| 2 | param 删键 | `delete obj.data.teenagers_mode_show_dialog_interval` | ❌ 弹 |
+| 3 | ModeStatus 清 policy | `policy.interval`（`#5.#1`）置空 | ❌ 弹 |
+| 4 | ModeStatus 剥 status | 删 `#4`（=CloseStatus） | ❌ 弹 |
+| 5 | ModeStatus 删整条 | 丢掉 `mode=="teenagers"` 的 UserModel，只留 lessons（35B→16B） | ❌ 弹 |
+| 6 | 删 memex 加密配置 | 移除 `BFCMemexConfigPreferenceName` + `memex/` 目录 | ❌ 弹 |
+| 7 | 拦 fawkes 下发 | `URL-REGEX,^https://i0\.hdslb\.com/bfs/fawkes/,REJECT`（实测全 404） | ❌ 弹 |
+| 8 | 沙盒 `alertTnterval` | 0 / 1 / 864000 | ❌ 弹 |
+| 9 | 沙盒 `teenagersModeEnable` | True（本地标记已开启） | ❌ 弹，且 App 仍是普通模式 |
+| 10 | 注入 19 个 teenagers 配置 | 把 3.71 的 `teenagers_mode_*` 全量复制到 3.20.1 | 3.20.1 仍不弹（见下） |
+| 11 | **断网** | 飞行模式冷启动 | **❌ 仍弹** |
+
+第 11 项是最硬的一条：**弹窗完全不依赖网络**。
+
+## 九、全盘快照对比（定位真实写入点）
+
+方法：对 LC 容器 6120 个文件做 `mtime + size` 快照 → 触发弹窗 → 再快照 → 求差集。
+
+结果：455 个文件变更，但**只有两个带时间戳语义**：
+
+```
+tv.danmaku.bilibilihd.plist
+  BFCTeenagersModeAlertShowDate = 2026-11-05 18:58:09   ← 弹窗时刻
+BBAntiAddictionFamilyTimelockPreferences-0.plist
+  lastRecordedDate = 2026-11-05 18:58:11                ← 防沉迷记录，非弹窗状态
+```
+
+**没有任何「弹窗次数」「已展示过」之类的独立记录。**
+
+## 十、配置源排查（为什么改不动）
+
+| 检查项 | 结果 |
+|---|---|
+| `BFCOnlineConfigPreferences`（param 落盘，315 项） | 已确认写入 `interval='0'` 且 hash=我们的值，弹窗照出 → **不是它的来源** |
+| `BFCMemexConfigPreferenceName`（234 项） | 本版本**无任何 `restrictedmode.*`** → 不是 ForceAlert 机制 |
+| App 包内默认配置 | 全盘搜 `teenagers_mode_show_dialog_interval`，**只命中二进制本身**，无 bundled plist/json |
+| `neuron.sqlite` | 只有 `neuron_scheduled_report_data`，无配置 |
+| 19 个 `teenagers_mode_*` 键 | 全是 UI 文案/图片/`{"common":1,...}` 页面开关，**无 interval** |
+| `alertTnterval`（拼写带错，代码里唯一写法） | 写入 864000 后保留在盘上，App **从不读取** → 死键 |
+| AB 实验 `disable_guide_manager_v2` | 已是全量 `0~999`，弹窗照出 |
+
+## 十一、3.20.1（国际版）对照实验
+
+| 项 | 3.20.1 (`com.bilibili.inter`) | 3.71 (`tv.danmaku.bilibilihd`) |
+|---|---|---|
+| memex 配置 | 549 项，**有** `restrictedmode.*` 四个键 | 234 项，**无** |
+| param 配置 | 65 项，**无** interval 键 | 315 项，**有** `interval='1'` |
+| ModeStatus | 常返回**空 `user_models`** | 带 `teenagers` + `lessons` |
+| `BFCTeenagersModeAlertShowDate` | **不存在**（从未弹过） | 每次弹窗后更新 |
+| 弹窗 | 不弹 | 每天 1 次 |
+
+给 3.20.1 注入 `interval='1'` + `AlertShowDate=6天前` + 全量 19 个配置 → **仍不弹**。
+说明 3.20.1 不弹是**版本行为差异**，不是配置缺项。
+
+## 十二、最终判定逻辑（唯一确定的部分）
+
+```
+interval = getConfigByPath(@"teenagers_mode_show_dialog_interval")   // 恒为 1，来源不可达
+if (interval < 1) return false;                                      // 不可触发
+if (!lastShow) return true;                                          // 删键 → 弹
+days = abs(NS日历天差(now, lastShow));                                // 取绝对值
+return days >= interval;                                             // days >= 1 即弹
+```
+
+`abs()` 让所有静态技巧失效：
+
+| AlertShowDate 设成 | days | 结果 |
+|---|---|---|
+| 2030 年（未来） | 巨大 | 弹 |
+| 6 天前 | 6 | 弹 |
+| 今天 | 0 | 不弹（但明天就弹） |
+| 删除该键 | nil | 弹 |
+
+## 十三、结论（收紧版）
+
+**配置层无法实现「一劳永逸」。** 唯一可操作的闸门是 `BFCTeenagersModeAlertShowDate`，
+它必须**每天刷新为当天**才能持续压制（`days=0`）。
+
+| 方案 | 可行性 |
+|---|---|
+| 网络层（Loon / Surge / QX 任何插件） | ❌ 11 项实验全部证伪，且断网仍弹 |
+| 配置层（plist / sqlite / 包内默认） | ❌ 来源不可达，改的任何值都不被读取 |
+| **每日刷新 AlertShowDate** | ✅ 有效，但只对 LC 沙盒可行（真机无文件权限） |
+| 代码补丁 | ✅ 唯一根治（Android ReVanced / iOS 越狱） |
+
+实际频率：`interval=1` + 日历天比较 → **每台设备每天最多 1 次**。
+
+## 十四、附带产出
+
+- `Allinone v8.3.1`：`teenagerForceClose` / `teenagerDropModel` 默认关闭，仅作实验开关保留
+- `loon-sim v1.7.14`：修复二进制 body 三处缺陷（`--response-file` utf8 读取、
+  `normalizeDone` 跨 realm `instanceof`、结果统计 `JSON.stringify(Uint8Array)`）
+  —— 此前所有「改二进制响应」的脚本在 sim 里都表现为「规则命中但未修改」
+- `lcf-crypt.c/.dylib`：通用 CCCrypt 拦截器（对 B站 无法注入，其他 App 可用）
