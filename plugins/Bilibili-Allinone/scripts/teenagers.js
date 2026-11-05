@@ -14,6 +14,12 @@
  */
 (function () {
   var DEBUG = false;
+  var A = (typeof $argument === 'object' && $argument) ? $argument : {};
+  // 强制关闭青少年模式：把 UserModel 的 status(#4) 去掉 = CloseStatus
+  // Loon 的 switch 参数可能是布尔 true/false，也可能是字符串 "1"/"0"/"true"/"false"
+  var FC = A.teenagerForceClose;
+  var FORCE_CLOSE = !(FC === false || FC === 0 ||
+                      String(FC) === '0' || String(FC) === 'false');
 
   function toU8(x) {
     if (!x) return null;
@@ -111,6 +117,11 @@
     var out = [], touched = false;
     for (var i = 0; i < fs.length; i++) {
       var f = fs[i];
+      if (f.no === 4 && f.wire === 0) {
+        // status(#4)：去掉 = proto3 默认值 0 = CloseStatus
+        if (FORCE_CLOSE) { touched = true; continue; }
+        out.push(f.raw); continue;
+      }
       if (f.no === 5 && f.wire === 2) {
         var pf = fields(f.val); if (!pf) return null;
         var keep = [], hadInterval = false;
