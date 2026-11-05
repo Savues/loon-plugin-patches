@@ -1,5 +1,5 @@
-#!name=中国电信去广告 v1.1.0
-#!version=1.1.0
+#!name=中国电信去广告+精简 v2.0.0
+#!version=2.0.0
 #!desc=⚠️开启 Loon「抓包」时该 App 会因证书校验报错断网（与插件无关，抓包期间请临时停用）。功能：中国电信 CtClient 13.5.0 去广告：清洗首页营销位(hotSelection)、套餐销售banner、信息流推荐广告、消息中心营销消息、首页AI卡推荐、我的页顶部广告、云监控/云盘/AI铃音/通信助理/出行/铃音生活卡片内嵌广告；拦截悬浮窗(suspendWindow/loginSuspendWindow/NotificationGuideDialog)与二进制常量区中 7 个纯广告接口。功能主干一律只清洗不 reject，首页九宫格 adList 与金刚位 compoundADSpace 保持原样；开屏走 Protobuf(GetSplashProtoRoot)不可达，小程序列表 capp 为密文，均在已知边界内。
 #!openUrl=https://apps.apple.com/app/id513836029
 #!author=@Savues <https://github.com/Savues>
@@ -12,6 +12,8 @@
 #!date=2026-11-05 21:00:00
 
 [Argument]
+stubPopups = switch, true, false, tag=🚫弹窗类, desc=整接口置空 getPopUpWindows（弹窗）/ queryAdRotation（广告轮播）。可能连实名认证、欠费提醒一起挡掉，需要时关掉
+stubMarketing = switch, true, false, tag=🧹营销/装饰接口, desc=整接口置空：我的页广告位(queryMyChannelAdvSpace)、充值营销/提示/消息(queryRechargeMarketing/Tips/Msg/RechargerMsg)、活动(userActivity/*)、节气(getSolarTerms)、靓号(queryBeautifulScr)、优惠推荐(queryOffersAndBroadband)、热门导航(queryHotNav)
 homepageFloor = switch, true, false, tag=🏠首页-营销位, desc=清洗 queryHomepageMarketingFloor 的 hotSelection.advertisingListLeft/Right（实测 5+3 条：11.11限定/低价订酒店/合约机/出境漫游）；adList 九宫格与 sortList 不动
 homepageHotSelection = switch, true, false, tag=🏠首页-右侧精选, desc=上一条的细分开关：hotSelection 两侧推荐位
 homepageTariffBanner = switch, true, false, tag=🏠首页-套餐销售banner, desc=清空 packageAndNumberCard.tabList[].bottomBannerList（实测 3+1 条：5G-A套餐/5G畅享云套餐/卫星功能卡/精选好号）
@@ -24,11 +26,11 @@ cardInnerAd = switch, true, false, tag=🧩我的-卡片内嵌广告, desc=清�
 [Rule]
 
 [MitM]
-hostname = appgoadsz.189.cn, appgoadhd.189.cn
+hostname = appgoadsz.189.cn, appgoadhd.189.cn, appgosz.189.cn
 
 [Rewrite]
 # 版本探针 v2 (version-probe.sh 用, 勿删)
-request if ${url} ~= /^https?:\/\/appgoadsz\.189\.cn\/gw\/loon-sim\.probe\.ctclient_adblock/i then reject(200, "1.1.0")
+request if ${url} ~= /^https?:\/\/appgoadsz\.189\.cn\/gw\/loon-sim\.probe\.ctclient_adblock/i then reject(200, "2.0.0")
 # ── 悬浮窗 / 登录悬浮 / 推送引导（实测均返回 data=null 或 []，App 有空响应容忍）──
 request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/(?:suspend\/suspendWindow|suspendWindowForQuery|suspendWindowForWap|suspendWindowV2|loginSuspendWindow)/i then reject_dict(200)
 request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/queryNotificationGuideDialog/i then reject_dict(200)
@@ -40,6 +42,8 @@ request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/que
 request if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/(?:advertising\/(?:compositeAd|mallPackageAd|serviceChannelAd)|queryAdvertisingSpace|queryCustomerAdvertising|qryNearConfigAdvertising|qryTraAdvertisingSpace)/i then reject_dict(200)
 
 [Script]
+response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd|appgosz)\.189\.cn(?::\d+)?\/query\/(?:getPopUpWindows|queryAdRotation|queryMyChannelAdvSpace|queryRechargeMarketing|queryRechargeTips|queryRechargeMsg|queryRechargerMsg|userActivity\/(?:queryActivityInfo|queryRechagerMessage)|getSolarTerms|queryBeautifulScr|queryOffersAndBroadband|queryHotNav)/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=2", {${stubPopups}, ${stubMarketing}}) with requires_body=true, timeout=5, tag="无用功能接口置空"
+
 response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/queryHomepageMarketingFloor/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${homepageFloor}, ${homepageHotSelection}, ${homepageTariffBanner}}) with requires_body=true, timeout=5, tag="首页营销位清洗"
 
 response if ${url} ~= /^https?:\/\/(?:appgoadsz|appgoadhd)\.189\.cn(?::\d+)?\/query\/getFeedList/i then script("https://raw.githubusercontent.com/Savues/loon-plugin-patches/main/plugins/CtClient-AdBlock/src/bundle.js?v=1", {${feedRecommendAd}}) with requires_body=true, timeout=10, tag="信息流推荐广告清洗"

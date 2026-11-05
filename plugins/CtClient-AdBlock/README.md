@@ -1,6 +1,6 @@
 # CtClient-AdBlock — 中国电信去广告
 
-中国电信 App（`CtClient` / 二进制 `CTPocket` 13.5.0）去广告插件。
+中国电信 App（`CtClient` / 二进制 `CTPocket` 13.5.0）去广告 + 无用功能精简插件。
 
 > ⚠️ **实验性（v1.0.2）**：本插件在 **Live Container 测试环境**验证通过（62 条 appgoadsz 请求 200，字段级清洗全部生效）；
 > 但**正式环境会因证书校验导致 App 整体断网**（详见「八、证书校验边界」）。正式环境请勿启用。
@@ -200,3 +200,46 @@ v1.0.2 的 README 曾判定「该 App 做了 SSL Pinning，正式环境不可用
 
 Loon 重启时会用内存状态**重写 `.lcf`**：手工删掉 `ca-p12` / `ca-passphrase` 会导致「CA 证书生成或解析错误、MitM 不可用」。
 改 CA 必须在 Loon 完全退出时改，并保留 `.bak`。
+
+---
+
+## 九、无用功能整接口置空（v2.0.0）
+
+返回**合法空信封**而非 `reject {}`：
+
+```json
+{"headerInfos":{"code":"0000","reason":"操作成功"},
+ "responseData":{"resultCode":"1001","resultDesc":"无数据","attach":"","data":null}}
+```
+
+App 对 `resultCode=1001 / data:null` 有现成容错（实测 `suspendWindow` 本来就返回这种形态）。
+
+### 证据等级说明
+
+- **A 级**：本次 lcf-forensics 抓到过真实响应，字段结构确认
+- **B 级**：仅 `strings CTPocket` 常量区出现该路径，本次未触发；按名称语义判定为纯展示/营销
+
+| 接口 | 用途推断 | 开关 | 证据 |
+|---|---|---|---|
+| `query/getPopUpWindows` | 通用弹窗 | `stubPopups` | B |
+| `query/queryAdRotation` | 广告轮播 | `stubPopups` | B |
+| `query/queryMyChannelAdvSpace` | 我的页广告位 | `stubMarketing` | B |
+| `query/queryRechargeMarketing` | 充值页营销 | `stubMarketing` | B |
+| `query/queryRechargeTips` | 充值提示文案 | `stubMarketing` | B |
+| `query/queryRechargeMsg` / `queryRechargerMsg` | 充值消息 | `stubMarketing` | B |
+| `query/userActivity/queryActivityInfo` | 活动 | `stubMarketing` | A（实测 `adItems=[]`、`totalCount=null` 已空）|
+| `query/userActivity/queryRechagerMessage` | 充值活动消息 | `stubMarketing` | B |
+| `query/getSolarTerms` | 节气装饰 | `stubMarketing` | B |
+| `query/queryBeautifulScr` | 靓号推荐 | `stubMarketing` | B |
+| `query/queryOffersAndBroadband` | 优惠/宽带推荐 | `stubMarketing` | B |
+| `query/queryHotNav` | 热门导航（营销入口行） | `stubMarketing` | B |
+
+**风险提示**
+
+- `stubPopups` 会把实名认证、欠费提醒这类弹窗一起挡掉 —— 需要时关掉这个开关
+- `queryHotNav` 如果承载首页某一行入口，关掉后会有留白；目前无 A 级证据，异常就关 `stubMarketing`
+- B 级条目全部可单独关闭（`[Argument]` 两个开关），不会像 `[Rewrite]` 那样无条件生效
+
+### MITM 域名
+
+v2.0.0 起为 3 个：`appgoadsz` / `appgoadhd`（业务 API）、`appgosz`（通用查询，可能承载上述接口）。

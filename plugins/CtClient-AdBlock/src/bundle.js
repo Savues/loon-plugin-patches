@@ -144,15 +144,56 @@ function cleanRingtoneAndLifeCard(d) {
   return clearArray(d, 'adList');
 }
 
+// ─────────────────── 无用功能整接口置空（v2.0.0） ───────────────────
+
+// 证据等级 B：仅 CTPocket 二进制常量区出现该路径，本次取证未触发。
+// 返回合法空信封（resultCode=1001 无数据）比 reject {} 更安全 —— App 对 data:null 有容错。
+function stubBody() {
+  return JSON.stringify({
+    headerInfos: { code: '0000', reason: '操作成功' },
+    responseData: { resultCode: '1001', resultDesc: '无数据', attach: '', data: null }
+  });
+}
+
+// popup 组：弹窗类（可能含实名/欠费提醒，单独开关）
+var STUB_POPUP = /\/(?:query\/getPopUpWindows|query\/queryAdRotation|query\/suspendWindowV2)\b/i;
+
+// marketing 组：营销/推荐/活动/装饰类，纯展示，无业务依赖
+var STUB_MARKETING = new RegExp([
+  '\\/query\\/queryMyChannelAdvSpace',       // 我的页广告位
+  '\\/query\\/queryRechargeMarketing',       // 充值页营销
+  '\\/query\\/queryRechargeTips',            // 充值提示文案
+  '\\/query\\/queryRechargeMsg',             // 充值消息
+  '\\/query\\/queryRechargerMsg',
+  '\\/query\\/userActivity\\/queryActivityInfo',      // 活动
+  '\\/query\\/userActivity\\/queryRechagerMessage',   // 充值活动消息
+  '\\/query\\/getSolarTerms',                // 节气装饰
+  '\\/query\\/queryBeautifulScr',            // 靓号推荐
+  '\\/query\\/queryOffersAndBroadband',      // 优惠/宽带推荐
+  '\\/query\\/queryHotNav'                   // 热门导航（营销入口行）
+].join('|'), 'i');
+
+function isStubTarget(url) {
+  return STUB_POPUP.test(url) || STUB_MARKETING.test(url);
+}
+
 // ─────────────────────────── 分发 ───────────────────────────
 
 function main() {
+  var url = ($request && $request.url) || '';
+
+  // ① 无用功能整接口置空（先于 body 解析，空 body 也能处理）
+  if (STUB_POPUP.test(url)) {
+    if (on('stubPopups')) { $done({ body: stubBody() }); return; }
+  } else if (STUB_MARKETING.test(url)) {
+    if (on('stubMarketing')) { $done({ body: stubBody() }); return; }
+  }
+
   if (!$response || !$response.body) {
     $done({});
     return;
   }
 
-  var url = ($request && $request.url) || '';
   var obj = parseBody();
   if (!obj) {
     $done({});
@@ -202,6 +243,10 @@ function main() {
   } else if (/\/query\/queryMyRingtoneAndLifeCard/i.test(url)) {
     if (!on('cardInnerAd')) { $done({}); return; }
     changed = cleanRingtoneAndLifeCard(d);
+  } else if (isStubTarget(url)) {
+    // 已在 main 开头处理，兜底返回
+    $done({});
+    return;
   } else {
     $done({});
     return;
