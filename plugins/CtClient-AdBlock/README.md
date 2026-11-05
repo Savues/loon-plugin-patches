@@ -2,6 +2,9 @@
 
 中国电信 App（`CtClient` / 二进制 `CTPocket` 13.5.0）去广告插件。
 
+> ⚠️ **实验性（v1.0.2）**：本插件在 **Live Container 测试环境**验证通过（62 条 appgoadsz 请求 200，字段级清洗全部生效）；
+> 但**正式环境会因证书校验导致 App 整体断网**（详见「八、证书校验边界」）。正式环境请勿启用。
+
 - 版本：**v1.0.0**
 - 探针：`https://appgoadsz.189.cn/gw/loon-sim.probe.ctclient_adblock`
 - 取证环境：Live Container 容器（`lcf-forensics` 抓原始响应 + 沙盒目录读写 + `strings CTPocket`）
@@ -159,3 +162,47 @@ node cli.js check CtClient-AdBlock.lpx
 3. **`query/qryNearConfigAdvertising`**：附近营业厅广告，需定位权限实测
 4. **`capp` 加解密**：需 crypto 函数名 + 明密文对，才能清洗小程序位
 5. **弹窗族**：`ESPopupsManager` / `ESLivePopupCoupon` / `ESLivePopupMarket` / `FloorAndPopupsConf` 未触发，需真实弹窗时段 HAR
+
+---
+
+## 八、证书校验边界（v1.0.2 实测定性）
+
+### 现象
+
+正式环境启用本插件后，App 首页/查询办理等页面全部「数据加载失败」，弹出：
+
+```
+您可能正在连接到一个伪装成“appgoadsz.189.cn”的服务器
+```
+
+同一台设备、同一 App、同一 Loon，在 **Live Container 里却完全正常**（62 条 appgoadsz 请求全部 `200`，
+且响应带本插件脚本的改写签名：`recommendAdBean.recommendAdList=[]` 但 `topArea` 保留、`bottomBannerList=[]`）。
+
+### 取证
+
+```
+openssl s_client -connect appgoadsz.189.cn:443 -servername appgoadsz.189.cn
+  subject=O=Loon, CN=shop-api.retail.mi.com      ← CN 与目标域不符
+  issuer =O=Loon, CN=LOON CA(2026-07-10) …
+  X509v3 Subject Alternative Name: DNS:appgoadsz.189.cn   ← SAN 正确
+```
+
+同样命令对 `api.m.jd.com` / `api.pinduoduo.com` / `ci.xiaohongshu.com` 结果**完全一致**（CN 都是 `shop-api.retail.mi.com`）——
+说明这是 **Loon 本机证书模板的全局行为，不是本插件引入的**。
+其它 App 只看 SAN 就放行，中国电信 App 不放行。
+
+### 结论
+
+| 环境 | 伪造证书 | 结果 |
+|---|---|---|
+| Live Container | 同一张 Loon 证书 | **接受**，MITM + 清洗全部生效 |
+| 正式环境（桌面） | 同一张 Loon 证书 | **拒绝**，TLS 握手失败 → 全 App 断网 |
+
+差异只能来自 App 自身的校验路径（登录态 / 风控 SDK / 运行时环境差异），非本插件可控制。
+**在找到让 Loon 证书 CN 正确的方法之前，HTTP 层清洗对该 App 的正式环境不可用。**
+
+### 若仍要在正式环境试
+
+1. 先只保留本插件、关闭其它模块（尤其 BlockAds 这类超长 MitM 列表），冷启动一次看是否仍报错
+2. 若仍报错：Loon → 设置 → MitM → 重新生成证书，重启 Loon 后再试（若 CN 变成正确域名则可用）
+3. 都不行 → 本 App 证书固定，MITM 方案终止；回退到「不动网络层」的方案（无）
