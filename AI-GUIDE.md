@@ -54,19 +54,34 @@ check (v1.7.0) 强制六项：① 完整锚定（裸路径=错误）② `reject(
 
 > 同机器同时刻跨插件"一绿一穿"**不能**归因规则形态 — 变量不止一个。真 A/B 必须同插件内。
 
-## 2. 三步验证工作流（每次改动必跑）
+## 2. 验证工作流（按改动集分层，见下方判据）
 
 ```bash
 cd tools/loon-sim
 node cli.js check ../../plugins/<Name>/<Name>.lpx   # ① 静态校验（0 错误才继续）
 node cli.js run <lpx> --url "https://目标URL" --response-file body.json   # ② 决策追踪
-sh ci.sh | tail -3                                   # ③ 全套回归（自测65+全插件check+parity）
 ```
 
 - 有 HAR 抓包用 `node cli.js har <lpx> <capture.har> --report out.md` 回放
 - cron/签到类用 `node cli.js trigger <lpx> cron --mock mock.json --persist store.json`
 - 语法疑问查 `tools/loon-sim/docs/`（官方文档完整存档，8 份）
 - 详细命令见 `tools/loon-sim/README.md`
+
+### ③ 全量回归 — 只在改动触及 loon-sim 本体时跑
+
+```bash
+# 客观判据：改动集是否触及 loon-sim 本体（内核/converter/matcher/runtime/selftest）
+git diff --name-only -- tools/loon-sim/ | grep -q . && sh ci.sh | tail -3
+```
+
+| 改动集 | ③ 全量回归 | 该跑什么 |
+|---|---|---|
+| **纯插件**（只动 `plugins/**`） | ❌ 跳过 | ①+②+ `dead-fn`/`parity`/该插件 `test.mjs`/`audit.py`（均定向到该插件，~5s） |
+| **loon-sim 本体**（`tools/loon-sim/**`） | ✅ 必跑 | 全套 `sh ci.sh`（跨插件爆炸半径） |
+
+**为什么纯插件改动跳过全量**：插件之间互不 import，loon-sim 只是测试器。改插件 X 不影响
+selftest/regression/parity/双仓同步，也不影响**其他**插件的 check/dead-fn/单测 ——
+全量在纯插件改动下保护 ≈ 0，纯浪费 195s。定向检查同样是验证，只是范围对准了改动。
 
 ## 3. 需求 → 实现的流程模板
 

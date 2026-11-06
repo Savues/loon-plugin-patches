@@ -11,7 +11,8 @@
 cd tools/loon-sim
 node cli.js check ../../plugins/<Name>/<Name>.lpx          # 0 错误
 node cli.js run <lpx> --url "https://目标URL"              # 决策符合预期
-sh ci.sh | tail -1                                          # CI 全绿
+# 全量回归只在改动触及 loon-sim 本体时跑（纯插件改动跳过，见 AI-GUIDE §2）
+git diff --name-only -- tools/loon-sim/ | grep -q . && sh ci.sh | tail -1
 
 # 终端实测的前提（第一铁律）
 sh tools/loon-sim/version-probe.sh <plugin.lpx              # ✅ 绿了才能测
